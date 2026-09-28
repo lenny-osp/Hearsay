@@ -381,7 +381,7 @@ alignment heads), beam search.
 | GitHub Copilot CLI | runs the installed `copilot` binary with the Python tool's argv; default `gpt-5.6-luna`, effort max | uses the CLI's own login |
 | Claude Code CLI | `claude --print` with no tools, no user settings, no session persistence; default `claude-sonnet-5`, effort high (owner choice 2026-09-28) | Claude subscription login; no temperature |
 | Codex CLI | `codex exec --sandbox read-only --ephemeral --ignore-user-config`, reply read from `--output-last-message`; default `gpt-6-luna`, effort max (owner choice 2026-09-28) | ChatGPT subscription login; no temperature |
-| Antigravity CLI (agy) | `agy --output-format json --json-schema <tmp>/reply-schema.json --disable-slash-commands --sandbox --print-timeout 570s --log-file <tmp>/agy.log --project hearsay-notes` (`--new-project` until that project exists) `[--model M] [--effort E] --print=<system message, no-tools line, prompt>`, cwd `<tmp>/hearsay-notes` (empty), reply from `structured_output`; default `gemini-3.8-flash-high` (owner choice 2026-09-28), `--effort` only for ids without a -low/-medium/-high suffix. Verified with agy 1.2.12: tool calls needing approval are auto-denied at once; `--sandbox` and `--mode plan` do not stop commands on the user's own `permissions.allow` list (a `mkdir ../x` ran), and every run is saved under `~/.gemini/antigravity-cli` (no ephemeral flag) | Google account login; `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `GOOGLE_APPLICATION_CREDENTIALS` removed; no temperature. Azure OpenAI preset removed 2026-09-28 (migrates to Custom) |
+| Antigravity CLI (agy) | `agy --output-format json --json-schema <tmp>/reply-schema.json --disable-slash-commands --sandbox --print-timeout 570s --log-file <tmp>/agy.log --project hearsay-notes [--model M] [--effort E] --print=<system message, no-tools line, prompt>`, cwd `<tmp>/hearsay-notes` (empty), reply from `structured_output`; default `gemini-3.8-flash-high` (owner choice 2026-09-28), `--effort` only for ids without a -low/-medium/-high suffix. Isolation (owner decisions 2026-09-28, verified with agy 1.2.12): before each run `AntigravityHousekeeping` makes sure the `hearsay-notes` project file in `~/.gemini/config/projects/` has `permissionGrants.permissionGrants.deny` = `command(*)`, `read_file(*)`, `write_file(*)`, `read_url(*)`, `execute_url(*)`, `mcp(*)` (merged, other keys kept; created when missing), which overrides the user's global allow list (`ls ..`, `cat` outside, `mkdir ../x`, view_file, write_to_file, read_url, a subagent's command: all denied); `search_web` cannot be denied. After each run the conversation is deleted by its `conversation_id` (files named after it under `~/.gemini/antigravity-cli`, its entries in `cache/*.json` and `jetbox_summaries_proto.pb`, its `conversation_summaries.db` row, and its subagents); `implicit/*.pb` (one unlabeled file per run) stays | Google account login; `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `GOOGLE_APPLICATION_CREDENTIALS` removed; no temperature. Azure OpenAI preset removed 2026-09-28 (migrates to Custom) |
 | Ollama / LM Studio | `http://localhost:11434/v1/chat/completions` | local, no token |
 | Custom | any OpenAI-compatible URL | header name selectable |
 
@@ -557,16 +557,14 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
 
 ## 17. Polish list (found during review, not yet scheduled)
 
-- **Open, needs owner decision (2026-09-28): Antigravity CLI isolation.**
-  agy honors the owner's own `~/.gemini/antigravity-cli/settings.json`
-  allow list (`ls`, `cat`, `find`, `mkdir`, ...; `allowNonWorkspaceAccess:
-  true`), so a Hearsay run could read files outside its temp folder or
-  create folders, for example if a transcript contained injected
-  instructions. Options: a deny list in the `hearsay-notes` project config,
-  deleting Hearsay's conversation after each run, or documenting the risk.
-  Probe leftovers from testing in the owner's agy data: project `w`
-  (`~/.gemini/config/projects/d5963305-d1f3-4ebc-857e-5bfa4eae54d3.json`)
-  and about 20 probe conversations.
+- **Decided 2026-09-28: Antigravity CLI isolation.** agy honors the
+  owner's own `~/.gemini/antigravity-cli/settings.json` allow list, so
+  Hearsay keeps deny rules in its `hearsay-notes` project and deletes each
+  run's conversation afterwards (section 7). Probe leftovers (project `w`
+  and the probe conversations) were deleted. Left for the owner: the agy
+  log files from testing under `~/.gemini/antigravity-cli/log/`
+  (`cli-20260928_164808`, `_171101`, `_171214`, `_174131`) and about 48
+  `implicit/*.pb` files from today's runs, which carry no conversation id.
 
 - Unit tests that use `UserDefaults(suiteName:)` leave a plist per test in
   `~/Library/Preferences` (1,341 removed by hand on 2026-09-28). Use `ScratchDefaults` in tests;

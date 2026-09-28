@@ -470,7 +470,7 @@ struct CLIRoutingTests {
             client: http,
             cliClient: CLIClient(
                 runner: fake.runner, locator: locator(found: ["/usr/bin/copilot", claudePath, codexPath, agyPath]),
-                antigravityProjectExists: { true }
+                antigravity: fakeHousekeeping()
             )
         )
         var copilot = AIProviderConfiguration(preset: .copilotCLI)

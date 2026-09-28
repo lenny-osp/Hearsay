@@ -30,8 +30,18 @@ private func agyConfiguration(model: String = "gemini-3.8-flash-high", effort: S
     return configuration
 }
 
-private func agyClient(_ fake: FakeCLIRunner, projectExists: Bool = true) -> CLIClient {
-    CLIClient(runner: fake.runner, locator: locator(found: [agyPath]), antigravityProjectExists: { projectExists })
+/// Housekeeping on an in-memory `/Users/test`, so no test touches `~/.gemini`.
+func fakeHousekeeping(
+    _ fileSystem: FakeAntigravityFileSystem = FakeAntigravityFileSystem(),
+    index: FakeConversationIndex = FakeConversationIndex()
+) -> AntigravityHousekeeping {
+    AntigravityHousekeeping(homeDirectory: "/Users/test", fileSystem: fileSystem, index: index)
+}
+
+private func agyClient(
+    _ fake: FakeCLIRunner, fileSystem: FakeAntigravityFileSystem = FakeAntigravityFileSystem()
+) -> CLIClient {
+    CLIClient(runner: fake.runner, locator: locator(found: [agyPath]), antigravity: fakeHousekeeping(fileSystem))
 }
 
 private func value(after flag: String, in argv: [String]) -> String? {
@@ -66,7 +76,7 @@ struct AntigravityCLITests {
     @Test func argvForNamedModelWithoutAnEffortSuffix() {
         let argv = CLIArguments.antigravity(
             executable: agyPath, prompt: "PROMPT", model: "gemini-3.1-pro", reasoningEffort: "medium",
-            schemaFile: "/t/reply-schema.json", logFile: "/t/agy.log", projectExists: true
+            schemaFile: "/t/reply-schema.json", logFile: "/t/agy.log"
         )
         #expect(argv == [
             agyPath, "--output-format", "json", "--json-schema", "/t/reply-schema.json",
@@ -84,12 +94,12 @@ struct AntigravityCLITests {
         let argv = CLIArguments.antigravity(
             executable: agyPath, prompt: "P", model: configuration.model,
             reasoningEffort: configuration.reasoningEffort,
-            schemaFile: "/t/s.json", logFile: "/t/l.log", projectExists: false
+            schemaFile: "/t/s.json", logFile: "/t/l.log"
         )
         #expect(argv == [
             agyPath, "--output-format", "json", "--json-schema", "/t/s.json",
             "--disable-slash-commands", "--sandbox", "--print-timeout", "570s",
-            "--log-file", "/t/l.log", "--new-project",
+            "--log-file", "/t/l.log", "--project", "hearsay-notes",
             "--model", "gemini-3.8-flash-high",
             "--print=P",
         ])
@@ -103,7 +113,7 @@ struct AntigravityCLITests {
     @Test func promptIsAttachedToPrint() {
         let argv = CLIArguments.antigravity(
             executable: agyPath, prompt: "-starts with a dash\n--output-format text", model: " ", reasoningEffort: " ",
-            schemaFile: "/s", logFile: "/l", projectExists: true
+            schemaFile: "/s", logFile: "/l"
         )
         #expect(argv.last == "--print=-starts with a dash\n--output-format text")
         #expect(!argv.contains("--model"))
@@ -164,21 +174,6 @@ struct AntigravityCLITests {
         ])
     }
 
-    @Test func projectLookupReadsProjectNames() throws {
-        let home = FileManager.default.temporaryDirectory.appendingPathComponent("HearsayTests-\(UUID().uuidString)")
-        defer { try? FileManager.default.removeItem(at: home) }
-        #expect(!CLIArguments.antigravityProjectExists(homeDirectory: home.path))
-        let projects = home.appendingPathComponent(".gemini/config/projects", isDirectory: true)
-        try FileManager.default.createDirectory(at: projects, withIntermediateDirectories: true)
-        try Data(#"{"id": "default-cli-project", "name": "CLI Project"}"#.utf8)
-            .write(to: projects.appendingPathComponent("default-cli-project.json"))
-        try Data("not json".utf8).write(to: projects.appendingPathComponent("broken.json"))
-        #expect(!CLIArguments.antigravityProjectExists(homeDirectory: home.path))
-        try Data(#"{"id": "0062828e", "name": "hearsay-notes", "projectResources": {}}"#.utf8)
-            .write(to: projects.appendingPathComponent("0062828e.json"))
-        #expect(CLIArguments.antigravityProjectExists(homeDirectory: home.path))
-    }
-
     // MARK: - Runs
 
     @Test func successParsesStructuredOutputAndRunsInAnEmptyWorkingFolder() async throws {
@@ -213,7 +208,7 @@ struct AntigravityCLITests {
             executable: agyPath,
             prompt: MeetingPrompt.systemMessage + "\n\n" + CLIArguments.antigravityInstructions + "\n\n" + prompt, model: "gemini-3.8-flash-high", reasoningEffort: "high",
             schemaFile: root.appendingPathComponent("reply-schema.json").path,
-            logFile: root.appendingPathComponent("agy.log").path, projectExists: true
+            logFile: root.appendingPathComponent("agy.log").path
         ))
         #expect(!call.argv.contains("ignored"))
         #expect(call.timeout == 600)
@@ -221,16 +216,74 @@ struct AntigravityCLITests {
         #expect(!FileManager.default.fileExists(atPath: root.path))
     }
 
-    @Test func firstRunCreatesTheProject() async throws {
+    /// Before agy starts, the project with the deny rules exists; after it
+    /// ends, that run's conversation is deleted.
+    @Test func runEnsuresTheProjectAndDeletesItsConversation() async throws {
+        let id = "c0f98fe5-eaac-452a-9332-470822a1d3ed"
+        let files = FakeAntigravityFileSystem()
+        let base = "/Users/test/.gemini/antigravity-cli"
+        files.add("\(base)/conversations/\(id).db")
+        files.add("\(base)/brain/\(id)/.system_generated/logs/transcript.jsonl")
+        files.add("\(base)/conversations/0cb76a4c-28ef-4515-99ad-6f6ee04c3723.db")
         let fake = FakeCLIRunner { _ in
-            CLIRunResult(exitCode: 0, stdout: antigravityEnvelope(response: launchNotes), stderr: "")
+            // The project file is in place by the time agy runs.
+            #expect(files.paths.contains { $0.hasPrefix("/Users/test/.gemini/config/projects/") })
+            var envelope = antigravityEnvelope(response: launchNotes)
+            envelope = envelope.replacingOccurrences(of: "6cfd8496-ae02-41ac-afc4-1460ec1eaf0c", with: id)
+            return CLIRunResult(exitCode: 0, stdout: envelope, stderr: "")
         }
-        _ = try await agyClient(fake, projectExists: false).complete(
+        let reply = try await agyClient(fake, fileSystem: files).complete(
             systemMessage: "s", userMessage: "u", configuration: agyConfiguration(), token: nil
         )
-        let argv = try #require(fake.calls.first?.argv)
-        #expect(argv.contains("--new-project"))
-        #expect(!argv.contains("--project"))
+        #expect(try NotesResponse.parse(reply).filename == "Product Launch Plan")
+        #expect(files.paths.filter { $0.contains(id) }.isEmpty)
+        #expect(files.paths.contains("\(base)/conversations/0cb76a4c-28ef-4515-99ad-6f6ee04c3723.db"))
+    }
+
+    /// A failed run with no conversation id deletes nothing; a failed run
+    /// with one still deletes it.
+    @Test func failedRunsDeleteOnlyWhenThereIsAnID() async {
+        let id = "a4955120-504f-425d-beda-a27a3123f471"
+        let files = FakeAntigravityFileSystem()
+        files.add("/Users/test/.gemini/antigravity-cli/conversations/\(id).db")
+        let noID = FakeCLIRunner { _ in CLIRunResult(exitCode: 1, stdout: "", stderr: "error: invalid model selection") }
+        await #expect(throws: CLIProviderError.self) {
+            _ = try await agyClient(noID, fileSystem: files).complete(
+                systemMessage: "s", userMessage: "u", configuration: agyConfiguration(), token: nil
+            )
+        }
+        #expect(files.removed.isEmpty)
+        let withID = FakeCLIRunner { _ in
+            CLIRunResult(exitCode: 3, stdout: #"{"conversation_id":"\#(id)","status":"ERROR","response":"partial"}"#, stderr: "AGY_ERROR x")
+        }
+        await #expect(throws: CLIProviderError.self) {
+            _ = try await agyClient(withID, fileSystem: files).complete(
+                systemMessage: "s", userMessage: "u", configuration: agyConfiguration(), token: nil
+            )
+        }
+        #expect(files.removed == ["/Users/test/.gemini/antigravity-cli/conversations/\(id).db"])
+    }
+
+    /// Without the deny rules agy must not start.
+    @Test func projectWriteFailureStopsTheRun() async {
+        let files = FakeAntigravityFileSystem()
+        files.failWrites = true
+        let fake = FakeCLIRunner { _ in CLIRunResult(exitCode: 0, stdout: launchNotes, stderr: "") }
+        do {
+            _ = try await agyClient(fake, fileSystem: files).complete(
+                systemMessage: "s", userMessage: "u", configuration: agyConfiguration(), token: nil
+            )
+            Issue.record("expected launchFailed")
+        } catch let error as CLIProviderError {
+            guard case .launchFailed(.antigravity, let detail) = error else {
+                Issue.record("unexpected \(error)")
+                return
+            }
+            #expect(detail.contains("hearsay-notes project in /Users/test/.gemini/config/projects"))
+        } catch {
+            Issue.record("unexpected \(error)")
+        }
+        #expect(fake.calls.isEmpty)
     }
 
     /// Without `structured_output`, `response` is parsed; stdout that is not
@@ -325,7 +378,7 @@ struct AntigravityCLITests {
         #expect(CLIProviderError.timedOut(.antigravity).errorDescription == "Antigravity CLI did not answer within 10 minutes and was stopped.")
 
         let missing = FakeCLIRunner { _ in CLIRunResult(exitCode: 1, stdout: "", stderr: "") }
-        let client = CLIClient(runner: missing.runner, locator: locator(found: []), antigravityProjectExists: { true })
+        let client = CLIClient(runner: missing.runner, locator: locator(found: []), antigravity: fakeHousekeeping())
         var configuration = agyConfiguration()
         configuration.antigravityPath = nil
         do {
@@ -348,10 +401,10 @@ struct AntigravityCLITests {
 
     @Test func checkRunsVersionAndModels() async throws {
         let fake = FakeCLIRunner { argv in
-            switch Array(argv.dropFirst()) {
-            case ["--version"]:
+            switch (argv.count, argv.last) {
+            case (2, "--version"):
                 return CLIRunResult(exitCode: 0, stdout: "1.2.12\n", stderr: "")
-            case ["models"]:
+            case (4, "models"):
                 return CLIRunResult(
                     exitCode: 0,
                     stdout: "Fetching available models...\ngemini-3.8-flash-high\tGemini 3.8 Flash (High)\ngemini-3.1-pro-low\tGemini 3.1 Pro (Low)\nclaude-sonnet-4-6\tClaude Sonnet 4.6 (Thinking)\n",
@@ -368,7 +421,10 @@ struct AntigravityCLITests {
             tool: .antigravity, path: agyPath, version: "1.2.12",
             loginStatus: "Logged in; 3 models available", loggedIn: true
         ))
-        #expect(fake.calls.map(\.argv) == [[agyPath, "--version"], [agyPath, "models"]])
+        #expect(fake.calls.count == 2)
+        #expect(fake.calls.first?.argv == [agyPath, "--version"])
+        let models = try #require(fake.calls.last)
+        #expect(models.argv == [agyPath, "--log-file", models.directory.appendingPathComponent("agy.log").path, "models"])
         #expect(fake.calls.map(\.timeout) == [15, 20])
     }
 

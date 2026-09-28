@@ -143,8 +143,8 @@ public enum CLIArguments {
     /// the empty working folder the agent sees.
     public static let antigravitySchemaFileName = "reply-schema.json"
     public static let antigravityLogFileName = "agy.log"
-    /// The agy project every Hearsay run belongs to, and the name of the
-    /// empty working folder: `agy --new-project` names the project after it.
+    /// The agy project every Hearsay run belongs to (its deny rules are kept
+    /// by `AntigravityHousekeeping`), also used as the working folder name.
     public static let antigravityProjectName = "hearsay-notes"
     /// `--print-timeout`, a little below `CLIClient.timeout` (600 s) so agy
     /// stops on its own first.
@@ -169,11 +169,11 @@ public enum CLIArguments {
     /// `agy --print` with the reply schema enforced (which needs
     /// `--output-format json`), slash commands and skills off, the terminal
     /// sandbox on, a log file inside the run's folder, and every run in the
-    /// `hearsay-notes` project: `--project` once it exists, else
-    /// `--new-project` (which creates it, named after the working folder).
-    /// agy has no flag to turn tools off; in print mode a tool call that
-    /// needs a permission is denied at once, but commands in the user's own
-    /// `permissions.allow` list still run. The prompt is attached to
+    /// `hearsay-notes` project, whose deny rules (`AntigravityHousekeeping`)
+    /// block every tool that runs programs, touches files, or fetches URLs,
+    /// overriding the user's own `permissions.allow` list. agy has no flag to
+    /// turn tools off; in print mode a tool call that needs a permission is
+    /// denied at once rather than waiting. The prompt is attached to
     /// `--print=`, because agy takes the next argument as its value and
     /// rejects a prompt after `--`. `prompt` is `antigravityPrompt`'s
     /// result. An empty model
@@ -184,8 +184,7 @@ public enum CLIArguments {
         model: String,
         reasoningEffort: String?,
         schemaFile: String,
-        logFile: String,
-        projectExists: Bool
+        logFile: String
     ) -> [String] {
         var argv = [
             executable,
@@ -195,8 +194,8 @@ public enum CLIArguments {
             "--sandbox",
             "--print-timeout", antigravityPrintTimeout,
             "--log-file", logFile,
+            "--project", antigravityProjectName,
         ]
-        argv += projectExists ? ["--project", antigravityProjectName] : ["--new-project"]
         let trimmedModel = model.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmedModel.isEmpty {
             argv += ["--model", trimmedModel]
@@ -225,20 +224,6 @@ public enum CLIArguments {
         }
     }
 
-    /// Whether `~/.gemini/config/projects` has a project named
-    /// `antigravityProjectName`. Only reads; a missing or unreadable folder
-    /// counts as no.
-    public static func antigravityProjectExists(homeDirectory: String = NSHomeDirectory()) -> Bool {
-        let folder = (homeDirectory as NSString).appendingPathComponent(".gemini/config/projects")
-        let files = (try? FileManager.default.contentsOfDirectory(atPath: folder)) ?? []
-        return files.contains { file in
-            guard file.hasSuffix(".json"),
-                  let data = FileManager.default.contents(atPath: (folder as NSString).appendingPathComponent(file)),
-                  let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return false }
-            return object["name"] as? String == antigravityProjectName
-        }
-    }
-
     private static func normalized(_ value: String?) -> String {
         value?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
     }
@@ -255,16 +240,16 @@ public actor CLIClient: ChatCompleting {
 
     private let runner: CLIRunner
     private let locator: CLILocator
-    private let antigravityProjectExists: @Sendable () -> Bool
+    private let antigravity: AntigravityHousekeeping
 
     public init(
         runner: @escaping CLIRunner = CLIProcessRunner.run,
         locator: CLILocator = CLILocator(),
-        antigravityProjectExists: @escaping @Sendable () -> Bool = { CLIArguments.antigravityProjectExists() }
+        antigravity: AntigravityHousekeeping = AntigravityHousekeeping()
     ) {
         self.runner = runner
         self.locator = locator
-        self.antigravityProjectExists = antigravityProjectExists
+        self.antigravity = antigravity
     }
 
     /// The inherited environment with the binary's folder first on PATH, so
@@ -349,7 +334,17 @@ public actor CLIClient: ChatCompleting {
         let preset = configuration.preset
         guard let tool = preset.kind.cliTool else { throw CLIProviderError.notACLIPreset(preset.name) }
         let executable = try await locate(tool, configuredPath: configuration.cliPath(for: tool))
-        let projectExists = tool == .antigravity && antigravityProjectExists()
+        if tool == .antigravity {
+            // Never run agy without the deny rules in place.
+            do {
+                try antigravity.ensureProject()
+            } catch {
+                throw CLIProviderError.launchFailed(
+                    tool,
+                    "Could not set up the \(CLIArguments.antigravityProjectName) project in \(antigravity.projectsFolder): \(error.localizedDescription)"
+                )
+            }
+        }
         return try await run(tool, executable: executable, timeout: Self.timeout) { directory in
             guard tool == .antigravity else { return directory }
             // The agent sees an empty folder; the schema and log sit beside it.
@@ -384,12 +379,16 @@ public actor CLIClient: ChatCompleting {
                     prompt: CLIArguments.antigravityPrompt(systemMessage: systemMessage, userMessage: userMessage),
                     model: configuration.model, reasoningEffort: configuration.reasoningEffort,
                     schemaFile: directory.appendingPathComponent(CLIArguments.antigravitySchemaFileName).path,
-                    logFile: directory.appendingPathComponent(CLIArguments.antigravityLogFileName).path,
-                    projectExists: projectExists
+                    logFile: directory.appendingPathComponent(CLIArguments.antigravityLogFileName).path
                 )
             }
         } finish: { result, directory in
-            try Self.reply(tool: tool, result: result, directory: directory)
+            // agy keeps every run in its history; delete this one, whatever
+            // the outcome. No conversation id: nothing is deleted.
+            if tool == .antigravity, let id = AntigravityHousekeeping.conversationID(inOutput: result.stdout) {
+                antigravity.removeConversation(id: id)
+            }
+            return try Self.reply(tool: tool, result: result, directory: directory)
         }
     }
 
@@ -460,8 +459,13 @@ public actor CLIClient: ChatCompleting {
         }
         var installation = CLIInstallation(tool: tool, path: executable, version: version)
         if let statusArguments = tool.loginStatusArguments {
-            let status = try await run(tool, executable: executable, timeout: tool.loginStatusTimeout) { _ in
-                [executable] + statusArguments
+            let status = try await run(tool, executable: executable, timeout: tool.loginStatusTimeout) { directory in
+                // `agy models` starts agy's backend, which logs to
+                // ~/.gemini/antigravity-cli/log unless told otherwise.
+                tool == .antigravity
+                    ? [executable, "--log-file", directory.appendingPathComponent(CLIArguments.antigravityLogFileName).path]
+                        + statusArguments
+                    : [executable] + statusArguments
             } finish: { result, _ in
                 Self.loginStatus(tool: tool, result: result)
             }

@@ -141,12 +141,16 @@ otherwise its modification time.
      only used for ids without one (`low`, `medium`, `high`, or `max`).
      Hearsay runs it in print mode with the reply format enforced, in an
      empty temporary folder, with the terminal sandbox on and slash
-     commands off; a tool that would need your approval is refused at
-     once. agy has no option to turn tools off or to skip saving the
-     session: commands in your own agy allow list (`permissions.allow` in
-     `~/.gemini/antigravity-cli/settings.json`) can still run, and each run
-     is kept in agy's history under `~/.gemini/antigravity-cli`, in a
-     project named `hearsay-notes` that the first run creates.
+     commands off, in an agy project named `hearsay-notes` whose deny
+     rules block shell commands, file reads and writes, URL fetches, and
+     MCP tools, so the model can only answer. Hearsay writes that project
+     file (`~/.gemini/config/projects/<id>.json`) before each run if the
+     rules are missing, and never changes your own agy settings; the
+     project's rules take precedence over your `permissions.allow` list.
+     agy's web search cannot be denied this way. agy saves every run in its
+     history, so Hearsay deletes that run's conversation from
+     `~/.gemini/antigravity-cli` afterwards; agy still keeps a small
+     unlabeled file per run in `implicit/`.
    - **Custom** needs the endpoint, the model, and your API key; keys are
      stored in the macOS Keychain. Pick the `api-key` token header for
      Azure OpenAI. **Ollama and LM Studio** run locally and need no key.
