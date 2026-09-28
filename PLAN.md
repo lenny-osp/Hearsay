@@ -553,6 +553,17 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
 
 ## 17. Polish list (found during review, not yet scheduled)
 
+- **To do (owner request 2026-09-28): write a Windows version plan**
+  (`PLAN-WINDOWS.md`, beside this file; plan only, no code yet). Starting
+  points agreed in discussion: native C# / .NET app (WinUI 3 or WPF) with a
+  tray icon; whisper.cpp, or faster-whisper with CUDA on NVIDIA GPUs; WASAPI
+  for the mic and loopback for system audio; Windows Credential Manager for
+  tokens; same HTTP providers plus Copilot CLI. Reuse this plan's naming
+  rules, prompt, JSON contract, and the `Fixtures/` audio with expected SRTs
+  as a shared acceptance suite. Cover CPU-only performance (smaller default
+  model), the need for a Windows machine to build and test, and an estimate
+  (discussed: about 6 to 8 weeks of agent work).
+
 - **To do (owner request 2026-09-28): "Reduce background noise" switch** on
   the Record tab. Routes only the mic through Apple voice processing so
   Control Center > Mic Mode > Voice Isolation becomes available. Warn in the
