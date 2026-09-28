@@ -1,0 +1,8 @@
+1
+00:00:00,000 --> 00:00:10,580
+Buenos días a todos. Empecemos con el estado del proyecto. La nueva versión está prevista para el próximo jueves, pero todavía tenemos dos errores abiertos en la pantalla de inicio de sesión.
+
+2
+00:00:11,040 --> 00:00:21,120
+Lucía, ¿puedes proponer una solución antes del miércoles? Además, tenemos que revisar el presupuesto del tercer trimestre. Os enviaré un resumen por correo después de la reunión.
+

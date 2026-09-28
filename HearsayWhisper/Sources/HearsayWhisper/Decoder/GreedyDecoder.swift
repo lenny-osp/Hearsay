@@ -111,6 +111,45 @@ final class WindowDecoder {
         return bestCode
     }
 
+    /// Port of `detect_language` returning the distribution instead of the
+    /// argmax: one decoder step on `[sot]`, every non-language token masked,
+    /// softmax over the language tokens (`language_probs`). Also returns the
+    /// `<|nospeech|>` probability from the full-vocabulary softmax at that
+    /// same `<|startoftranscript|>` position, which is where `DecodingTask`
+    /// reads `no_speech_prob` (causal attention: position 0 sees only `sot`,
+    /// so the logits there do not depend on the tokens after it).
+    ///
+    /// `detectLanguage(audioFeatures:)` above stays the one `transcribe()`
+    /// uses, so its output is unchanged.
+    func languageProbabilities(audioFeatures: MLXArray) -> (probabilities: [String: Float], noSpeechProb: Float) {
+        var caches = (0..<model.config.decoderLayers).map { _ in WhisperLayerCache() }
+        let input = MLXArray([Int32(specials.sot)]).reshaped([1, 1])
+        let hidden = model.model.decoder(
+            tokens: input, startPosition: 0, encoderHidden: audioFeatures, caches: &caches
+        )
+        let logits = model.model.decoder.projectToVocab(hidden[0, 0]).asType(.float32)
+        eval(logits)
+        let values = logits.asArray(Float.self)
+
+        var languageLogits: [(code: String, logit: Float)] = []
+        for (index, code) in specials.languageCodes.enumerated() {
+            let id = specials.sot + 1 + index
+            guard id < values.count else { continue }
+            languageLogits.append((code, values[id]))
+        }
+        let languageLSE = logSumExp(languageLogits.map(\.logit)[...])
+        var probabilities: [String: Float] = [:]
+        for (code, logit) in languageLogits {
+            probabilities[code] = Float(Foundation.exp(Double(logit) - languageLSE))
+        }
+
+        var noSpeechProb = Float.nan
+        if let noSpeech = specials.noSpeech, noSpeech < values.count {
+            noSpeechProb = Float(Foundation.exp(Double(values[noSpeech]) - logSumExp(values[...])))
+        }
+        return (probabilities, noSpeechProb)
+    }
+
     /// Decode one window at one temperature (`DecodingTask(model, options).run`).
     func decode(
         audioFeatures: MLXArray,

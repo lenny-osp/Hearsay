@@ -109,6 +109,9 @@ public enum TranscriptionError: Error, Equatable, CustomStringConvertible {
     case unsupportedLanguage(String)
     case missingSpecialToken(String)
     case noTemperatures
+    /// The model has no language tokens (English-only), so it cannot detect
+    /// a language (`detect_language` raises `ValueError` in Python).
+    case languageDetectionUnavailable
     /// Cancelled between windows; `partial` holds the segments decoded before.
     case cancelled(partial: [TranscriptSegment])
 
@@ -118,6 +121,7 @@ public enum TranscriptionError: Error, Equatable, CustomStringConvertible {
         case .unsupportedLanguage(let language): return "Unsupported language: \(language)"
         case .missingSpecialToken(let name): return "The tokenizer has no \(name) token."
         case .noTemperatures: return "TranscriptionOptions.temperatures is empty."
+        case .languageDetectionUnavailable: return "This model has no language tokens, so it cannot detect the language."
         case .cancelled(let partial): return "Transcription cancelled after \(partial.count) segments."
         }
     }

@@ -1,0 +1,20 @@
+1
+00:00:00,000 --> 00:00:03,880
+Guten Morgen zusammen, lasst uns mit dem Stand des Projekts beginnen.
+
+2
+00:00:04,280 --> 00:00:10,600
+Das neue Release ist für nächsten Donnerstag geplant, aber wir haben noch zwei offene Fehler im Anmeldebereich.
+
+3
+00:00:10,980 --> 00:00:14,100
+Markus, kannst du bis Mittwoch eine Lösung vorschlagen?
+
+4
+00:00:14,500 --> 00:00:17,800
+Außerdem müssen wir das Budget für das dritte Quartal besprechen.
+
+5
+00:00:18,220 --> 00:00:21,680
+Ich schicke euch nach dem Meeting eine Zusammenfassung per E-Mail.
+

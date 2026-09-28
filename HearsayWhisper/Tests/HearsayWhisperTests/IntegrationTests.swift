@@ -39,6 +39,102 @@ struct IntegrationTests {
     }
 
     @Test(.enabled(if: modelDirectory != nil))
+    func germanFixtureMatchesPython() async throws {
+        try await compare(fixture: "de-30s", options: TranscriptionOptions(language: "de"), lowercase: false)
+    }
+
+    @Test(.enabled(if: modelDirectory != nil))
+    func spanishFixtureMatchesPython() async throws {
+        try await compare(fixture: "es-30s", options: TranscriptionOptions(language: "es"), lowercase: false)
+    }
+
+    // MARK: - Language detection
+
+    static let detectionCandidates = ["en", "zh", "de", "es"]
+
+    /// Python reference: top language and its probability from
+    /// `model.detect_language(pad_or_trim(log_mel_spectrogram(audio,
+    /// padding=N_SAMPLES), N_FRAMES).astype(float16))`, the path
+    /// `transcribe(language=None)` takes, with mlx_whisper 0.4.3 and
+    /// `Spike/models/mlx-community_whisper-large-v3-turbo` (fp16), computed
+    /// 2026-09-28. Probabilities are over all 100 languages. The four-language
+    /// values were en/zh/de/es:
+    /// en-30s 0.999725/1.2e-05/3.8e-05/5.5e-05; zh-30s 0.001023/0.997967/5.4e-05/6.4e-05;
+    /// de-30s 0.000341/7e-06/0.999425/3.2e-05; es-30s 0.000232/3e-06/1.7e-05/0.99943.
+    static let pythonDetection: [(fixture: String, code: String, probability: Float)] = [
+        ("en-30s", "en", 0.999725),
+        ("zh-30s", "zh", 0.997967),
+        ("de-30s", "de", 0.999425),
+        ("es-30s", "es", 0.999430),
+    ]
+
+    @Test(.enabled(if: modelDirectory != nil))
+    func singleWindowDetectionMatchesPython() async throws {
+        let transcriber = try await Self.loadTranscriber()
+        for reference in Self.pythonDetection {
+            let samples = try Self.readWav(Self.fixtures.appendingPathComponent("\(reference.fixture).wav"))
+            let (probabilities, noSpeech) = try transcriber.detectLanguage(samples: samples)
+            let all = probabilities.probabilities
+            #expect(all.count == 100)
+            #expect(abs(all.values.reduce(0, +) - 1) < 1e-3)
+            let top = try #require(all.max { $0.value < $1.value })
+            print("detect \(reference.fixture): swift \(top.key) \(top.value) no-speech \(noSpeech); python \(reference.code) \(reference.probability)")
+            #expect(top.key == reference.code, "\(reference.fixture)")
+            #expect(abs(top.value - reference.probability) <= 0.01, "\(reference.fixture): \(top.value)")
+            #expect(noSpeech < 0.6)
+        }
+    }
+
+    @Test(.enabled(if: modelDirectory != nil))
+    func candidateDetectionFindsEachFixtureLanguage() async throws {
+        let transcriber = try await Self.loadTranscriber()
+        for reference in Self.pythonDetection {
+            let samples = try Self.readWav(Self.fixtures.appendingPathComponent("\(reference.fixture).wav"))
+            let result = try transcriber.detectLanguage(samples: samples, candidates: Self.detectionCandidates)
+            print("detect \(reference.fixture) among 4: \(result.code ?? "nil") \(result.confidence) windows \(result.windowsUsed)")
+            #expect(result.code == reference.code, "\(reference.fixture)")
+            #expect(result.confidence > 0.9, "\(reference.fixture): \(result.confidence)")
+            #expect(result.windowsUsed == 1)
+            #expect(result.perWindow.count == 1)
+        }
+    }
+
+    @Test(.enabled(if: modelDirectory != nil))
+    func candidateDetectionSkipsSilenceAndCapsWindows() async throws {
+        let transcriber = try await Self.loadTranscriber()
+        let clip = try Self.readWav(Self.fixtures.appendingPathComponent("de-30s.wav"))
+        let silence = [Float](repeating: 0, count: WhisperAudioConfig.chunkLengthSamples)
+        // silence, then five 30 s windows each starting with the German clip
+        let pad = [Float](repeating: 0, count: WhisperAudioConfig.chunkLengthSamples - clip.count)
+        let samples = silence + Array((0..<5).map { _ in clip + pad }.joined())
+        let result = try transcriber.detectLanguage(
+            samples: samples, candidates: Self.detectionCandidates, maxSpeechWindows: 3
+        )
+        #expect(result.code == "de")
+        #expect(result.windowsUsed == 3)
+        #expect(result.confidence > 0.9)
+    }
+
+    @Test(.enabled(if: modelDirectory != nil))
+    func silentBufferDetectsNothing() async throws {
+        let transcriber = try await Self.loadTranscriber()
+        let silence = [Float](repeating: 0, count: WhisperAudioConfig.chunkLengthSamples)
+        let result = try transcriber.detectLanguage(samples: silence, candidates: Self.detectionCandidates)
+        #expect(result.code == nil)
+        #expect(result.confidence == 0)
+        #expect(result.windowsUsed == 0)
+        #expect(result.perWindow.isEmpty)
+    }
+
+    @Test(.enabled(if: modelDirectory != nil))
+    func detectionRejectsUnknownCandidate() async throws {
+        let transcriber = try await Self.loadTranscriber()
+        #expect(throws: TranscriptionError.unsupportedLanguage("xx")) {
+            _ = try transcriber.detectLanguage(samples: [0], candidates: ["en", "xx"])
+        }
+    }
+
+    @Test(.enabled(if: modelDirectory != nil))
     func tokenizerMatchesTiktoken() async throws {
         let transcriber = try await Self.loadTranscriber()
         #expect(transcriber.specials == .largeV3)
@@ -92,10 +188,12 @@ struct IntegrationTests {
         let transcriber = try await Self.loadTranscriber()
         let samples = try Self.readWav(Self.fixtures.appendingPathComponent("\(fixture).wav"))
         let result = try transcriber.transcribe(samples: samples, options: options)
-        let actual = Self.parseSRT(renderSRT(result.segments))
+        let rendered = renderSRT(result.segments)
+        let actual = Self.parseSRT(rendered)
         let expectedText = try String(
             contentsOf: Self.fixtures.appendingPathComponent("\(fixture).expected.srt"), encoding: .utf8
         )
+        #expect(rendered == expectedText, "\(fixture): SRT is not byte-identical to the Python reference")
         let expected = Self.parseSRT(expectedText)
 
         #expect(abs(actual.count - expected.count) <= 1, "cue count \(actual.count) vs \(expected.count)")
