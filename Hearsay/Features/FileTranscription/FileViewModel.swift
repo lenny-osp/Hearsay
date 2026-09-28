@@ -181,7 +181,9 @@ final class FileViewModel {
     /// the tokenizer files), transcribes that file with that folder,
     /// bypassing `ModelStore`, writes the SRT into the output folder, prints
     /// its path to stdout (timings to stderr), and quits with status 0, or 1
-    /// on failure. `HEARSAY_LANGUAGE` (en / zh) is optional. Example:
+    /// on failure. `HEARSAY_LANGUAGE` (en / zh) is optional. The app is not
+    /// sandboxed, so both paths can be anywhere the user can read,
+    /// relative to the working directory or absolute. Example:
     ///
     ///     HEARSAY_TRANSCRIBE_FILE=Fixtures/en-30s.wav \
     ///     HEARSAY_MODEL_DIR=Spike/models/mlx-community_whisper-large-v3-turbo \

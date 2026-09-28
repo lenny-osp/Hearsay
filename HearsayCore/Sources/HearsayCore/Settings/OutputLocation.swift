@@ -19,9 +19,9 @@ public struct ResolvedOutputFolder: Sendable, Equatable {
 
 /// Resolves where Hearsay writes its outputs (PLAN.md section 8).
 public enum OutputLocation {
-    /// `Documents/Hearsay`. Inside the App Sandbox this is the container's
-    /// Documents folder, the only Documents folder writable without a
-    /// user-selected bookmark.
+    /// `~/Documents/Hearsay`. The app is not sandboxed, so this is the real
+    /// Documents folder and needs no bookmark; a folder the user picks is
+    /// still stored as a bookmark so it follows renames and moves.
     public static func defaultFolder(fileManager: FileManager = .default) -> URL {
         let documents = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first
             ?? fileManager.homeDirectoryForCurrentUser.appendingPathComponent("Documents", isDirectory: true)

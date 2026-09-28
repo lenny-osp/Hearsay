@@ -382,7 +382,7 @@ struct AIProviderStoreTests {
     }
 
     @Test func presetTable() {
-        #expect(ProviderPreset.all.map(\.id) == ["openai", "azureOpenAI", "anthropic", "ollama", "custom"])
+        #expect(ProviderPreset.all.map(\.id) == ["copilotCLI", "openai", "azureOpenAI", "anthropic", "ollama", "custom"])
         #expect(ProviderPreset.preset(id: "githubModels") == nil)
         #expect(ProviderPreset.openAI.baseURL == "https://api.openai.com/v1/chat/completions")
         #expect(ProviderPreset.openAI.defaultModel == "gpt-5.6-luna")
@@ -402,7 +402,9 @@ struct AIProviderStoreTests {
     }
 
     @Test func defaultsOnFirstLaunch() {
-        let store = AIProviderStore(defaults: Self.freshDefaults(), secrets: InMemorySecretStore())
+        let store = AIProviderStore(
+            defaults: Self.freshDefaults(), secrets: InMemorySecretStore(), copilotInstalled: { false }
+        )
         #expect(store.configuration == .default)
         #expect(store.configuration.askBeforeSending)
         #expect(store.templates == [.generalMeeting])
@@ -412,7 +414,7 @@ struct AIProviderStoreTests {
 
     @Test func configurationAndTemplatesRoundTrip() {
         let defaults = Self.freshDefaults()
-        let store = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore())
+        let store = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore(), copilotInstalled: { false })
         store.selectPreset(.azureOpenAI)
         store.configuration.baseURL = "https://me.openai.azure.com/openai/deployments/x/chat/completions"
         store.configuration.extraHeaders = ["X-A": "b"]
@@ -420,7 +422,7 @@ struct AIProviderStoreTests {
         let standup = store.addTemplate(name: "Standup", instructions: "Short.")
         store.setDefaultTemplate(id: standup.id)
 
-        let reloaded = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore())
+        let reloaded = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore(), copilotInstalled: { false })
         #expect(reloaded.configuration == store.configuration)
         #expect(reloaded.configuration.presetID == "azureOpenAI")
         #expect(reloaded.configuration.auth == .apiKey)
@@ -429,7 +431,7 @@ struct AIProviderStoreTests {
     }
 
     @Test func builtInTemplateCannotBeEditedOrDeleted() {
-        let store = AIProviderStore(defaults: Self.freshDefaults(), secrets: InMemorySecretStore())
+        let store = AIProviderStore(defaults: Self.freshDefaults(), secrets: InMemorySecretStore(), copilotInstalled: { false })
         var edited = PromptTemplate.generalMeeting
         edited.name = "Changed"
         store.updateTemplate(edited)
@@ -439,7 +441,7 @@ struct AIProviderStoreTests {
 
     @Test func editAndDeleteUserTemplate() {
         let defaults = Self.freshDefaults()
-        let store = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore())
+        let store = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore(), copilotInstalled: { false })
         var template = store.addTemplate(name: "A", instructions: "a")
         template.name = "B"
         template.instructions = "b"
@@ -449,7 +451,7 @@ struct AIProviderStoreTests {
         store.deleteTemplate(id: template.id)
         #expect(store.templates == [.generalMeeting])
         #expect(store.configuration.selectedTemplateID == PromptTemplate.generalMeetingID)
-        #expect(AIProviderStore(defaults: defaults, secrets: InMemorySecretStore()).templates == [.generalMeeting])
+        #expect(AIProviderStore(defaults: defaults, secrets: InMemorySecretStore(), copilotInstalled: { false }).templates == [.generalMeeting])
     }
 
     @Test func storedTemplatesAlwaysStartWithTheBuiltIn() throws {
@@ -462,13 +464,13 @@ struct AIProviderStoreTests {
         config.selectedTemplateID = UUID()
         defaults.set(try JSONEncoder().encode(config), forKey: AIProviderStore.Key.configuration)
 
-        let store = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore())
+        let store = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore(), copilotInstalled: { false })
         #expect(store.templates == [.generalMeeting, user])
         #expect(store.configuration.selectedTemplateID == PromptTemplate.generalMeetingID)
     }
 
     @Test func selectPresetResetsProviderFieldsButKeepsPreferences() {
-        let store = AIProviderStore(defaults: Self.freshDefaults(), secrets: InMemorySecretStore())
+        let store = AIProviderStore(defaults: Self.freshDefaults(), secrets: InMemorySecretStore(), copilotInstalled: { false })
         store.configuration.askBeforeSending = false
         store.configuration.model = "other"
         store.selectPreset(.ollama)
@@ -481,7 +483,7 @@ struct AIProviderStoreTests {
 
     @Test func tokensArePerPreset() throws {
         let secrets = InMemorySecretStore()
-        let store = AIProviderStore(defaults: Self.freshDefaults(), secrets: secrets)
+        let store = AIProviderStore(defaults: Self.freshDefaults(), secrets: secrets, copilotInstalled: { false })
         try store.setToken("  sk-openai \n")
         #expect(store.currentToken == "sk-openai")
         store.selectPreset(.anthropic)
@@ -519,7 +521,7 @@ struct RetiredPresetMigrationTests {
 
     @Test func githubModelsLoadsAsCustomKeepingItsFields() throws {
         let defaults = try Self.defaults(storing: Self.githubConfiguration)
-        let store = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore())
+        let store = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore(), copilotInstalled: { false })
         var expected = Self.githubConfiguration
         expected.presetID = "custom"
         #expect(store.configuration == expected)
@@ -537,7 +539,7 @@ struct RetiredPresetMigrationTests {
     @Test func githubModelsTokenMovesToCustom() throws {
         let secrets = InMemorySecretStore()
         try secrets.write("ghp_old", account: "githubModels")
-        let store = AIProviderStore(defaults: try Self.defaults(storing: Self.githubConfiguration), secrets: secrets)
+        let store = AIProviderStore(defaults: try Self.defaults(storing: Self.githubConfiguration), secrets: secrets, copilotInstalled: { false })
         #expect(store.currentToken == "ghp_old")
         #expect(try secrets.read(account: "custom") == "ghp_old")
         #expect(try secrets.read(account: "githubModels") == nil)
@@ -547,7 +549,7 @@ struct RetiredPresetMigrationTests {
         let secrets = InMemorySecretStore()
         try secrets.write("ghp_old", account: "githubModels")
         try secrets.write("sk-custom", account: "custom")
-        let store = AIProviderStore(defaults: try Self.defaults(storing: Self.githubConfiguration), secrets: secrets)
+        let store = AIProviderStore(defaults: try Self.defaults(storing: Self.githubConfiguration), secrets: secrets, copilotInstalled: { false })
         #expect(store.currentToken == "sk-custom")
         #expect(try secrets.read(account: "githubModels") == "ghp_old")
     }

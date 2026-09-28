@@ -30,11 +30,9 @@ A signed, notarized download comes later. For now, build Hearsay from source:
 
 ## First run
 
-1. **Choose the output folder.** Open Settings > Output and click
-   "Choose…". The suggested folder is `~/Documents/Hearsay`. Until you pick
-   a folder, macOS only lets Hearsay write inside its own container, so
-   files land in the container's Documents folder; the Output tab shows the
-   exact path.
+1. **Output folder.** Transcripts and notes go to `~/Documents/Hearsay`,
+   created on first use. To use another folder, open Settings > Output and
+   click "Choose…".
 2. **Download a model.** With no model installed, Hearsay offers the
    recommended model on one click. The Models tab lists all of them, with
    Download, Cancel, Delete, and "Use this model":
@@ -98,13 +96,22 @@ otherwise its modification time.
 
 ## Meeting notes
 
-1. **Set up a provider** in Settings > AI. Pick a preset: OpenAI, Azure
-   OpenAI, Anthropic (OpenAI compatible), Ollama / LM Studio, or Custom for
-   any other OpenAI-compatible `/chat/completions` endpoint. Enter the model
-   and your token; tokens are stored in the macOS Keychain. "Test
-   connection" sends a one-line prompt. Ollama and LM Studio run locally
-   and need no token. The Copilot CLI path from whisper-tools is not
-   available in the app.
+1. **Set up a provider** in Settings > AI. Pick a preset: GitHub Copilot
+   CLI, OpenAI, Azure OpenAI, Anthropic (OpenAI compatible), Ollama / LM
+   Studio, or Custom for any other OpenAI-compatible `/chat/completions`
+   endpoint. "Test connection" sends a one-line prompt.
+   - **GitHub Copilot CLI** runs the `copilot` program installed on your
+     Mac (`npm install -g @github/copilot`) and uses its own login, so
+     Hearsay needs no token; run `copilot` once in Terminal to log in.
+     Hearsay finds it in Homebrew, `/usr/local/bin`, or nvm, or through
+     your login shell; set the path in Settings > AI if it lives elsewhere.
+     "Check Copilot" shows the version it found. The default model is
+     `gpt-5.6-luna` with reasoning effort `max`; model `auto` lets Copilot
+     choose. When Hearsay finds the CLI on first launch, this is the
+     default provider.
+   - **The other presets** need the model and your token; tokens are stored
+     in the macOS Keychain. Ollama and LM Studio run locally and need no
+     token.
 2. **Confirm.** After a transcript is saved, Hearsay asks "Send transcript
    for meeting notes?" and shows the provider, model, and transcript size.
    "Keep local" keeps everything on the Mac; you can still give the files a
@@ -147,6 +154,15 @@ Hearsay writes the recording to disk as it goes. If the app or the Mac
 stops in the middle of a recording, the next launch finds the unfinished
 recording and asks whether to transcribe it, keep it, or delete it.
 
+## Not sandboxed
+
+Hearsay is distributed with Developer ID (signed and notarized), not
+through the Mac App Store, and it runs without the App Sandbox because it
+starts your installed Copilot CLI, which needs its own login files, and
+saves straight to `~/Documents/Hearsay`. It still uses the hardened runtime,
+and macOS still asks before it can use the microphone or record system
+audio.
+
 ## Troubleshooting
 
 - **Start is disabled or asks for a model.** No model is installed or
@@ -156,9 +172,12 @@ recording and asks whether to transcribe it, keep it, or delete it.
 - **System audio is silent after granting permission.** Quit and reopen
   Hearsay; macOS applies Screen & System Audio Recording only after a
   relaunch.
-- **Files are not in `~/Documents/Hearsay`.** The output folder has not
-  been chosen yet, so Hearsay writes inside its container. Pick the folder
-  in Settings > Output.
+- **"GitHub Copilot CLI not found".** Install it with
+  `npm install -g @github/copilot`, or enter the full path of `copilot`
+  (for example the output of `command -v copilot` in Terminal) in
+  Settings > AI.
+- **The Copilot CLI call fails.** Run `copilot` once in Terminal to log in,
+  and check that the model name is one your Copilot plan offers.
 - **Launch at login waits for approval.** Approve Hearsay in System
   Settings > General > Login Items ("Open Login Items" in Settings >
   General takes you there).
@@ -168,9 +187,9 @@ recording and asks whether to transcribe it, keep it, or delete it.
 Hearsay is the native macOS version of the `whisper-tools` Python CLI
 (`run_whisper.py`). It writes the same output names (`<timestamp>_<name>.srt`,
 `.md`, `_transcript.md`, and the WAV) and sends the same meeting-note prompt,
-so files from both tools sit side by side. Two differences: Chinese runs
-without an initial prompt, because the CLI's English prompt made the turbo
-model echo the prompt and made large-v3 write Simplified characters, while
-no prompt gives Traditional script and natural cue boundaries; and the
-Copilot CLI path is not available in the app. For notes, use OpenAI,
-Anthropic, Azure OpenAI, a local Ollama, or any OpenAI-compatible endpoint.
+so files from both tools sit side by side. The GitHub Copilot CLI provider
+runs `copilot` with the same arguments the CLI uses (`AI_PROVIDER=copilot`),
+and the other presets cover its `AI_API_URL` path. One difference: Chinese
+runs without an initial prompt, because the CLI's English prompt made the
+turbo model echo the prompt and made large-v3 write Simplified characters,
+while no prompt gives Traditional script and natural cue boundaries.

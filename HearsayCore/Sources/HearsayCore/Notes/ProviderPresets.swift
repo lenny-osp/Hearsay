@@ -20,9 +20,18 @@ public enum AuthHeaderStyle: String, Codable, Sendable, CaseIterable {
     public var needsToken: Bool { self != .none }
 }
 
-/// A known OpenAI-compatible chat-completions provider (PLAN.md section 7).
+/// How a preset sends the prompt: over HTTP to a chat-completions endpoint,
+/// or through the locally installed GitHub Copilot CLI.
+public enum ProviderKind: String, Codable, Sendable {
+    case http
+    case copilotCLI
+}
+
+/// A known meeting-notes provider (PLAN.md section 7): an OpenAI-compatible
+/// chat-completions endpoint, or the GitHub Copilot CLI.
 public struct ProviderPreset: Identifiable, Sendable, Codable, Equatable {
     public var id: String
+    public var kind: ProviderKind
     public var name: String
     /// Full `/chat/completions` endpoint; empty when the user must enter it.
     public var baseURL: String
@@ -36,9 +45,11 @@ public struct ProviderPreset: Identifiable, Sendable, Codable, Equatable {
         baseURL: String,
         defaultModel: String,
         auth: AuthHeaderStyle,
-        supportsReasoningEffort: Bool
+        supportsReasoningEffort: Bool,
+        kind: ProviderKind = .http
     ) {
         self.id = id
+        self.kind = kind
         self.name = name
         self.baseURL = baseURL
         self.defaultModel = defaultModel
@@ -51,6 +62,14 @@ public struct ProviderPreset: Identifiable, Sendable, Codable, Equatable {
     /// Python `DEFAULT_REASONING_EFFORT`.
     public static let defaultReasoningEffort = "max"
 
+    /// The installed `copilot` binary, using its own login (Python
+    /// `AI_PROVIDER=copilot`, the CLI's default provider).
+    public static let copilotCLI = ProviderPreset(
+        id: "copilotCLI", name: "GitHub Copilot CLI",
+        baseURL: "",
+        defaultModel: defaultOpenAIModel, auth: .none, supportsReasoningEffort: true,
+        kind: .copilotCLI
+    )
     public static let openAI = ProviderPreset(
         id: "openai", name: "OpenAI",
         baseURL: "https://api.openai.com/v1/chat/completions",
@@ -77,7 +96,7 @@ public struct ProviderPreset: Identifiable, Sendable, Codable, Equatable {
         defaultModel: "", auth: .bearer, supportsReasoningEffort: true
     )
 
-    public static let all: [ProviderPreset] = [openAI, azureOpenAI, anthropic, ollama, custom]
+    public static let all: [ProviderPreset] = [copilotCLI, openAI, azureOpenAI, anthropic, ollama, custom]
 
     /// Preset ids that existed in earlier builds and were removed. A stored
     /// configuration with one of these loads as `custom`, keeping its URL and
