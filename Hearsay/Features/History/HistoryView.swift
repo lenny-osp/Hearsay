@@ -31,7 +31,10 @@ struct HistoryView: View {
             isPresented: deleteAlertShown,
             presenting: model.pendingDelete
         ) { _ in
+            // Default action so Return confirms; macOS never makes a
+            // destructive alert button the default on its own.
             Button("Move to Trash", role: .destructive) { model.confirmDelete() }
+                .keyboardShortcut(.defaultAction)
             Button("Cancel", role: .cancel) { model.pendingDelete = nil }
         } message: { entry in
             Text(entry.files.map(\.lastPathComponent).joined(separator: "\n"))
