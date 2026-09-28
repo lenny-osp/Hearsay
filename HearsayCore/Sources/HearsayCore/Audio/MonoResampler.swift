@@ -7,8 +7,12 @@ public enum AudioConversionError: Error, Equatable, Sendable, CustomStringConver
 
     public var description: String {
         switch self {
-        case .unsupportedFormat(let detail): "Unsupported audio format: \(detail)"
-        case .conversionFailed(let detail): "Audio conversion failed: \(detail)"
+        case .unsupportedFormat(let detail):
+            String(localized: "Unsupported audio format: \(detail)", bundle: .module,
+                   comment: "Audio error. %@ is a technical detail in English.")
+        case .conversionFailed(let detail):
+            String(localized: "Audio conversion failed: \(detail)", bundle: .module,
+                   comment: "Audio error. %@ is a technical detail in English.")
         }
     }
 }

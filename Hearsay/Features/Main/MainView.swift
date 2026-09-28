@@ -29,7 +29,7 @@ struct MainView: View {
         @Bindable var tabs = tabs
         TabView(selection: $tabs.tab) {
             RecordView(onOpenModels: { tabs.tab = .models })
-                .tabItem { Label("Record", systemImage: "record.circle") }
+                .tabItem { Label(String(localized: "Record", comment: "Main window tab"), systemImage: "record.circle") }
                 .tag(MainTab.record)
             Group {
                 if let fileModel {
@@ -38,16 +38,16 @@ struct MainView: View {
                     ProgressView()
                 }
             }
-            .tabItem { Label("File", systemImage: "doc.badge.plus") }
+            .tabItem { Label(String(localized: "File", comment: "Main window tab"), systemImage: "doc.badge.plus") }
             .tag(MainTab.file)
             ModelManagerView()
-                .tabItem { Label("Models", systemImage: "square.and.arrow.down") }
+                .tabItem { Label(String(localized: "Models", comment: "Main window tab"), systemImage: "square.and.arrow.down") }
                 .tag(MainTab.models)
             HistoryView()
-                .tabItem { Label("History", systemImage: "clock") }
+                .tabItem { Label(String(localized: "History", comment: "Main window tab"), systemImage: "clock") }
                 .tag(MainTab.history)
             SettingsView()
-                .tabItem { Label("Settings", systemImage: "gearshape") }
+                .tabItem { Label(String(localized: "Settings", comment: "Main window tab"), systemImage: "gearshape") }
                 .tag(MainTab.settings)
         }
         .padding()
@@ -58,7 +58,8 @@ struct MainView: View {
                     settings: settings, modelStore: modelStore, engine: whisperEngine ?? WhisperEngine()
                 )
             }
-            if recovery == nil { recovery = UnfinishedRecordingQueue.checkOnce() }
+            // The UI snapshots render this view with sample data only.
+            if recovery == nil, !UISnapshots.isRunning { recovery = UnfinishedRecordingQueue.checkOnce() }
             takeTranscribeFileRequest()
         }
         .onChange(of: recording.transcribeFileRequest) { takeTranscribeFileRequest() }
@@ -106,7 +107,8 @@ struct MainView: View {
             tabs.tab = .file
             fileModel?.transcribe(kept)
         } catch {
-            recoveryError = "\(error.localizedDescription) It stays at \(spoolWAV.path)."
+            recoveryError = String(localized: "\(error.localizedDescription) It stays at \(spoolWAV.path).",
+                                   comment: "Recovery error. %1$@ is the system error message, %2$@ a file path.")
         }
     }
 }

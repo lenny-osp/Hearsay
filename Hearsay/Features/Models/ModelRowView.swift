@@ -67,7 +67,11 @@ struct ModelRowView: View {
                 .foregroundStyle(.red)
                 .lineLimit(2)
         case .installed:
-            Text(isActive ? "\(ByteSize.format(entry.sizeBytes)), in use" : "\(ByteSize.format(entry.sizeBytes)), installed")
+            Text(isActive
+                 ? String(localized: "\(ByteSize.format(entry.sizeBytes)), in use",
+                          comment: "Models tab: the active model. %@ is a size such as 1.6 GB.")
+                 : String(localized: "\(ByteSize.format(entry.sizeBytes)), installed",
+                          comment: "Models tab: a downloaded model. %@ is a size such as 1.6 GB."))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         case .notInstalled:
@@ -107,6 +111,7 @@ struct ModelRowView: View {
     }
 }
 
+@MainActor
 enum ByteSize {
     static func format(_ bytes: Int64) -> String {
         ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
@@ -115,9 +120,10 @@ enum ByteSize {
     /// One decimal place, for button labels like "1.6 GB".
     static func short(_ bytes: Int64) -> String {
         let value = Double(bytes)
+        let locale = InterfaceLanguageLaunch.applied.locale
         if value >= 1_000_000_000 {
-            return String(format: "%.1f GB", value / 1_000_000_000)
+            return String(format: "%.1f GB", locale: locale, value / 1_000_000_000)
         }
-        return String(format: "%.0f MB", value / 1_000_000)
+        return String(format: "%.0f MB", locale: locale, value / 1_000_000)
     }
 }

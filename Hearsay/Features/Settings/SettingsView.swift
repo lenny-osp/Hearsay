@@ -8,19 +8,34 @@ import SwiftUI
 /// a grouped form, so it scrolls inside the tab at any window height.
 struct SettingsView: View {
     enum Pane: String, CaseIterable, Hashable {
-        case general = "General"
-        case window = "Window"
-        case output = "Output"
-        case ai = "AI"
+        case general
+        case window
+        case output
+        case ai
+
+        var title: String {
+            switch self {
+            case .general: String(localized: "General", comment: "Settings section (segmented picker)")
+            case .window: String(localized: "Window", comment: "Settings section (segmented picker)")
+            case .output: String(localized: "Output", comment: "Settings section (segmented picker)")
+            case .ai: String(localized: "AI", comment: "Settings section (segmented picker): meeting-notes provider")
+            }
+        }
     }
 
-    @State private var pane: Pane = .general
+    @State private var pane: Pane
+
+    /// `initialPane` is for the UI snapshots; the app always opens on General.
+    init(initialPane: Pane = .general) {
+        _pane = State(initialValue: initialPane)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            Picker("Settings section", selection: $pane) {
+            Picker(String(localized: "Settings section", comment: "Accessibility label of the Settings section picker"),
+                   selection: $pane) {
                 ForEach(Pane.allCases, id: \.self) { pane in
-                    Text(pane.rawValue).tag(pane)
+                    Text(pane.title).tag(pane)
                 }
             }
             .pickerStyle(.segmented)
@@ -43,6 +58,15 @@ struct SettingsView: View {
 private struct GeneralSettingsView: View {
     var body: some View {
         Form {
+            Section {
+                InterfaceLanguagePicker()
+                Text("Menus and windows. A change applies after Hearsay restarts.",
+                     comment: "Settings > General caption under Interface language")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text("Interface", comment: "Settings > General section header: the app's own language")
+            }
             LaunchAtLoginSection()
             Section("Transcription") {
                 PreferredLanguagePicker()
@@ -113,8 +137,11 @@ private struct LaunchAtLoginSection: View {
             }
             errorMessage = nil
         } catch {
-            let action = enabled ? "turn on" : "turn off"
-            errorMessage = "Could not \(action) launch at login: \(error.localizedDescription)"
+            errorMessage = enabled
+                ? String(localized: "Could not turn on launch at login: \(error.localizedDescription)",
+                         comment: "Settings > General error. %@ is the system error message.")
+                : String(localized: "Could not turn off launch at login: \(error.localizedDescription)",
+                         comment: "Settings > General error. %@ is the system error message.")
         }
         refresh()
     }
@@ -148,7 +175,8 @@ private struct PreferredLanguagePicker: View {
 /// language picker when ZH is chosen, and in Settings > General.
 struct ChineseScriptPicker: View {
     @Environment(AppSettings.self) private var settings
-    var label = "Chinese output"
+    var label = String(localized: "Chinese output",
+                       comment: "Picker label: write Chinese transcripts in Traditional or Simplified characters")
 
     var body: some View {
         Picker(label, selection: Binding(
@@ -230,7 +258,8 @@ private struct OutputSettingsView: View {
             errorMessage = nil
         } catch {
             folderPath = OutputLocation.defaultFolder().path
-            errorMessage = "Could not create the output folder: \(error.localizedDescription)"
+            errorMessage = String(localized: "Could not create the output folder: \(error.localizedDescription)",
+                                  comment: "Settings > Output error. %@ is the system error message.")
         }
     }
 
@@ -240,8 +269,9 @@ private struct OutputSettingsView: View {
         panel.canChooseDirectories = true
         panel.canCreateDirectories = true
         panel.allowsMultipleSelection = false
-        panel.prompt = "Choose"
-        panel.message = "Choose where Hearsay saves transcripts and notes."
+        panel.prompt = String(localized: "Choose", comment: "Open panel button: use the selected folder")
+        panel.message = String(localized: "Choose where Hearsay saves transcripts and notes.",
+                               comment: "Open panel message for the output folder")
         if !folderPath.isEmpty {
             panel.directoryURL = URL(fileURLWithPath: folderPath, isDirectory: true)
         }
@@ -250,7 +280,8 @@ private struct OutputSettingsView: View {
             settings.outputFolderBookmark = try OutputLocation.makeBookmark(for: url)
             errorMessage = nil
         } catch {
-            errorMessage = "Could not remember that folder: \(error.localizedDescription)"
+            errorMessage = String(localized: "Could not remember that folder: \(error.localizedDescription)",
+                                  comment: "Settings > Output error. %@ is the system error message.")
         }
     }
 }

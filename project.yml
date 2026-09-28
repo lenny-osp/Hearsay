@@ -6,6 +6,10 @@ options:
   deploymentTarget:
     macOS: "14.0"
   createIntermediateGroups: true
+  # English is the development language; the interface is localized into
+  # de, es, zh-Hant, and zh-Hans through the string catalogs in
+  # Hearsay/Resources (Localizable, InfoPlist) and HearsayCore.
+  developmentLanguage: en
 settings:
   base:
     SWIFT_VERSION: "6.0"
@@ -40,6 +44,9 @@ targets:
       path: Hearsay/Info.plist
       properties:
         CFBundleDisplayName: Hearsay
+        CFBundleDevelopmentRegion: en
+        # Interface languages (Settings > General > Interface language).
+        CFBundleLocalizations: [en, de, es, zh-Hant, zh-Hans]
         CFBundleShortVersionString: "0.1.0"
         CFBundleVersion: "1"
         LSApplicationCategoryType: public.app-category.productivity
@@ -66,4 +73,7 @@ targets:
         CODE_SIGN_IDENTITY: "-"
         DEVELOPMENT_TEAM: ""
         GENERATE_INFOPLIST_FILE: NO
+        # Compiler-based string extraction for the string catalogs.
+        SWIFT_EMIT_LOC_STRINGS: YES
+        LOCALIZATION_PREFERS_STRING_CATALOGS: YES
     scheme: {}

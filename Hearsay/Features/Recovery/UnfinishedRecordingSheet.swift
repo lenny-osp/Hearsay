@@ -104,12 +104,14 @@ struct UnfinishedRecordingSheet: View {
 
     private var dateText: String {
         guard let date = HistoryIndex.timestampDate(stem: recording.deletingPathExtension().lastPathComponent)
-        else { return "an unknown time" }
-        return date.formatted(date: .long, time: .shortened)
+        else { return String(localized: "an unknown time", comment: "Used in 'A recording from %@ was not finished'") }
+        return date.formatted(Date.FormatStyle(date: .long, time: .shortened).locale(InterfaceLanguageLaunch.applied.locale))
     }
 
     private var durationText: String {
-        guard let duration = try? WavWriter.duration(of: recording) else { return "unknown length" }
+        guard let duration = try? WavWriter.duration(of: recording) else {
+            return String(localized: "unknown length", comment: "Used in '… was not finished (%@)' when the length is unknown")
+        }
         let total = Int(duration.rounded())
         let hours = total / 3600
         let minutes = total % 3600 / 60
@@ -135,7 +137,9 @@ struct UnfinishedRecordingSheet: View {
             errorMessage = nil
             queue.advance()
         } catch {
-            errorMessage = "Could not keep the recording: \(error.localizedDescription) It stays at \(recording.path)."
+            errorMessage = String(
+                localized: "Could not keep the recording: \(error.localizedDescription) It stays at \(recording.path).",
+                comment: "Recovery sheet error. %1$@ is the system error message, %2$@ a file path.")
         }
     }
 
@@ -145,7 +149,8 @@ struct UnfinishedRecordingSheet: View {
             errorMessage = nil
             queue.advance()
         } catch {
-            errorMessage = "Could not delete the recording: \(error.localizedDescription)"
+            errorMessage = String(localized: "Could not delete the recording: \(error.localizedDescription)",
+                                  comment: "Recovery sheet error. %@ is the system error message.")
         }
     }
 
@@ -154,7 +159,8 @@ struct UnfinishedRecordingSheet: View {
         do {
             try WavWriter.patchHeader(at: recording)
         } catch {
-            errorMessage = "Could not repair the recording: \(error.localizedDescription)"
+            errorMessage = String(localized: "Could not repair the recording: \(error.localizedDescription)",
+                                  comment: "Recovery sheet error. %@ is the system error message.")
             return
         }
         onTranscribe(recording)

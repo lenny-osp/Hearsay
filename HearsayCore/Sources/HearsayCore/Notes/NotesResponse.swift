@@ -12,19 +12,27 @@ public enum NotesResponseError: Error, Equatable, LocalizedError {
     public var message: String {
         switch self {
         case .invalidJSON(let detail):
-            return "AI output is not valid JSON: \(detail)"
+            return String(localized: "AI output is not valid JSON: \(detail)", bundle: .module,
+                          comment: "Meeting notes error. %@ is a technical detail in English.")
         case .notAnObject:
-            return "AI output must be a JSON object."
+            return String(localized: "AI output must be a JSON object.", bundle: .module,
+                          comment: "Meeting notes error")
         case .missingFilename:
-            return "AI output did not contain a usable filename."
+            return String(localized: "AI output did not contain a usable filename.", bundle: .module,
+                          comment: "Meeting notes error")
         case .missingMarkdown:
-            return "AI output did not contain usable Markdown notes."
+            return String(localized: "AI output did not contain usable Markdown notes.", bundle: .module,
+                          comment: "Meeting notes error")
         case .missingTranscriptMarkdown:
-            return "AI output did not contain a usable structured transcript."
+            return String(localized: "AI output did not contain a usable structured transcript.",
+                          bundle: .module, comment: "Meeting notes error")
         }
     }
 
-    public var errorDescription: String? { "Parsing Error: \(message)" }
+    public var errorDescription: String? {
+        String(localized: "Parsing Error: \(message)", bundle: .module,
+               comment: "Meeting notes error. %@ is the reason, one of the 'AI output ...' messages.")
+    }
 }
 
 /// The validated AI result. Port of `parse_ai_result` in `run_whisper.py`.

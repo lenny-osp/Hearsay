@@ -14,7 +14,8 @@ public enum AuthHeaderStyle: String, Codable, Sendable, CaseIterable {
         switch self {
         case .bearer: "Authorization: Bearer"
         case .apiKey: "api-key"
-        case .none: "No token"
+        case .none:
+            String(localized: "No token", bundle: .module, comment: "Settings > AI > Token header picker: send no token")
         }
     }
 
@@ -101,7 +102,9 @@ public struct ProviderPreset: Identifiable, Sendable, Codable, Equatable {
     /// Claude Sonnet 5 at effort "high" (owner decision, 2026-09-28);
     /// `claude --model` takes the id `claude-sonnet-5`, not `sonnet-5`.
     public static let claudeCodeCLI = ProviderPreset(
-        id: "claudeCodeCLI", name: "Claude Code CLI (Claude subscription)",
+        id: "claudeCodeCLI",
+        name: String(localized: "Claude Code CLI (Claude subscription)", bundle: .module,
+                     comment: "Provider preset name. Keep 'Claude Code CLI' and 'Claude' untranslated."),
         baseURL: "",
         defaultModel: "claude-sonnet-5", auth: .none, supportsReasoningEffort: true,
         defaultEffort: "high",
@@ -111,7 +114,9 @@ public struct ProviderPreset: Identifiable, Sendable, Codable, Equatable {
     /// at effort "max" (owner decision, 2026-09-28). An empty model lets the
     /// CLI pick its own.
     public static let codexCLI = ProviderPreset(
-        id: "codexCLI", name: "Codex CLI (ChatGPT subscription)",
+        id: "codexCLI",
+        name: String(localized: "Codex CLI (ChatGPT subscription)", bundle: .module,
+                     comment: "Provider preset name. Keep 'Codex CLI' and 'ChatGPT' untranslated."),
         baseURL: "",
         defaultModel: "gpt-6-luna", auth: .none, supportsReasoningEffort: true,
         kind: .codexCLI
@@ -133,7 +138,9 @@ public struct ProviderPreset: Identifiable, Sendable, Codable, Equatable {
         defaultModel: "", auth: .none, supportsReasoningEffort: false
     )
     public static let custom = ProviderPreset(
-        id: "custom", name: "Custom",
+        id: "custom",
+        name: String(localized: "Custom", bundle: .module,
+                     comment: "Provider preset name: any OpenAI-compatible endpoint the user enters"),
         baseURL: "",
         defaultModel: "", auth: .bearer, supportsReasoningEffort: true
     )

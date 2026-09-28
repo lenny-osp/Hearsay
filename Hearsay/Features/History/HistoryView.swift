@@ -47,7 +47,8 @@ struct HistoryView: View {
         HStack(spacing: 8) {
             Image(systemName: "folder")
                 .foregroundStyle(.secondary)
-            Text(model.folderURL?.path ?? "No output folder")
+            Text(model.folderURL?.path ?? String(localized: "No output folder",
+                                                 comment: "History header when the output folder cannot be opened"))
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
@@ -154,7 +155,7 @@ private struct HistoryRow: View {
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(entry.meetingName ?? "Untitled")
+                Text(entry.meetingName ?? String(localized: "Untitled", comment: "History: a meeting that has no name yet"))
                     .font(.body.weight(.medium))
                     .foregroundStyle(entry.meetingName == nil ? .secondary : .primary)
                 HStack(spacing: 8) {
@@ -168,9 +169,9 @@ private struct HistoryRow: View {
                 .foregroundStyle(.secondary)
                 HStack(spacing: 4) {
                     if entry.srt != nil { badge("SRT") }
-                    if entry.notes != nil { badge("Notes") }
-                    if entry.transcript != nil { badge("Transcript") }
-                    if entry.audio != nil { badge("Audio") }
+                    if entry.notes != nil { badge(String(localized: "Notes", comment: "History badge: the meeting has meeting notes")) }
+                    if entry.transcript != nil { badge(String(localized: "Transcript", comment: "History badge: the meeting has a structured transcript")) }
+                    if entry.audio != nil { badge(String(localized: "Audio", comment: "History badge: the meeting has a recording")) }
                 }
             }
             Spacer()
@@ -181,20 +182,26 @@ private struct HistoryRow: View {
 
     private var dateText: String {
         guard let timestamp = entry.timestamp else { return entry.stem }
-        return timestamp.formatted(date: .abbreviated, time: .shortened)
+        return timestamp.formatted(
+            Date.FormatStyle(date: .abbreviated, time: .shortened).locale(InterfaceLanguageLaunch.applied.locale))
     }
 
     private var buttons: some View {
         HStack(spacing: 2) {
-            iconButton("Open notes", systemImage: "doc.text", enabled: entry.notes != nil, .openNotes)
-            iconButton("Open transcript", systemImage: "text.alignleft", enabled: entry.transcript != nil, .openTranscript)
-            iconButton("Open SRT", systemImage: "captions.bubble", enabled: entry.srt != nil, .openSRT)
-            iconButton("Reveal in Finder", systemImage: "folder", enabled: true, .reveal)
+            iconButton(String(localized: "Open notes", comment: "History row button (tooltip)"),
+                       systemImage: "doc.text", enabled: entry.notes != nil, .openNotes)
+            iconButton(String(localized: "Open transcript", comment: "History row button (tooltip): the structured Markdown transcript"),
+                       systemImage: "text.alignleft", enabled: entry.transcript != nil, .openTranscript)
+            iconButton(String(localized: "Open SRT", comment: "History row button (tooltip)"),
+                       systemImage: "captions.bubble", enabled: entry.srt != nil, .openSRT)
+            iconButton(String(localized: "Reveal in Finder", comment: "Button"),
+                       systemImage: "folder", enabled: true, .reveal)
             iconButton(
                 HistoryViewModel.notesActionTitle(entry), systemImage: "sparkles",
                 enabled: canGenerateNotes, .generateNotes
             )
-            iconButton("Move to Trash…", systemImage: "trash", enabled: true, .delete)
+            iconButton(String(localized: "Move to Trash…", comment: "Button: move the meeting's files to the Trash"),
+                       systemImage: "trash", enabled: true, .delete)
         }
         .buttonStyle(.borderless)
     }
@@ -221,7 +228,7 @@ private struct HistoryRow: View {
                 RoundedRectangle(cornerRadius: 4)
                     .strokeBorder(Color.accentColor.opacity(0.6), lineWidth: 1)
             )
-            .accessibilityLabel("\(title) saved")
+            .accessibilityLabel(Text("\(title) saved", comment: "Accessibility label of a History badge. %@ is SRT, Notes, Transcript, or Audio."))
     }
 
     /// `H:MM:SS` or `M:SS`.

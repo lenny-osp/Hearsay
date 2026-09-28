@@ -1,0 +1,422 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@ (detected from the text)" : {
+      "comment" : "Confirm sheet, after 'Transcript language:'. %@ is a language name in its own language."
+    },
+    "%@ (your language choice; this transcript's language was not recorded)" : {
+      "comment" : "Confirm sheet, after 'Transcript language:'. %@ is a language name in its own language."
+    },
+    "%@ (your preferred language; this transcript's language was not recorded)" : {
+      "comment" : "Confirm sheet, after 'Transcript language:'. %@ is a language name in its own language."
+    },
+    "%@ call failed (exit code %d). Check the model and reasoning effort in Settings > AI." : {
+      "comment" : "Meeting notes error. %1$@ is a CLI name, %2$d the exit code.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ call failed (exit code %2$d). Check the model and reasoning effort in Settings > AI."
+          }
+        }
+      }
+    },
+    "%@ could not be started: %@" : {
+      "comment" : "Meeting notes error. %1$@ is a CLI name, %2$@ a technical detail.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ could not be started: %2$@"
+          }
+        }
+      }
+    },
+    "%@ did not answer within %lld minutes and was stopped." : {
+      "comment" : "Meeting notes error. %1$@ is a CLI name, %2$lld a number of minutes.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ did not answer within %2$lld minutes and was stopped."
+          }
+        }
+      }
+    },
+    "%@ is %lld bytes but the server announced %lld. The file was discarded; try again." : {
+      "comment" : "Model download error. %1$@ is a file name, %2$lld and %3$lld are byte counts.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ is %2$lld bytes but the server announced %3$lld. The file was discarded; try again."
+          }
+        }
+      }
+    },
+    "%@ is not available for recording. Reconnect it or choose another input." : {
+      "comment" : "Recording error. %@ is the input device name."
+    },
+    "%@ is not logged in. Run `%@` once in Terminal to log in with your ChatGPT account." : {
+      "comment" : "Meeting notes error. %1$@ is a CLI name, %2$@ a shell command.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ is not logged in. Run `%2$@` once in Terminal to log in with your ChatGPT account."
+          }
+        }
+      }
+    },
+    "%@ is not logged in. Run `%@` once in Terminal to log in with your Claude subscription." : {
+      "comment" : "Meeting notes error. %1$@ is a CLI name, %2$@ a shell command.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ is not logged in. Run `%2$@` once in Terminal to log in with your Claude subscription."
+          }
+        }
+      }
+    },
+    "%@ is not logged in. Run `%@` once in Terminal to log in with your Google account." : {
+      "comment" : "Meeting notes error. %1$@ is a CLI name, %2$@ a shell command.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ is not logged in. Run `%2$@` once in Terminal to log in with your Google account."
+          }
+        }
+      }
+    },
+    "%@ is not logged in. Run `%@` once in Terminal to log in." : {
+      "comment" : "Meeting notes error. %1$@ is a CLI name, %2$@ a shell command.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ is not logged in. Run `%2$@` once in Terminal to log in."
+          }
+        }
+      }
+    },
+    "%@ not found. Install it with `%@` or set the path in Settings > AI." : {
+      "comment" : "Meeting notes error. %1$@ is a CLI name (for example Codex CLI), %2$@ a shell command. Keep the backticks.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ not found. Install it with `%2$@` or set the path in Settings > AI."
+          }
+        }
+      }
+    },
+    "%@ returned empty output." : {
+      "comment" : "Meeting notes error. %@ is a CLI name."
+    },
+    "(%@ plan)" : {
+      "comment" : "CLI check result suffix. %@ is the subscription name (for example max)."
+    },
+    "(none set)" : {
+      "comment" : "Confirm sheet 'Model:' when empty"
+    },
+    "AI output did not contain a usable filename." : {
+      "comment" : "Meeting notes error"
+    },
+    "AI output did not contain a usable structured transcript." : {
+      "comment" : "Meeting notes error"
+    },
+    "AI output did not contain usable Markdown notes." : {
+      "comment" : "Meeting notes error"
+    },
+    "AI output is not valid JSON: %@" : {
+      "comment" : "Meeting notes error. %@ is a technical detail in English."
+    },
+    "AI output must be a JSON object." : {
+      "comment" : "Meeting notes error"
+    },
+    "API HTTP Error %lld: %@" : {
+      "comment" : "Meeting notes error. %1$lld is an HTTP status code, %2$@ the server's message.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "API HTTP Error %1$lld: %2$@"
+          }
+        }
+      }
+    },
+    "API HTTP Error %lld: The response body is empty." : {
+      "comment" : "Meeting notes error. %lld is an HTTP status code."
+    },
+    "API call failed: A network connection or HTTP client error occurred. %@" : {
+      "comment" : "Meeting notes error. %@ is the system error message."
+    },
+    "All files keep their original names." : {
+      "comment" : "Follows a rename error: nothing was changed."
+    },
+    "Audio capture failed: %@" : {
+      "comment" : "Recording error. %@ is a technical detail in English."
+    },
+    "Audio conversion failed: %@" : {
+      "comment" : "Audio error. %@ is a technical detail in English."
+    },
+    "Auto" : {
+      "comment" : "Language picker segment: detect the spoken language automatically. Keep it short."
+    },
+    "CLI default" : {
+      "comment" : "Confirm sheet 'Model:' when empty: the command-line tool picks its own model"
+    },
+    "Cannot reach %@. Check the base URL in Settings > AI and your network connection." : {
+      "comment" : "Meeting notes error. %@ is a host name."
+    },
+    "Claude Code CLI (Claude subscription)" : {
+      "comment" : "Provider preset name. Keep 'Claude Code CLI' and 'Claude' untranslated."
+    },
+    "Codex CLI (ChatGPT subscription)" : {
+      "comment" : "Provider preset name. Keep 'Codex CLI' and 'ChatGPT' untranslated."
+    },
+    "Could not select %@ (CoreAudio error %d)." : {
+      "comment" : "Recording error. %1$@ is the input device name, %2$d a CoreAudio error number.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Could not select %1$@ (CoreAudio error %2$d)."
+          }
+        }
+      }
+    },
+    "Could not set up the %@ project in %@: %@" : {
+      "comment" : "Meeting notes error. %1$@ is a project name (keep it), %2$@ a folder path, %3$@ the system error message.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Could not set up the %1$@ project in %2$@: %3$@"
+          }
+        }
+      }
+    },
+    "Couldn't tell the language, so this was transcribed in %@ (your preferred language)." : {
+      "comment" : "Language banner. %@ is a language name in its own language (English, 中文, Deutsch, Español)."
+    },
+    "Custom" : {
+      "comment" : "Provider preset name: any OpenAI-compatible endpoint the user enters"
+    },
+    "Dock only" : {
+      "comment" : "Settings > Window: show Hearsay only in the Dock"
+    },
+    "Downloading %@ failed with HTTP status %lld." : {
+      "comment" : "Model download error. %1$@ is a file name, %2$lld an HTTP status code.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Downloading %1$@ failed with HTTP status %2$lld."
+          }
+        }
+      }
+    },
+    "Error: The SRT contains no transcript content to summarize." : {
+      "comment" : "Meeting notes error"
+    },
+    "General meeting" : {
+      "comment" : "Name of the built-in prompt template (Settings > AI, confirm sheet)"
+    },
+    "GitHub Copilot CLI call failed (exit code %d). Check the Copilot login status and model configuration." : {
+      "comment" : "Meeting notes error. %d is the exit code."
+    },
+    "GitHub Copilot CLI call failed. Check the Copilot login status and model configuration: %@" : {
+      "comment" : "Meeting notes error. %@ is a technical detail."
+    },
+    "Hearsay has no microphone access. Allow it in System Settings > Privacy & Security > Microphone." : {
+      "comment" : "Recording error. Use the macOS wording for the System Settings path."
+    },
+    "Hearsay has no system audio access. Allow it in System Settings > Privacy & Security > Screen & System Audio Recording, then start a new recording." : {
+      "comment" : "Recording error. Use the macOS wording for the System Settings path."
+    },
+    "Key %u" : {
+      "comment" : "Shortcut display for a key with no printed name. The placeholder is the numeric key code."
+    },
+    "Keychain error: %@" : {
+      "comment" : "Token error. %@ is the message macOS gives for the Keychain error."
+    },
+    "Logged in" : {
+      "comment" : "CLI check result"
+    },
+    "Logged in via %@" : {
+      "comment" : "CLI check result. %@ is the login method reported by Claude Code."
+    },
+    "Logged in; %lld models available" : {
+      "comment" : "CLI check result. %lld is the number of models (never 1)."
+    },
+    "Logged in; 1 model available" : {
+      "comment" : "CLI check result"
+    },
+    "Menu bar and Dock" : {
+      "comment" : "Settings > Window: show Hearsay in the menu bar and the Dock"
+    },
+    "Menu bar only" : {
+      "comment" : "Settings > Window: show Hearsay only in the menu bar"
+    },
+    "No API token is set for this provider. Add one in Settings > AI." : {
+      "comment" : "Meeting notes error. 'Settings > AI' names the Settings tab and section."
+    },
+    "No audio from %@. Nothing arrived within %lld seconds, so the recording was stopped. Check that the device is connected and not muted, or choose another input." : {
+      "comment" : "Recording error. %1$@ is the input device name, %2$lld a number of seconds.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "No audio from %1$@. Nothing arrived within %2$lld seconds, so the recording was stopped. Check that the device is connected and not muted, or choose another input."
+          }
+        }
+      }
+    },
+    "No display is available to capture system audio from." : {
+      "comment" : "Recording error"
+    },
+    "No input device is available." : {
+      "comment" : "Recording error"
+    },
+    "No token" : {
+      "comment" : "Settings > AI > Token header picker: send no token"
+    },
+    "Not a readable WAV file: %@" : {
+      "comment" : "Audio error. %@ is a file path."
+    },
+    "Not logged in. %@" : {
+      "comment" : "CLI check result. %@ is the 'Run … once in Terminal to log in.' hint."
+    },
+    "Notes will be written in %@." : {
+      "comment" : "Confirm sheet caption. %@ is a language name in its own language."
+    },
+    "Parsing Error: %@" : {
+      "comment" : "Meeting notes error. %@ is the reason, one of the 'AI output ...' messages."
+    },
+    "Parsing Error: API response did not contain usable message content." : {
+      "comment" : "Meeting notes error"
+    },
+    "Parsing Error: The API response is not valid JSON: %@" : {
+      "comment" : "Meeting notes error. %@ is the start of the server's reply."
+    },
+    "Run `%@` once in Terminal to log in." : {
+      "comment" : "CLI check hint. %@ is a shell command; keep the backticks."
+    },
+    "Run `copilot` once in Terminal to log in." : {
+      "comment" : "Meeting notes error hint. Keep `copilot` and the backticks."
+    },
+    "Space" : {
+      "comment" : "Shortcut display: the space bar"
+    },
+    "System audio capture could not start: %@" : {
+      "comment" : "Recording error. %@ is a technical detail from macOS."
+    },
+    "System audio capture stopped: %@" : {
+      "comment" : "Recording error. %@ is a technical detail from macOS."
+    },
+    "The %@ preset does not use a command-line tool." : {
+      "comment" : "Meeting notes error. %@ is a provider preset name."
+    },
+    "The API URL is not a valid http or https address. Check it in Settings > AI." : {
+      "comment" : "Meeting notes error"
+    },
+    "The WAV file is already closed." : {
+      "comment" : "Audio error"
+    },
+    "The built-in model list could not be read: %@" : {
+      "comment" : "Models tab error. %@ is the system error message."
+    },
+    "The current notes are unchanged." : {
+      "comment" : "Follows a Trash error: the old notes are still in place."
+    },
+    "The input device changed or was disconnected, so recording stopped." : {
+      "comment" : "Recording error"
+    },
+    "The login status check did not answer." : {
+      "comment" : "CLI check result"
+    },
+    "The meeting name contains no usable characters. Use English letters or digits." : {
+      "comment" : "Naming error. File names use English letters and digits only."
+    },
+    "The server did not return an HTTP response." : {
+      "comment" : "Meeting notes error detail, shown after 'API call failed: …'"
+    },
+    "The server refused to resume %@." : {
+      "comment" : "Model download error. %@ is a file name."
+    },
+    "The server sent an unexpected response for %@." : {
+      "comment" : "Model download error. %@ is a file name."
+    },
+    "The transcript, recording and any earlier notes keep their original names." : {
+      "comment" : "Follows a write error: nothing was renamed."
+    },
+    "These files could not be restored: %@." : {
+      "comment" : "Follows a file error. %@ is a comma-separated list of file paths."
+    },
+    "This sounds like %@. Transcribe again in %@?" : {
+      "comment" : "Language banner. Both %@ are the same language name in its own language (English, 中文, Deutsch, Español).",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "This sounds like %1$@. Transcribe again in %2$@?"
+          }
+        }
+      }
+    },
+    "Transcript language: %@" : {
+      "comment" : "Confirm sheet caption. %@ is a language name, possibly followed by an explanation in parentheses."
+    },
+    "Unable to move the current notes (%@) to the Trash: %@." : {
+      "comment" : "Regenerate notes error. %1$@ is a file path, %2$@ the system error message.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Unable to move the current notes (%1$@) to the Trash: %2$@."
+          }
+        }
+      }
+    },
+    "Unable to rename %@ to %@: %@." : {
+      "comment" : "Naming error. %1$@ is a file path, %2$@ a file name, %3$@ the system error message.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Unable to rename %1$@ to %2$@: %3$@."
+          }
+        }
+      }
+    },
+    "Unable to write meeting notes (%@): %@." : {
+      "comment" : "Naming error. %1$@ is a file path, %2$@ the system error message.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Unable to write meeting notes (%1$@): %2$@."
+          }
+        }
+      }
+    },
+    "Unsupported audio format: %@" : {
+      "comment" : "Audio error. %@ is a technical detail in English."
+    },
+    "`agy models` failed (exit code %d). %@" : {
+      "comment" : "CLI check result. %1$d is the exit code, %2$@ the log-in hint. Keep `agy models`.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "`agy models` failed (exit code %1$d). %2$@"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

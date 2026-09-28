@@ -380,7 +380,10 @@ public actor CLIClient: ChatCompleting {
             } catch {
                 throw CLIProviderError.launchFailed(
                     tool,
-                    "Could not set up the \(CLIArguments.antigravityProjectName) project in \(antigravity.projectsFolder): \(error.localizedDescription)"
+                    String(
+                        localized: "Could not set up the \(CLIArguments.antigravityProjectName) project in \(antigravity.projectsFolder): \(error.localizedDescription)",
+                        bundle: .module,
+                        comment: "Meeting notes error. %1$@ is a project name (keep it), %2$@ a folder path, %3$@ the system error message.")
                 )
             }
         }
@@ -519,30 +522,47 @@ public actor CLIClient: ChatCompleting {
     /// (plain text on stderr), or `agy models` (only whether it worked and
     /// how many models it listed). The account e-mail is not shown.
     static func loginStatus(tool: CLITool, result: CLIRunResult) -> (text: String, loggedIn: Bool) {
-        let advice = "Run `\(tool.loginCommand)` once in Terminal to log in."
+        let advice = String(localized: "Run `\(tool.loginCommand)` once in Terminal to log in.", bundle: .module,
+                            comment: "CLI check hint. %@ is a shell command; keep the backticks.")
+        let notLoggedIn = String(localized: "Not logged in. \(advice)", bundle: .module,
+                                 comment: "CLI check result. %@ is the 'Run … once in Terminal to log in.' hint.")
+        let loggedInText = String(localized: "Logged in", bundle: .module, comment: "CLI check result")
         if result.timedOut {
-            return ("The login status check did not answer.", false)
+            return (String(localized: "The login status check did not answer.", bundle: .module,
+                           comment: "CLI check result"), false)
         }
         switch tool {
         case .claudeCode:
             if let object = try? JSONSerialization.jsonObject(with: Data(result.stdout.utf8)) as? [String: Any],
                let loggedIn = object["loggedIn"] as? Bool {
-                guard loggedIn else { return ("Not logged in. \(advice)", false) }
-                var text = "Logged in"
-                if let method = object["authMethod"] as? String, !method.isEmpty { text += " via \(method)" }
-                if let plan = object["subscriptionType"] as? String, !plan.isEmpty { text += " (\(plan) plan)" }
+                guard loggedIn else { return (notLoggedIn, false) }
+                var text = loggedInText
+                if let method = object["authMethod"] as? String, !method.isEmpty {
+                    text = String(localized: "Logged in via \(method)", bundle: .module,
+                                  comment: "CLI check result. %@ is the login method reported by Claude Code.")
+                }
+                if let plan = object["subscriptionType"] as? String, !plan.isEmpty {
+                    text += " " + String(localized: "(\(plan) plan)", bundle: .module,
+                                         comment: "CLI check result suffix. %@ is the subscription name (for example max).")
+                }
                 return (text, true)
             }
         case .antigravity:
             if result.exitCode == 0 {
                 // One "<id>\t<label>" line per model after "Fetching available models...".
                 let count = result.stdout.split(whereSeparator: \.isNewline).filter { $0.contains("\t") }.count
-                return ("Logged in; \(count) model\(count == 1 ? "" : "s") available", true)
+                let text = count == 1
+                    ? String(localized: "Logged in; 1 model available", bundle: .module, comment: "CLI check result")
+                    : String(localized: "Logged in; \(count) models available", bundle: .module,
+                             comment: "CLI check result. %lld is the number of models (never 1).")
+                return (text, true)
             }
             if CLIProviderError.indicatesLoggedOut(result.stdout + "\n" + result.stderr, tool: tool) {
-                return ("Not logged in. \(advice)", false)
+                return (notLoggedIn, false)
             }
-            return ("`agy models` failed (exit code \(result.exitCode)). \(advice)", false)
+            return (String(localized: "`agy models` failed (exit code \(result.exitCode)). \(advice)", bundle: .module,
+                           comment: "CLI check result. %1$d is the exit code, %2$@ the log-in hint. Keep `agy models`."),
+                    false)
         case .codex, .copilot:
             break
         }
@@ -552,9 +572,9 @@ public actor CLIClient: ChatCompleting {
             .joined(separator: " ")
         let line = String(output.prefix(ChatCompletionsError.excerptLength))
         if result.exitCode == 0, !output.lowercased().contains("not logged in") {
-            return (line.isEmpty ? "Logged in" : line, true)
+            return (line.isEmpty ? loggedInText : line, true)
         }
-        return (line.isEmpty ? "Not logged in. \(advice)" : "\(line). \(advice)", false)
+        return (line.isEmpty ? notLoggedIn : "\(line). \(advice)", false)
     }
 
     /// Runs in a fresh temporary folder, removed afterwards: the CLIs are

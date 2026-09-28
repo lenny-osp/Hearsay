@@ -17,7 +17,8 @@ public struct SecretStoreError: Error, LocalizedError, Equatable {
 
     public var errorDescription: String? {
         let detail = SecCopyErrorMessageString(status, nil).map { $0 as String } ?? "OSStatus \(status)"
-        return "Keychain error: \(detail)"
+        return String(localized: "Keychain error: \(detail)", bundle: .module,
+                      comment: "Token error. %@ is the message macOS gives for the Keychain error.")
     }
 }
 

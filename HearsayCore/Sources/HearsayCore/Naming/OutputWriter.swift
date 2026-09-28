@@ -18,35 +18,43 @@ public enum OutputWriterError: Error, LocalizedError, Equatable {
     public var errorDescription: String? {
         switch self {
         case .unusableMeetingName:
-            return "The meeting name contains no usable characters. Use English letters or digits."
+            return String(
+                localized: "The meeting name contains no usable characters. Use English letters or digits.",
+                bundle: .module, comment: "Naming error. File names use English letters and digits only.")
         case let .renameFailed(source, destination, reason, unrestored):
-            var message = "Unable to rename \(source.path) to \(destination.lastPathComponent): \(reason)."
-            if unrestored.isEmpty {
-                message += " All files keep their original names."
-            } else {
-                message += " These files could not be restored: "
-                    + unrestored.map(\.path).joined(separator: ", ") + "."
-            }
-            return message
+            let message = String(
+                localized: "Unable to rename \(source.path) to \(destination.lastPathComponent): \(reason).",
+                bundle: .module,
+                comment: "Naming error. %1$@ is a file path, %2$@ a file name, %3$@ the system error message.")
+            let restored = String(localized: "All files keep their original names.", bundle: .module,
+                                  comment: "Follows a rename error: nothing was changed.")
+            return message + " " + Self.restoreSentence(unrestored, otherwise: restored)
         case let .writeFailed(url, reason, unrestored):
-            var message = "Unable to write meeting notes (\(url.path)): \(reason)."
-            if unrestored.isEmpty {
-                message += " The transcript, recording and any earlier notes keep their original names."
-            } else {
-                message += " These files could not be restored: "
-                    + unrestored.map(\.path).joined(separator: ", ") + "."
-            }
-            return message
+            let message = String(
+                localized: "Unable to write meeting notes (\(url.path)): \(reason).", bundle: .module,
+                comment: "Naming error. %1$@ is a file path, %2$@ the system error message.")
+            let restored = String(
+                localized: "The transcript, recording and any earlier notes keep their original names.",
+                bundle: .module, comment: "Follows a write error: nothing was renamed.")
+            return message + " " + Self.restoreSentence(unrestored, otherwise: restored)
         case let .trashFailed(url, reason, unrestored):
-            var message = "Unable to move the current notes (\(url.path)) to the Trash: \(reason)."
-            if unrestored.isEmpty {
-                message += " The current notes are unchanged."
-            } else {
-                message += " These files could not be restored: "
-                    + unrestored.map(\.path).joined(separator: ", ") + "."
-            }
-            return message
+            let message = String(
+                localized: "Unable to move the current notes (\(url.path)) to the Trash: \(reason).",
+                bundle: .module,
+                comment: "Regenerate notes error. %1$@ is a file path, %2$@ the system error message.")
+            let restored = String(localized: "The current notes are unchanged.", bundle: .module,
+                                  comment: "Follows a Trash error: the old notes are still in place.")
+            return message + " " + Self.restoreSentence(unrestored, otherwise: restored)
         }
+    }
+
+    /// `otherwise` when every file was restored, else the list of the files
+    /// that were not.
+    private static func restoreSentence(_ unrestored: [URL], otherwise: String) -> String {
+        guard !unrestored.isEmpty else { return otherwise }
+        let paths = unrestored.map(\.path).joined(separator: ", ")
+        return String(localized: "These files could not be restored: \(paths).", bundle: .module,
+                      comment: "Follows a file error. %@ is a comma-separated list of file paths.")
     }
 }
 

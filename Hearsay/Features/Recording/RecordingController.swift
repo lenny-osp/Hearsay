@@ -135,7 +135,8 @@ final class RecordingController {
     @ObservationIgnored private var deviceObservation: AudioDeviceListObservation?
     @ObservationIgnored private var engineObservation: NotificationToken?
     /// Name of the device being recorded, for error messages.
-    @ObservationIgnored private var recordingDeviceName = "the input device"
+    @ObservationIgnored private var recordingDeviceName = String(
+        localized: "the input device", comment: "Used in recording errors when the device has no name")
     /// Set when the watchdog stopped a recording that never got audio.
     @ObservationIgnored private var noAudioFailure: MicrophoneRecorderError?
     @ObservationIgnored private var watchdogTask: Task<Void, Never>?
@@ -448,7 +449,8 @@ final class RecordingController {
         await transcriptionTask?.value
         guard isTranscribing else { return }
         if liveSegments.isEmpty {
-            failTranscription("Transcription was cancelled because Hearsay quit.")
+            failTranscription(String(localized: "Transcription was cancelled because Hearsay quit.",
+                                     comment: "Recording error"))
         } else {
             completeTranscription(with: liveSegments, keepRecording: true)
         }
@@ -538,7 +540,8 @@ final class RecordingController {
             writer = try WavWriter(url: url)
         } catch {
             systemRecorder?.stop()
-            phase = .failed(message: "Could not create the recording file: \(error.localizedDescription)")
+            phase = .failed(message: String(localized: "Could not create the recording file: \(error.localizedDescription)",
+                                            comment: "Recording error. %@ is the system error message."))
             return
         }
         let recorder = sources.makeMicrophone()
@@ -555,7 +558,8 @@ final class RecordingController {
         self.writer = writer
         self.recorder = recorder
         self.systemRecorder = systemRecorder
-        recordingDeviceName = recorder.diagnostics.deviceName ?? device?.name ?? "the input device"
+        recordingDeviceName = recorder.diagnostics.deviceName ?? device?.name
+            ?? String(localized: "the input device", comment: "Used in recording errors when the device has no name")
         noAudioFailure = nil
         writeError = nil
         meter = LevelMeter()
@@ -647,13 +651,15 @@ final class RecordingController {
             do {
                 return try await make()
             } catch {
-                systemAudioNotice = "System audio off: \(error)"
+                systemAudioNotice = String(localized: "System audio off: \(String(describing: error))",
+                                           comment: "Record tab notice. %@ is the reason.")
                 return nil
             }
         }
         if SystemAudioRecorder.permission != .authorized, !SystemAudioRecorder.requestPermission() {
             systemAudioDenied = true
-            systemAudioNotice = "System audio off: permission denied"
+            systemAudioNotice = String(localized: "System audio off: permission denied",
+                                       comment: "Record tab notice: no Screen & System Audio Recording permission")
             return nil
         }
         let recorder = SystemAudioRecorder()
@@ -662,9 +668,11 @@ final class RecordingController {
             return recorder
         } catch SystemAudioRecorderError.permissionDenied {
             systemAudioDenied = true
-            systemAudioNotice = "System audio off: permission denied"
+            systemAudioNotice = String(localized: "System audio off: permission denied",
+                                       comment: "Record tab notice: no Screen & System Audio Recording permission")
         } catch {
-            systemAudioNotice = "System audio off: \(error)"
+            systemAudioNotice = String(localized: "System audio off: \(String(describing: error))",
+                                           comment: "Record tab notice. %@ is the reason.")
         }
         return nil
     }
@@ -697,7 +705,8 @@ final class RecordingController {
             systemLevelFraction = LevelMeter.levelFraction(rmsDB: chunk.systemRMSDB)
         }
         silenceWarning = meter.isSilenceWarning
-            ? "Silent for \(Int(meter.silenceSeconds))s \u{2014} check the input device"
+            ? String(localized: "Silent for \(Int(meter.silenceSeconds))s \u{2014} check the input device",
+                     comment: "Silence warning while recording. %lld is a number of seconds.")
             : nil
     }
 
@@ -714,7 +723,8 @@ final class RecordingController {
             }
         case .system:
             if let failure = systemRecorder?.failure {
-                systemAudioNotice = "System audio off: \(failure)"
+                systemAudioNotice = String(localized: "System audio off: \(failure.description)",
+                                           comment: "Record tab notice. %@ is the reason.")
                 systemLevelFraction = nil
             }
         }
@@ -739,7 +749,8 @@ final class RecordingController {
             refreshDevices()
         }
         if let writeError {
-            problems.append("Writing the recording failed: \(writeError.localizedDescription)")
+            problems.append(String(localized: "Writing the recording failed: \(writeError.localizedDescription)",
+                                   comment: "Recording error. %@ is the system error message."))
         }
 
         var closed: URL?
@@ -748,7 +759,8 @@ final class RecordingController {
             do {
                 try writer.close()
             } catch {
-                problems.append("Closing the recording failed: \(error.localizedDescription)")
+                problems.append(String(localized: "Closing the recording failed: \(error.localizedDescription)",
+                                       comment: "Recording error. %@ is the system error message."))
             }
         }
 
@@ -778,7 +790,7 @@ final class RecordingController {
             var lines = problems.isEmpty
                 ? [MicrophoneRecorderError.noAudio(deviceName: recordingDeviceName).description]
                 : problems
-            lines.append("Nothing was recorded, so no file was kept.")
+            lines.append(String(localized: "Nothing was recorded, so no file was kept.", comment: "Recording error"))
             phase = .failed(message: lines.joined(separator: "\n"))
             return
         }
@@ -828,7 +840,8 @@ final class RecordingController {
         do {
             location = try sources.modelLocation(modelStore)
         } catch {
-            liveNotice = "Live preview off: \(Self.describe(error))"
+            liveNotice = String(localized: "Live preview off: \(Self.describe(error))",
+                                comment: "Record tab notice. %@ is the reason.")
             return
         }
         isLivePreviewEnabled = true
@@ -979,7 +992,8 @@ final class RecordingController {
                 latestLiveLine = line
             }
         case .failure(let error):
-            liveNotice = "Live preview missed a chunk: \(Self.describe(error))"
+            liveNotice = String(localized: "Live preview missed a chunk: \(Self.describe(error))",
+                                comment: "Record tab notice. %@ is the reason.")
         }
     }
 
@@ -1003,7 +1017,8 @@ final class RecordingController {
         await liveTask?.value
         guard session == id, isTranscribing, !isUsingLivePreview else { return }
         guard let language = languageTracker.language else {
-            failTranscription("Transcription failed: the language could not be decided.")
+            failTranscription(String(localized: "Transcription failed: the language could not be decided.",
+                                     comment: "Transcription error"))
             return
         }
 
@@ -1021,7 +1036,8 @@ final class RecordingController {
             // cancelled writes the SRT.
             guard !error.isTranscriptionCancelled else { return }
             guard session == id, isTranscribing, !isUsingLivePreview else { return }
-            failTranscription("Transcription failed: \(Self.describe(error))")
+            failTranscription(String(localized: "Transcription failed: \(Self.describe(error))",
+                                     comment: "Transcription error. %@ is the reason."))
         }
     }
 
@@ -1046,7 +1062,8 @@ final class RecordingController {
             await settleLanguage(samples: samples, location: location, session: id)
             guard session == id, isTranscribing else { return }
             guard let language = languageTracker.language else {
-                failTranscription("Transcription failed: the language could not be decided.")
+                failTranscription(String(localized: "Transcription failed: the language could not be decided.",
+                                     comment: "Transcription error"))
                 return
             }
             let result = try await engine.transcribe(
@@ -1059,7 +1076,8 @@ final class RecordingController {
         } catch {
             guard !error.isTranscriptionCancelled else { return }
             guard session == id, isTranscribing, !isUsingLivePreview else { return }
-            failTranscription("Transcription failed: \(Self.describe(error))")
+            failTranscription(String(localized: "Transcription failed: \(Self.describe(error))",
+                                     comment: "Transcription error. %@ is the reason."))
         }
     }
 
@@ -1078,7 +1096,8 @@ final class RecordingController {
         do {
             location = try sources.modelLocation(modelStore)
         } catch {
-            restore("Could not transcribe again: \(Self.describe(error))")
+            restore(String(localized: "Could not transcribe again: \(Self.describe(error))",
+                           comment: "Error. %@ is the reason."))
             return
         }
         let folder = try? TranscriptOutput.resolveFolder(settings: settings)
@@ -1092,7 +1111,8 @@ final class RecordingController {
                     try AudioFileLoader.loadMono16k(url: wav)
                 }.value
             } else {
-                restore("Could not transcribe again: the recording was not kept.")
+                restore(String(localized: "Could not transcribe again: the recording was not kept.",
+                           comment: "Error"))
                 return
             }
             let result = try await engine.transcribe(
@@ -1102,7 +1122,8 @@ final class RecordingController {
             )
             guard session == id, isTranscribing else { return }
             guard FileManager.default.fileExists(atPath: srt.path) else {
-                restore("Could not transcribe again: \(srt.lastPathComponent) was moved or renamed.")
+                restore(String(localized: "Could not transcribe again: \(srt.lastPathComponent) was moved or renamed.",
+                           comment: "Error. %@ is a file name."))
                 return
             }
             try TranscriptOutput.writeSRT(result.cues(script: sessionChineseScript), to: srt)
@@ -1113,7 +1134,8 @@ final class RecordingController {
             if error.isTranscriptionCancelled {
                 restore(nil)
             } else {
-                restore("Could not transcribe again: \(Self.describe(error))")
+                restore(String(localized: "Could not transcribe again: \(Self.describe(error))",
+                           comment: "Error. %@ is the reason."))
             }
         }
     }
@@ -1137,7 +1159,8 @@ final class RecordingController {
         do {
             folder = try TranscriptOutput.resolveFolder(settings: settings)
         } catch {
-            failTranscription("Could not open the output folder: \(error.localizedDescription)")
+            failTranscription(String(localized: "Could not open the output folder: \(error.localizedDescription)",
+                                     comment: "Error. %@ is the system error message."))
             return
         }
         defer { folder.stopAccessing() }
@@ -1147,7 +1170,7 @@ final class RecordingController {
         // in the output folder (after a failed pass).
         let source = pendingSpoolWAV ?? retryableRecording
         guard let source else {
-            failTranscription("The recording is missing.")
+            failTranscription(String(localized: "The recording is missing.", comment: "Transcription error"))
             return
         }
         let inSpool = pendingSpoolWAV != nil
@@ -1160,7 +1183,8 @@ final class RecordingController {
         do {
             try TranscriptOutput.writeSRT(cues, to: srt)
         } catch {
-            failTranscription("Could not write the transcript: \(error.localizedDescription)")
+            failTranscription(String(localized: "Could not write the transcript: \(error.localizedDescription)",
+                                     comment: "Transcription error. %@ is the system error message."))
             return
         }
 
@@ -1173,8 +1197,9 @@ final class RecordingController {
                     wav = destination
                 } catch {
                     wav = source
-                    liveNotice = "Could not move the recording to the output folder: "
-                        + "\(error.localizedDescription) It is kept at \(source.path)."
+                    liveNotice = String(
+                        localized: "Could not move the recording to the output folder: \(error.localizedDescription) It is kept at \(source.path).",
+                        comment: "Record tab notice. %1$@ is the system error message, %2$@ a file path.")
                 }
             } else {
                 wav = source
@@ -1210,7 +1235,8 @@ final class RecordingController {
                     wav = try spool.finalize(spoolWAV, keep: true, outputFolder: folder.url)
                 } catch {
                     wav = spoolWAV
-                    lines.append("Could not move the recording to the output folder: \(error.localizedDescription)")
+                    lines.append(String(localized: "Could not move the recording to the output folder: \(error.localizedDescription)",
+                                        comment: "Recording error. %@ is the system error message."))
                 }
             }
             pendingSpoolWAV = nil
@@ -1221,13 +1247,16 @@ final class RecordingController {
             do {
                 try TranscriptOutput.writeSRT(liveSegments, to: srt)
                 finishedTranscript = srt
-                lines.append("The live preview was saved as \(srt.path).")
+                lines.append(String(localized: "The live preview was saved as \(srt.path).",
+                                    comment: "After a failed transcription. %@ is a file path."))
             } catch {
-                lines.append("The live preview could not be saved: \(error.localizedDescription)")
+                lines.append(String(localized: "The live preview could not be saved: \(error.localizedDescription)",
+                                    comment: "After a failed transcription. %@ is the system error message."))
             }
         }
         if let wav {
-            lines.append("The recording is kept at \(wav.path).")
+            lines.append(String(localized: "The recording is kept at \(wav.path).",
+                                comment: "After a failed transcription. %@ is a file path."))
         }
         retryableRecording = wav
         finishedRecording = wav

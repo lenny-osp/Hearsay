@@ -47,9 +47,11 @@ struct RecordView: View {
                     .tint(model.silenceWarning == nil ? .green : .orange)
                     .accessibilityLabel("Input level")
                 HStack(spacing: 16) {
-                    sourceMeter("Mic", systemImage: "mic.fill", fraction: model.micLevelFraction)
+                    sourceMeter(String(localized: "Mic", comment: "Record tab: microphone level meter (tooltip)"),
+                                systemImage: "mic.fill", fraction: model.micLevelFraction)
                     if let system = model.systemLevelFraction {
-                        sourceMeter("System", systemImage: "speaker.wave.2.fill", fraction: system)
+                        sourceMeter(String(localized: "System", comment: "Record tab: system audio level meter (tooltip)"),
+                                    systemImage: "speaker.wave.2.fill", fraction: system)
                     }
                 }
                 if let notice = model.systemAudioNotice {
@@ -212,7 +214,10 @@ struct RecordView: View {
                             Label("Detecting language…", systemImage: "globe")
                                 .foregroundStyle(.secondary)
                         } else {
-                            Text(model.isLivePreviewEnabled ? "The first lines appear after about 10 to 30 s." : "")
+                            Text(model.isLivePreviewEnabled
+                                 ? String(localized: "The first lines appear after about 10 to 30 s.",
+                                          comment: "Live preview placeholder while no line has arrived yet")
+                                 : "")
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -258,7 +263,7 @@ struct RecordView: View {
         }
         .help(title)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(title) level")
+        .accessibilityLabel(Text("\(title) level", comment: "Accessibility label. %@ is Mic or System."))
         .accessibilityValue(Text(fraction, format: .percent.precision(.fractionLength(0))))
     }
 

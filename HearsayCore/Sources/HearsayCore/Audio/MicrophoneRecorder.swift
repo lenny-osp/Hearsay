@@ -30,21 +30,25 @@ public enum MicrophoneRecorderError: Error, Equatable, Sendable, CustomStringCon
     public var description: String {
         switch self {
         case .permissionDenied:
-            "Hearsay has no microphone access. Allow it in System Settings > Privacy & Security > Microphone."
+            String(localized: "Hearsay has no microphone access. Allow it in System Settings > Privacy & Security > Microphone.",
+                   bundle: .module, comment: "Recording error. Use the macOS wording for the System Settings path.")
         case .noInputDevice:
-            "No input device is available."
+            String(localized: "No input device is available.", bundle: .module, comment: "Recording error")
         case .cannotSelectDevice(let name, let status):
-            "Could not select \(name) (CoreAudio error \(status))."
+            String(localized: "Could not select \(name) (CoreAudio error \(status)).", bundle: .module,
+                   comment: "Recording error. %1$@ is the input device name, %2$d a CoreAudio error number.")
         case .deviceNotFound(let name):
-            "\(name) is not available for recording. Reconnect it or choose another input."
+            String(localized: "\(name) is not available for recording. Reconnect it or choose another input.",
+                   bundle: .module, comment: "Recording error. %@ is the input device name.")
         case .engineFailed(let detail):
-            "Audio capture failed: \(detail)"
+            String(localized: "Audio capture failed: \(detail)", bundle: .module,
+                   comment: "Recording error. %@ is a technical detail in English.")
         case .noAudio(let name):
-            "No audio from \(name). Nothing arrived within \(Int(NoAudioWatchdog.timeout)) seconds, "
-                + "so the recording was stopped. Check that the device is "
-                + "connected and not muted, or choose another input."
+            String(localized: "No audio from \(name). Nothing arrived within \(Int(NoAudioWatchdog.timeout)) seconds, so the recording was stopped. Check that the device is connected and not muted, or choose another input.",
+                   bundle: .module, comment: "Recording error. %1$@ is the input device name, %2$lld a number of seconds.")
         case .configurationChanged:
-            "The input device changed or was disconnected, so recording stopped."
+            String(localized: "The input device changed or was disconnected, so recording stopped.",
+                   bundle: .module, comment: "Recording error")
         case .invalidState(let detail):
             detail
         }

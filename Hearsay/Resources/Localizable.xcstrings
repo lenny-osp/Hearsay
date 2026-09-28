@@ -1,0 +1,666 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@ CLI path:" : {},
+    "%@ It stays at %@." : {
+      "comment" : "Recovery error. %1$@ is the system error message, %2$@ a file path.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ It stays at %2$@."
+          }
+        }
+      }
+    },
+    "%@ at %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ at %2$@"
+          }
+        }
+      }
+    },
+    "%@ characters" : {},
+    "%@ is already used by another app or shortcut." : {
+      "comment" : "Settings > General error. %@ is a shortcut such as ⌃⌥⌘R."
+    },
+    "%@ is replaced by the notes language. The filename and JSON rules and the transcript are always appended." : {},
+    "%@ level" : {
+      "comment" : "Accessibility label. %@ is Mic or System."
+    },
+    "%@ of %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ of %2$@"
+          }
+        }
+      }
+    },
+    "%@ on disk" : {},
+    "%@ saved" : {
+      "comment" : "Accessibility label of a History badge. %@ is SRT, Notes, Transcript, or Audio."
+    },
+    "%@, in use" : {
+      "comment" : "Models tab: the active model. %@ is a size such as 1.6 GB."
+    },
+    "%@, installed" : {
+      "comment" : "Models tab: a downloaded model. %@ is a size such as 1.6 GB."
+    },
+    "%lld chunks waiting" : {},
+    "%lld more after this one." : {},
+    "%lld%%" : {},
+    "(%@ is missing from the app bundle.)" : {
+      "comment" : "Licenses sheet, in place of a missing file. %@ is a file name."
+    },
+    "A recording from %@ was not finished (%@). What do you want to do?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "A recording from %1$@ was not finished (%2$@). What do you want to do?"
+          }
+        }
+      }
+    },
+    "AI" : {
+      "comment" : "Settings section (segmented picker): meeting-notes provider"
+    },
+    "API token:" : {},
+    "Acknowledgements" : {},
+    "Active model" : {},
+    "Add" : {},
+    "Also capture system audio" : {},
+    "Always ask before sending" : {},
+    "Applies to Chinese transcripts. Other languages are never changed." : {},
+    "Approve in System Settings > General > Login Items" : {},
+    "Ask before sending a transcript" : {},
+    "Audio" : {
+      "comment" : "History badge: the meeting has a recording"
+    },
+    "Auto detects English, Chinese, German, or Spanish from the first speech" : {},
+    "Available once transcription lands" : {},
+    "CLI default" : {
+      "comment" : "Placeholder: the command-line tool picks its own value"
+    },
+    "Cancel" : {
+      "comment" : "Alert button"
+    },
+    "Cancelled" : {
+      "comment" : "File tab: the transcription was cancelled"
+    },
+    "Changes apply immediately." : {},
+    "Characters of the Chinese transcript" : {
+      "comment" : "Tooltip of the Chinese output picker"
+    },
+    "Check %@" : {},
+    "Chinese output" : {
+      "comment" : "Picker label: write Chinese transcripts in Traditional or Simplified characters"
+    },
+    "Choose" : {
+      "comment" : "Open panel button: use the selected folder"
+    },
+    "Choose another…" : {},
+    "Choose where Hearsay saves transcripts and notes." : {
+      "comment" : "Open panel message for the output folder"
+    },
+    "Choose…" : {},
+    "Click, then press a new shortcut." : {
+      "comment" : "Shortcut recorder tooltip"
+    },
+    "Closing the recording failed: %@" : {
+      "comment" : "Recording error. %@ is the system error message."
+    },
+    "Connected. Reply: %@" : {},
+    "Could not create the output folder: %@" : {
+      "comment" : "Settings > Output error. %@ is the system error message."
+    },
+    "Could not create the recording file: %@" : {
+      "comment" : "Recording error. %@ is the system error message."
+    },
+    "Could not delete the model" : {},
+    "Could not delete the recording: %@" : {
+      "comment" : "Recovery sheet error. %@ is the system error message."
+    },
+    "Could not keep the recording: %@ It stays at %@." : {
+      "comment" : "Recovery sheet error. %1$@ is the system error message, %2$@ a file path.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Could not keep the recording: %1$@ It stays at %2$@."
+          }
+        }
+      }
+    },
+    "Could not move the recording to the output folder: %@" : {
+      "comment" : "Recording error. %@ is the system error message."
+    },
+    "Could not move the recording to the output folder: %@ It is kept at %@." : {
+      "comment" : "Record tab notice. %1$@ is the system error message, %2$@ a file path.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Could not move the recording to the output folder: %1$@ It is kept at %2$@."
+          }
+        }
+      }
+    },
+    "Could not open the output folder: %@" : {
+      "comment" : "Error. %@ is the system error message."
+    },
+    "Could not read %@: %@" : {
+      "comment" : "History error. %1$@ is a folder path, %2$@ the system error message.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Could not read %1$@: %2$@"
+          }
+        }
+      }
+    },
+    "Could not remember that folder: %@" : {
+      "comment" : "Settings > Output error. %@ is the system error message."
+    },
+    "Could not remove the token: %@" : {
+      "comment" : "Settings > AI error. %@ is the reason."
+    },
+    "Could not repair the recording: %@" : {
+      "comment" : "Recovery sheet error. %@ is the system error message."
+    },
+    "Could not save the token: %@" : {
+      "comment" : "Settings > AI error. %@ is the reason."
+    },
+    "Could not transcribe %@: %@" : {
+      "comment" : "File tab error. %1$@ is a file name, %2$@ the reason.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Could not transcribe %1$@: %2$@"
+          }
+        }
+      }
+    },
+    "Could not transcribe again: %@" : {
+      "comment" : "Error. %@ is the reason."
+    },
+    "Could not transcribe again: %@ was moved or renamed." : {
+      "comment" : "Error. %@ is a file name."
+    },
+    "Could not transcribe again: the recording was not kept." : {
+      "comment" : "Error"
+    },
+    "Could not transcribe the recording" : {},
+    "Could not turn off launch at login: %@" : {
+      "comment" : "Settings > General error. %@ is the system error message."
+    },
+    "Could not turn on launch at login: %@" : {
+      "comment" : "Settings > General error. %@ is the system error message."
+    },
+    "Could not write the transcript: %@" : {
+      "comment" : "Transcription error. %@ is the system error message."
+    },
+    "Default" : {},
+    "Delete" : {},
+    "Detecting language…" : {},
+    "Detecting the language of %@…" : {},
+    "Dismiss" : {},
+    "Done" : {},
+    "Download" : {},
+    "Download a speech model" : {},
+    "Download recommended model (%@)" : {},
+    "Drop an audio or video file here" : {},
+    "Edit" : {},
+    "Endpoint URL:" : {},
+    "Enter an English meeting name using letters or digits." : {},
+    "Error: SRT file not found or unreadable (%@): %@" : {
+      "comment" : "Meeting notes error. %1$@ is a file path, %2$@ the system error message.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Error: SRT file not found or unreadable (%1$@): %2$@"
+          }
+        }
+      }
+    },
+    "Extra headers:" : {},
+    "File" : {
+      "comment" : "Main window tab"
+    },
+    "File name:" : {},
+    "File:" : {},
+    "Finalizing…" : {},
+    "General" : {
+      "comment" : "Settings section (segmented picker)"
+    },
+    "Generate Notes…" : {
+      "comment" : "History: make meeting notes from the SRT"
+    },
+    "Generating meeting notes via %@ (%@)…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Generating meeting notes via %1$@ (%2$@)…"
+          }
+        }
+      }
+    },
+    "Global shortcuts are unavailable (error %d)." : {
+      "comment" : "Settings > General error. %d is a system error number."
+    },
+    "Hearsay could not restart." : {
+      "comment" : "Alert when the automatic restart after a language change failed"
+    },
+    "Hearsay is MIT licensed and includes open-source software." : {},
+    "Hearsay needs to restart to change the language." : {
+      "comment" : "Alert after changing the interface language"
+    },
+    "Hearsay transcribes on this Mac with a Whisper model that you download once. Nothing is sent anywhere while transcribing. The recommended model gives the best balance of accuracy and speed; smaller ones download faster but make more mistakes." : {},
+    "Hearsay, paused" : {},
+    "Hearsay, recording" : {},
+    "Hearsay, transcribing" : {},
+    "History" : {
+      "comment" : "Main window tab"
+    },
+    "Idle" : {
+      "comment" : "Menu bar panel state: not recording"
+    },
+    "Include ⌃, ⌥, or ⌘." : {
+      "comment" : "Shortcut recorder hint. Keep the symbols."
+    },
+    "Input level" : {},
+    "Instructions" : {},
+    "Interface" : {
+      "comment" : "Settings > General section header: the app's own language"
+    },
+    "Interface language" : {
+      "comment" : "Settings > General: the language of Hearsay's own menus and windows"
+    },
+    "Keep" : {},
+    "Keep Timestamp Names" : {},
+    "Keep local" : {},
+    "Keep the recording (WAV) after a successful transcription" : {},
+    "Keeping the timestamp file names." : {
+      "comment" : "Follows a rename error"
+    },
+    "Language" : {},
+    "Later" : {
+      "comment" : "Alert button: keep running; the language changes at the next launch"
+    },
+    "Launch Hearsay at login" : {},
+    "Live preview" : {},
+    "Live preview missed a chunk: %@" : {
+      "comment" : "Record tab notice. %@ is the reason."
+    },
+    "Live preview off: %@" : {
+      "comment" : "Record tab notice. %@ is the reason."
+    },
+    "Meeting name" : {
+      "comment" : "Naming sheet title"
+    },
+    "Meeting name (in English)" : {},
+    "Meeting notes" : {},
+    "Meeting notes generated successfully!" : {
+      "comment" : "Meeting notes result"
+    },
+    "Meeting notes were not saved" : {},
+    "Meeting-note generation was cancelled; no meeting notes were generated." : {
+      "comment" : "Meeting notes result"
+    },
+    "Menus and windows. A change applies after Hearsay restarts." : {
+      "comment" : "Settings > General caption under Interface language"
+    },
+    "Mic" : {
+      "comment" : "Record tab: microphone level meter (tooltip)"
+    },
+    "Microphone" : {},
+    "Model:" : {},
+    "Models" : {
+      "comment" : "Main window tab"
+    },
+    "Models are stored in" : {},
+    "Move this meeting to the Trash?" : {},
+    "Move to Trash" : {},
+    "Move to Trash…" : {
+      "comment" : "Button: move the meeting's files to the Trash"
+    },
+    "Name It…" : {},
+    "Name this meeting" : {
+      "comment" : "Naming sheet title"
+    },
+    "Name this meeting yourself?" : {},
+    "Name:" : {},
+    "Name: value, one per line" : {},
+    "New template" : {
+      "comment" : "Default name of a new prompt template"
+    },
+    "No app is available to open %@." : {
+      "comment" : "History error. %@ is a file name."
+    },
+    "No input device" : {},
+    "No meeting name selected; the SRT has been retained." : {
+      "comment" : "Meeting notes result"
+    },
+    "No meeting name selected; the current notes are unchanged." : {
+      "comment" : "Meeting notes result"
+    },
+    "No meeting notes were generated." : {
+      "comment" : "Follows a meeting notes error"
+    },
+    "No meeting notes were generated. You can rename the SRT and its recording, or keep the timestamp names." : {},
+    "No meetings yet" : {},
+    "No model installed. Choose a model in Models." : {
+      "comment" : "Transcription error. 'Models' is the name of the Models tab."
+    },
+    "No output folder" : {
+      "comment" : "History header when the output folder cannot be opened"
+    },
+    "Not set" : {
+      "comment" : "Settings > AI token status: no token stored"
+    },
+    "Notes" : {
+      "comment" : "History badge: the meeting has meeting notes"
+    },
+    "Notes language:" : {},
+    "Nothing was recorded, so no file was kept." : {
+      "comment" : "Recording error"
+    },
+    "Nothing was sent; the current notes are unchanged." : {
+      "comment" : "Meeting notes result"
+    },
+    "OK" : {},
+    "Open Hearsay" : {
+      "comment" : "Menu bar panel: bring up the main window"
+    },
+    "Open Login Items" : {},
+    "Open Models" : {},
+    "Open Notes" : {},
+    "Open SRT" : {
+      "comment" : "History row button (tooltip)"
+    },
+    "Open System Settings" : {},
+    "Open Transcript" : {},
+    "Open notes" : {
+      "comment" : "History row button (tooltip)"
+    },
+    "Open transcript" : {
+      "comment" : "History row button (tooltip): the structured Markdown transcript"
+    },
+    "Output" : {
+      "comment" : "Settings section (segmented picker)"
+    },
+    "Output folder:" : {},
+    "Pause" : {
+      "comment" : "Button: pause the recording"
+    },
+    "Pause / Resume (%@)" : {},
+    "Pause / Resume:" : {},
+    "Paused" : {},
+    "Paused %@" : {
+      "comment" : "Menu bar panel state. %@ is the elapsed time, for example 00:12:34."
+    },
+    "Preferred language" : {},
+    "Preset:" : {},
+    "Press a combination with ⌃, ⌥, or ⌘. Escape cancels." : {
+      "comment" : "Shortcut recorder tooltip. Keep the symbols."
+    },
+    "Prompt template" : {},
+    "Prompt templates" : {},
+    "Provider" : {},
+    "Provider:" : {},
+    "Quit Hearsay" : {
+      "comment" : "Menu bar panel"
+    },
+    "Quit Hearsay and open it again to use the new language." : {
+      "comment" : "Alert when the automatic restart after a language change failed"
+    },
+    "Reading %@…" : {},
+    "Ready" : {},
+    "Reasoning effort:" : {},
+    "Recommended" : {},
+    "Record" : {
+      "comment" : "Main window tab"
+    },
+    "Recording" : {
+      "comment" : "Menu bar icon while recording"
+    },
+    "Recording %@" : {
+      "comment" : "Menu bar panel state. %@ is the elapsed time, for example 00:12:34."
+    },
+    "Recording kept: %@" : {},
+    "Recordings, transcripts and meeting notes saved in the output folder appear here." : {},
+    "Refresh" : {},
+    "Regenerate Notes…" : {
+      "comment" : "History: make new meeting notes, replacing the current ones"
+    },
+    "Remove" : {},
+    "Reset" : {},
+    "Restart Now" : {
+      "comment" : "Alert button: quit and reopen Hearsay now"
+    },
+    "Resume" : {
+      "comment" : "Button: resume the paused recording"
+    },
+    "Retry" : {},
+    "Reveal in Finder" : {
+      "comment" : "Button"
+    },
+    "Save" : {},
+    "Saved" : {
+      "comment" : "Status word, also used for a finished recording on the Record tab and as a section header there; here: an API token is stored in the Keychain (Settings > AI)"
+    },
+    "Saved %@" : {
+      "comment" : "Menu bar panel caption. %@ is a file name."
+    },
+    "Saving moves the current notes to the Trash." : {},
+    "Saving the live preview…" : {},
+    "Saving…" : {
+      "comment" : "Recording state: the recording is being saved"
+    },
+    "Send" : {},
+    "Send transcript for meeting notes?" : {},
+    "Sending" : {},
+    "Set as Default" : {},
+    "Settings" : {
+      "comment" : "Main window tab"
+    },
+    "Settings section" : {
+      "comment" : "Accessibility label of the Settings section picker"
+    },
+    "Settings…" : {
+      "comment" : "App menu command that opens the Settings tab (⌘,)"
+    },
+    "Shortcut" : {
+      "comment" : "Accessibility label of the shortcut recorder"
+    },
+    "Shortcuts" : {},
+    "Show Hearsay in:" : {},
+    "Show Licenses…" : {},
+    "Show in Finder" : {},
+    "Silent for %llds — check the input device" : {
+      "comment" : "Silence warning while recording. %lld is a number of seconds."
+    },
+    "Skip the full pass and save the live preview as the transcript" : {},
+    "Skipped AI processing; kept the timestamp file names." : {
+      "comment" : "Meeting notes result"
+    },
+    "Skipped AI processing; no meeting notes were generated." : {
+      "comment" : "Meeting notes result"
+    },
+    "Skipped AI processing; renamed the transcript and recording." : {
+      "comment" : "Meeting notes result"
+    },
+    "Some files could not be moved to the Trash:" : {
+      "comment" : "History error, followed by one line per file"
+    },
+    "Start" : {},
+    "Start (%@)" : {},
+    "Start / Stop recording:" : {},
+    "Starting…" : {
+      "comment" : "Recording state"
+    },
+    "Startup" : {},
+    "Status:" : {},
+    "Stop" : {},
+    "Stop & Quit" : {
+      "comment" : "Alert button: stop the recording, then quit"
+    },
+    "Stop (%@)" : {},
+    "Stop at the next 30 s window; nothing is saved" : {
+      "comment" : "Tooltip of Cancel while a file is transcribed"
+    },
+    "Stop recording and quit?" : {
+      "comment" : "Alert when quitting (or restarting) while a recording is active"
+    },
+    "System" : {
+      "comment" : "Record tab: system audio level meter (tooltip)"
+    },
+    "System audio off: %@" : {
+      "comment" : "Record tab notice. %@ is the reason."
+    },
+    "System audio off: permission denied" : {
+      "comment" : "Record tab notice: no Screen & System Audio Recording permission"
+    },
+    "Temperature:" : {},
+    "Template:" : {},
+    "Test connection" : {},
+    "The AI suggested this name. Edit it or press Return to accept it." : {
+      "comment" : "Naming sheet explanation"
+    },
+    "The SRT is kept at %@" : {},
+    "The current notes will be moved to the Trash when the new ones are saved." : {},
+    "The first lines appear after about 10 to 30 s." : {
+      "comment" : "Live preview placeholder while no line has arrived yet"
+    },
+    "The live preview could not be saved: %@" : {
+      "comment" : "After a failed transcription. %@ is the system error message."
+    },
+    "The live preview was saved as %@." : {
+      "comment" : "After a failed transcription. %@ is a file path."
+    },
+    "The model %@ is not fully downloaded. Finish the download in Models." : {
+      "comment" : "Transcription error. %@ is a model name; 'Models' is the Models tab."
+    },
+    "The preview lags behind the recording but stays complete." : {},
+    "The recording is kept at %@." : {
+      "comment" : "After a failed transcription. %@ is a file path."
+    },
+    "The recording is missing." : {
+      "comment" : "Transcription error"
+    },
+    "The recording is saved before Hearsay quits." : {
+      "comment" : "Alert when quitting while a recording is active"
+    },
+    "The transcript and recording are renamed to <timestamp>_<name>." : {
+      "comment" : "Naming sheet explanation. Translate the words inside <timestamp>_<name> but keep the angle brackets and underscore."
+    },
+    "This is the meeting's current name. Edit it or press Return to keep it." : {
+      "comment" : "Naming sheet explanation when regenerating notes"
+    },
+    "This is the meeting's current name. Edit it, keep it, or use the AI's suggestion." : {
+      "comment" : "Naming sheet explanation when regenerating notes"
+    },
+    "This provider needs no token." : {},
+    "This sends the whole transcript to %@. Nothing leaves this Mac otherwise." : {},
+    "Token" : {},
+    "Token header:" : {},
+    "Transcribe" : {},
+    "Transcribe again" : {},
+    "Transcribe this file" : {},
+    "Transcribe this recording again in %@" : {
+      "comment" : "Tooltip. %@ is a language name in its own language."
+    },
+    "Transcribe this recording again in %@. Your language choice stays as it is." : {
+      "comment" : "Tooltip. %@ is a language name in its own language (English, 中文, Deutsch, Español)."
+    },
+    "Transcribing" : {},
+    "Transcribing %@…" : {},
+    "Transcribing… %lld%%" : {
+      "comment" : "Menu bar panel state. %lld is a percentage; keep the % sign after it."
+    },
+    "Transcript" : {
+      "comment" : "History badge: the meeting has a structured transcript"
+    },
+    "Transcript kept: %@" : {},
+    "Transcript:" : {},
+    "Transcription" : {},
+    "Transcription failed: %@" : {
+      "comment" : "Transcription error. %@ is the reason."
+    },
+    "Transcription failed: the language could not be decided." : {
+      "comment" : "Transcription error"
+    },
+    "Transcription progress" : {},
+    "Transcription was cancelled because Hearsay quit." : {
+      "comment" : "Recording error"
+    },
+    "Try Again" : {},
+    "Type shortcut…" : {
+      "comment" : "Shortcut recorder while waiting for a key combination"
+    },
+    "Unfinished recording" : {},
+    "Untitled" : {
+      "comment" : "History: a meeting that has no name yet"
+    },
+    "Use" : {},
+    "Use Default" : {},
+    "Use live preview instead" : {},
+    "Use suggested name: %@" : {},
+    "Used when Auto can't tell the language." : {},
+    "Used when Auto detects Chinese" : {
+      "comment" : "Tooltip of the Chinese output picker"
+    },
+    "Uses Claude Code installed on this Mac and your Claude subscription login; requests count against its usage limits. Run `claude` once in Terminal to log in. Model: an alias (sonnet, opus) or a full id. Effort: low, medium, high, xhigh, or max (none and minimal become low)." : {
+      "comment" : "Settings > AI caption. Keep commands in backticks, model aliases, effort values (low, medium, high, xhigh, max, none, minimal, auto), and product names untranslated."
+    },
+    "Uses Codex installed on this Mac and your ChatGPT login; requests count against your plan's usage limits. Run `codex login` once in Terminal to log in. Effort: none, minimal, low, medium, high, xhigh, or max. An empty model uses Codex's default." : {
+      "comment" : "Settings > AI caption. Keep commands in backticks, model aliases, effort values (low, medium, high, xhigh, max, none, minimal, auto), and product names untranslated."
+    },
+    "Uses the Antigravity CLI installed on this Mac and the Google account it is logged in with; requests count against that account's limits. Run `agy` once in Terminal to log in; `agy models` lists the model ids. Effort: low, medium, high, or max, only for a model id without its own level (a model ending in -high, -medium, or -low ignores it). Runs use agy's hearsay-notes project, whose deny rules leave the model no tools except web search, and each run's conversation is deleted from agy's history afterwards." : {
+      "comment" : "Settings > AI caption. Keep commands in backticks, model aliases, effort values (low, medium, high, xhigh, max, none, minimal, auto), and product names untranslated."
+    },
+    "Uses the Copilot CLI installed on this Mac and its own login. Run `copilot` once in Terminal to log in. \"auto\" lets Copilot pick the model." : {
+      "comment" : "Settings > AI caption. Keep commands in backticks, model aliases, effort values (low, medium, high, xhigh, max, none, minimal, auto), and product names untranslated."
+    },
+    "Waiting for your answer…" : {},
+    "When off, the WAV is deleted once its SRT is written. A failed transcription always keeps it." : {},
+    "Window" : {
+      "comment" : "Settings section (segmented picker)"
+    },
+    "Work in any app, even with the window closed." : {},
+    "Writing the recording failed: %@" : {
+      "comment" : "Recording error. %@ is the system error message."
+    },
+    "an unknown time" : {
+      "comment" : "Used in 'A recording from %@ was not finished'"
+    },
+    "built-in" : {},
+    "not found; enter the path to %@" : {
+      "comment" : "Placeholder of the CLI path field. %@ is the program name (copilot, claude, codex, agy)."
+    },
+    "omitted when empty" : {},
+    "paste and press Return" : {},
+    "the input device" : {
+      "comment" : "Used in recording errors when the device has no name"
+    },
+    "the recording" : {
+      "comment" : "Used in 'Saved %@' when there is no file name"
+    },
+    "unknown length" : {
+      "comment" : "Used in '… was not finished (%@)' when the length is unknown"
+    },
+    "wav, m4a, mp3, aac, aiff, caf, or the audio track of mp4 / mov" : {
+      "comment" : "File tab: accepted file types. Keep the file extensions as they are."
+    }
+  },
+  "version" : "1.0"
+}

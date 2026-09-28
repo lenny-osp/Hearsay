@@ -65,7 +65,9 @@ public enum LanguageChoice: Codable, Equatable, Hashable, Sendable {
     /// Short label for pickers: "Auto" or the language's short label.
     public var shortLabel: String {
         switch self {
-        case .auto: "Auto"
+        case .auto:
+            String(localized: "Auto", bundle: .module,
+                   comment: "Language picker segment: detect the spoken language automatically. Keep it short.")
         case .fixed(let language): language.shortLabel
         }
     }

@@ -73,13 +73,18 @@ public enum ModelDownloadError: Error, Equatable, LocalizedError {
     public var errorDescription: String? {
         switch self {
         case let .httpStatus(file, status):
-            "Downloading \(file) failed with HTTP status \(status)."
+            String(localized: "Downloading \(file) failed with HTTP status \(status).", bundle: .module,
+                   comment: "Model download error. %1$@ is a file name, %2$lld an HTTP status code.")
         case let .sizeMismatch(file, expected, actual):
-            "\(file) is \(actual) bytes but the server announced \(expected). The file was discarded; try again."
+            String(localized: "\(file) is \(actual) bytes but the server announced \(expected). The file was discarded; try again.",
+                   bundle: .module,
+                   comment: "Model download error. %1$@ is a file name, %2$lld and %3$lld are byte counts.")
         case let .rangeNotSatisfiable(file):
-            "The server refused to resume \(file)."
+            String(localized: "The server refused to resume \(file).", bundle: .module,
+                   comment: "Model download error. %@ is a file name.")
         case let .invalidResponse(file):
-            "The server sent an unexpected response for \(file)."
+            String(localized: "The server sent an unexpected response for \(file).", bundle: .module,
+                   comment: "Model download error. %@ is a file name.")
         }
     }
 }

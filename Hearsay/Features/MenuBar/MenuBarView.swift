@@ -53,13 +53,13 @@ struct MenuBarView: View {
 
             Divider()
 
-            menuRow("Open Hearsay") {
+            menuRow(String(localized: "Open Hearsay", comment: "Menu bar panel: bring up the main window")) {
                 windowOpener.show()
             }
 
             Divider()
 
-            menuRow("Quit Hearsay") {
+            menuRow(String(localized: "Quit Hearsay", comment: "Menu bar panel")) {
                 NSApp.terminate(nil)
             }
             .keyboardShortcut("q", modifiers: .command)
@@ -86,13 +86,21 @@ struct MenuBarView: View {
     private var stateText: String {
         let elapsed = LevelMeter.formatElapsed(recording.elapsed)
         switch recording.phase {
-        case .idle, .finished, .failed: return "Idle"
-        case .starting: return "Starting…"
-        case .recording: return "Recording \(elapsed)"
-        case .paused: return "Paused \(elapsed)"
-        case .stopping: return "Saving…"
+        case .idle, .finished, .failed:
+            return String(localized: "Idle", comment: "Menu bar panel state: not recording")
+        case .starting:
+            return String(localized: "Starting…", comment: "Recording state")
+        case .recording:
+            return String(localized: "Recording \(elapsed)",
+                          comment: "Menu bar panel state. %@ is the elapsed time, for example 00:12:34.")
+        case .paused:
+            return String(localized: "Paused \(elapsed)",
+                          comment: "Menu bar panel state. %@ is the elapsed time, for example 00:12:34.")
+        case .stopping:
+            return String(localized: "Saving…", comment: "Recording state: the recording is being saved")
         case .transcribing(let progress):
-            return "Transcribing… \(Int((progress * 100).rounded()))%"
+            return String(localized: "Transcribing… \(Int((progress * 100).rounded()))%",
+                          comment: "Menu bar panel state. %lld is a percentage; keep the % sign after it.")
         }
     }
 
@@ -108,9 +116,10 @@ struct MenuBarView: View {
     private var lastResultCaption: AnyView? {
         switch recording.phase {
         case .finished(let srt, let wav):
-            let name = (srt ?? wav)?.lastPathComponent ?? "the recording"
+            let name = (srt ?? wav)?.lastPathComponent
+                ?? String(localized: "the recording", comment: "Used in 'Saved %@' when there is no file name")
             return AnyView(
-                Text("Saved \(name)")
+                Text("Saved \(name)", comment: "Menu bar panel caption. %@ is a file name.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -145,7 +154,9 @@ struct MenuBarView: View {
                 Button {
                     recording.togglePause()
                 } label: {
-                    Label(recording.phase == .paused ? "Resume" : "Pause",
+                    Label(recording.phase == .paused
+                          ? String(localized: "Resume", comment: "Button: resume the paused recording")
+                          : String(localized: "Pause", comment: "Button: pause the recording"),
                           systemImage: recording.phase == .paused ? "play.fill" : "pause.fill")
                         .frame(maxWidth: .infinity)
                 }
@@ -202,7 +213,7 @@ struct MenuBarLabel: View {
             .accessibilityLabel("Hearsay, transcribing")
         default:
             Image(systemName: "waveform")
-                .accessibilityLabel("Hearsay")
+                .accessibilityLabel(Text(verbatim: "Hearsay"))
         }
     }
 
@@ -211,7 +222,8 @@ struct MenuBarLabel: View {
     private static let recordingImage: NSImage = {
         let configuration = NSImage.SymbolConfiguration(pointSize: 14, weight: .regular)
             .applying(.preferringMulticolor())
-        let image = NSImage(systemSymbolName: "record.circle.fill", accessibilityDescription: "Recording")?
+        let image = NSImage(systemSymbolName: "record.circle.fill",
+                            accessibilityDescription: String(localized: "Recording", comment: "Menu bar icon while recording"))?
             .withSymbolConfiguration(configuration) ?? NSImage()
         image.isTemplate = false
         return image

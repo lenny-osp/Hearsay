@@ -20,25 +20,33 @@ public enum ChatCompletionsError: Error, LocalizedError, Equatable {
     public var errorDescription: String? {
         switch self {
         case .missingToken:
-            return "No API token is set for this provider. Add one in Settings > AI."
+            return String(localized: "No API token is set for this provider. Add one in Settings > AI.",
+                          bundle: .module, comment: "Meeting notes error. 'Settings > AI' names the Settings tab and section.")
         case .invalidURL:
-            return "The API URL is not a valid http or https address. Check it in Settings > AI."
+            return String(localized: "The API URL is not a valid http or https address. Check it in Settings > AI.",
+                          bundle: .module, comment: "Meeting notes error")
         case .unreachable(let host):
-            return "Cannot reach \(host). Check the base URL in Settings > AI and your network connection."
+            return String(
+                localized: "Cannot reach \(host). Check the base URL in Settings > AI and your network connection.",
+                bundle: .module, comment: "Meeting notes error. %@ is a host name.")
         case .transport(let detail):
-            return "API call failed: A network connection or HTTP client error occurred. \(detail)"
+            return String(
+                localized: "API call failed: A network connection or HTTP client error occurred. \(detail)",
+                bundle: .module, comment: "Meeting notes error. %@ is the system error message.")
         case let .httpStatus(code, excerpt):
             if excerpt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                return "API HTTP Error \(code): The response body is empty."
+                return String(localized: "API HTTP Error \(code): The response body is empty.", bundle: .module,
+                              comment: "Meeting notes error. %lld is an HTTP status code.")
             }
-            if let message = Self.apiErrorMessage(in: excerpt) {
-                return "API HTTP Error \(code): \(message)"
-            }
-            return "API HTTP Error \(code): \(excerpt)"
+            let detail = Self.apiErrorMessage(in: excerpt) ?? excerpt
+            return String(localized: "API HTTP Error \(code): \(detail)", bundle: .module,
+                          comment: "Meeting notes error. %1$lld is an HTTP status code, %2$@ the server's message.")
         case .invalidJSON(let excerpt):
-            return "Parsing Error: The API response is not valid JSON: \(excerpt)"
+            return String(localized: "Parsing Error: The API response is not valid JSON: \(excerpt)",
+                          bundle: .module, comment: "Meeting notes error. %@ is the start of the server's reply.")
         case .emptyContent:
-            return "Parsing Error: API response did not contain usable message content."
+            return String(localized: "Parsing Error: API response did not contain usable message content.",
+                          bundle: .module, comment: "Meeting notes error")
         }
     }
 
@@ -158,7 +166,9 @@ public actor ChatCompletionsClient: ChatCompleting {
             throw ChatCompletionsError.transport(error.localizedDescription)
         }
         guard let http = response as? HTTPURLResponse else {
-            throw ChatCompletionsError.transport("The server did not return an HTTP response.")
+            throw ChatCompletionsError.transport(String(
+                localized: "The server did not return an HTTP response.", bundle: .module,
+                comment: "Meeting notes error detail, shown after 'API call failed: …'"))
         }
         return try Self.content(status: http.statusCode, body: data)
     }

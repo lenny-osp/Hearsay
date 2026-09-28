@@ -103,34 +103,57 @@ public enum CLIProviderError: Error, LocalizedError, Equatable {
     public var errorDescription: String? {
         switch self {
         case let .notInstalled(tool, _):
-            return "\(tool.displayName) not found. Install it with `\(tool.installCommand)` or set the path in Settings > AI."
+            return String(
+                localized: "\(tool.displayName) not found. Install it with `\(tool.installCommand)` or set the path in Settings > AI.",
+                bundle: .module,
+                comment: "Meeting notes error. %1$@ is a CLI name (for example Codex CLI), %2$@ a shell command. Keep the backticks.")
         case let .launchFailed(tool, detail):
             if tool == .copilot {
-                return "GitHub Copilot CLI call failed. Check the Copilot login status and model configuration: \(detail)"
+                return String(
+                    localized: "GitHub Copilot CLI call failed. Check the Copilot login status and model configuration: \(detail)",
+                    bundle: .module, comment: "Meeting notes error. %@ is a technical detail.")
             }
-            return "\(tool.displayName) could not be started: \(detail)"
+            return String(localized: "\(tool.displayName) could not be started: \(detail)", bundle: .module,
+                          comment: "Meeting notes error. %1$@ is a CLI name, %2$@ a technical detail.")
         case let .failed(tool, code, excerpt):
             let trimmed = excerpt.trimmingCharacters(in: .whitespacesAndNewlines)
             var message: String
             if tool == .copilot {
-                message = "GitHub Copilot CLI call failed (exit code \(code)). Check the Copilot login status and model configuration."
+                message = String(
+                    localized: "GitHub Copilot CLI call failed (exit code \(code)). Check the Copilot login status and model configuration.",
+                    bundle: .module, comment: "Meeting notes error. %d is the exit code.")
             } else {
-                message = "\(tool.displayName) call failed (exit code \(code)). Check the model and reasoning effort in Settings > AI."
+                message = String(
+                    localized: "\(tool.displayName) call failed (exit code \(code)). Check the model and reasoning effort in Settings > AI.",
+                    bundle: .module, comment: "Meeting notes error. %1$@ is a CLI name, %2$d the exit code.")
             }
             if !trimmed.isEmpty {
                 message += "\n\(trimmed)"
             }
             if tool == .copilot, Self.mentionsLogin(trimmed) {
-                message += "\nRun `copilot` once in Terminal to log in."
+                message += "\n" + String(localized: "Run `copilot` once in Terminal to log in.", bundle: .module,
+                                         comment: "Meeting notes error hint. Keep `copilot` and the backticks.")
             }
             return message
         case let .notLoggedIn(tool, excerpt):
-            var message = "\(tool.displayName) is not logged in. Run `\(tool.loginCommand)` once in Terminal to log in"
+            var message: String
             switch tool {
-            case .claudeCode: message += " with your Claude subscription."
-            case .codex: message += " with your ChatGPT account."
-            case .antigravity: message += " with your Google account."
-            case .copilot: message += "."
+            case .claudeCode:
+                message = String(
+                    localized: "\(tool.displayName) is not logged in. Run `\(tool.loginCommand)` once in Terminal to log in with your Claude subscription.",
+                    bundle: .module, comment: "Meeting notes error. %1$@ is a CLI name, %2$@ a shell command.")
+            case .codex:
+                message = String(
+                    localized: "\(tool.displayName) is not logged in. Run `\(tool.loginCommand)` once in Terminal to log in with your ChatGPT account.",
+                    bundle: .module, comment: "Meeting notes error. %1$@ is a CLI name, %2$@ a shell command.")
+            case .antigravity:
+                message = String(
+                    localized: "\(tool.displayName) is not logged in. Run `\(tool.loginCommand)` once in Terminal to log in with your Google account.",
+                    bundle: .module, comment: "Meeting notes error. %1$@ is a CLI name, %2$@ a shell command.")
+            case .copilot:
+                message = String(
+                    localized: "\(tool.displayName) is not logged in. Run `\(tool.loginCommand)` once in Terminal to log in.",
+                    bundle: .module, comment: "Meeting notes error. %1$@ is a CLI name, %2$@ a shell command.")
             }
             let trimmed = excerpt.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmed.isEmpty {
@@ -138,11 +161,15 @@ public enum CLIProviderError: Error, LocalizedError, Equatable {
             }
             return message
         case .timedOut(let tool):
-            return "\(tool.displayName) did not answer within \(Int(CLIClient.timeout / 60)) minutes and was stopped."
+            return String(
+                localized: "\(tool.displayName) did not answer within \(Int(CLIClient.timeout / 60)) minutes and was stopped.",
+                bundle: .module, comment: "Meeting notes error. %1$@ is a CLI name, %2$lld a number of minutes.")
         case .emptyOutput(let tool):
-            return "\(tool.displayName) returned empty output."
+            return String(localized: "\(tool.displayName) returned empty output.", bundle: .module,
+                          comment: "Meeting notes error. %@ is a CLI name.")
         case .notACLIPreset(let name):
-            return "The \(name) preset does not use a command-line tool."
+            return String(localized: "The \(name) preset does not use a command-line tool.", bundle: .module,
+                          comment: "Meeting notes error. %@ is a provider preset name.")
         }
     }
 

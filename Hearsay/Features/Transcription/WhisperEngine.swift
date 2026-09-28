@@ -14,9 +14,11 @@ enum WhisperEngineError: Error, LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case .noActiveModel:
-            "No model installed. Choose a model in Models."
+            String(localized: "No model installed. Choose a model in Models.",
+                   comment: "Transcription error. 'Models' is the name of the Models tab.")
         case .modelNotReady(let name):
-            "The model \(name) is not fully downloaded. Finish the download in Models."
+            String(localized: "The model \(name) is not fully downloaded. Finish the download in Models.",
+                   comment: "Transcription error. %@ is a model name; 'Models' is the Models tab.")
         }
     }
 }

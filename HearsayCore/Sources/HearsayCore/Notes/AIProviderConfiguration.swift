@@ -178,8 +178,11 @@ public struct AIProviderConfiguration: Codable, Sendable, Equatable {
         if !trimmed.isEmpty { return trimmed }
         switch preset.kind {
         case .copilotCLI: return ProviderPreset.defaultOpenAIModel
-        case .claudeCodeCLI, .codexCLI, .antigravityCLI: return "CLI default"
-        case .http: return "(none set)"
+        case .claudeCodeCLI, .codexCLI, .antigravityCLI:
+            return String(localized: "CLI default", bundle: .module,
+                          comment: "Confirm sheet 'Model:' when empty: the command-line tool picks its own model")
+        case .http:
+            return String(localized: "(none set)", bundle: .module, comment: "Confirm sheet 'Model:' when empty")
         }
     }
 

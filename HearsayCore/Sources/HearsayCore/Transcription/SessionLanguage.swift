@@ -126,10 +126,13 @@ public enum LanguageNotice: Equatable, Sendable {
     public var message: String {
         switch self {
         case .suggestion(let language):
-            "This sounds like \(language.displayName). Transcribe again in \(language.displayName)?"
+            String(localized: "This sounds like \(language.displayName). Transcribe again in \(language.displayName)?",
+                   bundle: .module,
+                   comment: "Language banner. Both %@ are the same language name in its own language (English, 中文, Deutsch, Español).")
         case .fallback(let preferred):
-            "Couldn't tell the language, so this was transcribed in \(preferred.displayName) "
-                + "(your preferred language)."
+            String(localized: "Couldn't tell the language, so this was transcribed in \(preferred.displayName) (your preferred language).",
+                   bundle: .module,
+                   comment: "Language banner. %@ is a language name in its own language (English, 中文, Deutsch, Español).")
         }
     }
 
@@ -173,11 +176,15 @@ public enum StoredTranscriptLanguage {
     ) -> (language: TranscriptLanguage, note: String) {
         switch choice {
         case .fixed(let language):
-            return (language, "\(language.displayName) (your language choice; "
-                + "this transcript's language was not recorded)")
+            return (language, String(
+                localized: "\(language.displayName) (your language choice; this transcript's language was not recorded)",
+                bundle: .module,
+                comment: "Confirm sheet, after 'Transcript language:'. %@ is a language name in its own language."))
         case .auto:
-            return (preferred, "\(preferred.displayName) (your preferred language; "
-                + "this transcript's language was not recorded)")
+            return (preferred, String(
+                localized: "\(preferred.displayName) (your preferred language; this transcript's language was not recorded)",
+                bundle: .module,
+                comment: "Confirm sheet, after 'Transcript language:'. %@ is a language name in its own language."))
         }
     }
 }
@@ -192,7 +199,9 @@ extension StoredTranscriptLanguage {
     ) -> (language: TranscriptLanguage, note: String) {
         if let (language, probability) = TranscriptTextLanguage.detect(srtText: srtText),
            probability >= TranscriptTextLanguage.confidenceThreshold {
-            return (language, "\(language.displayName) (detected from the text)")
+            return (language, String(
+                localized: "\(language.displayName) (detected from the text)", bundle: .module,
+                comment: "Confirm sheet, after 'Transcript language:'. %@ is a language name in its own language."))
         }
         return assumed(choice: choice, preferred: preferred)
     }
@@ -203,12 +212,15 @@ public enum NotesLanguageCaption {
     /// "Transcript language: 中文", or with the caller's note, e.g.
     /// "Transcript language: Deutsch (detected from the text)".
     public static func transcriptLine(_ language: TranscriptLanguage, note: String? = nil) -> String {
-        "Transcript language: \(note ?? language.displayName)"
+        String(localized: "Transcript language: \(note ?? language.displayName)", bundle: .module,
+               comment: "Confirm sheet caption. %@ is a language name, possibly followed by an explanation in parentheses.")
     }
 
     /// "Notes will be written in Deutsch." when the choice differs from the
     /// transcript language; nil otherwise.
     public static func notesLine(transcript: TranscriptLanguage, notes: TranscriptLanguage) -> String? {
-        notes == transcript ? nil : "Notes will be written in \(notes.displayName)."
+        notes == transcript ? nil : String(
+            localized: "Notes will be written in \(notes.displayName).", bundle: .module,
+            comment: "Confirm sheet caption. %@ is a language name in its own language.")
     }
 }

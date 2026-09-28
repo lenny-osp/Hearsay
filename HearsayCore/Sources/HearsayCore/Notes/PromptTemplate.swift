@@ -31,7 +31,8 @@ public struct PromptTemplate: Codable, Identifiable, Sendable, Equatable {
     /// `build_meeting_prompt`, verbatim, with `{output_language}` placeholders.
     public static let generalMeeting = PromptTemplate(
         id: generalMeetingID,
-        name: "General meeting",
+        name: String(localized: "General meeting", bundle: .module,
+                     comment: "Name of the built-in prompt template (Settings > AI, confirm sheet)"),
         instructions: """
             You are a professional meeting note-taker. Based on the following meeting transcript, organize a clear and well-structured set of meeting notes.
             The selected output language is {output_language}.

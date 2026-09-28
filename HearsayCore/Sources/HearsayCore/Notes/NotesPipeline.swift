@@ -7,7 +7,8 @@ public enum NotesPipelineError: Error, LocalizedError, Equatable {
     public var errorDescription: String? {
         switch self {
         case .emptyTranscript:
-            return "Error: The SRT contains no transcript content to summarize."
+            return String(localized: "Error: The SRT contains no transcript content to summarize.",
+                          bundle: .module, comment: "Meeting notes error")
         }
     }
 }

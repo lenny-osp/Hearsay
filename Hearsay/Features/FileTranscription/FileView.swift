@@ -66,7 +66,8 @@ struct FileView: View {
                 .foregroundStyle(.secondary)
             Text("Drop an audio or video file here")
                 .font(.headline)
-            Text("wav, m4a, mp3, aac, aiff, caf, or the audio track of mp4 / mov")
+            Text("wav, m4a, mp3, aac, aiff, caf, or the audio track of mp4 / mov",
+                 comment: "File tab: accepted file types. Keep the file extensions as they are.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Button("Choose…") { isImporterShown = true }
@@ -126,7 +127,8 @@ struct FileView: View {
                             .monospacedDigit()
                         Spacer()
                         Button("Cancel") { model.cancel() }
-                            .help("Stop at the next 30 s window; nothing is saved")
+                            .help(Text("Stop at the next 30 s window; nothing is saved",
+                                       comment: "Tooltip of Cancel while a file is transcribed"))
                     }
                 }
             }

@@ -44,7 +44,8 @@ final class HistoryViewModel {
         } catch {
             folderURL = nil
             entries = []
-            errorMessage = "Could not open the output folder: \(error.localizedDescription)"
+            errorMessage = String(localized: "Could not open the output folder: \(error.localizedDescription)",
+                                  comment: "Error. %@ is the system error message.")
             return
         }
         rescan()
@@ -88,7 +89,8 @@ final class HistoryViewModel {
             errorMessage = nil
         } catch {
             entries = []
-            errorMessage = "Could not read \(folderURL.path): \(error.localizedDescription)"
+            errorMessage = String(localized: "Could not read \(folderURL.path): \(error.localizedDescription)",
+                                  comment: "History error. %1$@ is a folder path, %2$@ the system error message.")
         }
     }
 
@@ -104,7 +106,8 @@ final class HistoryViewModel {
         // No app claims the file type (common for .md and .srt): use the
         // default plain-text editor.
         guard let editor = NSWorkspace.shared.urlForApplication(toOpen: .plainText) else {
-            errorMessage = "No app is available to open \(url.lastPathComponent)."
+            errorMessage = String(localized: "No app is available to open \(url.lastPathComponent).",
+                                  comment: "History error. %@ is a file name.")
             return
         }
         NSWorkspace.shared.open([url], withApplicationAt: editor, configuration: NSWorkspace.OpenConfiguration())
@@ -132,7 +135,9 @@ final class HistoryViewModel {
     }
 
     static func notesActionTitle(_ entry: HistoryEntry) -> String {
-        hasNotes(entry) ? "Regenerate Notes…" : "Generate Notes…"
+        hasNotes(entry)
+            ? String(localized: "Regenerate Notes…", comment: "History: make new meeting notes, replacing the current ones")
+            : String(localized: "Generate Notes…", comment: "History: make meeting notes from the SRT")
     }
 
     var isGeneratingNotes: Bool { notesModel?.isRunning == true }
@@ -193,7 +198,9 @@ final class HistoryViewModel {
         }
         rescan()
         if !failures.isEmpty {
-            errorMessage = "Some files could not be moved to the Trash:\n" + failures.joined(separator: "\n")
+            errorMessage = String(localized: "Some files could not be moved to the Trash:",
+                                  comment: "History error, followed by one line per file")
+                + "\n" + failures.joined(separator: "\n")
         }
     }
 }

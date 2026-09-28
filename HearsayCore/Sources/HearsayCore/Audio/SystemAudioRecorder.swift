@@ -22,14 +22,17 @@ public enum SystemAudioRecorderError: Error, Equatable, Sendable, CustomStringCo
     public var description: String {
         switch self {
         case .permissionDenied:
-            "Hearsay has no system audio access. Allow it in System Settings > Privacy & Security > "
-                + "Screen & System Audio Recording, then start a new recording."
+            String(localized: "Hearsay has no system audio access. Allow it in System Settings > Privacy & Security > Screen & System Audio Recording, then start a new recording.",
+                   bundle: .module, comment: "Recording error. Use the macOS wording for the System Settings path.")
         case .noDisplay:
-            "No display is available to capture system audio from."
+            String(localized: "No display is available to capture system audio from.", bundle: .module,
+                   comment: "Recording error")
         case .startFailed(let detail):
-            "System audio capture could not start: \(detail)"
+            String(localized: "System audio capture could not start: \(detail)", bundle: .module,
+                   comment: "Recording error. %@ is a technical detail from macOS.")
         case .streamStopped(let detail):
-            "System audio capture stopped: \(detail)"
+            String(localized: "System audio capture stopped: \(detail)", bundle: .module,
+                   comment: "Recording error. %@ is a technical detail from macOS.")
         case .invalidState(let detail):
             detail
         }

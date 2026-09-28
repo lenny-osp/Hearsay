@@ -1,7 +1,17 @@
 import HearsayCore
 import SwiftUI
 
+/// The entry point: applies the interface language (`AppleLanguages`)
+/// before SwiftUI, AppKit, or any localized string loads, then runs the app.
 @main
+enum HearsayMain {
+    @MainActor
+    static func main() {
+        InterfaceLanguageLaunch.applyAtLaunch()
+        HearsayApp.main()
+    }
+}
+
 struct HearsayApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
@@ -13,8 +23,10 @@ struct HearsayApp: App {
     var body: some Scene {
         // A single-window scene: Hearsay never has more than one main window,
         // so there is no File > New Window item.
-        Window("Hearsay", id: MainWindowOpener.mainWindowID) {
+        Window(Text(verbatim: "Hearsay"), id: MainWindowOpener.mainWindowID) {
             MainView()
+                .environment(\.locale, InterfaceLanguageLaunch.applied.locale)
+                .environment(appDelegate.relauncher)
                 .environment(appDelegate.settings)
                 .environment(appDelegate.modelStore)
                 .environment(appDelegate.aiProviderStore)
@@ -37,6 +49,7 @@ struct HearsayApp: App {
 
         MenuBarExtra(isInserted: menuBarItemInserted) {
             MenuBarView()
+                .environment(\.locale, InterfaceLanguageLaunch.applied.locale)
                 .environment(appDelegate.settings)
                 .environment(appDelegate.modelStore)
                 .environment(appDelegate.aiProviderStore)
@@ -46,6 +59,7 @@ struct HearsayApp: App {
                 .registeringMainWindowOpener(appDelegate.windowOpener)
         } label: {
             MenuBarLabel(recording: appDelegate.recordingController)
+                .environment(\.locale, InterfaceLanguageLaunch.applied.locale)
         }
         .menuBarExtraStyle(.window)
     }

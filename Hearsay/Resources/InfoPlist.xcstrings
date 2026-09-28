@@ -1,0 +1,43 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "CFBundleDisplayName" : {
+      "comment" : "Bundle display name. Product name: keep \"Hearsay\" untranslated.",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Hearsay"
+          }
+        }
+      },
+      "shouldTranslate" : false
+    },
+    "NSAudioCaptureUsageDescription" : {
+      "comment" : "Privacy - Audio Capture Usage Description. macOS shows it when Hearsay first asks to capture system audio (the other side of a call).",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Hearsay captures the audio of your calls so both sides of a meeting are transcribed."
+          }
+        }
+      }
+    },
+    "NSMicrophoneUsageDescription" : {
+      "comment" : "Privacy - Microphone Usage Description. macOS shows it when Hearsay first asks for the microphone.",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Hearsay records meetings you start and transcribes them on this Mac."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

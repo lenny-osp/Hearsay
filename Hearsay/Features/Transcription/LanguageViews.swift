@@ -25,8 +25,8 @@ struct LanguageChoicePicker: View {
                 .pickerStyle(.segmented)
                 .disabled(isDisabled)
                 .help(settings.languageChoice == .auto
-                      ? "Used when Auto detects Chinese"
-                      : "Characters of the Chinese transcript")
+                      ? String(localized: "Used when Auto detects Chinese", comment: "Tooltip of the Chinese output picker")
+                      : String(localized: "Characters of the Chinese transcript", comment: "Tooltip of the Chinese output picker"))
         }
     }
 }
@@ -48,15 +48,17 @@ struct LanguageNoticeView: View {
                 switch notice {
                 case .suggestion(let language):
                     Button("Transcribe again") { onRerun(language) }
-                        .help("Transcribe this recording again in \(language.displayName). "
-                              + "Your language choice stays as it is.")
+                        .help(String(
+                            localized: "Transcribe this recording again in \(language.displayName). Your language choice stays as it is.",
+                            comment: "Tooltip. %@ is a language name in its own language (English, 中文, Deutsch, Español)."))
                     if let onDismiss {
                         Button("Dismiss", action: onDismiss)
                     }
                 case .fallback:
                     ForEach(notice.rerunLanguages, id: \.self) { language in
                         Button(language.displayName) { onRerun(language) }
-                            .help("Transcribe this recording again in \(language.displayName)")
+                            .help(String(localized: "Transcribe this recording again in \(language.displayName)",
+                                         comment: "Tooltip. %@ is a language name in its own language."))
                     }
                 }
                 Spacer(minLength: 0)

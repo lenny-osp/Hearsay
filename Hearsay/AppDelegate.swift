@@ -70,7 +70,7 @@ struct SettingsCommand: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        Button("Settings…") {
+        Button(String(localized: "Settings…", comment: "App menu command that opens the Settings tab (⌘,)")) {
             opener.register(openWindow)
             opener.showSettings()
         }
@@ -107,6 +107,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let tabSelection = MainTabSelection()
     lazy var windowOpener = MainWindowOpener(tabs: tabSelection)
     let whisperEngine = WhisperEngine()
+    let relauncher = AppRelauncher()
     lazy var recordingController = RecordingController(
         settings: settings, modelStore: modelStore, engine: whisperEngine
     )
@@ -120,14 +121,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var appliedMode: WindowMode?
     private var isStoppingForQuit = false
+    /// "Restart Now" after an interface-language change: once the quit is
+    /// allowed (and a recording saved), a new instance is opened.
+    private var relaunchAfterQuit = false
 
     func applicationWillFinishLaunching(_ notification: Notification) {
+        relauncher.handler = { [weak self] in self?.restart() }
         // One main window, never tabbed: removes View > Show Tab Bar and
         // Show All Tabs. Set before any window exists.
         NSWindow.allowsAutomaticWindowTabbing = false
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Debug only: HEARSAY_UI_SNAPSHOTS=<dir> renders every tab, Settings
+        // section, and sheet into PNGs and quits (see UISnapshots).
+        if UISnapshots.runIfRequested(delegate: self) {
+            return
+        }
         // Debug only: HEARSAY_TRANSCRIBE_FILE + HEARSAY_MODEL_DIR transcribe
         // one file, print the SRT path, and quit (see FileViewModel).
         if FileViewModel.runDebugTranscriptionIfRequested(
@@ -149,7 +159,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         applyWindowMode(settings.windowMode)
         observeWindowMode()
         recordingController.activate()
-        hotkeyManager.start()
+        Task { @MainActor in
+            // After "Restart Now" the previous instance may still hold the
+            // global shortcuts for a moment.
+            await AppRelaunch.waitForPreviousInstance()
+            hotkeyManager.start()
+        }
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(windowWillClose(_:)),
@@ -172,30 +187,72 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             isStoppingForQuit = true
             Task { @MainActor in
                 await recordingController.cancelTranscriptionForQuit()
-                NSApp.reply(toApplicationShouldTerminate: true)
+                await replyToTerminate()
             }
             return .terminateLater
         }
-        guard recordingController.isSessionActive else { return .terminateNow }
+        guard recordingController.isSessionActive else {
+            guard relaunchAfterQuit else { return .terminateNow }
+            Task { @MainActor in await replyToTerminate() }
+            return .terminateLater
+        }
         // A second Quit while the recording is being saved just waits.
         guard !isStoppingForQuit else { return .terminateLater }
 
         NSApp.activate()
         let alert = NSAlert()
-        alert.messageText = "Stop recording and quit?"
-        alert.informativeText = "The recording is saved before Hearsay quits."
-        alert.addButton(withTitle: "Stop & Quit")
-        alert.addButton(withTitle: "Cancel")
-        guard alert.runModal() == .alertFirstButtonReturn else { return .terminateCancel }
+        alert.messageText = String(localized: "Stop recording and quit?",
+                                   comment: "Alert when quitting (or restarting) while a recording is active")
+        alert.informativeText = String(localized: "The recording is saved before Hearsay quits.",
+                                       comment: "Alert when quitting while a recording is active")
+        alert.addButton(withTitle: String(localized: "Stop & Quit", comment: "Alert button: stop the recording, then quit"))
+        alert.addButton(withTitle: String(localized: "Cancel", comment: "Alert button"))
+        guard alert.runModal() == .alertFirstButtonReturn else {
+            relaunchAfterQuit = false
+            return .terminateCancel
+        }
 
         isStoppingForQuit = true
         Task { @MainActor in
             await recordingController.stop()
             // Stopping starts the final pass; do not wait for it.
             await recordingController.cancelTranscriptionForQuit()
-            NSApp.reply(toApplicationShouldTerminate: true)
+            await replyToTerminate()
         }
         return .terminateLater
+    }
+
+    // MARK: - Restart
+
+    /// "Restart Now": quits through the usual quit path (which asks before
+    /// stopping a recording) and opens a new instance once quitting is
+    /// allowed.
+    private func restart() {
+        relaunchAfterQuit = true
+        NSApp.terminate(nil)
+    }
+
+    /// Allows the pending quit, opening the new instance first when a
+    /// restart was asked for. If that launch fails, Hearsay keeps running
+    /// and says so.
+    private func replyToTerminate() async {
+        guard relaunchAfterQuit else {
+            NSApp.reply(toApplicationShouldTerminate: true)
+            return
+        }
+        relaunchAfterQuit = false
+        if await AppRelaunch.launchNewInstance() {
+            NSApp.reply(toApplicationShouldTerminate: true)
+            return
+        }
+        isStoppingForQuit = false
+        NSApp.reply(toApplicationShouldTerminate: false)
+        let alert = NSAlert()
+        alert.messageText = String(localized: "Hearsay could not restart.",
+                                   comment: "Alert when the automatic restart after a language change failed")
+        alert.informativeText = String(localized: "Quit Hearsay and open it again to use the new language.",
+                                       comment: "Alert when the automatic restart after a language change failed")
+        alert.runModal()
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -263,14 +320,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 /// Debug entry points (`HEARSAY_TRANSCRIBE_FILE`, `HEARSAY_REPLAY_FILE`,
-/// `HEARSAY_RECORD_SECONDS`) run on a throwaway defaults suite, so they never
+/// `HEARSAY_RECORD_SECONDS`, `HEARSAY_UI_SNAPSHOTS`) run on a throwaway
+/// defaults suite and never write `AppleLanguages`, so they never
 /// write the user's settings, not even the one-time language migration in
 /// `AppSettings.init`. The copy starts with the user's values for the keys
 /// that shape a transcription, read without writing anything back.
 @MainActor
 enum DebugDefaults {
-    static let debugVariables = ["HEARSAY_TRANSCRIBE_FILE", "HEARSAY_REPLAY_FILE", "HEARSAY_RECORD_SECONDS"]
+    static let debugVariables = [
+        "HEARSAY_TRANSCRIBE_FILE", "HEARSAY_REPLAY_FILE", "HEARSAY_RECORD_SECONDS", UISnapshots.variable,
+    ]
     static let copiedKeys = [
+        AppSettings.Key.interfaceLanguage,
         AppSettings.Key.outputFolderBookmark,
         AppSettings.Key.defaultLanguageCode,
         AppSettings.Key.languageChoice,
@@ -282,11 +343,17 @@ enum DebugDefaults {
     /// The suite name when a debug entry point was requested.
     private static var suiteName: String?
 
+    /// A debug entry point was requested through the environment.
+    static var isDebugRun: Bool {
+        let environment = ProcessInfo.processInfo.environment
+        return debugVariables.contains { !(environment[$0] ?? "").isEmpty }
+    }
+
     /// `.standard` for a normal launch, a fresh suite for a debug run.
     @MainActor
     static var defaults: UserDefaults {
         let environment = ProcessInfo.processInfo.environment
-        guard debugVariables.contains(where: { !(environment[$0] ?? "").isEmpty }) else { return .standard }
+        guard isDebugRun else { return .standard }
         let name = suiteName ?? "tw.og1o.hearsay.debug-\(UUID().uuidString)"
         guard let suite = UserDefaults(suiteName: name) else { return .standard }
         if suiteName == nil {
@@ -296,6 +363,10 @@ enum DebugDefaults {
                     suite.set(value, forKey: key)
                 }
             }
+            // HEARSAY_UI_LANGUAGE renders a debug run in another language.
+            if let language = InterfaceLanguage.override(in: environment) {
+                suite.set(language.rawValue, forKey: AppSettings.Key.interfaceLanguage)
+            }
         }
         return suite
     }
@@ -304,6 +375,16 @@ enum DebugDefaults {
     @MainActor
     static func removeSuite() {
         guard let suiteName else { return }
-        UserDefaults.standard.removePersistentDomain(forName: suiteName)
+        removeDomain(named: suiteName)
+    }
+
+    /// Removes a throwaway defaults domain and its plist. Flushes first:
+    /// cfprefsd otherwise writes an empty plist after the file is deleted.
+    static func removeDomain(named name: String) {
+        UserDefaults.standard.removePersistentDomain(forName: name)
+        CFPreferencesAppSynchronize(name as CFString)
+        let plist = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Preferences/\(name).plist")
+        try? FileManager.default.removeItem(at: plist)
     }
 }

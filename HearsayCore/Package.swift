@@ -6,6 +6,7 @@ import PackageDescription
 
 let package = Package(
     name: "HearsayCore",
+    defaultLocalization: "en",
     platforms: [.macOS(.v14)],
     products: [
         .library(name: "HearsayCore", targets: ["HearsayCore"]),

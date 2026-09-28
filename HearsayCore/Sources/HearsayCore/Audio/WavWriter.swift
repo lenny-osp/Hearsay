@@ -7,8 +7,11 @@ public enum WavError: Error, Equatable, Sendable, CustomStringConvertible {
 
     public var description: String {
         switch self {
-        case .notAWavFile(let path): "Not a readable WAV file: \(path)"
-        case .closed: "The WAV file is already closed."
+        case .notAWavFile(let path):
+            String(localized: "Not a readable WAV file: \(path)", bundle: .module,
+                   comment: "Audio error. %@ is a file path.")
+        case .closed:
+            String(localized: "The WAV file is already closed.", bundle: .module, comment: "Audio error")
         }
     }
 }

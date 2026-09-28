@@ -15,13 +15,17 @@ struct HotkeyRecorderView: View {
     var body: some View {
         VStack(alignment: .trailing, spacing: 2) {
             Button(action: toggleListening) {
-                Text(isListening ? "Type shortcut…" : binding.displayString)
+                Text(isListening
+                     ? String(localized: "Type shortcut…", comment: "Shortcut recorder while waiting for a key combination")
+                     : binding.displayString)
                     .monospaced()
                     .frame(minWidth: 110)
             }
-            .help(isListening ? "Press a combination with ⌃, ⌥, or ⌘. Escape cancels."
-                : "Click, then press a new shortcut.")
-            .accessibilityLabel("Shortcut")
+            .help(isListening
+                  ? String(localized: "Press a combination with ⌃, ⌥, or ⌘. Escape cancels.",
+                           comment: "Shortcut recorder tooltip. Keep the symbols.")
+                  : String(localized: "Click, then press a new shortcut.", comment: "Shortcut recorder tooltip"))
+            .accessibilityLabel(Text("Shortcut", comment: "Accessibility label of the shortcut recorder"))
             .accessibilityValue(binding.displayString)
             if let hint {
                 Text(hint)
@@ -70,7 +74,7 @@ struct HotkeyRecorderView: View {
         }
         let candidate = HotkeyBinding(keyCode: keyCode, modifiers: modifiers)
         guard candidate.isValidGlobalShortcut else {
-            hint = "Include ⌃, ⌥, or ⌘."
+            hint = String(localized: "Include ⌃, ⌥, or ⌘.", comment: "Shortcut recorder hint. Keep the symbols.")
             return
         }
         hint = nil

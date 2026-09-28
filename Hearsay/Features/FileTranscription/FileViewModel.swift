@@ -165,7 +165,8 @@ final class FileViewModel {
         do {
             folder = try TranscriptOutput.resolveFolder(settings: settings)
         } catch {
-            phase = .failed(message: "Could not open the output folder: \(error.localizedDescription)")
+            phase = .failed(message: String(localized: "Could not open the output folder: \(error.localizedDescription)",
+                                            comment: "Error. %@ is the system error message."))
             return nil
         }
         defer { folder.stopAccessing() }
@@ -216,11 +217,12 @@ final class FileViewModel {
             return srt
         } catch where error.isTranscriptionCancelled {
             phase = .idle
-            note = "Cancelled"
+            note = String(localized: "Cancelled", comment: "File tab: the transcription was cancelled")
             return nil
         } catch {
-            phase = .failed(message: "Could not transcribe \(source.lastPathComponent): "
-                + RecordingController.describe(error))
+            phase = .failed(message: String(
+                localized: "Could not transcribe \(source.lastPathComponent): \(RecordingController.describe(error))",
+                comment: "File tab error. %1$@ is a file name, %2$@ the reason."))
             return nil
         }
     }
@@ -246,7 +248,8 @@ final class FileViewModel {
             )
             guard FileManager.default.fileExists(atPath: srt.path) else {
                 phase = .finished(srt: srt, source: source)
-                rerunError = "Could not transcribe again: \(srt.lastPathComponent) was moved or renamed."
+                rerunError = String(localized: "Could not transcribe again: \(srt.lastPathComponent) was moved or renamed.",
+                                    comment: "Error. %@ is a file name.")
                 return nil
             }
             let script = ChineseScript.app(language: language, settings: settings)
@@ -261,7 +264,8 @@ final class FileViewModel {
         } catch {
             phase = .finished(srt: srt, source: source)
             if !error.isTranscriptionCancelled {
-                rerunError = "Could not transcribe again: \(RecordingController.describe(error))"
+                rerunError = String(localized: "Could not transcribe again: \(RecordingController.describe(error))",
+                                    comment: "Error. %@ is the reason.")
             }
             return nil
         }

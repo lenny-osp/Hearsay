@@ -45,17 +45,23 @@ struct NamingSheet: View {
     private var explanation: String {
         if currentName != nil {
             return alternative == nil
-                ? "This is the meeting's current name. Edit it or press Return to keep it."
-                : "This is the meeting's current name. Edit it, keep it, or use the AI's suggestion."
+                ? String(localized: "This is the meeting's current name. Edit it or press Return to keep it.",
+                         comment: "Naming sheet explanation when regenerating notes")
+                : String(localized: "This is the meeting's current name. Edit it, keep it, or use the AI's suggestion.",
+                         comment: "Naming sheet explanation when regenerating notes")
         }
         return suggestion == nil
-            ? "The transcript and recording are renamed to <timestamp>_<name>."
-            : "The AI suggested this name. Edit it or press Return to accept it."
+            ? String(localized: "The transcript and recording are renamed to <timestamp>_<name>.",
+                     comment: "Naming sheet explanation. Translate the words inside <timestamp>_<name> but keep the angle brackets and underscore.")
+            : String(localized: "The AI suggested this name. Edit it or press Return to accept it.",
+                     comment: "Naming sheet explanation")
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(suggestion == nil && currentName == nil ? "Name this meeting" : "Meeting name")
+            Text(suggestion == nil && currentName == nil
+                 ? String(localized: "Name this meeting", comment: "Naming sheet title")
+                 : String(localized: "Meeting name", comment: "Naming sheet title"))
                 .font(.headline)
             Text(explanation)
                 .font(.callout)

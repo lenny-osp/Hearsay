@@ -66,7 +66,9 @@ public final class ModelStore {
             do {
                 resolved = try ModelCatalog.bundled()
             } catch {
-                loadError = "The built-in model list could not be read: \(error.localizedDescription)"
+                loadError = String(
+                    localized: "The built-in model list could not be read: \(error.localizedDescription)",
+                    bundle: .module, comment: "Models tab error. %@ is the system error message.")
                 resolved = ModelCatalog(entries: [], tokenizer: TokenizerSource(repo: "openai/whisper-large-v3", files: []))
             }
         }

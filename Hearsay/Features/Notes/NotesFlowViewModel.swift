@@ -121,7 +121,8 @@ final class NotesFlowViewModel {
         do {
             srtText = try String(contentsOf: srtURL, encoding: .utf8)
         } catch {
-            fail("Error: SRT file not found or unreadable (\(srtURL.path)): \(error.localizedDescription)")
+            fail(String(localized: "Error: SRT file not found or unreadable (\(srtURL.path)): \(error.localizedDescription)",
+                        comment: "Meeting notes error. %1$@ is a file path, %2$@ the system error message."))
             return
         }
         transcriptCharacterCount = srtText.count
@@ -157,9 +158,11 @@ final class NotesFlowViewModel {
                 )
                 self?.didGenerate(response)
             } catch is CancellationError {
-                self?.fail("Meeting-note generation was cancelled; no meeting notes were generated.")
+                self?.fail(String(localized: "Meeting-note generation was cancelled; no meeting notes were generated.",
+                                  comment: "Meeting notes result"))
             } catch {
-                self?.fail(Self.describe(error) + "\nNo meeting notes were generated.")
+                self?.fail(Self.describe(error) + "\n"
+                           + String(localized: "No meeting notes were generated.", comment: "Follows a meeting notes error"))
             }
         }
     }
@@ -170,7 +173,8 @@ final class NotesFlowViewModel {
     func keepLocal() {
         guard phase == .confirming, let srtURL else { return }
         if isRegenerating {
-            finish("Nothing was sent; the current notes are unchanged.", files: [srtURL])
+            finish(String(localized: "Nothing was sent; the current notes are unchanged.", comment: "Meeting notes result"),
+                   files: [srtURL])
             return
         }
         retainedAudio = OutputWriter.retainedAudioFiles(srtURL: srtURL)
@@ -198,7 +202,8 @@ final class NotesFlowViewModel {
     /// Answered no (the default): keep the timestamp names.
     func declineManualNaming() {
         guard phase == .askingManualNaming, let srtURL else { return }
-        finish("Skipped AI processing; no meeting notes were generated.", files: [srtURL] + retainedAudio)
+        finish(String(localized: "Skipped AI processing; no meeting notes were generated.", comment: "Meeting notes result"),
+               files: [srtURL] + retainedAudio)
     }
 
     // MARK: - Naming sheet
@@ -221,7 +226,7 @@ final class NotesFlowViewModel {
                         timestamp: timestamp
                     )
                 self.srtURL = outputs.srt
-                finish("Meeting notes generated successfully!",
+                finish(String(localized: "Meeting notes generated successfully!", comment: "Meeting notes result"),
                        files: [outputs.srt, outputs.markdown, outputs.transcript] + outputs.companions)
             } catch {
                 fail(Self.describe(error))
@@ -230,9 +235,11 @@ final class NotesFlowViewModel {
             do {
                 let renamed = try OutputWriter.renameRetained(srtURL: srtURL, meetingName: name, timestamp: timestamp)
                 if let first = renamed.first { self.srtURL = first }
-                finish("Skipped AI processing; renamed the transcript and recording.", files: renamed)
+                finish(String(localized: "Skipped AI processing; renamed the transcript and recording.",
+                              comment: "Meeting notes result"), files: renamed)
             } catch {
-                fail(Self.describe(error) + "\nKeeping the timestamp file names.")
+                fail(Self.describe(error) + "\n"
+                     + String(localized: "Keeping the timestamp file names.", comment: "Follows a rename error"))
             }
         }
     }
@@ -243,10 +250,13 @@ final class NotesFlowViewModel {
         if notes != nil {
             // Python: EOF at the name prompt after AI returns 1.
             fail(isRegenerating
-                 ? "No meeting name selected; the current notes are unchanged."
-                 : "No meeting name selected; the SRT has been retained.")
+                 ? String(localized: "No meeting name selected; the current notes are unchanged.",
+                          comment: "Meeting notes result")
+                 : String(localized: "No meeting name selected; the SRT has been retained.",
+                          comment: "Meeting notes result"))
         } else {
-            finish("Skipped AI processing; kept the timestamp file names.", files: [srtURL] + retainedAudio)
+            finish(String(localized: "Skipped AI processing; kept the timestamp file names.", comment: "Meeting notes result"),
+                   files: [srtURL] + retainedAudio)
         }
     }
 

@@ -68,7 +68,8 @@ public struct HotkeyBinding: Codable, Equatable, Hashable, Sendable {
     /// physical key, so this is the label printed on a US keyboard.
     public static func keyName(for keyCode: UInt32) -> String {
         if let name = keyNames[keyCode] { return name }
-        return "Key \(keyCode)"
+        return String(localized: "Key \(keyCode)", bundle: .module,
+                      comment: "Shortcut display for a key with no printed name. The placeholder is the numeric key code.")
     }
 
     private static let keyNames: [UInt32: String] = [
@@ -80,7 +81,7 @@ public struct HotkeyBinding: Codable, Equatable, Hashable, Sendable {
         0x1F: "O", 0x20: "U", 0x21: "[", 0x22: "I", 0x23: "P", 0x25: "L",
         0x26: "J", 0x27: "'", 0x28: "K", 0x29: ";", 0x2A: "\\", 0x2B: ",",
         0x2C: "/", 0x2D: "N", 0x2E: "M", 0x2F: ".", 0x32: "`",
-        0x24: "\u{21A9}", 0x30: "\u{21E5}", 0x31: "Space", 0x33: "\u{232B}",
+        0x24: "\u{21A9}", 0x30: "\u{21E5}", 0x31: String(localized: "Space", bundle: .module, comment: "Shortcut display: the space bar"), 0x33: "\u{232B}",
         0x35: "\u{238B}", 0x75: "\u{2326}", 0x73: "\u{2196}", 0x77: "\u{2198}",
         0x74: "\u{21DE}", 0x79: "\u{21DF}", 0x7B: "\u{2190}", 0x7C: "\u{2192}",
         0x7D: "\u{2193}", 0x7E: "\u{2191}",

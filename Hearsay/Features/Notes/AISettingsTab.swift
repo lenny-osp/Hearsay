@@ -108,12 +108,14 @@ struct AISettingsTab: View {
         @Bindable var store = store
         let preset = store.configuration.preset
         TextField("\(tool.shortName) CLI path:", text: cliPathBinding(tool),
-                  prompt: Text(detectedCLIPath ?? "not found; enter the path to \(tool.binaryName)"))
+                  prompt: Text(detectedCLIPath ?? String(
+                    localized: "not found; enter the path to \(tool.binaryName)",
+                    comment: "Placeholder of the CLI path field. %@ is the program name (copilot, claude, codex, agy).")))
         TextField("Model:", text: $store.configuration.model,
-                  prompt: Text(tool == .copilot ? ProviderPreset.defaultOpenAIModel : "CLI default"))
+                  prompt: Text(tool == .copilot ? ProviderPreset.defaultOpenAIModel : Self.cliDefault))
         if preset.supportsReasoningEffort {
             TextField("Reasoning effort:", text: reasoningBinding,
-                      prompt: Text(tool == .copilot ? ProviderPreset.defaultReasoningEffort : "CLI default"))
+                      prompt: Text(tool == .copilot ? ProviderPreset.defaultReasoningEffort : Self.cliDefault))
         }
         HStack(alignment: .firstTextBaseline) {
             Button("Check \(tool.shortName)", action: checkCLI)
@@ -145,16 +147,26 @@ struct AISettingsTab: View {
             .fixedSize(horizontal: false, vertical: true)
     }
 
+    /// Placeholder of the Model and Reasoning effort fields of the CLI
+    /// presets that let the CLI decide.
+    private static var cliDefault: String {
+        String(localized: "CLI default", comment: "Placeholder: the command-line tool picks its own value")
+    }
+
     private func cliCaption(_ tool: CLITool) -> String {
         switch tool {
         case .copilot:
-            "Uses the Copilot CLI installed on this Mac and its own login. Run `copilot` once in Terminal to log in. \"auto\" lets Copilot pick the model."
+            return String(localized: "Uses the Copilot CLI installed on this Mac and its own login. Run `copilot` once in Terminal to log in. \"auto\" lets Copilot pick the model.",
+                          comment: "Settings > AI caption. Keep commands in backticks, model aliases, effort values (low, medium, high, xhigh, max, none, minimal, auto), and product names untranslated.")
         case .claudeCode:
-            "Uses Claude Code installed on this Mac and your Claude subscription login; requests count against its usage limits. Run `claude` once in Terminal to log in. Model: an alias (sonnet, opus) or a full id. Effort: low, medium, high, xhigh, or max (none and minimal become low)."
+            return String(localized: "Uses Claude Code installed on this Mac and your Claude subscription login; requests count against its usage limits. Run `claude` once in Terminal to log in. Model: an alias (sonnet, opus) or a full id. Effort: low, medium, high, xhigh, or max (none and minimal become low).",
+                          comment: "Settings > AI caption. Keep commands in backticks, model aliases, effort values (low, medium, high, xhigh, max, none, minimal, auto), and product names untranslated.")
         case .codex:
-            "Uses Codex installed on this Mac and your ChatGPT login; requests count against your plan's usage limits. Run `codex login` once in Terminal to log in. Effort: none, minimal, low, medium, high, xhigh, or max. An empty model uses Codex's default."
+            return String(localized: "Uses Codex installed on this Mac and your ChatGPT login; requests count against your plan's usage limits. Run `codex login` once in Terminal to log in. Effort: none, minimal, low, medium, high, xhigh, or max. An empty model uses Codex's default.",
+                          comment: "Settings > AI caption. Keep commands in backticks, model aliases, effort values (low, medium, high, xhigh, max, none, minimal, auto), and product names untranslated.")
         case .antigravity:
-            "Uses the Antigravity CLI installed on this Mac and the Google account it is logged in with; requests count against that account's limits. Run `agy` once in Terminal to log in; `agy models` lists the model ids. Effort: low, medium, high, or max, only for a model id without its own level (a model ending in -high, -medium, or -low ignores it). Runs use agy's hearsay-notes project, whose deny rules leave the model no tools except web search, and each run's conversation is deleted from agy's history afterwards."
+            return String(localized: "Uses the Antigravity CLI installed on this Mac and the Google account it is logged in with; requests count against that account's limits. Run `agy` once in Terminal to log in; `agy models` lists the model ids. Effort: low, medium, high, or max, only for a model id without its own level (a model ending in -high, -medium, or -low ignores it). Runs use agy's hearsay-notes project, whose deny rules leave the model no tools except web search, and each run's conversation is deleted from agy's history afterwards.",
+                          comment: "Settings > AI caption. Keep commands in backticks, model aliases, effort values (low, medium, high, xhigh, max, none, minimal, auto), and product names untranslated.")
         }
     }
 
@@ -162,7 +174,7 @@ struct AISettingsTab: View {
         @Bindable var store = store
         let preset = store.configuration.preset
         TextField("Endpoint URL:", text: $store.configuration.baseURL,
-                  prompt: Text("https://…/chat/completions"))
+                  prompt: Text(verbatim: "https://…/chat/completions"))
         TextField("Model:", text: $store.configuration.model)
         TextField("Reasoning effort:", text: reasoningBinding, prompt: Text("omitted when empty"))
             .disabled(!preset.supportsReasoningEffort)
@@ -191,7 +203,9 @@ struct AISettingsTab: View {
                     .onSubmit(commitToken)
                 LabeledContent("Status:") {
                     HStack {
-                        Text(store.hasToken ? "Saved" : "Not set")
+                        Text(store.hasToken
+                             ? String(localized: "Saved", comment: "Status word, also used for a finished recording on the Record tab and as a section header there; here: an API token is stored in the Keychain (Settings > AI)")
+                             : String(localized: "Not set", comment: "Settings > AI token status: no token stored"))
                             .foregroundStyle(store.hasToken ? Color.primary : Color.secondary)
                         if store.hasToken {
                             Button("Remove") { removeToken() }
@@ -229,7 +243,7 @@ struct AISettingsTab: View {
             HStack {
                 Button("Add") {
                     editingTemplate = PromptTemplate(
-                        name: "New template",
+                        name: String(localized: "New template", comment: "Default name of a new prompt template"),
                         instructions: PromptTemplate.generalMeeting.instructions
                     )
                 }
@@ -296,7 +310,8 @@ struct AISettingsTab: View {
             try store.setToken(tokenInput)
             tokenError = nil
         } catch {
-            tokenError = "Could not save the token: \(NotesFlowViewModel.describe(error))"
+            tokenError = String(localized: "Could not save the token: \(NotesFlowViewModel.describe(error))",
+                                comment: "Settings > AI error. %@ is the reason.")
         }
         tokenInput = ""
     }
@@ -306,7 +321,8 @@ struct AISettingsTab: View {
             try store.deleteToken()
             tokenError = nil
         } catch {
-            tokenError = "Could not remove the token: \(NotesFlowViewModel.describe(error))"
+            tokenError = String(localized: "Could not remove the token: \(NotesFlowViewModel.describe(error))",
+                                comment: "Settings > AI error. %@ is the reason.")
         }
     }
 

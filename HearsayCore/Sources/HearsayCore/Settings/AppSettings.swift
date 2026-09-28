@@ -10,9 +10,15 @@ public enum WindowMode: String, CaseIterable, Codable, Sendable {
     /// Human-readable label for the Settings picker.
     public var displayName: String {
         switch self {
-        case .menuBarAndDock: "Menu bar and Dock"
-        case .menuBarOnly: "Menu bar only"
-        case .dockOnly: "Dock only"
+        case .menuBarAndDock:
+            String(localized: "Menu bar and Dock", bundle: .module,
+                   comment: "Settings > Window: show Hearsay in the menu bar and the Dock")
+        case .menuBarOnly:
+            String(localized: "Menu bar only", bundle: .module,
+                   comment: "Settings > Window: show Hearsay only in the menu bar")
+        case .dockOnly:
+            String(localized: "Dock only", bundle: .module,
+                   comment: "Settings > Window: show Hearsay only in the Dock")
         }
     }
 
@@ -41,6 +47,7 @@ public final class AppSettings {
         public static let pauseHotkey = "pauseHotkey"
         public static let keepRecording = "keepRecording"
         public static let chineseScript = "chineseScript"
+        public static let interfaceLanguage = "interfaceLanguage"
     }
 
     @ObservationIgnored private let defaults: UserDefaults
@@ -138,6 +145,14 @@ public final class AppSettings {
         }
     }
 
+    /// The language of Hearsay's own interface (Settings > General). Default
+    /// English on a fresh install, whatever the Mac's language. The app
+    /// applies it through `AppleLanguages` at launch; a change needs a
+    /// restart.
+    public var interfaceLanguage: InterfaceLanguage {
+        didSet { defaults.set(interfaceLanguage.rawValue, forKey: Key.interfaceLanguage) }
+    }
+
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         let rawMode = defaults.string(forKey: Key.windowMode) ?? ""
@@ -154,6 +169,8 @@ public final class AppSettings {
         self.keepRecording = defaults.object(forKey: Key.keepRecording) as? Bool ?? true
         self.chineseScript = (ChineseScript(rawValue: defaults.string(forKey: Key.chineseScript) ?? "")
             ?? .traditional).pickerValue
+        self.interfaceLanguage = InterfaceLanguage(
+            rawValue: defaults.string(forKey: Key.interfaceLanguage) ?? "") ?? .english
     }
 
     /// The stored choice; otherwise the legacy code as a fixed language

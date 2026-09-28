@@ -74,7 +74,8 @@ final class HotkeyManager {
             if status == noErr, let ref {
                 hotKeys[action] = ref
             } else {
-                failures.append("\(binding.displayString) is already used by another app or shortcut.")
+                failures.append(String(localized: "\(binding.displayString) is already used by another app or shortcut.",
+                                       comment: "Settings > General error. %@ is a shortcut such as ⌃⌥⌘R."))
             }
         }
         registrationError = failures.isEmpty ? nil : failures.joined(separator: "\n")
@@ -137,7 +138,8 @@ final class HotkeyManager {
         if status == noErr {
             handler = installed
         } else {
-            registrationError = "Global shortcuts are unavailable (error \(status))."
+            registrationError = String(localized: "Global shortcuts are unavailable (error \(status)).",
+                                       comment: "Settings > General error. %d is a system error number.")
         }
     }
 

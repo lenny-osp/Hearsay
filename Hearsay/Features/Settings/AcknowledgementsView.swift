@@ -56,7 +56,8 @@ private struct LicensesSheet: View {
         let fileName = ext.map { "\(name).\($0)" } ?? name
         guard let url = bundle.url(forResource: name, withExtension: ext),
               let contents = try? String(contentsOf: url, encoding: .utf8) else {
-            return "(\(fileName) is missing from the app bundle.)"
+            return String(localized: "(\(fileName) is missing from the app bundle.)",
+                          comment: "Licenses sheet, in place of a missing file. %@ is a file name.")
         }
         return contents
     }
