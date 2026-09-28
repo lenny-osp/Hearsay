@@ -2,7 +2,7 @@ import Foundation
 
 /// How the API token is sent with a chat-completions request.
 public enum AuthHeaderStyle: String, Codable, Sendable, CaseIterable {
-    /// `Authorization: Bearer <token>` (OpenAI, GitHub Models, Anthropic).
+    /// `Authorization: Bearer <token>` (OpenAI, Anthropic).
     case bearer
     /// `api-key: <token>` (Azure OpenAI).
     case apiKey
@@ -56,11 +56,6 @@ public struct ProviderPreset: Identifiable, Sendable, Codable, Equatable {
         baseURL: "https://api.openai.com/v1/chat/completions",
         defaultModel: defaultOpenAIModel, auth: .bearer, supportsReasoningEffort: true
     )
-    public static let githubModels = ProviderPreset(
-        id: "githubModels", name: "GitHub Models",
-        baseURL: "https://models.inference.ai.github.com/chat/completions",
-        defaultModel: defaultOpenAIModel, auth: .bearer, supportsReasoningEffort: true
-    )
     public static let azureOpenAI = ProviderPreset(
         id: "azureOpenAI", name: "Azure OpenAI",
         baseURL: "",
@@ -82,7 +77,12 @@ public struct ProviderPreset: Identifiable, Sendable, Codable, Equatable {
         defaultModel: "", auth: .bearer, supportsReasoningEffort: true
     )
 
-    public static let all: [ProviderPreset] = [openAI, githubModels, azureOpenAI, anthropic, ollama, custom]
+    public static let all: [ProviderPreset] = [openAI, azureOpenAI, anthropic, ollama, custom]
+
+    /// Preset ids that existed in earlier builds and were removed. A stored
+    /// configuration with one of these loads as `custom`, keeping its URL and
+    /// model. GitHub Models was shut down on 2026-07-30.
+    public static let retiredIDs: Set<String> = ["githubModels"]
 
     public static func preset(id: String) -> ProviderPreset? {
         all.first { $0.id == id }

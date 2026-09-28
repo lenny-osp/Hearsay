@@ -98,11 +98,13 @@ otherwise its modification time.
 
 ## Meeting notes
 
-1. **Set up a provider** in Settings > AI. Pick a preset: OpenAI, GitHub
-   Models, Azure OpenAI, Anthropic (OpenAI compatible), Ollama / LM Studio,
-   or Custom. Enter the model and your token; tokens are stored in the
-   macOS Keychain. "Test connection" sends a one-line prompt. Ollama and
-   LM Studio run locally and need no token.
+1. **Set up a provider** in Settings > AI. Pick a preset: OpenAI, Azure
+   OpenAI, Anthropic (OpenAI compatible), Ollama / LM Studio, or Custom for
+   any other OpenAI-compatible `/chat/completions` endpoint. Enter the model
+   and your token; tokens are stored in the macOS Keychain. "Test
+   connection" sends a one-line prompt. Ollama and LM Studio run locally
+   and need no token. The Copilot CLI path from whisper-tools is not
+   available in the app.
 2. **Confirm.** After a transcript is saved, Hearsay asks "Send transcript
    for meeting notes?" and shows the provider, model, and transcript size.
    "Keep local" keeps everything on the Mac; you can still give the files a
@@ -170,5 +172,5 @@ so files from both tools sit side by side. Two differences: Chinese runs
 without an initial prompt, because the CLI's English prompt made the turbo
 model echo the prompt and made large-v3 write Simplified characters, while
 no prompt gives Traditional script and natural cue boundaries; and the
-Copilot CLI path is replaced by the GitHub Models preset, which takes the
-same GitHub token.
+Copilot CLI path is not available in the app. For notes, use OpenAI,
+Anthropic, Azure OpenAI, a local Ollama, or any OpenAI-compatible endpoint.

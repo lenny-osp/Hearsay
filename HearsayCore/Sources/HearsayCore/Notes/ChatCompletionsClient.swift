@@ -7,6 +7,8 @@ public enum ChatCompletionsError: Error, LocalizedError, Equatable {
     case missingToken
     case invalidURL
     case transport(String)
+    /// The host could not be resolved or connected to, or there is no network.
+    case unreachable(host: String)
     /// Non-2xx response, or a 2xx response carrying only an `error` object.
     case httpStatus(code: Int, bodyExcerpt: String)
     case invalidJSON(bodyExcerpt: String)
@@ -21,6 +23,8 @@ public enum ChatCompletionsError: Error, LocalizedError, Equatable {
             return "No API token is set for this provider. Add one in Settings > AI."
         case .invalidURL:
             return "The API URL is not a valid http or https address. Check it in Settings > AI."
+        case .unreachable(let host):
+            return "Cannot reach \(host). Check the base URL in Settings > AI and your network connection."
         case .transport(let detail):
             return "API call failed: A network connection or HTTP client error occurred. \(detail)"
         case let .httpStatus(code, excerpt):
@@ -148,6 +152,8 @@ public actor ChatCompletionsClient: ChatCompleting {
             (data, response) = try await session.data(for: request)
         } catch is CancellationError {
             throw CancellationError()
+        } catch let error as URLError where Self.unreachableCodes.contains(error.code) {
+            throw ChatCompletionsError.unreachable(host: request.url?.host ?? configuration.baseURL)
         } catch {
             throw ChatCompletionsError.transport(error.localizedDescription)
         }
@@ -156,6 +162,12 @@ public actor ChatCompletionsClient: ChatCompleting {
         }
         return try Self.content(status: http.statusCode, body: data)
     }
+
+    /// URL errors that mean the host itself cannot be reached, reported with
+    /// the host name instead of the system's generic wording.
+    static let unreachableCodes: Set<URLError.Code> = [
+        .cannotFindHost, .cannotConnectToHost, .notConnectedToInternet,
+    ]
 
     /// Port of the status and body checks after `_post_chat_completions`.
     static func content(status: Int, body: Data) throws -> String {

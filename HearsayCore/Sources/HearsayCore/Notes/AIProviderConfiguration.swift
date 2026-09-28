@@ -100,6 +100,16 @@ public struct AIProviderConfiguration: Codable, Sendable, Equatable {
         ProviderPreset.preset(id: presetID) ?? .custom
     }
 
+    /// This configuration with a retired preset id replaced by `custom`, or
+    /// nil when the preset is still offered. URL, model, auth, and every other
+    /// field are kept so nothing the user entered is lost.
+    public func migratingRetiredPreset() -> AIProviderConfiguration? {
+        guard ProviderPreset.retiredIDs.contains(presetID) else { return nil }
+        var migrated = self
+        migrated.presetID = ProviderPreset.custom.id
+        return migrated
+    }
+
     /// The reasoning effort to send, or nil to omit the field.
     public var effectiveReasoningEffort: String? {
         guard preset.supportsReasoningEffort,
@@ -147,10 +157,29 @@ public final class AIProviderStore {
         }
         self.templates = [.generalMeeting] + userTemplates
         var configuration = storedConfiguration ?? .default
+        var needsSave = false
+        if let migrated = configuration.migratingRetiredPreset() {
+            Self.moveToken(from: configuration.presetID, to: migrated.presetID, in: secrets)
+            configuration = migrated
+            needsSave = true
+        }
         if !([PromptTemplate.generalMeeting] + userTemplates).contains(where: { $0.id == configuration.selectedTemplateID }) {
             configuration.selectedTemplateID = PromptTemplate.generalMeetingID
         }
         self.configuration = configuration
+        if needsSave { save(configuration, key: Key.configuration) }
+    }
+
+    /// Moves the Keychain token of a retired preset to its replacement, once.
+    /// A token already stored under the replacement is never overwritten (the
+    /// old one is then left in place), and the old one is deleted only after
+    /// a successful copy.
+    private static func moveToken(from oldID: String, to newID: String, in secrets: any SecretStore) {
+        guard let token = (try? secrets.read(account: oldID)) ?? nil, !token.isEmpty else { return }
+        let existing = (try? secrets.read(account: newID)) ?? nil
+        guard existing?.isEmpty ?? true else { return }
+        do { try secrets.write(token, account: newID) } catch { return }
+        try? secrets.delete(account: oldID)
     }
 
     private func save<Value: Encodable>(_ value: Value, key: String) {

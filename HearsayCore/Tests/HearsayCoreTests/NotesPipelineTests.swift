@@ -16,9 +16,15 @@ final class ChatStubURLProtocol: URLProtocol, @unchecked Sendable {
     private static let lock = NSLock()
     nonisolated(unsafe) private static var responses: [String: Canned] = [:]
     nonisolated(unsafe) private static var recorded: [String: [(URLRequest, Data)]] = [:]
+    nonisolated(unsafe) private static var failures: [String: URLError.Code] = [:]
 
     static func register(_ url: String, status: Int, body: Data) {
         lock.withLock { responses[url] = Canned(status: status, body: body) }
+    }
+
+    /// Makes requests to `url` fail with `URLError(code)`.
+    static func registerFailure(_ url: String, code: URLError.Code) {
+        lock.withLock { failures[url] = code }
     }
 
     static func requests(for url: String) -> [(URLRequest, Data)] {
@@ -37,9 +43,13 @@ final class ChatStubURLProtocol: URLProtocol, @unchecked Sendable {
     override func startLoading() {
         let key = request.url?.absoluteString ?? ""
         let body = Self.readBody(request)
-        let canned = Self.lock.withLock { () -> Canned? in
+        let (canned, failure) = Self.lock.withLock { () -> (Canned?, URLError.Code?) in
             Self.recorded[key, default: []].append((request, body))
-            return Self.responses[key]
+            return (Self.responses[key], Self.failures[key])
+        }
+        if let failure {
+            client?.urlProtocol(self, didFailWithError: URLError(failure))
+            return
         }
         guard let canned, let url = request.url,
               let response = HTTPURLResponse(url: url, statusCode: canned.status, httpVersion: "HTTP/1.1",
@@ -276,14 +286,32 @@ struct NotesPipelineTests {
     }
 
     @Test func transportFailureIsReported() async {
-        // No canned response registered: the stub fails the connection.
         let url = uniqueURL()
+        ChatStubURLProtocol.registerFailure(url, code: .timedOut)
         do {
             _ = try await ChatCompletionsClient(sessionConfiguration: ChatStubURLProtocol.session())
                 .complete(systemMessage: "s", userMessage: "u", configuration: configuration(url: url), token: "t")
             Issue.record("expected an error")
         } catch let ChatCompletionsError.transport(detail) {
             #expect(!detail.isEmpty)
+        } catch {
+            Issue.record("unexpected error \(error)")
+        }
+    }
+
+    @Test(arguments: [URLError.Code.cannotFindHost, .cannotConnectToHost, .notConnectedToInternet])
+    func unreachableHostNamesTheHost(code: URLError.Code) async {
+        let host = "\(UUID().uuidString.lowercased()).example.test"
+        let url = "https://\(host)/chat/completions"
+        ChatStubURLProtocol.registerFailure(url, code: code)
+        do {
+            _ = try await ChatCompletionsClient(sessionConfiguration: ChatStubURLProtocol.session())
+                .complete(systemMessage: "s", userMessage: "u", configuration: configuration(url: url), token: "t")
+            Issue.record("expected an error")
+        } catch let error as ChatCompletionsError {
+            #expect(error == .unreachable(host: host))
+            #expect(error.errorDescription
+                == "Cannot reach \(host). Check the base URL in Settings > AI and your network connection.")
         } catch {
             Issue.record("unexpected error \(error)")
         }
@@ -354,9 +382,13 @@ struct AIProviderStoreTests {
     }
 
     @Test func presetTable() {
-        #expect(ProviderPreset.all.map(\.id) == ["openai", "githubModels", "azureOpenAI", "anthropic", "ollama", "custom"])
+        #expect(ProviderPreset.all.map(\.id) == ["openai", "azureOpenAI", "anthropic", "ollama", "custom"])
+        #expect(ProviderPreset.preset(id: "githubModels") == nil)
         #expect(ProviderPreset.openAI.baseURL == "https://api.openai.com/v1/chat/completions")
-        #expect(ProviderPreset.githubModels.baseURL == "https://models.inference.ai.github.com/chat/completions")
+        #expect(ProviderPreset.openAI.defaultModel == "gpt-5.6-luna")
+        #expect(ProviderPreset.anthropic.baseURL == "https://api.anthropic.com/v1/chat/completions")
+        #expect(ProviderPreset.ollama.baseURL == "http://localhost:11434/v1/chat/completions")
+        #expect(AIProviderConfiguration.default.presetID == "openai")
         #expect(ProviderPreset.azureOpenAI.baseURL.isEmpty)
         #expect(ProviderPreset.azureOpenAI.auth == .apiKey)
         #expect(ProviderPreset.anthropic.defaultModel == "claude-sonnet-5")
@@ -452,16 +484,72 @@ struct AIProviderStoreTests {
         let store = AIProviderStore(defaults: Self.freshDefaults(), secrets: secrets)
         try store.setToken("  sk-openai \n")
         #expect(store.currentToken == "sk-openai")
-        store.selectPreset(.githubModels)
+        store.selectPreset(.anthropic)
         #expect(!store.hasToken)
-        try store.setToken("ghp")
+        try store.setToken("sk-ant")
         #expect(try secrets.read(account: "openai") == "sk-openai")
-        #expect(try secrets.read(account: "githubModels") == "ghp")
+        #expect(try secrets.read(account: "anthropic") == "sk-ant")
         try store.setToken("")
         #expect(!store.hasToken)
         store.selectPreset(.openAI)
         try store.deleteToken()
         #expect(try secrets.read(account: "openai") == nil)
+    }
+}
+
+@MainActor
+struct RetiredPresetMigrationTests {
+    private static func defaults(storing configuration: AIProviderConfiguration) throws -> UserDefaults {
+        let suite = "tw.og1o.hearsay.tests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite) ?? .standard
+        defaults.removePersistentDomain(forName: suite)
+        defaults.set(try JSONEncoder().encode(configuration), forKey: AIProviderStore.Key.configuration)
+        return defaults
+    }
+
+    private static let githubConfiguration = AIProviderConfiguration(
+        presetID: "githubModels",
+        baseURL: "https://my-proxy.example.test/chat/completions",
+        model: "my-model",
+        reasoningEffort: "high",
+        auth: .bearer,
+        extraHeaders: ["X-A": "b"],
+        askBeforeSending: false
+    )
+
+    @Test func githubModelsLoadsAsCustomKeepingItsFields() throws {
+        let defaults = try Self.defaults(storing: Self.githubConfiguration)
+        let store = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore())
+        var expected = Self.githubConfiguration
+        expected.presetID = "custom"
+        #expect(store.configuration == expected)
+        #expect(store.configuration.preset == .custom)
+        // The migration is saved, so a second load sees `custom` directly.
+        let stored = try #require(defaults.data(forKey: AIProviderStore.Key.configuration))
+        #expect(try JSONDecoder().decode(AIProviderConfiguration.self, from: stored) == expected)
+    }
+
+    @Test func currentPresetsAreNotMigrated() {
+        #expect(AIProviderConfiguration.default.migratingRetiredPreset() == nil)
+        #expect(AIProviderConfiguration(preset: .ollama).migratingRetiredPreset() == nil)
+    }
+
+    @Test func githubModelsTokenMovesToCustom() throws {
+        let secrets = InMemorySecretStore()
+        try secrets.write("ghp_old", account: "githubModels")
+        let store = AIProviderStore(defaults: try Self.defaults(storing: Self.githubConfiguration), secrets: secrets)
+        #expect(store.currentToken == "ghp_old")
+        #expect(try secrets.read(account: "custom") == "ghp_old")
+        #expect(try secrets.read(account: "githubModels") == nil)
+    }
+
+    @Test func existingCustomTokenIsNotOverwritten() throws {
+        let secrets = InMemorySecretStore()
+        try secrets.write("ghp_old", account: "githubModels")
+        try secrets.write("sk-custom", account: "custom")
+        let store = AIProviderStore(defaults: try Self.defaults(storing: Self.githubConfiguration), secrets: secrets)
+        #expect(store.currentToken == "sk-custom")
+        #expect(try secrets.read(account: "githubModels") == "ghp_old")
     }
 }
 

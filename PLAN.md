@@ -31,7 +31,7 @@ output rule ported here.
 | Live transcript | Yes in v1. 30 s chunks are transcribed while recording and shown as a live preview; the final SRT comes from one full pass after Stop. Decided 2026-09-28. |
 | Output folder | Default `~/Documents/Hearsay`, user-configurable in Settings. Decided 2026-09-28. |
 | v1 extras | Global hotkey, pause/resume, Sparkle auto-updates, crash recovery of an unfinished recording, custom prompt templates, and a setting that decides whether the WAV is kept at all. Decided 2026-09-28. |
-| AI notes | Direct HTTPS to any OpenAI-compatible `/chat/completions` endpoint. Same JSON contract as the Python tool. Copilot CLI is dropped; the GitHub Models preset takes the same PAT. Decided 2026-09-28. |
+| AI notes | Direct HTTPS to any OpenAI-compatible `/chat/completions` endpoint. Same JSON contract as the Python tool. Copilot CLI is dropped. GitHub Models was shut down on 2026-07-30 (the Python tool handles its HTTP 410), so there is no GitHub preset; users bring an OpenAI, Anthropic, Azure, Ollama, or custom endpoint. Decided 2026-09-28, corrected after the first live run. |
 | Window mode | User setting: "Menu bar and Dock", "Menu bar only", "Dock only". Switched at runtime with `NSApp.setActivationPolicy`. |
 | Platform floor | macOS 14 Sonoma, Apple Silicon only (MLX requirement). Intel is out of scope. |
 | Sandbox | App Sandbox on from day one so a Mac App Store build stays possible. |
@@ -115,7 +115,7 @@ Hearsay/                      this repo
         PromptTemplate.swift         user templates, built-in "General meeting"
         ChatCompletionsClient.swift  OpenAI-compatible POST, error mapping
         NotesResponse.swift          parse + validate {filename, markdown, transcript_markdown}
-        ProviderPresets.swift        OpenAI, GitHub Models, Azure, Anthropic compat, Ollama, custom
+        ProviderPresets.swift        OpenAI, Azure, Anthropic compat, Ollama, custom
       Naming/
         FilenameSanitizer.swift      port of sanitize_ai_filename
         MeetingNameInserter.swift    port of insert_meeting_name
@@ -374,7 +374,6 @@ alignment heads), beam search.
 | Preset | Base URL | Notes |
 |---|---|---|
 | OpenAI | `https://api.openai.com/v1/chat/completions` | |
-| GitHub Models | `https://models.inference.ai.github.com/chat/completions` | GitHub PAT |
 | Azure OpenAI | user-entered deployment URL | `api-key` header instead of Bearer |
 | Anthropic (OpenAI compat) | `https://api.anthropic.com/v1/chat/completions` | `claude-sonnet-5` default |
 | Ollama / LM Studio | `http://localhost:11434/v1/chat/completions` | local, no token; sandbox needs `network.client` |
@@ -463,7 +462,7 @@ Total: about 8 to 9 weeks of calendar time.
 | Timestamped decoder port has subtle bugs | Cues drift or overlap | Compare against the Python SRT for every fixture in tests; keep the Python CLI installed as the oracle. |
 | Memory: large-v3 fp16 needs ~4 GB unified memory while loaded | 8 GB Macs struggle | Recommend turbo; unload model after 10 min idle. |
 | Full Xcode needed | Blocks day one | Section 2, step 1. |
-| Sandbox blocks Copilot CLI | Users of the Copilot path lose it | Documented; presets cover GitHub Models with the same PAT. |
+| Sandbox blocks Copilot CLI | Users of the Copilot path lose it | Documented. GitHub Models is gone too (shut down 2026-07-30), so a paid API key or a local Ollama is required for notes. |
 | npz-only repos | Catalog entry silently unusable | Catalog lists safetensors repos only; spike verifies each. |
 | ScreenCaptureKit audio always needs a video config | Wasted CPU, "Screen & System Audio Recording" permission wording | 2x2 frame at 1 fps, frames dropped. Verified against the macOS 27 SDK: no audio-only option exists. |
 | Mic and system audio drift apart over an hour | Echo-like doubling in the mix | Align on host timestamps, resample the slower stream, test with a 60 min run. |
@@ -491,8 +490,8 @@ Not planned:
    from a terminal, or are GUI settings enough? (Assumed: GUI only.)
 
 Resolved 2026-09-28: output folder defaults to `~/Documents/Hearsay`
-(configurable); Copilot CLI is dropped in favor of the GitHub Models
-preset; system audio capture and live preview are both in v1.
+(configurable); Copilot CLI is dropped (and GitHub Models no longer exists);
+system audio capture and live preview are both in v1.
 
 ## 15. Phase 0 spike results (2026-09-28)
 
