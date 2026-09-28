@@ -13,9 +13,18 @@ public enum TranscriptTextLanguage {
 
     /// The most likely supported language and its probability, or nil when
     /// the text gives no hypothesis.
+    /// Fewer alphabetic characters than this and `detect` returns nil.
+    public static let minimumLetters = 12
+
     public static func detect(_ text: String) -> (TranscriptLanguage, Double)? {
         let sample = String(text.prefix(sampleLength))
-        guard sample.contains(where: { $0.isLetter }) else { return nil }
+        // Apple's recognizer is confident about almost anything, and its
+        // numbers differ between macOS versions (macOS 15 rates "ok" as
+        // English at 0.61). Below this many letters there is not enough text
+        // to judge, so the caller falls back to the assumed language.
+        guard sample.unicodeScalars.filter({ $0.properties.isAlphabetic }).count >= minimumLetters else {
+            return nil
+        }
         let recognizer = NLLanguageRecognizer()
         recognizer.languageConstraints = [
             .english, .simplifiedChinese, .traditionalChinese, .german, .spanish,

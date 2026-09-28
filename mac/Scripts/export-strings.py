@@ -65,6 +65,18 @@ def placeholders(text):
 
 def stringsdata_files(derived, configuration, name):
     folder = Path(derived) / "Build/Intermediates.noindex" / STRINGSDATA[name].format(configuration=configuration)
+    if not folder.is_dir():
+        # Xcode versions name the per-target folder differently (for example
+        # HearsayCore-t.build vs HearsayCore.build); take any sibling target
+        # folder that is not the resource bundle (-b) or the tests.
+        parent = folder.parent
+        candidates = [
+            d for d in (parent.glob("*.build") if parent.is_dir() else [])
+            if d.is_dir() and not d.name.endswith("-b.build") and "Tests" not in d.name
+            and any(d.rglob("*.stringsdata"))
+        ]
+        if candidates:
+            folder = sorted(candidates)[0]
     return folder, sorted(folder.rglob("*.stringsdata"))
 
 

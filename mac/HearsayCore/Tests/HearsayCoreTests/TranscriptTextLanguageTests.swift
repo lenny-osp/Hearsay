@@ -53,12 +53,15 @@ struct TranscriptTextLanguageTests {
     }
 
     @Test func tooShortOrMixedIsNotConfident() {
-        // One ambiguous word, and a word with a Chinese character: the
-        // recognizer spreads its guess below the threshold.
+        // Too few letters to judge: detection returns nil regardless of what
+        // the recognizer would say (its confidence differs by macOS version).
+        #expect(T.detect("ok") == nil)
+        #expect(T.detect("OK 好") == nil)
         #expect(Self.confident("ok") == nil)
         #expect(Self.confident("OK 好") == nil)
         #expect(T.confident("OK 好") == nil)
-        if let low = T.detect("ok") { #expect(low.1 < T.confidenceThreshold) }
+        #expect(T.detect(String(repeating: "a ", count: T.minimumLetters - 1)) == nil)
+        #expect(T.detect("Guten Morgen zusammen, willkommen") != nil)
     }
 
     @Test func srtTimingIsIgnored() {
