@@ -30,6 +30,11 @@ mkdir -p .build
 # Help pages live in shared/help; copy them into the .lproj folders first.
 Scripts/sync-shared.sh
 xcodegen generate -q
+# Pin the generated project to the same package versions as HearsayWhisper's
+# lock file, so CI and every machine resolve identical dependencies (the
+# third-party notices are generated from these versions).
+mkdir -p Hearsay.xcodeproj/project.xcworkspace/xcshareddata/swiftpm
+cp HearsayWhisper/Package.resolved Hearsay.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 # Xcode does not re-copy a resource bundle whose inner folders changed (for
 # example new .lproj translations), so drop the embedded copies first.
 rm -rf ".build/derived/Build/Products/$CONFIGURATION/Hearsay.app/Contents/Resources/"*.bundle(N)
