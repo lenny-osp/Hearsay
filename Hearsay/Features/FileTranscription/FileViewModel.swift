@@ -32,11 +32,14 @@ final class FileViewModel {
     private(set) var needsModel = false
     /// A finished SRT waiting for the notes flow; see `takeNotesRequest()`.
     private(set) var notesRequest: URL?
+    /// Short note shown in the idle state, e.g. after Cancel.
+    private(set) var note: String?
 
     @ObservationIgnored private let settings: AppSettings
     @ObservationIgnored private let modelStore: ModelStore
     @ObservationIgnored private let engine: WhisperEngine
     @ObservationIgnored private var job = 0
+    @ObservationIgnored private var runTask: Task<Void, Never>?
 
     init(settings: AppSettings, modelStore: ModelStore, engine: WhisperEngine) {
         self.settings = settings
@@ -65,7 +68,13 @@ final class FileViewModel {
     /// Starts transcribing `source` unless a file is already running.
     func transcribe(_ source: URL) {
         guard !isBusy else { return }
-        Task { await run(source: source) }
+        runTask = Task { await run(source: source) }
+    }
+
+    /// Stops the running file at the next 30 s window. Nothing is written.
+    func cancel() {
+        guard isBusy else { return }
+        runTask?.cancel()
     }
 
     func takeNotesRequest() -> URL? {
@@ -88,6 +97,7 @@ final class FileViewModel {
         let id = job
         needsModel = false
         notesRequest = nil
+        note = nil
 
         let location: WhisperModelLocation
         if let override {
@@ -118,6 +128,7 @@ final class FileViewModel {
             let samples = try await Task.detached(priority: .userInitiated) {
                 try AudioFileLoader.loadMono16k(url: source)
             }.value
+            try Task.checkCancellation()
             phase = .transcribing(source: source, progress: 0)
             let result = try await engine.transcribe(
                 samples: samples, location: location,
@@ -130,6 +141,10 @@ final class FileViewModel {
             phase = .finished(srt: srt, source: source)
             notesRequest = srt
             return srt
+        } catch where error.isTranscriptionCancelled {
+            phase = .idle
+            note = "Cancelled"
+            return nil
         } catch {
             phase = .failed(message: "Could not transcribe \(source.lastPathComponent): "
                 + RecordingController.describe(error))

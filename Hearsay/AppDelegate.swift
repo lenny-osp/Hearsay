@@ -110,6 +110,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Quit while recording
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        if recordingController.isTranscribing {
+            // No alert: the pass is cancelled at the next 30 s window, the
+            // live preview (if any) is saved as the SRT, and the WAV is kept.
+            guard !isStoppingForQuit else { return .terminateLater }
+            isStoppingForQuit = true
+            Task { @MainActor in
+                await recordingController.cancelTranscriptionForQuit()
+                NSApp.reply(toApplicationShouldTerminate: true)
+            }
+            return .terminateLater
+        }
         guard recordingController.isSessionActive else { return .terminateNow }
         // A second Quit while the recording is being saved just waits.
         guard !isStoppingForQuit else { return .terminateLater }
@@ -125,6 +136,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         isStoppingForQuit = true
         Task { @MainActor in
             await recordingController.stop()
+            // Stopping starts the final pass; do not wait for it.
+            await recordingController.cancelTranscriptionForQuit()
             NSApp.reply(toApplicationShouldTerminate: true)
         }
         return .terminateLater

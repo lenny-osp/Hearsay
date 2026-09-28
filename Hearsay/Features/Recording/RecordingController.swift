@@ -335,17 +335,37 @@ final class RecordingController {
         NSWorkspace.shared.activateFileViewerSelecting(files)
     }
 
-    /// "Use live preview instead": skips the final pass and writes the live
-    /// segments as the SRT. The engine may still finish the abandoned pass
-    /// in the background; its result is discarded.
+    /// "Use live preview instead": cancels the final pass (the engine stops
+    /// before its next 30 s window) and writes the live segments as the SRT.
+    /// The cancellation is expected and never shown as an error.
     func useLivePreviewInstead() {
         guard canUseLivePreview else { return }
         isUsingLivePreview = true
+        transcriptionTask?.cancel()
         let id = session
         Task { [weak self] in
             await self?.liveTask?.value
             guard let self, self.session == id, self.isTranscribing else { return }
             self.completeTranscription(with: self.liveSegments)
+        }
+    }
+
+    /// Quit while transcribing: cancels the pass and the live queue, then
+    /// saves the live preview as the SRT when there is one. The WAV is kept
+    /// either way (moved to the output folder), whatever "Keep the
+    /// recording" says, because the full pass never ran. Returns once the
+    /// files are written.
+    func cancelTranscriptionForQuit() async {
+        guard isTranscribing else { return }
+        isUsingLivePreview = true
+        transcriptionTask?.cancel()
+        liveTask?.cancel()
+        await transcriptionTask?.value
+        guard isTranscribing else { return }
+        if liveSegments.isEmpty {
+            failTranscription("Transcription was cancelled because Hearsay quit.")
+        } else {
+            completeTranscription(with: liveSegments, keepRecording: true)
         }
     }
 
@@ -705,6 +725,9 @@ final class RecordingController {
             guard session == id, isTranscribing, !isUsingLivePreview else { return }
             completeTranscription(with: result.cues())
         } catch {
+            // Cancelled by "Use live preview instead" or by quitting; whoever
+            // cancelled writes the SRT.
+            guard !error.isTranscriptionCancelled else { return }
             guard session == id, isTranscribing, !isUsingLivePreview else { return }
             failTranscription("Transcription failed: \(Self.describe(error))")
         }
@@ -733,10 +756,11 @@ final class RecordingController {
                 options: TranscriptionOptions.app(languageCode: sessionLanguageCode),
                 progress: progressHandler(session: id)
             )
-            guard session == id, isTranscribing else { return }
+            guard session == id, isTranscribing, !isUsingLivePreview else { return }
             completeTranscription(with: result.cues())
         } catch {
-            guard session == id, isTranscribing else { return }
+            guard !error.isTranscriptionCancelled else { return }
+            guard session == id, isTranscribing, !isUsingLivePreview else { return }
             failTranscription("Transcription failed: \(Self.describe(error))")
         }
     }
@@ -754,7 +778,8 @@ final class RecordingController {
     /// then keeps or deletes the WAV as the setting says. After a failed
     /// pass the WAV is already in the output folder and its SRT (possibly
     /// the saved live preview) is replaced.
-    private func completeTranscription(with cues: [CoreSegment]) {
+    /// `keepRecording` overrides the setting (quit keeps the WAV).
+    private func completeTranscription(with cues: [CoreSegment], keepRecording: Bool? = nil) {
         let folder: ResolvedOutputFolder
         do {
             folder = try TranscriptOutput.resolveFolder(settings: settings)
@@ -787,7 +812,7 @@ final class RecordingController {
         }
 
         var wav: URL?
-        if settings.keepRecording {
+        if keepRecording ?? settings.keepRecording {
             if inSpool {
                 let destination = directory.appendingPathComponent(stem + ".wav")
                 do {

@@ -73,17 +73,24 @@ actor WhisperEngine {
     }
 
     /// Transcribes 16 kHz mono samples with the loaded model. `progress`
-    /// receives 0...1 from the decoder's thread.
+    /// receives 0...1 from the decoder's thread. `shouldCancel` is checked
+    /// before every 30 s window; without it, cancelling the calling Task
+    /// stops the pass at the next window. Either way the call throws
+    /// `TranscriptionError.cancelled(partial:)`.
     func transcribe(
         samples: [Float],
         options: TranscriptionOptions,
-        progress: @escaping @Sendable (Double) -> Void
+        progress: @escaping @Sendable (Double) -> Void,
+        shouldCancel: (@Sendable () -> Bool)? = nil
     ) async throws -> Transcription {
         beginJob()
         defer { endJob() }
         guard let transcriber else { throw WhisperEngineError.noActiveModel }
-        try Task.checkCancellation()
-        return try transcriber.transcribe(samples: samples, options: options, progress: progress)
+        let cancel: @Sendable () -> Bool = shouldCancel ?? { Task.isCancelled }
+        if cancel() || Task.isCancelled { throw TranscriptionError.cancelled(partial: []) }
+        return try transcriber.transcribe(
+            samples: samples, options: options, progress: progress, shouldCancel: cancel
+        )
     }
 
     /// Loads `location` if needed, then transcribes. The load and the job
@@ -92,12 +99,15 @@ actor WhisperEngine {
         samples: [Float],
         location: WhisperModelLocation,
         options: TranscriptionOptions,
-        progress: @escaping @Sendable (Double) -> Void
+        progress: @escaping @Sendable (Double) -> Void,
+        shouldCancel: (@Sendable () -> Bool)? = nil
     ) async throws -> Transcription {
         beginJob()
         defer { endJob() }
         try await load(location)
-        return try await transcribe(samples: samples, options: options, progress: progress)
+        return try await transcribe(
+            samples: samples, options: options, progress: progress, shouldCancel: shouldCancel
+        )
     }
 
     /// Releases the model when no job has run for `seconds`. Called by the
@@ -152,6 +162,14 @@ actor WhisperEngine {
             tokenizerDirectory: location.tokenizerDirectory
         )
         return Loaded(transcriber: transcriber)
+    }
+}
+
+extension Error {
+    /// The decoder stopped because the job was cancelled.
+    var isTranscriptionCancelled: Bool {
+        if let error = self as? TranscriptionError, case .cancelled = error { return true }
+        return self is CancellationError
     }
 }
 

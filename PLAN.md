@@ -438,7 +438,7 @@ weekends counted as half days.
 | 4a. Decoder | Done 2026-09-28. Byte-identical SRT to Python on both fixtures; 38 tests. Run tests with `TEST_RUNNER_HEARSAY_MODEL_DIR=<model dir>`. | done |
 | 4b. Transcription | Done 2026-09-28 in code. File mode verified byte-identical to Python through the sandboxed app (debug launch path, see `FileViewModel.swift`). Live preview and the Record-tab final pass need a live run. | done, unverified live |
 | 5. Notes | Done 2026-09-28 in code; runs from History > Generate notes. Not yet tried against a live provider. | done, unverified live |
-| 6. Ship | History view, hotkeys, quit-while-recording, and crash recovery done 2026-09-28. Remaining: launch at login, app icon, Sparkle + appcast, signing, notarization, DMG script, README, quick-start guides. | 3 to 4 days |
+| 6. Ship | History, hotkeys, quit handling, crash recovery, launch at login, app icon, README done 2026-09-28. Remaining: Sparkle + appcast, signing, notarization, DMG script, quick-start guide note (`docs/whisper-tools-note.md`). | 2 days |
 
 Total: about 8 to 9 weeks of calendar time.
 
@@ -569,12 +569,9 @@ Things no agent could verify because they need permissions or a person:
   scan can exclude it instead of using the launch date.
 - Shortcut labels assume a US keyboard layout.
 - `NSAlert` for quit is modal; a SwiftUI confirmation would fit better.
-- `Transcriber.transcribe` has no cancellation point, so "Use live preview
-  instead" writes the SRT at once but the engine stays busy until the final
-  pass ends. Add a per-window cancellation check.
 - The final pass waits for the live-preview queue to drain; a lagging
   preview delays it by its backlog.
-- Quitting while transcribing does not prompt; the WAV is recovered on the
-  next launch through the recovery sheet.
+- On quit during a final pass the live preview is saved and the WAV is
+  always kept; live chunks still queued are dropped (the WAV has them).
 - Debug launch path (`HEARSAY_TRANSCRIBE_FILE`) needs files inside the app
   container because of the sandbox; document or drop before release.

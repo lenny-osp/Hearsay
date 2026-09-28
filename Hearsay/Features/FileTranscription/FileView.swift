@@ -80,12 +80,19 @@ struct FileView: View {
     @ViewBuilder private var status: some View {
         switch model.phase {
         case .idle:
-            EmptyView()
+            if let note = model.note {
+                Section {
+                    Label(note, systemImage: "xmark.circle")
+                        .foregroundStyle(.secondary)
+                }
+            }
         case .loading(let source):
             Section {
                 HStack(spacing: 10) {
                     ProgressView().controlSize(.small)
                     Text("Reading \(source.lastPathComponent)…")
+                    Spacer()
+                    Button("Cancel") { model.cancel() }
                 }
             }
         case .transcribing(let source, let progress):
@@ -94,10 +101,15 @@ struct FileView: View {
                     Text("Transcribing \(source.lastPathComponent)…")
                     ProgressView(value: progress)
                         .progressViewStyle(.linear)
-                    Text(progress, format: .percent.precision(.fractionLength(0)))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
+                    HStack {
+                        Text(progress, format: .percent.precision(.fractionLength(0)))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                        Spacer()
+                        Button("Cancel") { model.cancel() }
+                            .help("Stop at the next 30 s window; nothing is saved")
+                    }
                 }
             }
         case .finished(let srt, _):
