@@ -1,5 +1,6 @@
 import AppKit
 import HearsayCore
+import ServiceManagement
 import SwiftUI
 
 struct SettingsView: View {
@@ -29,9 +30,74 @@ struct SettingsView: View {
 private struct GeneralSettingsView: View {
     var body: some View {
         Form {
+            LaunchAtLoginSection()
             HotkeySettingsSection()
         }
         .padding()
+    }
+}
+
+/// "Launch Hearsay at login", backed by `SMAppService.mainApp`. The system
+/// owns the state (the user can change it in System Settings), so the toggle
+/// reads it back after every change and whenever the tab appears.
+private struct LaunchAtLoginSection: View {
+    @State private var status: SMAppService.Status = SMAppService.mainApp.status
+    @State private var errorMessage: String?
+
+    private static let loginItemsURL =
+        URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension")
+
+    var body: some View {
+        Section("Startup") {
+            Toggle("Launch Hearsay at login", isOn: Binding(
+                get: { status == .enabled },
+                set: { setEnabled($0) }
+            ))
+            if status == .requiresApproval {
+                HStack {
+                    Label("Approve in System Settings > General > Login Items",
+                          systemImage: "exclamationmark.circle")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Open Login Items", action: openLoginItems)
+                }
+            }
+            if let errorMessage {
+                Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
+        }
+        .onAppear(perform: refresh)
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            refresh()
+        }
+    }
+
+    private func refresh() {
+        status = SMAppService.mainApp.status
+    }
+
+    private func setEnabled(_ enabled: Bool) {
+        let service = SMAppService.mainApp
+        do {
+            if enabled {
+                try service.register()
+            } else {
+                try service.unregister()
+            }
+            errorMessage = nil
+        } catch {
+            let action = enabled ? "turn on" : "turn off"
+            errorMessage = "Could not \(action) launch at login: \(error.localizedDescription)"
+        }
+        refresh()
+    }
+
+    private func openLoginItems() {
+        guard let url = Self.loginItemsURL else { return }
+        NSWorkspace.shared.open(url)
     }
 }
 
