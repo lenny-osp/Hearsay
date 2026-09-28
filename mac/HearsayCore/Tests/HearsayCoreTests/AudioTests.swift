@@ -255,9 +255,9 @@ struct AudioFileLoaderTests {
         #expect(samples.allSatisfy { $0 >= -1 && $0 <= 1 })
     }
 
-    @Test func chineseFixtureDecodesToAbout276Seconds() throws {
+    @Test func chineseFixtureDecodesToAbout293Seconds() throws {
         let samples = try AudioFileLoader.loadMono16k(url: fixtures.appendingPathComponent("zh-30s.wav"))
-        #expect(abs(Double(samples.count) / 16_000 - 27.6) < 0.05)
+        #expect(abs(Double(samples.count) / 16_000 - 29.35) < 0.05)
     }
 
     @Test func resamplesStereo44kToMono16k() throws {

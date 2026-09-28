@@ -1,7 +1,14 @@
 # Test fixtures
 
 - `en-30s.wav`: 18.9 s of synthesized English (macOS `say`, voice Samantha), 16 kHz mono s16le.
-- `zh-30s.wav`: 27.6 s of Mandarin speech recorded by the owner, 16 kHz mono s16le.
+- `zh-30s.wav`: 29.4 s of Mandarin read by the owner (the opening of 老舍's
+  《北京的春節》), 16 kHz mono s16le. Replaced 2026-09-28; the first version
+  was a noisy clip.
+- `zh-30s.truth.srt`: the owner's hand-corrected transcript of `zh-30s.wav`
+  (same timings as the expected file). Not used by the parity tests; it is
+  the ground truth for accuracy measurements, for example the Windows
+  acceptance in PLAN.md section 18.5. It differs from the model output in
+  two characters (臘七 vs 臘漆, 裏 vs 里).
 - `de-30s.wav`: 22.0 s of synthesized German meeting talk (macOS `say`, voice Anna, de_DE), 16 kHz mono s16le.
 - `es-30s.wav`: 21.6 s of synthesized Spanish meeting talk (macOS `say`, voice `Eddy (Spanish (Spain))`, es_ES), 16 kHz mono s16le.
 - `*.expected.srt`: reference output from Python `mlx_whisper` 0.4.3 with

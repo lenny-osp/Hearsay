@@ -14,6 +14,7 @@ mac/Spike/models/
 *.srt
 !shared/fixtures/*.wav
 !shared/fixtures/*.expected.srt
+!shared/fixtures/*.truth.srt
 # Secrets
 *.pem
 *.p8
