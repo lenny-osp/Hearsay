@@ -1,3 +1,4 @@
+// Tables originate in openai/whisper tokenizer.py (MIT, Copyright (c) 2022 OpenAI; see LICENSES/openai-whisper.txt).
 // Language tables ported verbatim from mlx_whisper 0.4.3 tokenizer.py
 // (`LANGUAGES` and `TO_LANGUAGE_CODE`). Order matters: the language token
 // for `codes[i]` is `<|startoftranscript|> + 1 + i`.

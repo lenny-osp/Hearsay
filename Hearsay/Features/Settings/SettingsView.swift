@@ -55,6 +55,7 @@ private struct GeneralSettingsView: View {
                     .foregroundStyle(.secondary)
             }
             HotkeySettingsSection()
+            AcknowledgementsSection()
         }
         .formStyle(.grouped)
     }

@@ -1,3 +1,5 @@
+// Ported from mlx_whisper 0.4.3 (ml-explore/mlx-examples, MIT, Copyright © 2023 Apple Inc.); see LICENSES/mlx-whisper.txt.
+
 import Foundation
 
 /// Port of `format_timestamp` in mlx_whisper `writers.py` (also

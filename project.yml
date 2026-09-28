@@ -26,6 +26,11 @@ targets:
         excludes:
           - Info.plist
           - Hearsay.entitlements
+      # License texts shown in Settings > General > Acknowledgements.
+      - path: LICENSE
+        buildPhase: resources
+      - path: THIRD_PARTY_NOTICES.md
+        buildPhase: resources
     dependencies:
       - package: HearsayCore
         product: HearsayCore

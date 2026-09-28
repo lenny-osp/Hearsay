@@ -249,3 +249,12 @@ presets have no counterpart in the CLI. One difference: Chinese
 runs without an initial prompt, because the CLI's English prompt made the
 turbo model echo the prompt and made large-v3 write Simplified characters,
 while no prompt gives Traditional script and natural cue boundaries.
+
+## License
+
+Hearsay is released under the MIT License, Copyright (c) 2026 Chihling Wang;
+see [LICENSE](LICENSE). It bundles open-source libraries and includes code
+copied or ported from other MIT-licensed projects; their licenses are in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) (regenerate it with
+`Scripts/make-notices.sh`) and in the app under Settings > General >
+Acknowledgements.

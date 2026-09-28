@@ -1,3 +1,5 @@
+// Reproduces mlx_whisper 0.4.3 text decoding (ml-explore/mlx-examples, MIT; see LICENSES/mlx-whisper.txt) with GPT-2 bytes_to_unicode reimplemented.
+
 import Foundation
 
 /// GPT-2 byte-level BPE text reconstruction, so decoded text equals what

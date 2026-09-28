@@ -1,3 +1,5 @@
+// Ported from mlx_whisper 0.4.3 (ml-explore/mlx-examples, MIT, Copyright © 2023 Apple Inc.); see LICENSES/mlx-whisper.txt.
+
 import Foundation
 
 /// Mel frames per second (`FRAMES_PER_SECOND`), 10 ms hops.
