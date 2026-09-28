@@ -29,6 +29,13 @@ struct FileView: View {
                 .pickerStyle(.segmented)
                 .disabled(model.isBusy)
 
+                // Same row and shared setting as the Record tab, only for ZH.
+                if model.languageCode == "zh" {
+                    ChineseScriptPicker()
+                        .pickerStyle(.segmented)
+                        .disabled(model.isBusy)
+                }
+
                 dropZone
             }
 
