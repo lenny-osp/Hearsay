@@ -72,6 +72,27 @@ private let pythonPromptZH = #"""
         #expect(chinese.contains(#""filename": "short-descriptive-name""#))
     }
 
+    @Test(arguments: [("de", "German"), ("es", "Spanish")])
+    func germanAndSpanishPrompts(code: String, name: String) throws {
+        let prompt = try MeetingPrompt.build(transcript: "hello transcript", languageCode: code)
+        // Every {output_language} slot gets the language name: the prompt is
+        // the English one with "English" swapped only in those slots.
+        let placeholders = PromptTemplate.generalMeeting.instructions
+            .components(separatedBy: PromptTemplate.outputLanguagePlaceholder).count - 1
+        #expect(placeholders == 4)
+        #expect(prompt.components(separatedBy: name).count - 1 == placeholders)
+        #expect(prompt.contains("The selected output language is \(name)."))
+        #expect(prompt.contains("Write the entire meeting note in \(name), including"))
+        #expect(prompt.contains("translating each heading into \(name):"))
+        #expect(prompt.contains("structured transcript in \(name). Preserve"))
+        #expect(!prompt.contains(PromptTemplate.outputLanguagePlaceholder))
+        #expect(!prompt.contains("The selected output language is English."))
+        let expected = PromptTemplate.generalMeeting.instructions
+            .replacingOccurrences(of: PromptTemplate.outputLanguagePlaceholder, with: name)
+        #expect(prompt.hasPrefix(expected + "\n\n" + MeetingPrompt.responseRules))
+        #expect(prompt.contains("English filename based on the main topic"))
+    }
+
     @Test func unsupportedLanguageThrows() {
         #expect(throws: MeetingPromptError.unsupportedLanguage("fr")) {
             try MeetingPrompt.build(transcript: "Hello", languageCode: "fr")

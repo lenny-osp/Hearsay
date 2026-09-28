@@ -73,6 +73,105 @@ struct AppSettingsTests {
         #expect(AppSettings(defaults: defaults).chineseScript == .traditional)
     }
 
+    @Test func languageDefaultsForFreshInstall() {
+        let (defaults, suite) = Self.freshDefaults()
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let settings = AppSettings(defaults: defaults)
+        #expect(settings.languageChoice == .auto)
+        #expect(settings.preferredLanguage == .english)
+        #expect(settings.defaultLanguageCode == "en")
+    }
+
+    @Test(arguments: LanguageChoice.allCases)
+    func languageChoiceRoundTrips(choice: LanguageChoice) {
+        let (defaults, suite) = Self.freshDefaults()
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let settings = AppSettings(defaults: defaults)
+        settings.languageChoice = choice
+        #expect(defaults.string(forKey: AppSettings.Key.languageChoice) == choice.storageValue)
+        #expect(AppSettings(defaults: defaults).languageChoice == choice)
+    }
+
+    @Test(arguments: TranscriptLanguage.allCases)
+    func preferredLanguageRoundTrips(language: TranscriptLanguage) {
+        let (defaults, suite) = Self.freshDefaults()
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let settings = AppSettings(defaults: defaults)
+        settings.preferredLanguage = language
+        #expect(defaults.string(forKey: AppSettings.Key.preferredLanguage) == language.rawValue)
+        #expect(AppSettings(defaults: defaults).preferredLanguage == language)
+    }
+
+    @Test func unknownStoredLanguageValuesFallBack() {
+        let (defaults, suite) = Self.freshDefaults()
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set("fr", forKey: AppSettings.Key.languageChoice)
+        defaults.set("fr", forKey: AppSettings.Key.preferredLanguage)
+        let settings = AppSettings(defaults: defaults)
+        #expect(settings.languageChoice == .auto)
+        #expect(settings.preferredLanguage == .english)
+    }
+
+    @Test(arguments: [("en", TranscriptLanguage.english), ("zh", .chinese)])
+    func legacyLanguageCodeMigratesToFixed(code: String, language: TranscriptLanguage) {
+        let (defaults, suite) = Self.freshDefaults()
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(code, forKey: AppSettings.Key.defaultLanguageCode)
+        let settings = AppSettings(defaults: defaults)
+        #expect(settings.languageChoice == .fixed(language))
+        #expect(settings.preferredLanguage == .english)
+        #expect(settings.defaultLanguageCode == code)
+        #expect(defaults.string(forKey: AppSettings.Key.languageChoice) == code)
+    }
+
+    @Test func storedChoiceWinsOverLegacyCode() {
+        let (defaults, suite) = Self.freshDefaults()
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set("zh", forKey: AppSettings.Key.defaultLanguageCode)
+        defaults.set("auto", forKey: AppSettings.Key.languageChoice)
+        #expect(AppSettings(defaults: defaults).languageChoice == .auto)
+    }
+
+    @Test func unknownLegacyCodeMigratesToAuto() {
+        let (defaults, suite) = Self.freshDefaults()
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set("fr", forKey: AppSettings.Key.defaultLanguageCode)
+        #expect(AppSettings(defaults: defaults).languageChoice == .auto)
+    }
+
+    @Test func settingLanguageChoiceNeverChangesPreferredLanguage() {
+        let (defaults, suite) = Self.freshDefaults()
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let settings = AppSettings(defaults: defaults)
+        for preferred in TranscriptLanguage.allCases {
+            settings.preferredLanguage = preferred
+            for choice in LanguageChoice.allCases {
+                settings.languageChoice = choice
+                #expect(settings.preferredLanguage == preferred)
+                #expect(AppSettings(defaults: defaults).preferredLanguage == preferred)
+            }
+            for code in ["en", "zh", "de", "es", "fr"] {
+                settings.defaultLanguageCode = code
+                #expect(settings.preferredLanguage == preferred)
+            }
+        }
+    }
+
+    @Test func deprecatedLanguageCodeReadsChoiceOrPreferred() {
+        let (defaults, suite) = Self.freshDefaults()
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let settings = AppSettings(defaults: defaults)
+        settings.preferredLanguage = .spanish
+        settings.languageChoice = .auto
+        #expect(settings.defaultLanguageCode == "es")
+        settings.languageChoice = .fixed(.german)
+        #expect(settings.defaultLanguageCode == "de")
+        settings.defaultLanguageCode = "zh"
+        #expect(settings.languageChoice == .fixed(.chinese))
+        settings.defaultLanguageCode = "fr"
+        #expect(settings.languageChoice == .fixed(.chinese))
+    }
+
     @Test func hotkeysDefaultToControlOptionCommand() {
         let (defaults, suite) = Self.freshDefaults()
         defer { defaults.removePersistentDomain(forName: suite) }

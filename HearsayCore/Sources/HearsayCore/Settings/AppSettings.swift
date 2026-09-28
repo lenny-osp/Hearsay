@@ -31,7 +31,10 @@ public final class AppSettings {
     public enum Key {
         public static let windowMode = "windowMode"
         public static let outputFolderBookmark = "outputFolderBookmark"
+        /// Legacy key ("en" or "zh"), read once to migrate into `languageChoice`.
         public static let defaultLanguageCode = "defaultLanguageCode"
+        public static let languageChoice = "languageChoice"
+        public static let preferredLanguage = "preferredLanguage"
         public static let activeModelRepo = "activeModelRepo"
         public static let captureSystemAudio = "captureSystemAudio"
         public static let startStopHotkey = "startStopHotkey"
@@ -70,10 +73,37 @@ public final class AppSettings {
         }
     }
 
-    /// Transcription language chosen on the Record tab: "en" or "zh"
-    /// (the `MEETING_NOTE_LANGUAGES` codes of whisper-tools). Default "en".
+    /// Transcription language chosen on the Record or File tab: Auto or a
+    /// fixed language, stored as "auto" or the code. A fresh install starts
+    /// at Auto; an install that stored the legacy `defaultLanguageCode` keeps
+    /// that language as a fixed choice.
+    public var languageChoice: LanguageChoice {
+        didSet { defaults.set(languageChoice.storageValue, forKey: Key.languageChoice) }
+    }
+
+    /// The language Auto falls back to when detection is not confident
+    /// (Settings > General). Default English. Only the user changes it in
+    /// Settings; nothing else in the app writes it.
+    public var preferredLanguage: TranscriptLanguage {
+        didSet { defaults.set(preferredLanguage.rawValue, forKey: Key.preferredLanguage) }
+    }
+
+    /// Deprecated: use `languageChoice` and `preferredLanguage`. Kept for
+    /// callers not yet moved to the new API. Reads the fixed language code,
+    /// or the preferred language code for Auto. Writing a supported code sets
+    /// `languageChoice` to that fixed language (never `preferredLanguage`);
+    /// other values are ignored.
     public var defaultLanguageCode: String {
-        didSet { defaults.set(defaultLanguageCode, forKey: Key.defaultLanguageCode) }
+        get {
+            switch languageChoice {
+            case .auto: preferredLanguage.rawValue
+            case .fixed(let language): language.rawValue
+            }
+        }
+        set {
+            guard let language = TranscriptLanguage(rawValue: newValue) else { return }
+            languageChoice = .fixed(language)
+        }
     }
 
     /// "Also capture system audio" on the Record tab (PLAN.md 4.1). Default on.
@@ -113,7 +143,9 @@ public final class AppSettings {
         let rawMode = defaults.string(forKey: Key.windowMode) ?? ""
         self.windowMode = WindowMode(rawValue: rawMode) ?? .menuBarAndDock
         self.outputFolderBookmark = defaults.data(forKey: Key.outputFolderBookmark)
-        self.defaultLanguageCode = defaults.string(forKey: Key.defaultLanguageCode) ?? "en"
+        self.languageChoice = Self.loadLanguageChoice(from: defaults)
+        self.preferredLanguage = TranscriptLanguage(
+            rawValue: defaults.string(forKey: Key.preferredLanguage) ?? "") ?? .english
         self.activeModelRepo = defaults.string(forKey: Key.activeModelRepo)
         self.captureSystemAudio = defaults.object(forKey: Key.captureSystemAudio) as? Bool ?? true
         self.startStopHotkey = Self.loadHotkey(forKey: Key.startStopHotkey, from: defaults)
@@ -122,6 +154,22 @@ public final class AppSettings {
         self.keepRecording = defaults.object(forKey: Key.keepRecording) as? Bool ?? true
         self.chineseScript = (ChineseScript(rawValue: defaults.string(forKey: Key.chineseScript) ?? "")
             ?? .traditional).pickerValue
+    }
+
+    /// The stored choice; otherwise the legacy code as a fixed language
+    /// (persisted under the new key); otherwise Auto.
+    private static func loadLanguageChoice(from defaults: UserDefaults) -> LanguageChoice {
+        if let stored = defaults.string(forKey: Key.languageChoice),
+           let choice = LanguageChoice(storageValue: stored) {
+            return choice
+        }
+        if let legacy = defaults.string(forKey: Key.defaultLanguageCode),
+           let language = TranscriptLanguage(rawValue: legacy) {
+            let choice = LanguageChoice.fixed(language)
+            defaults.set(choice.storageValue, forKey: Key.languageChoice)
+            return choice
+        }
+        return .auto
     }
 
     private static func loadHotkey(forKey key: String, from defaults: UserDefaults) -> HotkeyBinding? {

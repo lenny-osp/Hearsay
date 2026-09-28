@@ -49,6 +49,17 @@ struct ChineseScriptTests {
         #expect(ChineseScript.forSession(languageCode: "en", preference: .simplified) == .asIs)
     }
 
+    @Test func nonChineseSessionsAreUntouched() {
+        let segments = [TranscriptSegment(start: 0, end: 1, text: Self.simplified)]
+        for code in ["en", "de", "es"] {
+            for preference in ChineseScript.allCases {
+                let script = ChineseScript.forSession(languageCode: code, preference: preference)
+                #expect(script == .asIs)
+                #expect(ChineseScript.convert(segments, to: script) == segments)
+            }
+        }
+    }
+
     @Test func segmentsKeepTimings() {
         let segments = [
             TranscriptSegment(start: 0, end: 1.5, text: Self.simplified),
