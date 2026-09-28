@@ -31,6 +31,8 @@ public final class AppSettings {
     public enum Key {
         public static let windowMode = "windowMode"
         public static let outputFolderBookmark = "outputFolderBookmark"
+        public static let defaultLanguageCode = "defaultLanguageCode"
+        public static let activeModelRepo = "activeModelRepo"
     }
 
     @ObservationIgnored private let defaults: UserDefaults
@@ -51,10 +53,30 @@ public final class AppSettings {
         }
     }
 
+    /// Hugging Face repo of the Whisper model used for transcription, or nil
+    /// when none is chosen (see `ModelStore`).
+    public var activeModelRepo: String? {
+        didSet {
+            if let activeModelRepo {
+                defaults.set(activeModelRepo, forKey: Key.activeModelRepo)
+            } else {
+                defaults.removeObject(forKey: Key.activeModelRepo)
+            }
+        }
+    }
+
+    /// Transcription language chosen on the Record tab: "en" or "zh"
+    /// (the `MEETING_NOTE_LANGUAGES` codes of whisper-tools). Default "en".
+    public var defaultLanguageCode: String {
+        didSet { defaults.set(defaultLanguageCode, forKey: Key.defaultLanguageCode) }
+    }
+
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         let rawMode = defaults.string(forKey: Key.windowMode) ?? ""
         self.windowMode = WindowMode(rawValue: rawMode) ?? .menuBarAndDock
         self.outputFolderBookmark = defaults.data(forKey: Key.outputFolderBookmark)
+        self.defaultLanguageCode = defaults.string(forKey: Key.defaultLanguageCode) ?? "en"
+        self.activeModelRepo = defaults.string(forKey: Key.activeModelRepo)
     }
 }
