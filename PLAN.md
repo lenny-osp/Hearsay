@@ -361,7 +361,7 @@ them:
 | `--condition-on-previous-text False` | supported; default off, like the Python tool |
 | `--hallucination-silence-threshold 2.0` | port from `transcribe.py`; needs word timestamps only for the strict version, the segment-level version is enough for v1 |
 | `--language en\|zh` | supported |
-| `--initial-prompt` for zh | `<\|startofprev\|>` prompt tokens, port from `decoding.py` |
+| `--initial-prompt` for zh | supported as an advanced setting, but **off by default**. Measured 2026-09-28 on `Fixtures/zh-30s.wav` with the turbo model: the Python tool's English prompt ("The following is a sentence in Traditional Chinese.") made turbo echo the prompt and produce no transcript, and made large-v3 output Simplified characters. A Traditional Chinese prompt ("以下是繁體中文的句子。") gave Traditional script but rounded every timestamp to whole seconds and appended a hallucinated closing line. No prompt gave Traditional script, natural cue boundaries, and no hallucination. |
 | temperature fallback on compression ratio / logprob | port; it is what stops repeated-phrase loops |
 | no-speech threshold | port; skips silent windows |
 
