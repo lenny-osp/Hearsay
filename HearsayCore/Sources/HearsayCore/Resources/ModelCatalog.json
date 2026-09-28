@@ -1,0 +1,115 @@
+{
+  "tokenizer": {
+    "repo": "openai/whisper-large-v3",
+    "files": [
+      "tokenizer.json",
+      "tokenizer_config.json",
+      "generation_config.json",
+      "vocab.json",
+      "merges.txt",
+      "added_tokens.json",
+      "special_tokens_map.json"
+    ]
+  },
+  "entries": [
+    {
+      "repo": "mlx-community/whisper-tiny-fp16",
+      "displayName": "Whisper Tiny",
+      "sizeBytes": 74386388,
+      "weightsFile": "model.safetensors",
+      "quantization": "fp16",
+      "family": "tiny",
+      "recommended": false
+    },
+    {
+      "repo": "mlx-community/whisper-base-fp16",
+      "displayName": "Whisper Base",
+      "sizeBytes": 143677159,
+      "weightsFile": "model.safetensors",
+      "quantization": "fp16",
+      "family": "base",
+      "recommended": false
+    },
+    {
+      "repo": "mlx-community/whisper-small-fp16",
+      "displayName": "Whisper Small",
+      "sizeBytes": 481215628,
+      "weightsFile": "model.safetensors",
+      "quantization": "fp16",
+      "family": "small",
+      "recommended": false
+    },
+    {
+      "repo": "mlx-community/whisper-small-4bit",
+      "displayName": "Whisper Small (4-bit)",
+      "sizeBytes": 139111396,
+      "weightsFile": "model.safetensors",
+      "quantization": "4bit",
+      "family": "small",
+      "recommended": false
+    },
+    {
+      "repo": "mlx-community/whisper-medium-fp16",
+      "displayName": "Whisper Medium",
+      "sizeBytes": 1524744485,
+      "weightsFile": "model.safetensors",
+      "quantization": "fp16",
+      "family": "medium",
+      "recommended": false
+    },
+    {
+      "repo": "mlx-community/whisper-large-v3-turbo",
+      "displayName": "Whisper Large v3 Turbo",
+      "sizeBytes": 1613977880,
+      "weightsFile": "weights.safetensors",
+      "quantization": "fp16",
+      "family": "large-v3-turbo",
+      "recommended": true
+    },
+    {
+      "repo": "mlx-community/whisper-large-v3-turbo-8bit",
+      "displayName": "Whisper Large v3 Turbo (8-bit)",
+      "sizeBytes": 863659497,
+      "weightsFile": "model.safetensors",
+      "quantization": "8bit",
+      "family": "large-v3-turbo",
+      "recommended": false
+    },
+    {
+      "repo": "mlx-community/whisper-large-v3-turbo-4bit",
+      "displayName": "Whisper Large v3 Turbo (4-bit)",
+      "sizeBytes": 463463323,
+      "weightsFile": "model.safetensors",
+      "quantization": "4bit",
+      "family": "large-v3-turbo",
+      "recommended": false
+    },
+    {
+      "repo": "mlx-community/whisper-large-v3-fp16",
+      "displayName": "Whisper Large v3",
+      "sizeBytes": 3083275898,
+      "weightsFile": "model.safetensors",
+      "quantization": "fp16",
+      "family": "large-v3",
+      "recommended": false
+    },
+    {
+      "repo": "mlx-community/whisper-large-v3-8bit",
+      "displayName": "Whisper Large v3 (8-bit)",
+      "sizeBytes": 1644890686,
+      "weightsFile": "model.safetensors",
+      "quantization": "8bit",
+      "family": "large-v3",
+      "recommended": false
+    },
+    {
+      "repo": "mlx-community/whisper-large-v3-4bit",
+      "displayName": "Whisper Large v3 (4-bit)",
+      "sizeBytes": 877691359,
+      "weightsFile": "model.safetensors",
+      "quantization": "4bit",
+      "family": "large-v3",
+      "recommended": false
+    }
+  ]
+}

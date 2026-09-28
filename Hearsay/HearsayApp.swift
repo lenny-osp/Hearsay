@@ -14,6 +14,7 @@ struct HearsayApp: App {
         WindowGroup("Hearsay", id: MainWindowOpener.mainWindowID) {
             MainView()
                 .environment(appDelegate.settings)
+                .environment(appDelegate.modelStore)
                 .registeringMainWindowOpener(appDelegate.windowOpener)
         }
         .defaultSize(width: 720, height: 480)
@@ -21,12 +22,14 @@ struct HearsayApp: App {
         Settings {
             SettingsView()
                 .environment(appDelegate.settings)
+                .environment(appDelegate.modelStore)
                 .registeringMainWindowOpener(appDelegate.windowOpener)
         }
 
         MenuBarExtra("Hearsay", systemImage: "waveform", isInserted: menuBarItemInserted) {
             MenuBarView()
                 .environment(appDelegate.settings)
+                .environment(appDelegate.modelStore)
                 .environment(appDelegate.windowOpener)
                 .registeringMainWindowOpener(appDelegate.windowOpener)
         }

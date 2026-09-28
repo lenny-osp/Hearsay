@@ -5,8 +5,7 @@ DerivedData/
 xcuserdata/
 *.xcworkspace/xcshareddata/swiftpm/
 Package.resolved.bak
-# Models, recordings, outputs
-Models/
+# Downloaded models, recordings, outputs
 Spike/models/
 *.safetensors
 *.npz

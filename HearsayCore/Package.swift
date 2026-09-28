@@ -13,6 +13,7 @@ let package = Package(
     targets: [
         .target(
             name: "HearsayCore",
+            resources: [.process("Resources")],
             swiftSettings: [.enableUpcomingFeature("StrictConcurrency")]
         ),
         .testTarget(

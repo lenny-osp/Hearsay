@@ -63,6 +63,7 @@ extension View {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let settings = AppSettings()
+    lazy var modelStore = ModelStore(settings: settings)
     let windowOpener = MainWindowOpener()
 
     private var appliedMode: WindowMode?

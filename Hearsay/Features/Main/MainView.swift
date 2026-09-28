@@ -4,14 +4,12 @@ import SwiftUI
 struct MainView: View {
     var body: some View {
         TabView {
-            placeholder("Record", systemImage: "record.circle",
-                        text: "Recording from the microphone arrives in a later phase.")
+            RecordView()
                 .tabItem { Label("Record", systemImage: "record.circle") }
             placeholder("File", systemImage: "doc.badge.plus",
                         text: "Transcribing an audio file arrives in a later phase.")
                 .tabItem { Label("File", systemImage: "doc.badge.plus") }
-            placeholder("Models", systemImage: "square.and.arrow.down",
-                        text: "Downloading and managing Whisper models arrives in a later phase.")
+            ModelManagerView()
                 .tabItem { Label("Models", systemImage: "square.and.arrow.down") }
             placeholder("History", systemImage: "clock",
                         text: "Past recordings and transcripts will be listed here.")
