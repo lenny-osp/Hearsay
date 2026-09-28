@@ -150,7 +150,12 @@ otherwise its modification time.
      agy's web search cannot be denied this way. agy saves every run in its
      history, so Hearsay deletes that run's conversation from
      `~/.gemini/antigravity-cli` afterwards; agy still keeps a small
-     unlabeled file per run in `implicit/`.
+     unlabeled file per run in `implicit/`. Removing it from agy's
+     conversation list means editing agy's own index files, which Hearsay
+     does only for agy 1.2 (the version it was checked against) and only
+     while no other agy is running, keeping one `.hearsay-backup` copy of
+     each; otherwise it deletes just that conversation's files, and agy
+     may still list the run until its next start.
    - **Custom** needs the endpoint, the model, and your API key; keys are
      stored in the macOS Keychain. Pick the `api-key` token header for
      Azure OpenAI. **Ollama and LM Studio** run locally and need no key.

@@ -33,15 +33,26 @@ private func agyConfiguration(model: String = "gemini-3.8-flash-high", effort: S
 /// Housekeeping on an in-memory `/Users/test`, so no test touches `~/.gemini`.
 func fakeHousekeeping(
     _ fileSystem: FakeAntigravityFileSystem = FakeAntigravityFileSystem(),
-    index: FakeConversationIndex = FakeConversationIndex()
+    index: FakeConversationIndex = FakeConversationIndex(),
+    agyIsRunning: Bool = false
 ) -> AntigravityHousekeeping {
-    AntigravityHousekeeping(homeDirectory: "/Users/test", fileSystem: fileSystem, index: index)
+    AntigravityHousekeeping(
+        homeDirectory: "/Users/test", fileSystem: fileSystem, index: index, agyIsRunning: { agyIsRunning }
+    )
+}
+
+/// The verified agy version, known up front, so no `--version` call runs.
+func knownAgyVersion() -> CLIVersionCache {
+    CLIVersionCache([agyPath: "1.2.12"])
 }
 
 private func agyClient(
     _ fake: FakeCLIRunner, fileSystem: FakeAntigravityFileSystem = FakeAntigravityFileSystem()
 ) -> CLIClient {
-    CLIClient(runner: fake.runner, locator: locator(found: [agyPath]), antigravity: fakeHousekeeping(fileSystem))
+    CLIClient(
+        runner: fake.runner, locator: locator(found: [agyPath]), antigravity: fakeHousekeeping(fileSystem),
+        versions: knownAgyVersion()
+    )
 }
 
 private func value(after flag: String, in argv: [String]) -> String? {
@@ -378,7 +389,9 @@ struct AntigravityCLITests {
         #expect(CLIProviderError.timedOut(.antigravity).errorDescription == "Antigravity CLI did not answer within 10 minutes and was stopped.")
 
         let missing = FakeCLIRunner { _ in CLIRunResult(exitCode: 1, stdout: "", stderr: "") }
-        let client = CLIClient(runner: missing.runner, locator: locator(found: []), antigravity: fakeHousekeeping())
+        let client = CLIClient(
+            runner: missing.runner, locator: locator(found: []), antigravity: fakeHousekeeping(), versions: CLIVersionCache()
+        )
         var configuration = agyConfiguration()
         configuration.antigravityPath = nil
         do {

@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 import os
 import SQLite3
@@ -11,7 +12,17 @@ public protocol AntigravityFileSystem: Sendable {
     func write(_ data: Data, toPath path: String) throws
     /// Removes a file or a whole folder.
     func removeItem(atPath path: String) throws
+    /// Replaces an existing store of agy's: first the current bytes become
+    /// `<path>.hearsay-backup` (replacing an older backup), then `data`
+    /// replaces `path`. Each step writes a temporary file in the same folder,
+    /// syncs it to disk, and renames it into place. Throws, changing
+    /// nothing, when the file no longer holds `expectedOriginal` (agy wrote
+    /// it in the meantime).
+    func replaceKeepingBackup(_ data: Data, atPath path: String, expectedOriginal: Data) throws
 }
+
+/// The suffix of the one backup Hearsay keeps next to each agy store it edits.
+public let antigravityBackupSuffix = ".hearsay-backup"
 
 public struct LocalAntigravityFileSystem: AntigravityFileSystem {
     public init() {}
@@ -34,6 +45,69 @@ public struct LocalAntigravityFileSystem: AntigravityFileSystem {
 
     public func removeItem(atPath path: String) throws {
         try FileManager.default.removeItem(atPath: path)
+    }
+
+    struct ChangedMeanwhile: Error, LocalizedError {
+        var path: String
+        var errorDescription: String? { "\(path) changed while it was being edited; left as it is." }
+    }
+
+    public func replaceKeepingBackup(_ data: Data, atPath path: String, expectedOriginal: Data) throws {
+        guard FileManager.default.contents(atPath: path) == expectedOriginal else { throw ChangedMeanwhile(path: path) }
+        try Self.writeAtomically(expectedOriginal, toPath: path + antigravityBackupSuffix)
+        // Checked again right before the rename, to narrow the window.
+        guard FileManager.default.contents(atPath: path) == expectedOriginal else { throw ChangedMeanwhile(path: path) }
+        try Self.writeAtomically(data, toPath: path)
+    }
+
+    /// Temporary file in the same folder, `fsync`, then `rename` over `path`.
+    static func writeAtomically(_ data: Data, toPath path: String) throws {
+        let folder = (path as NSString).deletingLastPathComponent
+        let name = (path as NSString).lastPathComponent
+        let temporary = (folder as NSString).appendingPathComponent(".\(name).hearsay-tmp-\(UUID().uuidString)")
+        guard FileManager.default.createFile(atPath: temporary, contents: nil) else {
+            throw CocoaError(.fileWriteUnknown, userInfo: [NSFilePathErrorKey: temporary])
+        }
+        do {
+            let handle = try FileHandle(forWritingTo: URL(fileURLWithPath: temporary))
+            defer { try? handle.close() }
+            try handle.write(contentsOf: data)
+            try handle.synchronize()
+            guard rename(temporary, path) == 0 else {
+                throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+            }
+        } catch {
+            try? FileManager.default.removeItem(atPath: temporary)
+            throw error
+        }
+    }
+}
+
+/// Whether an `agy` process is running, found through `proc_listallpids`
+/// and `proc_name` (no shell).
+public enum AntigravityProcesses {
+    public static func agyIsRunning() -> Bool {
+        isRunning(named: "agy")
+    }
+
+    /// Whether a process other than those in `excluded` has `name` as its
+    /// `proc_name`.
+    public static func isRunning(named target: String, excluding excluded: Set<pid_t> = []) -> Bool {
+        let count = proc_listallpids(nil, 0)
+        guard count > 0 else { return false }
+        var pids = [pid_t](repeating: 0, count: Int(count) + 64)
+        let filled = pids.withUnsafeMutableBytes { buffer in
+            proc_listallpids(buffer.baseAddress, Int32(buffer.count))
+        }
+        guard filled > 0 else { return false }
+        var name = [CChar](repeating: 0, count: 256)
+        for pid in pids.prefix(Int(filled)) where pid > 0 && !excluded.contains(pid) {
+            let length = proc_name(pid, &name, UInt32(name.count))
+            guard length > 0 else { continue }
+            let bytes = name.prefix(Int(length)).map { UInt8(bitPattern: $0) }
+            if String(decoding: bytes, as: UTF8.self) == target { return true }
+        }
+        return false
     }
 }
 
@@ -72,15 +146,69 @@ public struct SQLiteAntigravityConversationIndex: AntigravityConversationIndex {
         } ?? []
     }
 
+    /// Backs the database up to `<path>.hearsay-backup` (`VACUUM INTO` a
+    /// temporary file, then `rename`), then deletes the row inside a
+    /// transaction that is committed only when `PRAGMA quick_check` says
+    /// "ok"; otherwise it is rolled back and the error thrown.
     public func removeSummary(id: String) throws {
         _ = try withDatabase { database in
-            try statement(database, "DELETE FROM conversation_summaries WHERE conversation_id = ?", id) { row in
-                let status = sqlite3_step(row)
-                guard status == SQLITE_DONE else {
-                    throw SQLiteError(message: String(cString: sqlite3_errmsg(database)))
+            var count: Int32 = 0
+            try statement(database, "SELECT count(*) FROM conversation_summaries WHERE conversation_id = ?", id) { row in
+                if sqlite3_step(row) == SQLITE_ROW { count = sqlite3_column_int(row, 0) }
+            }
+            guard count > 0 else { return }
+            let backup = path + antigravityBackupSuffix
+            let temporary = (path as NSString).deletingLastPathComponent
+                + "/.conversation_summaries.hearsay-tmp-\(UUID().uuidString).db"
+            do {
+                try statement(database, "VACUUM INTO ?", temporary) { row in
+                    guard sqlite3_step(row) == SQLITE_DONE else {
+                        throw SQLiteError(message: String(cString: sqlite3_errmsg(database)))
+                    }
                 }
+                guard rename(temporary, backup) == 0 else {
+                    throw SQLiteError(message: "could not move the backup into place (errno \(errno))")
+                }
+            } catch {
+                try? FileManager.default.removeItem(atPath: temporary)
+                throw error
+            }
+            try execute(database, "BEGIN IMMEDIATE")
+            do {
+                try statement(database, "DELETE FROM conversation_summaries WHERE conversation_id = ?", id) { row in
+                    guard sqlite3_step(row) == SQLITE_DONE else {
+                        throw SQLiteError(message: String(cString: sqlite3_errmsg(database)))
+                    }
+                }
+                let check = try quickCheck(database)
+                guard check == ["ok"] else {
+                    throw SQLiteError(message: "quick_check: " + check.joined(separator: "; "))
+                }
+                try execute(database, "COMMIT")
+            } catch {
+                _ = sqlite3_exec(database, "ROLLBACK", nil, nil, nil)
+                throw error
             }
         }
+    }
+
+    private func execute(_ database: OpaquePointer, _ sql: String) throws {
+        guard sqlite3_exec(database, sql, nil, nil, nil) == SQLITE_OK else {
+            throw SQLiteError(message: String(cString: sqlite3_errmsg(database)))
+        }
+    }
+
+    private func quickCheck(_ database: OpaquePointer) throws -> [String] {
+        var handle: OpaquePointer?
+        guard sqlite3_prepare_v2(database, "PRAGMA quick_check", -1, &handle, nil) == SQLITE_OK, let prepared = handle else {
+            throw SQLiteError(message: String(cString: sqlite3_errmsg(database)))
+        }
+        defer { sqlite3_finalize(prepared) }
+        var lines: [String] = []
+        while sqlite3_step(prepared) == SQLITE_ROW {
+            if let text = sqlite3_column_text(prepared, 0) { lines.append(String(cString: text)) }
+        }
+        return lines
     }
 
     /// Nil when the database file does not exist.
@@ -129,6 +257,11 @@ public struct SQLiteAntigravityConversationIndex: AntigravityConversationIndex {
 ///   and the same for its subagents. Files in `implicit/` are not named or
 ///   keyed by the conversation id and are left alone.
 ///   agy has no subcommand for this. Failures are logged, never thrown.
+///   The edits of agy's shared stores (the caches, the proto file, the
+///   database) run only for agy `verifiedVersion` and only while no other
+///   agy process is running; each store is backed up to
+///   `<store>.hearsay-backup` first and replaced atomically. Otherwise only
+///   the entries named after the id are removed.
 public struct AntigravityHousekeeping: Sendable {
     /// Rule kinds from agy's permission checks: `command` (run_command),
     /// `read_file` (view_file), `write_file` (write_to_file,
@@ -139,22 +272,38 @@ public struct AntigravityHousekeeping: Sendable {
         "command(*)", "read_file(*)", "write_file(*)", "read_url(*)", "execute_url(*)", "mcp(*)",
     ]
 
+    /// The agy version whose internal stores were examined (1.2.12). The
+    /// index edits run only for this major.minor.
+    public static let verifiedVersion = "1.2"
+
     public var homeDirectory: String
     public var fileSystem: any AntigravityFileSystem
     public var index: any AntigravityConversationIndex
+    /// Whether an agy process is running now (the run Hearsay waited for has
+    /// already exited, so any match is someone else's).
+    public var agyIsRunning: @Sendable () -> Bool
 
     private static let logger = Logger(subsystem: "tw.og1o.hearsay", category: "antigravity")
 
     public init(
         homeDirectory: String = NSHomeDirectory(),
         fileSystem: any AntigravityFileSystem = LocalAntigravityFileSystem(),
-        index: (any AntigravityConversationIndex)? = nil
+        index: (any AntigravityConversationIndex)? = nil,
+        agyIsRunning: @escaping @Sendable () -> Bool = { AntigravityProcesses.agyIsRunning() }
     ) {
         self.homeDirectory = homeDirectory
         self.fileSystem = fileSystem
         self.index = index ?? SQLiteAntigravityConversationIndex(
             path: (homeDirectory as NSString).appendingPathComponent(".gemini/antigravity-cli/conversation_summaries.db")
         )
+        self.agyIsRunning = agyIsRunning
+    }
+
+    /// "1.2" from `agy --version` output such as "1.2.12"; nil otherwise.
+    public static func majorMinor(ofVersionOutput output: String?) -> String? {
+        guard let output,
+              let range = output.range(of: #"\b\d+\.\d+(?=\.\d+|\b)"#, options: .regularExpression) else { return nil }
+        return String(output[range])
     }
 
     public var projectsFolder: String {
@@ -246,13 +395,43 @@ public struct AntigravityHousekeeping: Sendable {
         }
     }
 
-    /// Deletes the conversation `id` and its subagents' conversations.
-    /// Returns what was removed (paths, and "cache/…" or "summary:<id>"
-    /// labels for edited index entries). Never throws.
+    /// Why the shared-store edits must be skipped, or nil when they may run.
+    public func storeEditSkipReason(agyVersion: String?) -> String? {
+        guard let version = Self.majorMinor(ofVersionOutput: agyVersion) else {
+            return "the agy version is unknown"
+        }
+        guard version == Self.verifiedVersion else {
+            return "agy \(version) is not the verified \(Self.verifiedVersion)"
+        }
+        if agyIsRunning() { return "another agy process is running" }
+        return nil
+    }
+
+    /// Deletes the conversation `id`: always the entries named after it;
+    /// its subagents and its entries in agy's shared stores only when
+    /// `storeEditSkipReason` allows. Returns what was removed (paths, and
+    /// store labels such as "cache/…" or "summary:<id>"). Never throws.
     @discardableResult
-    public func removeConversation(id: String) -> [String] {
+    public func removeConversation(id: String, agyVersion: String?) -> [String] {
+        if let reason = storeEditSkipReason(agyVersion: agyVersion) {
+            Self.logger.notice("agy cleanup: index edits skipped (\(reason, privacy: .public)); removing only the files of \(id, privacy: .public)")
+            return removeNamedEntries(id: id)
+        }
         var visited: Set<String> = []
         return removeConversation(id: id, visited: &visited, depth: 0)
+    }
+
+    private func removeNamedEntries(id: String) -> [String] {
+        var removed: [String] = []
+        for path in conversationPaths(id: id) {
+            do {
+                try fileSystem.removeItem(atPath: path)
+                removed.append(path)
+            } catch {
+                Self.logger.error("agy cleanup: removing \(path, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+        return removed
     }
 
     private func removeConversation(id: String, visited: inout Set<String>, depth: Int) -> [String] {
@@ -268,14 +447,7 @@ public struct AntigravityHousekeeping: Sendable {
         for child in children {
             removed += removeConversation(id: child, visited: &visited, depth: depth + 1)
         }
-        for path in conversationPaths(id: id) {
-            do {
-                try fileSystem.removeItem(atPath: path)
-                removed.append(path)
-            } catch {
-                Self.logger.error("agy cleanup: removing \(path, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
-            }
-        }
+        removed += removeNamedEntries(id: id)
         removed += editCache("cache/last_conversations.json", id: id, edit: Self.removingLastConversation)
         removed += editCache("cache/conversation_metadata.json", id: id, edit: Self.removingMetadata)
         removed += editCache("jetbox_summaries_proto.pb", id: id, edit: Self.removingSummaryEntry)
@@ -292,7 +464,7 @@ public struct AntigravityHousekeeping: Sendable {
         let path = (appDataFolder as NSString).appendingPathComponent(relativePath)
         guard let data = fileSystem.contents(atPath: path), let edited = edit(data, id) else { return [] }
         do {
-            try fileSystem.write(edited, toPath: path)
+            try fileSystem.replaceKeepingBackup(edited, atPath: path, expectedOriginal: data)
             return [relativePath]
         } catch {
             Self.logger.error("agy cleanup: editing \(path, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")

@@ -11,6 +11,7 @@ final class FakeAntigravityFileSystem: AntigravityFileSystem, @unchecked Sendabl
     private var files: [String: Data] = [:]
     private var removedPaths: [String] = []
     private var writtenPaths: [String] = []
+    private var replacedPaths: [String] = []
     private var failing: Set<String> = []
     var failWrites = false
 
@@ -26,6 +27,7 @@ final class FakeAntigravityFileSystem: AntigravityFileSystem, @unchecked Sendabl
     var paths: [String] { lock.withLock { files.keys.sorted() } }
     var removed: [String] { lock.withLock { removedPaths } }
     var written: [String] { lock.withLock { writtenPaths } }
+    var replaced: [String] { lock.withLock { replacedPaths } }
 
     func text(_ path: String) -> String? {
         lock.withLock { files[path].map { String(decoding: $0, as: UTF8.self) } }
@@ -53,6 +55,16 @@ final class FakeAntigravityFileSystem: AntigravityFileSystem, @unchecked Sendabl
             if failWrites { throw Failure() }
             files[path] = data
             writtenPaths.append(path)
+        }
+    }
+
+    func replaceKeepingBackup(_ data: Data, atPath path: String, expectedOriginal: Data) throws {
+        try lock.withLock {
+            if failWrites { throw Failure() }
+            guard files[path] == expectedOriginal else { throw Failure() }
+            files[path + antigravityBackupSuffix] = expectedOriginal
+            files[path] = data
+            replacedPaths.append(path)
         }
     }
 
@@ -212,10 +224,11 @@ struct AntigravityConversationCleanupTests {
         {"conversations": {"\(otherID)": {"is_internal": false}, "\(child)": {"is_internal": true}}}
         """)
         let index = FakeConversationIndex(children: [runID: [child], child: [runID]])
-        let removed = AntigravityHousekeeping(homeDirectory: "/Users/test", fileSystem: files, index: index)
-            .removeConversation(id: runID)
+        let removed = AntigravityHousekeeping(homeDirectory: "/Users/test", fileSystem: files, index: index, agyIsRunning: { false })
+            .removeConversation(id: runID, agyVersion: "1.2.12")
         #expect(files.paths == [
-            "\(appData)/cache/conversation_metadata.json", "\(appData)/cache/last_conversations.json",
+            "\(appData)/cache/conversation_metadata.json", "\(appData)/cache/conversation_metadata.json.hearsay-backup",
+            "\(appData)/cache/last_conversations.json", "\(appData)/cache/last_conversations.json.hearsay-backup",
             "\(appData)/conversations/\(otherID).db",
         ])
         #expect(index.removed == [child, runID])
@@ -236,12 +249,12 @@ struct AntigravityConversationCleanupTests {
         files.failWrites = true
         let index = FakeConversationIndex()
         index.failRemovals = true
-        let removed = AntigravityHousekeeping(homeDirectory: "/Users/test", fileSystem: files, index: index)
-            .removeConversation(id: runID)
+        let removed = AntigravityHousekeeping(homeDirectory: "/Users/test", fileSystem: files, index: index, agyIsRunning: { false })
+            .removeConversation(id: runID, agyVersion: "1.2.12")
         #expect(removed == ["\(appData)/presence/\(runID).lock"])
         #expect(files.paths.contains("\(appData)/conversations/\(runID).db"))
-        #expect(fakeHousekeeping().removeConversation(id: runID) == ["summary:\(runID)"])
-        #expect(fakeHousekeeping().removeConversation(id: "not-an-id").isEmpty)
+        #expect(fakeHousekeeping().removeConversation(id: runID, agyVersion: "1.2.12") == ["summary:\(runID)"])
+        #expect(fakeHousekeeping().removeConversation(id: "not-an-id", agyVersion: "1.2.12").isEmpty)
     }
 
     @Test func cacheEditsLeaveUnrelatedFilesAlone() {
@@ -269,7 +282,7 @@ struct AntigravityConversationCleanupTests {
 
         let files = FakeAntigravityFileSystem()
         files.add("\(appData)/jetbox_summaries_proto.pb", String(decoding: file, as: UTF8.self))
-        _ = fakeHousekeeping(files).removeConversation(id: runID)
+        _ = fakeHousekeeping(files).removeConversation(id: runID, agyVersion: "1.2.12")
         #expect(files.text("\(appData)/jetbox_summaries_proto.pb") == String(decoding: other + other, as: UTF8.self))
     }
 
@@ -293,7 +306,22 @@ struct AntigravityConversationCleanupTests {
         let index = SQLiteAntigravityConversationIndex(path: path)
         #expect(try index.childConversations(of: runID) == ["76866d03-d7c1-4324-b625-27ef0c74f6b5"])
         try index.removeSummary(id: runID)
+        // No row: no backup is taken and nothing changes.
+        let backup = path + antigravityBackupSuffix
+        let backupAfterFirst = FileManager.default.contents(atPath: backup)
         try index.removeSummary(id: "a154b590-b426-43cc-9bbf-64f982342f57")
+        #expect(FileManager.default.contents(atPath: backup) == backupAfterFirst)
+        // The backup is the database as it was before the delete, and no
+        // temporary file is left.
+        var backupDatabase: OpaquePointer?
+        #expect(sqlite3_open_v2(backup, &backupDatabase, SQLITE_OPEN_READONLY, nil) == SQLITE_OK)
+        var countStatement: OpaquePointer?
+        sqlite3_prepare_v2(backupDatabase, "SELECT count(*) FROM conversation_summaries", -1, &countStatement, nil)
+        #expect(sqlite3_step(countStatement) == SQLITE_ROW)
+        #expect(sqlite3_column_int(countStatement, 0) == 3)
+        sqlite3_finalize(countStatement)
+        sqlite3_close(backupDatabase)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: folder.path).filter { $0.contains("hearsay-tmp") }.isEmpty)
         #expect(sqlite3_open(path, &database) == SQLITE_OK)
         var statement: OpaquePointer?
         sqlite3_prepare_v2(database, "SELECT conversation_id FROM conversation_summaries ORDER BY conversation_id", -1, &statement, nil)
@@ -309,5 +337,140 @@ struct AntigravityConversationCleanupTests {
         #expect(try missing.childConversations(of: runID).isEmpty)
         try missing.removeSummary(id: runID)
         #expect(!FileManager.default.fileExists(atPath: folder.appendingPathComponent("none.db").path))
+    }
+}
+
+/// The guards around agy's shared stores: version gate, running agy,
+/// backups, atomic replacement, SQLite transaction.
+struct AntigravityStoreGuardTests {
+    /// Every kind of thing a full cleanup touches, for one run and a subagent.
+    private func populated() -> (FakeAntigravityFileSystem, FakeConversationIndex) {
+        let child = "76866d03-d7c1-4324-b625-27ef0c74f6b5"
+        let files = FakeAntigravityFileSystem()
+        files.add("\(appData)/conversations/\(runID).db")
+        files.add("\(appData)/brain/\(runID)/scratch/x")
+        files.add("\(appData)/conversations/\(child).db")
+        files.add("\(appData)/cache/last_conversations.json", "{\"/w\": \"\(runID)\", \"/mine\": \"\(otherID)\"}")
+        files.add("\(appData)/cache/conversation_metadata.json", "{\"conversations\": {\"\(runID)\": {}}}")
+        return (files, FakeConversationIndex(children: [runID: [child]]))
+    }
+
+    @Test func majorMinorIsReadFromVersionOutput() {
+        #expect(AntigravityHousekeeping.majorMinor(ofVersionOutput: "1.2.12") == "1.2")
+        #expect(AntigravityHousekeeping.majorMinor(ofVersionOutput: "agy 1.2.0\n") == "1.2")
+        #expect(AntigravityHousekeeping.majorMinor(ofVersionOutput: "1.10.3") == "1.10")
+        #expect(AntigravityHousekeeping.majorMinor(ofVersionOutput: "2.0") == "2.0")
+        #expect(AntigravityHousekeeping.majorMinor(ofVersionOutput: "unknown") == nil)
+        #expect(AntigravityHousekeeping.majorMinor(ofVersionOutput: nil) == nil)
+        #expect(AntigravityHousekeeping.verifiedVersion == "1.2")
+    }
+
+    /// Another version, or none known: only entries named after the id go;
+    /// caches, the database, and subagents are not touched.
+    @Test(arguments: ["1.3.0", "2.2.1", "1.20.0", "", "garbage"] as [String])
+    func otherVersionRemovesOnlyIDNamedEntries(version: String) {
+        let (files, index) = populated()
+        let before = files.paths
+        let removed = fakeHousekeeping(files, index: index).removeConversation(id: runID, agyVersion: version)
+        #expect(removed == ["\(appData)/conversations/\(runID).db", "\(appData)/brain/\(runID)"])
+        #expect(files.paths == before.filter { !$0.contains("/\(runID)") })
+        #expect(files.replaced.isEmpty)
+        #expect(index.removed.isEmpty)
+        #expect(files.paths.contains("\(appData)/conversations/76866d03-d7c1-4324-b625-27ef0c74f6b5.db"))
+        #expect(fakeHousekeeping(files).storeEditSkipReason(agyVersion: version) != nil)
+    }
+
+    @Test func runningAgySkipsTheStoreEdits() {
+        let (files, index) = populated()
+        let housekeeping = fakeHousekeeping(files, index: index, agyIsRunning: true)
+        #expect(housekeeping.storeEditSkipReason(agyVersion: "1.2.12") == "another agy process is running")
+        let removed = housekeeping.removeConversation(id: runID, agyVersion: "1.2.12")
+        #expect(removed == ["\(appData)/conversations/\(runID).db", "\(appData)/brain/\(runID)"])
+        #expect(files.replaced.isEmpty)
+        #expect(index.removed.isEmpty)
+        #expect(files.text("\(appData)/cache/last_conversations.json")?.contains(runID) == true)
+    }
+
+    /// Verified version, no other agy: stores are replaced, each keeping the
+    /// previous bytes as `.hearsay-backup`.
+    @Test func storeEditsKeepABackup() throws {
+        let (files, index) = populated()
+        let original = try #require(files.text("\(appData)/cache/last_conversations.json"))
+        let removed = fakeHousekeeping(files, index: index).removeConversation(id: runID, agyVersion: "1.2.12")
+        #expect(removed.contains("cache/last_conversations.json"))
+        #expect(files.replaced == [
+            "\(appData)/cache/last_conversations.json", "\(appData)/cache/conversation_metadata.json",
+        ])
+        #expect(files.text("\(appData)/cache/last_conversations.json\(antigravityBackupSuffix)") == original)
+        #expect(files.json("\(appData)/cache/last_conversations.json") as? [String: String] == ["/mine": otherID])
+        #expect(files.written.isEmpty)
+        #expect(index.removed == ["76866d03-d7c1-4324-b625-27ef0c74f6b5", runID])
+    }
+
+    @Test func localReplaceIsAtomicKeepsOneBackupAndRefusesAChangedFile() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("HearsayTests-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let path = folder.appendingPathComponent("last_conversations.json").path
+        let backup = path + antigravityBackupSuffix
+        let fileSystem = LocalAntigravityFileSystem()
+        try Data("v1".utf8).write(to: URL(fileURLWithPath: path))
+
+        try fileSystem.replaceKeepingBackup(Data("v2".utf8), atPath: path, expectedOriginal: Data("v1".utf8))
+        #expect(FileManager.default.contents(atPath: path) == Data("v2".utf8))
+        #expect(FileManager.default.contents(atPath: backup) == Data("v1".utf8))
+
+        try fileSystem.replaceKeepingBackup(Data("v3".utf8), atPath: path, expectedOriginal: Data("v2".utf8))
+        #expect(FileManager.default.contents(atPath: path) == Data("v3".utf8))
+        #expect(FileManager.default.contents(atPath: backup) == Data("v2".utf8))
+
+        // agy wrote the file after Hearsay read it: nothing changes.
+        #expect(throws: (any Error).self) {
+            try fileSystem.replaceKeepingBackup(Data("v4".utf8), atPath: path, expectedOriginal: Data("v2".utf8))
+        }
+        #expect(FileManager.default.contents(atPath: path) == Data("v3".utf8))
+        #expect(FileManager.default.contents(atPath: backup) == Data("v2".utf8))
+        #expect(try FileManager.default.contentsOfDirectory(atPath: folder.path).sorted() == [
+            "last_conversations.json", "last_conversations.json.hearsay-backup",
+        ])
+    }
+
+    @Test func processListingFindsThisProcessByName() {
+        var name = [CChar](repeating: 0, count: 256)
+        let length = proc_name(getpid(), &name, UInt32(name.count))
+        #expect(length > 0)
+        let own = String(decoding: name.prefix(Int(length)).map { UInt8(bitPattern: $0) }, as: UTF8.self)
+        #expect(AntigravityProcesses.isRunning(named: own))
+        #expect(!AntigravityProcesses.isRunning(named: "hearsay-no-such-process-\(UUID().uuidString.prefix(4))"))
+    }
+
+    /// `--version` runs once per executable and is cached; a version other
+    /// than 1.2 leaves the caches alone.
+    @Test func clientFetchesTheVersionOnceAndGatesOnIt() async throws {
+        let files = FakeAntigravityFileSystem()
+        files.add("\(appData)/conversations/\(runID).db")
+        files.add("\(appData)/cache/last_conversations.json", "{\"/w\": \"\(runID)\"}")
+        let fake = FakeCLIRunner { argv in
+            if argv.last == "--version" { return CLIRunResult(exitCode: 0, stdout: "1.3.0\n", stderr: "") }
+            return CLIRunResult(
+                exitCode: 0,
+                stdout: #"{"conversation_id":"\#(runID)","status":"SUCCESS","response":"x"}"#,
+                stderr: ""
+            )
+        }
+        let client = CLIClient(
+            runner: fake.runner, locator: locator(found: [agyPath]), antigravity: fakeHousekeeping(files),
+            versions: CLIVersionCache()
+        )
+        var configuration = AIProviderConfiguration(preset: .antigravityCLI)
+        configuration.antigravityPath = agyPath
+        for _ in 0..<2 {
+            _ = try await client.complete(systemMessage: "s", userMessage: "u", configuration: configuration, token: nil)
+        }
+        #expect(fake.calls.filter { $0.argv == [agyPath, "--version"] }.count == 1)
+        #expect(fake.calls.count == 3)
+        #expect(files.removed == ["\(appData)/conversations/\(runID).db"])
+        #expect(files.replaced.isEmpty)
+        #expect(files.text("\(appData)/cache/last_conversations.json")?.contains(runID) == true)
     }
 }

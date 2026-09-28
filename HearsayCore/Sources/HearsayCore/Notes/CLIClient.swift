@@ -229,6 +229,27 @@ public enum CLIArguments {
     }
 }
 
+/// `--version` output per executable path, for the life of the process
+/// (Antigravity's store edits are gated on it).
+public final class CLIVersionCache: @unchecked Sendable {
+    public static let shared = CLIVersionCache()
+
+    private let lock = NSLock()
+    private var byPath: [String: String] = [:]
+
+    public init(_ initial: [String: String] = [:]) {
+        byPath = initial
+    }
+
+    public func version(for executable: String) -> String? {
+        lock.withLock { byPath[executable] }
+    }
+
+    public func set(_ version: String, for executable: String) {
+        lock.withLock { byPath[executable] = version }
+    }
+}
+
 /// Meeting notes through a locally installed CLI that uses its own login:
 /// GitHub Copilot CLI (port of the Copilot branch of Python
 /// `generate_meeting_notes`), Claude Code, Codex, or Antigravity. The preset's kind picks
@@ -241,15 +262,32 @@ public actor CLIClient: ChatCompleting {
     private let runner: CLIRunner
     private let locator: CLILocator
     private let antigravity: AntigravityHousekeeping
+    private let versions: CLIVersionCache
 
     public init(
         runner: @escaping CLIRunner = CLIProcessRunner.run,
         locator: CLILocator = CLILocator(),
-        antigravity: AntigravityHousekeeping = AntigravityHousekeeping()
+        antigravity: AntigravityHousekeeping = AntigravityHousekeeping(),
+        versions: CLIVersionCache = .shared
     ) {
         self.runner = runner
         self.locator = locator
         self.antigravity = antigravity
+        self.versions = versions
+    }
+
+    /// `--version` of `executable`, from `versions` or by running it once
+    /// (then cached). Nil when it fails.
+    func cachedVersion(_ tool: CLITool, executable: String) async -> String? {
+        if let known = versions.version(for: executable) { return known }
+        let version = try? await run(tool, executable: executable, timeout: Self.versionTimeout) { _ in
+            [executable, "--version"]
+        } finish: { result, _ -> String? in
+            guard !result.timedOut, result.exitCode == 0 else { return nil }
+            return result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        if let version { versions.set(version, for: executable) }
+        return version
     }
 
     /// The inherited environment with the binary's folder first on PATH, so
@@ -334,6 +372,7 @@ public actor CLIClient: ChatCompleting {
         let preset = configuration.preset
         guard let tool = preset.kind.cliTool else { throw CLIProviderError.notACLIPreset(preset.name) }
         let executable = try await locate(tool, configuredPath: configuration.cliPath(for: tool))
+        let agyVersion = tool == .antigravity ? await cachedVersion(tool, executable: executable) : nil
         if tool == .antigravity {
             // Never run agy without the deny rules in place.
             do {
@@ -386,7 +425,7 @@ public actor CLIClient: ChatCompleting {
             // agy keeps every run in its history; delete this one, whatever
             // the outcome. No conversation id: nothing is deleted.
             if tool == .antigravity, let id = AntigravityHousekeeping.conversationID(inOutput: result.stdout) {
-                antigravity.removeConversation(id: id)
+                antigravity.removeConversation(id: id, agyVersion: agyVersion)
             }
             return try Self.reply(tool: tool, result: result, directory: directory)
         }
@@ -457,6 +496,7 @@ public actor CLIClient: ChatCompleting {
             }
             return result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
         }
+        versions.set(version, for: executable)
         var installation = CLIInstallation(tool: tool, path: executable, version: version)
         if let statusArguments = tool.loginStatusArguments {
             let status = try await run(tool, executable: executable, timeout: tool.loginStatusTimeout) { directory in
