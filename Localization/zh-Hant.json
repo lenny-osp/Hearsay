@@ -3338,9 +3338,9 @@
   {
     "catalog": "credits",
     "key": "Credits.rtf",
-    "english": "© 2026 Chihling Wang. MIT License.\nIncludes open-source software; see Settings > General > Acknowledgements.",
+    "english": "© 2026 Chihling Wang. MIT License.\nIncludes open-source software; see Settings > General > Acknowledgements.\nSupport Hearsay: Buy Me a Coffee",
     "comment": "Credits shown in the About Hearsay window (en.lproj/Credits.rtf). Plain text; line breaks are kept. 'Settings > General > Acknowledgements' names the Settings tab, its General section, and the Acknowledgements section: use the translated names of those labels.",
     "placeholders": [],
-    "translation": "© 2026 Chihling Wang。MIT 授權。\n包含開放原始碼軟體；請參閱「設定 > 一般 > 致謝」。"
+    "translation": "© 2026 Chihling Wang。MIT 授權。\n包含開放原始碼軟體；請參閱「設定 > 一般 > 致謝」。\n支持 Hearsay：Buy Me a Coffee"
   }
 ]

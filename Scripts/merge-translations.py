@@ -148,6 +148,10 @@ def validate(language, entries, expected):
     return seen
 
 
+COFFEE_TEXT = "Buy Me a Coffee"
+COFFEE_URL = "https://buymeacoffee.com/chihlingw"
+
+
 def rtf_escape(text):
     out = []
     for char in text:
@@ -174,7 +178,11 @@ def credits_rtf(text):
     english = CREDITS.read_text(encoding="utf-8")
     marker = "\\cf0 "
     head = english[: english.index(marker) + len(marker)]
-    return head + rtf_escape(text.replace("\r\n", "\n")) + "}"
+    body = rtf_escape(text.replace("\r\n", "\n"))
+    # The brand name becomes a clickable link in the About panel.
+    link = '{\\field{\\*\\fldinst{HYPERLINK "' + COFFEE_URL + '"}}{\\fldrslt ' + COFFEE_TEXT + '}}'
+    body = body.replace(COFFEE_TEXT, link, 1)
+    return head + body + "}"
 
 
 def merge(language, translations, catalogs):
