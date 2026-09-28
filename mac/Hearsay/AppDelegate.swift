@@ -108,6 +108,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     lazy var windowOpener = MainWindowOpener(tabs: tabSelection)
     let whisperEngine = WhisperEngine()
     let relauncher = AppRelauncher()
+    lazy var permissionMonitor = PermissionMonitor(settings: settings)
     lazy var updateService = UpdateService(settings: settings)
     lazy var recordingController = RecordingController(
         settings: settings, modelStore: modelStore, engine: whisperEngine
@@ -160,6 +161,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         applyWindowMode(settings.windowMode)
         observeWindowMode()
         recordingController.activate()
+        // Microphone and system audio status, and the re-approval sheet for a
+        // grant an update made stale (PLAN.md section 9).
+        permissionMonitor.onStaleGrantDetected = { [weak self] in
+            self?.windowOpener.show(tab: .record)
+        }
+        permissionMonitor.start()
         Task { @MainActor in
             // After "Restart Now" the previous instance may still hold the
             // global shortcuts for a moment.

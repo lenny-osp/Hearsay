@@ -52,6 +52,9 @@ public final class AppSettings {
         public static let interfaceLanguage = "interfaceLanguage"
         public static let automaticUpdateChecks = "automaticUpdateChecks"
         public static let lastUpdateCheck = "lastUpdateCheck"
+        public static let screenAudioGrantedCodeHash = "screenAudioGrantedCodeHash"
+        public static let screenAudioResetCodeHash = "screenAudioResetCodeHash"
+        public static let microphoneGrantedCodeHash = "microphoneGrantedCodeHash"
     }
 
     @ObservationIgnored private let defaults: UserDefaults
@@ -167,6 +170,26 @@ public final class AppSettings {
         }
     }
 
+    /// The code identity (signing requirement) of the build that last saw
+    /// Screen & System Audio Recording granted, or nil (PLAN.md section 9,
+    /// `StaleGrantDetector`).
+    public var screenAudioGrantedCodeHash: String? {
+        didSet { Self.store(screenAudioGrantedCodeHash, forKey: Key.screenAudioGrantedCodeHash, in: defaults) }
+    }
+
+    /// The code identity for which Hearsay last removed a stale Screen &
+    /// System Audio Recording entry with `tccutil`, or nil. At most one
+    /// reset per identity.
+    public var screenAudioResetCodeHash: String? {
+        didSet { Self.store(screenAudioResetCodeHash, forKey: Key.screenAudioResetCodeHash, in: defaults) }
+    }
+
+    /// The code identity of the build that last saw Microphone access
+    /// granted, or nil.
+    public var microphoneGrantedCodeHash: String? {
+        didSet { Self.store(microphoneGrantedCodeHash, forKey: Key.microphoneGrantedCodeHash, in: defaults) }
+    }
+
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         let rawMode = defaults.string(forKey: Key.windowMode) ?? ""
@@ -184,6 +207,9 @@ public final class AppSettings {
             rawValue: defaults.string(forKey: Key.interfaceLanguage) ?? "") ?? .english
         self.automaticUpdateChecks = defaults.object(forKey: Key.automaticUpdateChecks) as? Bool ?? true
         self.lastUpdateCheck = defaults.object(forKey: Key.lastUpdateCheck) as? Date
+        self.screenAudioGrantedCodeHash = defaults.string(forKey: Key.screenAudioGrantedCodeHash)
+        self.screenAudioResetCodeHash = defaults.string(forKey: Key.screenAudioResetCodeHash)
+        self.microphoneGrantedCodeHash = defaults.string(forKey: Key.microphoneGrantedCodeHash)
     }
 
     /// The stored choice (a legacy "zh" migrated and persisted); otherwise
@@ -223,6 +249,14 @@ public final class AppSettings {
     private static func loadHotkey(forKey key: String, from defaults: UserDefaults) -> HotkeyBinding? {
         guard let data = defaults.data(forKey: key) else { return nil }
         return try? JSONDecoder().decode(HotkeyBinding.self, from: data)
+    }
+
+    private static func store(_ value: String?, forKey key: String, in defaults: UserDefaults) {
+        if let value {
+            defaults.set(value, forKey: key)
+        } else {
+            defaults.removeObject(forKey: key)
+        }
     }
 
     private static func store(_ binding: HotkeyBinding, forKey key: String, in defaults: UserDefaults) {

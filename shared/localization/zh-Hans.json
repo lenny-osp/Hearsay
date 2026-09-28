@@ -215,6 +215,14 @@
   },
   {
     "catalog": "app",
+    "key": "Allow",
+    "english": "Allow",
+    "comment": "Record tab, Permissions row: ask for microphone access now",
+    "placeholders": [],
+    "translation": "允许"
+  },
+  {
+    "catalog": "app",
     "key": "Also capture system audio",
     "english": "Also capture system audio",
     "comment": "UI text in RecordView.swift.",
@@ -665,7 +673,7 @@
     "catalog": "app",
     "key": "Done",
     "english": "Done",
-    "comment": "UI text in AcknowledgementsView.swift, HistoryView.swift.",
+    "comment": "Permission sheet button once the permission is granted",
     "placeholders": [],
     "translation": "完成"
   },
@@ -780,6 +788,14 @@
   },
   {
     "catalog": "app",
+    "key": "Fix…",
+    "english": "Fix…",
+    "comment": "Record tab, Permissions row: open the re-approval instructions",
+    "placeholders": [],
+    "translation": "修复…"
+  },
+  {
+    "catalog": "app",
     "key": "General",
     "english": "General",
     "comment": "Settings section (segmented picker)",
@@ -817,6 +833,14 @@
   },
   {
     "catalog": "app",
+    "key": "Granted",
+    "english": "Granted",
+    "comment": "Permission sheet: the permission is now allowed",
+    "placeholders": [],
+    "translation": "已允许"
+  },
+  {
+    "catalog": "app",
     "key": "Hearsay %@ is available.",
     "english": "Hearsay %@ is available.",
     "comment": "Update check result. %@ is the new version.",
@@ -835,11 +859,27 @@
   },
   {
     "catalog": "app",
+    "key": "Hearsay could not remove the old entry. If Hearsay is still listed as on, turn it off and on again.",
+    "english": "Hearsay could not remove the old entry. If Hearsay is still listed as on, turn it off and on again.",
+    "comment": "Permission sheet: tccutil reset failed",
+    "placeholders": [],
+    "translation": "Hearsay 无法移除旧的条目。如果 Hearsay 仍显示为打开，请将它关闭后再重新打开。"
+  },
+  {
+    "catalog": "app",
     "key": "Hearsay could not restart.",
     "english": "Hearsay could not restart.",
     "comment": "Alert when the automatic restart after a language change failed",
     "placeholders": [],
     "translation": "Hearsay 无法重新启动。"
+  },
+  {
+    "catalog": "app",
+    "key": "Hearsay has removed the old entry.",
+    "english": "Hearsay has removed the old entry.",
+    "comment": "Permission sheet: the stale Screen & System Audio Recording entry was reset",
+    "placeholders": [],
+    "translation": "Hearsay 已移除旧的条目。"
   },
   {
     "catalog": "app",
@@ -904,6 +944,14 @@
     "comment": "Menu bar panel state: not recording",
     "placeholders": [],
     "translation": "空闲"
+  },
+  {
+    "catalog": "app",
+    "key": "If it stays off, relaunch Hearsay.",
+    "english": "If it stays off, relaunch Hearsay.",
+    "comment": "Permission sheet, step 3",
+    "placeholders": [],
+    "translation": "如果仍然是关闭的，请重新启动 Hearsay。"
   },
   {
     "catalog": "app",
@@ -1007,7 +1055,7 @@
     "catalog": "app",
     "key": "Later",
     "english": "Later",
-    "comment": "Alert button: keep running; the language changes at the next launch\nUpdate available alert button: do nothing now",
+    "comment": "Alert button: keep running; the language changes at the next launch\nPermission sheet button: close the sheet without fixing it now\nUpdate available alert button: do nothing now",
     "placeholders": [],
     "translation": "稍后"
   },
@@ -1118,6 +1166,54 @@
     "comment": "UI text in RecordView.swift.",
     "placeholders": [],
     "translation": "麦克风"
+  },
+  {
+    "catalog": "app",
+    "key": "Microphone and system audio allowed",
+    "english": "Microphone and system audio allowed",
+    "comment": "Record tab, Permissions row when both permissions are granted",
+    "placeholders": [],
+    "translation": "已允许麦克风和系统声音"
+  },
+  {
+    "catalog": "app",
+    "key": "Microphone permission needs re-approval",
+    "english": "Microphone permission needs re-approval",
+    "comment": "Permission sheet title",
+    "placeholders": [],
+    "translation": "麦克风权限需要重新允许"
+  },
+  {
+    "catalog": "app",
+    "key": "Microphone: Granted",
+    "english": "Microphone: Granted",
+    "comment": "Record tab, Permissions row",
+    "placeholders": [],
+    "translation": "麦克风：已允许"
+  },
+  {
+    "catalog": "app",
+    "key": "Microphone: Needs re-approval after update",
+    "english": "Microphone: Needs re-approval after update",
+    "comment": "Record tab, Permissions row: an update made macOS forget the earlier permission",
+    "placeholders": [],
+    "translation": "麦克风：更新后需要重新允许"
+  },
+  {
+    "catalog": "app",
+    "key": "Microphone: Not asked yet",
+    "english": "Microphone: Not asked yet",
+    "comment": "Record tab, Permissions row: macOS has not asked for microphone access yet",
+    "placeholders": [],
+    "translation": "麦克风：尚未询问"
+  },
+  {
+    "catalog": "app",
+    "key": "Microphone: Not granted",
+    "english": "Microphone: Not granted",
+    "comment": "Record tab, Permissions row",
+    "placeholders": [],
+    "translation": "麦克风：未允许"
   },
   {
     "catalog": "app",
@@ -1299,6 +1395,14 @@
   },
   {
     "catalog": "app",
+    "key": "Not granted yet",
+    "english": "Not granted yet",
+    "comment": "Permission sheet: still waiting for the permission",
+    "placeholders": [],
+    "translation": "尚未允许"
+  },
+  {
+    "catalog": "app",
     "key": "Not set",
     "english": "Not set",
     "comment": "Settings > AI token status: no token stored",
@@ -1389,9 +1493,17 @@
     "catalog": "app",
     "key": "Open System Settings",
     "english": "Open System Settings",
-    "comment": "UI text in RecordView.swift.",
+    "comment": "UI text in PermissionViews.swift, RecordView.swift.",
     "placeholders": [],
     "translation": "打开系统设置"
+  },
+  {
+    "catalog": "app",
+    "key": "Open System Settings.",
+    "english": "Open System Settings.",
+    "comment": "Permission sheet, step 1",
+    "placeholders": [],
+    "translation": "打开系统设置。"
   },
   {
     "catalog": "app",
@@ -1476,6 +1588,14 @@
       "%@"
     ],
     "translation": "已暂停 %@"
+  },
+  {
+    "catalog": "app",
+    "key": "Permissions",
+    "english": "Permissions",
+    "comment": "Record tab: header of the Permissions row",
+    "placeholders": [],
+    "translation": "权限"
   },
   {
     "catalog": "app",
@@ -1642,6 +1762,14 @@
     "comment": "History: make new meeting notes, replacing the current ones",
     "placeholders": [],
     "translation": "重新生成笔记…"
+  },
+  {
+    "catalog": "app",
+    "key": "Relaunch Hearsay",
+    "english": "Relaunch Hearsay",
+    "comment": "Permission sheet button: quit and reopen Hearsay",
+    "placeholders": [],
+    "translation": "重新启动 Hearsay"
   },
   {
     "catalog": "app",
@@ -2015,6 +2143,38 @@
   },
   {
     "catalog": "app",
+    "key": "System audio permission needs re-approval",
+    "english": "System audio permission needs re-approval",
+    "comment": "Permission sheet title",
+    "placeholders": [],
+    "translation": "系统声音权限需要重新允许"
+  },
+  {
+    "catalog": "app",
+    "key": "System audio: Granted",
+    "english": "System audio: Granted",
+    "comment": "Record tab, Permissions row",
+    "placeholders": [],
+    "translation": "系统声音：已允许"
+  },
+  {
+    "catalog": "app",
+    "key": "System audio: Needs re-approval after update",
+    "english": "System audio: Needs re-approval after update",
+    "comment": "Record tab, Permissions row: an update made macOS forget the earlier permission",
+    "placeholders": [],
+    "translation": "系统声音：更新后需要重新允许"
+  },
+  {
+    "catalog": "app",
+    "key": "System audio: Not granted",
+    "english": "System audio: Not granted",
+    "comment": "Record tab, Permissions row",
+    "placeholders": [],
+    "translation": "系统声音：未允许"
+  },
+  {
+    "catalog": "app",
     "key": "Temperature:",
     "english": "Temperature:",
     "comment": "UI text in AISettingsTab.swift.",
@@ -2142,6 +2302,14 @@
     "comment": "Naming sheet explanation. Translate the words inside <timestamp>_<name> but keep the angle brackets and underscore.",
     "placeholders": [],
     "translation": "转录稿和录音将重命名为 <时间戳>_<名称>。"
+  },
+  {
+    "catalog": "app",
+    "key": "This Hearsay build is not signed with a Developer ID, so macOS treats each update as a new app and forgets the permission you gave before.",
+    "english": "This Hearsay build is not signed with a Developer ID, so macOS treats each update as a new app and forgets the permission you gave before.",
+    "comment": "Permission sheet explanation",
+    "placeholders": [],
+    "translation": "这个 Hearsay 版本没有使用 Developer ID 签名，因此 macOS 会把每次更新都视为新的应用，并忘记你之前授予的权限。"
   },
   {
     "catalog": "app",
@@ -2348,6 +2516,22 @@
     "comment": "UI text in RecordView.swift.",
     "placeholders": [],
     "translation": "重试"
+  },
+  {
+    "catalog": "app",
+    "key": "Turn Hearsay on under Microphone.",
+    "english": "Turn Hearsay on under Microphone.",
+    "comment": "Permission sheet, step 2. Use the macOS name of the System Settings section.",
+    "placeholders": [],
+    "translation": "在“麦克风”中打开 Hearsay。"
+  },
+  {
+    "catalog": "app",
+    "key": "Turn Hearsay on under Screen & System Audio Recording.",
+    "english": "Turn Hearsay on under Screen & System Audio Recording.",
+    "comment": "Permission sheet, step 2. Use the macOS name of the System Settings section.",
+    "placeholders": [],
+    "translation": "在“录屏与系统录音”中打开 Hearsay。"
   },
   {
     "catalog": "app",

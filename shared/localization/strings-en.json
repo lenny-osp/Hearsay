@@ -193,6 +193,13 @@
   },
   {
     "catalog": "app",
+    "key": "Allow",
+    "english": "Allow",
+    "comment": "Record tab, Permissions row: ask for microphone access now",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
     "key": "Also capture system audio",
     "english": "Also capture system audio",
     "comment": "UI text in RecordView.swift.",
@@ -593,7 +600,7 @@
     "catalog": "app",
     "key": "Done",
     "english": "Done",
-    "comment": "UI text in AcknowledgementsView.swift, HistoryView.swift.",
+    "comment": "Permission sheet button once the permission is granted",
     "placeholders": []
   },
   {
@@ -694,6 +701,13 @@
   },
   {
     "catalog": "app",
+    "key": "Fix…",
+    "english": "Fix…",
+    "comment": "Record tab, Permissions row: open the re-approval instructions",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
     "key": "General",
     "english": "General",
     "comment": "Settings section (segmented picker)",
@@ -727,6 +741,13 @@
   },
   {
     "catalog": "app",
+    "key": "Granted",
+    "english": "Granted",
+    "comment": "Permission sheet: the permission is now allowed",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
     "key": "Hearsay %@ is available.",
     "english": "Hearsay %@ is available.",
     "comment": "Update check result. %@ is the new version.",
@@ -743,9 +764,23 @@
   },
   {
     "catalog": "app",
+    "key": "Hearsay could not remove the old entry. If Hearsay is still listed as on, turn it off and on again.",
+    "english": "Hearsay could not remove the old entry. If Hearsay is still listed as on, turn it off and on again.",
+    "comment": "Permission sheet: tccutil reset failed",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
     "key": "Hearsay could not restart.",
     "english": "Hearsay could not restart.",
     "comment": "Alert when the automatic restart after a language change failed",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "Hearsay has removed the old entry.",
+    "english": "Hearsay has removed the old entry.",
+    "comment": "Permission sheet: the stale Screen & System Audio Recording entry was reset",
     "placeholders": []
   },
   {
@@ -802,6 +837,13 @@
     "key": "Idle",
     "english": "Idle",
     "comment": "Menu bar panel state: not recording",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "If it stays off, relaunch Hearsay.",
+    "english": "If it stays off, relaunch Hearsay.",
+    "comment": "Permission sheet, step 3",
     "placeholders": []
   },
   {
@@ -894,7 +936,7 @@
     "catalog": "app",
     "key": "Later",
     "english": "Later",
-    "comment": "Alert button: keep running; the language changes at the next launch\nUpdate available alert button: do nothing now",
+    "comment": "Alert button: keep running; the language changes at the next launch\nPermission sheet button: close the sheet without fixing it now\nUpdate available alert button: do nothing now",
     "placeholders": []
   },
   {
@@ -990,6 +1032,48 @@
     "key": "Microphone",
     "english": "Microphone",
     "comment": "UI text in RecordView.swift.",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "Microphone and system audio allowed",
+    "english": "Microphone and system audio allowed",
+    "comment": "Record tab, Permissions row when both permissions are granted",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "Microphone permission needs re-approval",
+    "english": "Microphone permission needs re-approval",
+    "comment": "Permission sheet title",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "Microphone: Granted",
+    "english": "Microphone: Granted",
+    "comment": "Record tab, Permissions row",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "Microphone: Needs re-approval after update",
+    "english": "Microphone: Needs re-approval after update",
+    "comment": "Record tab, Permissions row: an update made macOS forget the earlier permission",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "Microphone: Not asked yet",
+    "english": "Microphone: Not asked yet",
+    "comment": "Record tab, Permissions row: macOS has not asked for microphone access yet",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "Microphone: Not granted",
+    "english": "Microphone: Not granted",
+    "comment": "Record tab, Permissions row",
     "placeholders": []
   },
   {
@@ -1150,6 +1234,13 @@
   },
   {
     "catalog": "app",
+    "key": "Not granted yet",
+    "english": "Not granted yet",
+    "comment": "Permission sheet: still waiting for the permission",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
     "key": "Not set",
     "english": "Not set",
     "comment": "Settings > AI token status: no token stored",
@@ -1229,7 +1320,14 @@
     "catalog": "app",
     "key": "Open System Settings",
     "english": "Open System Settings",
-    "comment": "UI text in RecordView.swift.",
+    "comment": "UI text in PermissionViews.swift, RecordView.swift.",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "Open System Settings.",
+    "english": "Open System Settings.",
+    "comment": "Permission sheet, step 1",
     "placeholders": []
   },
   {
@@ -1305,6 +1403,13 @@
     "placeholders": [
       "%@"
     ]
+  },
+  {
+    "catalog": "app",
+    "key": "Permissions",
+    "english": "Permissions",
+    "comment": "Record tab: header of the Permissions row",
+    "placeholders": []
   },
   {
     "catalog": "app",
@@ -1450,6 +1555,13 @@
     "key": "Regenerate Notes…",
     "english": "Regenerate Notes…",
     "comment": "History: make new meeting notes, replacing the current ones",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "Relaunch Hearsay",
+    "english": "Relaunch Hearsay",
+    "comment": "Permission sheet button: quit and reopen Hearsay",
     "placeholders": []
   },
   {
@@ -1779,6 +1891,34 @@
   },
   {
     "catalog": "app",
+    "key": "System audio permission needs re-approval",
+    "english": "System audio permission needs re-approval",
+    "comment": "Permission sheet title",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "System audio: Granted",
+    "english": "System audio: Granted",
+    "comment": "Record tab, Permissions row",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "System audio: Needs re-approval after update",
+    "english": "System audio: Needs re-approval after update",
+    "comment": "Record tab, Permissions row: an update made macOS forget the earlier permission",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "System audio: Not granted",
+    "english": "System audio: Not granted",
+    "comment": "Record tab, Permissions row",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
     "key": "Temperature:",
     "english": "Temperature:",
     "comment": "UI text in AISettingsTab.swift.",
@@ -1890,6 +2030,13 @@
     "key": "The transcript and recording are renamed to <timestamp>_<name>.",
     "english": "The transcript and recording are renamed to <timestamp>_<name>.",
     "comment": "Naming sheet explanation. Translate the words inside <timestamp>_<name> but keep the angle brackets and underscore.",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "This Hearsay build is not signed with a Developer ID, so macOS treats each update as a new app and forgets the permission you gave before.",
+    "english": "This Hearsay build is not signed with a Developer ID, so macOS treats each update as a new app and forgets the permission you gave before.",
+    "comment": "Permission sheet explanation",
     "placeholders": []
   },
   {
@@ -2072,6 +2219,20 @@
     "key": "Try Again",
     "english": "Try Again",
     "comment": "UI text in RecordView.swift.",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "Turn Hearsay on under Microphone.",
+    "english": "Turn Hearsay on under Microphone.",
+    "comment": "Permission sheet, step 2. Use the macOS name of the System Settings section.",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "Turn Hearsay on under Screen & System Audio Recording.",
+    "english": "Turn Hearsay on under Screen & System Audio Recording.",
+    "comment": "Permission sheet, step 2. Use the macOS name of the System Settings section.",
     "placeholders": []
   },
   {

@@ -9,6 +9,7 @@ struct RecordView: View {
     @Environment(RecordingController.self) private var model
     @Environment(AIProviderStore.self) private var aiStore
     @Environment(AppSettings.self) private var settings
+    @Environment(PermissionMonitor.self) private var permissions
     /// Switches the main window to the Models tab.
     var onOpenModels: () -> Void = {}
     @State private var notes = NotesHandoff()
@@ -16,6 +17,8 @@ struct RecordView: View {
     var body: some View {
         @Bindable var model = model
         Form {
+            PermissionsSection()
+
             Section {
                 Picker("Microphone", selection: $model.selectedDeviceUID) {
                     if model.devices.isEmpty {
@@ -159,6 +162,7 @@ struct RecordView: View {
         .formStyle(.grouped)
         .onAppear {
             model.activate()
+            permissions.refresh()
             takeNotesRequest()
         }
         .onChange(of: model.notesRequest) { takeNotesRequest() }
@@ -316,6 +320,8 @@ struct RecordView: View {
     RecordView()
         .environment(settings)
         .environment(AIProviderStore())
+        .environment(PermissionMonitor(settings: settings, sources: .fixed(microphone: .authorized, screenGranted: false),
+                                       allowsReset: false))
         .environment(RecordingController(
             settings: settings, modelStore: ModelStore(settings: settings), engine: WhisperEngine()
         ))

@@ -94,6 +94,11 @@ Settings is a tab, not a separate window; ⌘, opens it.
 - AirPods and other Bluetooth headsets switch to a low-quality call mode
   while recording. In a noisy room, use the Mac's built-in microphone.
 - Pause leaves that time out of the transcript.
+- The Permissions row at the top of the Record tab shows both permissions.
+  A build that is not signed with a Developer ID loses the system audio
+  permission on every update; Hearsay then removes the old entry and shows
+  "Fix…": turn Hearsay on again in System Settings > Privacy & Security >
+  Screen & System Audio Recording.
 - **Live preview:** new text about every 30 seconds while you record.
 - **Final pass:** after Stop, Hearsay transcribes the whole recording once
   more for the SRT. "Use live preview instead" skips it and saves the

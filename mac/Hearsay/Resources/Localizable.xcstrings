@@ -649,6 +649,35 @@
         }
       }
     },
+    "Allow" : {
+      "comment" : "Record tab, Permissions row: ask for microphone access now",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erlauben"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permitir"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允許"
+          }
+        }
+      }
+    },
     "Also capture system audio" : {
       "localizations" : {
         "de" : {
@@ -2107,6 +2136,7 @@
       }
     },
     "Done" : {
+      "comment" : "Permission sheet button once the permission is granted",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2507,6 +2537,35 @@
         }
       }
     },
+    "Fix…" : {
+      "comment" : "Record tab, Permissions row: open the re-approval instructions",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beheben …"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solucionar…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修复…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修正…"
+          }
+        }
+      }
+    },
     "General" : {
       "comment" : "Settings section (segmented picker)",
       "localizations" : {
@@ -2628,6 +2687,35 @@
         }
       }
     },
+    "Granted" : {
+      "comment" : "Permission sheet: the permission is now allowed",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erlaubt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permitido"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已允许"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已允許"
+          }
+        }
+      }
+    },
     "Hearsay %@ is available." : {
       "comment" : "Update check result. %@ is the new version.",
       "localizations" : {
@@ -2686,6 +2774,35 @@
         }
       }
     },
+    "Hearsay could not remove the old entry. If Hearsay is still listed as on, turn it off and on again." : {
+      "comment" : "Permission sheet: tccutil reset failed",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay konnte den alten Eintrag nicht entfernen. Wird Hearsay noch als eingeschaltet angezeigt, Hearsay aus- und wieder einschalten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay no ha podido eliminar la entrada anterior. Si Hearsay sigue apareciendo activado, desactívalo y vuelve a activarlo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 无法移除旧的条目。如果 Hearsay 仍显示为打开，请将它关闭后再重新打开。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 無法移除舊的項目。如果 Hearsay 仍顯示為開啟，請將它關閉後再重新開啟。"
+          }
+        }
+      }
+    },
     "Hearsay could not restart." : {
       "comment" : "Alert when the automatic restart after a language change failed",
       "localizations" : {
@@ -2711,6 +2828,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hearsay 無法重新啟動。"
+          }
+        }
+      }
+    },
+    "Hearsay has removed the old entry." : {
+      "comment" : "Permission sheet: the stale Screen & System Audio Recording entry was reset",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay hat den alten Eintrag entfernt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay ha eliminado la entrada anterior."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 已移除旧的条目。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 已移除舊的項目。"
           }
         }
       }
@@ -2938,6 +3084,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "閒置"
+          }
+        }
+      }
+    },
+    "If it stays off, relaunch Hearsay." : {
+      "comment" : "Permission sheet, step 3",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bleibt es aus, Hearsay neu starten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si sigue desactivado, reinicia Hearsay."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果仍然是关闭的，请重新启动 Hearsay。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果仍然是關閉的，請重新啟動 Hearsay。"
           }
         }
       }
@@ -3284,7 +3459,7 @@
       }
     },
     "Later" : {
-      "comment" : "Alert button: keep running; the language changes at the next launch\nUpdate available alert button: do nothing now",
+      "comment" : "Alert button: keep running; the language changes at the next launch\nPermission sheet button: close the sheet without fixing it now\nUpdate available alert button: do nothing now",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -3679,6 +3854,180 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "麥克風"
+          }
+        }
+      }
+    },
+    "Microphone and system audio allowed" : {
+      "comment" : "Record tab, Permissions row when both permissions are granted",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon und Systemaudio erlaubt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Micrófono y audio del sistema permitidos"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已允许麦克风和系统声音"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已允許麥克風與系統聲音"
+          }
+        }
+      }
+    },
+    "Microphone permission needs re-approval" : {
+      "comment" : "Permission sheet title",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofonzugriff muss erneut erlaubt werden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hay que volver a permitir el acceso al micrófono"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "麦克风权限需要重新允许"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "麥克風權限需要重新允許"
+          }
+        }
+      }
+    },
+    "Microphone: Granted" : {
+      "comment" : "Record tab, Permissions row",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon: Erlaubt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Micrófono: Permitido"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "麦克风：已允许"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "麥克風：已允許"
+          }
+        }
+      }
+    },
+    "Microphone: Needs re-approval after update" : {
+      "comment" : "Record tab, Permissions row: an update made macOS forget the earlier permission",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon: Nach Update erneut erlauben"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Micrófono: Volver a permitir tras la actualización"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "麦克风：更新后需要重新允许"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "麥克風：更新後需要重新允許"
+          }
+        }
+      }
+    },
+    "Microphone: Not asked yet" : {
+      "comment" : "Record tab, Permissions row: macOS has not asked for microphone access yet",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon: Noch nicht gefragt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Micrófono: Aún no solicitado"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "麦克风：尚未询问"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "麥克風：尚未詢問"
+          }
+        }
+      }
+    },
+    "Microphone: Not granted" : {
+      "comment" : "Record tab, Permissions row",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon: Nicht erlaubt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Micrófono: No permitido"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "麦克风：未允许"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "麥克風：未允許"
           }
         }
       }
@@ -4310,6 +4659,35 @@
         }
       }
     },
+    "Not granted yet" : {
+      "comment" : "Permission sheet: still waiting for the permission",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch nicht erlaubt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aún no permitido"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未允许"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未允許"
+          }
+        }
+      }
+    },
     "Not set" : {
       "comment" : "Settings > AI token status: no token stored",
       "localizations" : {
@@ -4652,6 +5030,35 @@
         }
       }
     },
+    "Open System Settings." : {
+      "comment" : "Permission sheet, step 1",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Systemeinstellungen öffnen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abre Ajustes del Sistema."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开系统设置。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打開系統設定。"
+          }
+        }
+      }
+    },
     "Open Transcript" : {
       "localizations" : {
         "de" : {
@@ -4933,6 +5340,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已暫停 %@"
+          }
+        }
+      }
+    },
+    "Permissions" : {
+      "comment" : "Record tab: header of the Permissions row",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Berechtigungen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permisos"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "权限"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "權限"
           }
         }
       }
@@ -5500,6 +5936,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "重新產生筆記…"
+          }
+        }
+      }
+    },
+    "Relaunch Hearsay" : {
+      "comment" : "Permission sheet button: quit and reopen Hearsay",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay neu starten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reiniciar Hearsay"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新启动 Hearsay"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新啟動 Hearsay"
           }
         }
       }
@@ -6787,6 +7252,122 @@
         }
       }
     },
+    "System audio permission needs re-approval" : {
+      "comment" : "Permission sheet title",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Systemaudiozugriff muss erneut erlaubt werden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hay que volver a permitir el acceso al audio del sistema"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系统声音权限需要重新允许"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系統聲音權限需要重新允許"
+          }
+        }
+      }
+    },
+    "System audio: Granted" : {
+      "comment" : "Record tab, Permissions row",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Systemaudio: Erlaubt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio del sistema: Permitido"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系统声音：已允许"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系統聲音：已允許"
+          }
+        }
+      }
+    },
+    "System audio: Needs re-approval after update" : {
+      "comment" : "Record tab, Permissions row: an update made macOS forget the earlier permission",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Systemaudio: Nach Update erneut erlauben"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio del sistema: Volver a permitir tras la actualización"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系统声音：更新后需要重新允许"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系統聲音：更新後需要重新允許"
+          }
+        }
+      }
+    },
+    "System audio: Not granted" : {
+      "comment" : "Record tab, Permissions row",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Systemaudio: Nicht erlaubt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio del sistema: No permitido"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系统声音：未允许"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系統聲音：未允許"
+          }
+        }
+      }
+    },
     "Temperature:" : {
       "localizations" : {
         "de" : {
@@ -7212,6 +7793,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "逐字稿與錄音會重新命名為 <時間戳記>_<名稱>。"
+          }
+        }
+      }
+    },
+    "This Hearsay build is not signed with a Developer ID, so macOS treats each update as a new app and forgets the permission you gave before." : {
+      "comment" : "Permission sheet explanation",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Hearsay-Build ist nicht mit einer Developer ID signiert. Deshalb behandelt macOS jedes Update als neue App und vergisst die zuvor erteilte Berechtigung."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta versión de Hearsay no está firmada con un Developer ID, así que macOS trata cada actualización como una app nueva y olvida el permiso que diste antes."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这个 Hearsay 版本没有使用 Developer ID 签名，因此 macOS 会把每次更新都视为新的应用，并忘记你之前授予的权限。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這個 Hearsay 版本沒有使用 Developer ID 簽署，因此 macOS 會把每次更新都視為新的 App，並忘記你先前給予的權限。"
           }
         }
       }
@@ -7894,6 +8504,64 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "再試一次"
+          }
+        }
+      }
+    },
+    "Turn Hearsay on under Microphone." : {
+      "comment" : "Permission sheet, step 2. Use the macOS name of the System Settings section.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay unter „Mikrofon“ einschalten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activa Hearsay en Micrófono."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在“麦克风”中打开 Hearsay。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在「麥克風」中開啟 Hearsay。"
+          }
+        }
+      }
+    },
+    "Turn Hearsay on under Screen & System Audio Recording." : {
+      "comment" : "Permission sheet, step 2. Use the macOS name of the System Settings section.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay unter „Bildschirm- & Systemaudioaufnahme“ einschalten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activa Hearsay en Grabación de pantalla y audio del sistema."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在“录屏与系统录音”中打开 Hearsay。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在「螢幕與系統錄音」中開啟 Hearsay。"
           }
         }
       }

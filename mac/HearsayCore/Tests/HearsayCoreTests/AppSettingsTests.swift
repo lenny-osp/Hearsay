@@ -67,6 +67,42 @@ final class AppSettingsTests {
         #expect(AppSettings(defaults: defaults).lastUpdateCheck == nil)
     }
 
+    @Test func permissionCodeHashesRoundTripAndClear() {
+        let defaults = scratch.make()
+        let settings = AppSettings(defaults: defaults)
+        #expect(settings.screenAudioGrantedCodeHash == nil)
+        #expect(settings.screenAudioResetCodeHash == nil)
+        #expect(settings.microphoneGrantedCodeHash == nil)
+        settings.screenAudioGrantedCodeHash = "cdhash H\"a\""
+        settings.screenAudioResetCodeHash = "cdhash H\"b\""
+        settings.microphoneGrantedCodeHash = "cdhash H\"c\""
+        let reloaded = AppSettings(defaults: defaults)
+        #expect(reloaded.screenAudioGrantedCodeHash == "cdhash H\"a\"")
+        #expect(reloaded.screenAudioResetCodeHash == "cdhash H\"b\"")
+        #expect(reloaded.microphoneGrantedCodeHash == "cdhash H\"c\"")
+        settings.screenAudioGrantedCodeHash = nil
+        settings.screenAudioResetCodeHash = nil
+        settings.microphoneGrantedCodeHash = nil
+        #expect(defaults.object(forKey: AppSettings.Key.screenAudioGrantedCodeHash) == nil)
+        #expect(defaults.object(forKey: AppSettings.Key.screenAudioResetCodeHash) == nil)
+        #expect(defaults.object(forKey: AppSettings.Key.microphoneGrantedCodeHash) == nil)
+        let cleared = AppSettings(defaults: defaults)
+        #expect(cleared.screenAudioGrantedCodeHash == nil)
+        #expect(cleared.screenAudioResetCodeHash == nil)
+        #expect(cleared.microphoneGrantedCodeHash == nil)
+    }
+
+    @Test func permissionCodeHashesUseSeparateKeys() {
+        let defaults = scratch.make()
+        let settings = AppSettings(defaults: defaults)
+        settings.screenAudioGrantedCodeHash = "granted"
+        settings.screenAudioResetCodeHash = "reset"
+        settings.microphoneGrantedCodeHash = "mic"
+        #expect(defaults.string(forKey: AppSettings.Key.screenAudioGrantedCodeHash) == "granted")
+        #expect(defaults.string(forKey: AppSettings.Key.screenAudioResetCodeHash) == "reset")
+        #expect(defaults.string(forKey: AppSettings.Key.microphoneGrantedCodeHash) == "mic")
+    }
+
     @Test func languageDefaultsForFreshInstall() {
         let defaults = scratch.make()
         let settings = AppSettings(defaults: defaults)

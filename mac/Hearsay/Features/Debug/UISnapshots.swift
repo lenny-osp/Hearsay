@@ -5,7 +5,8 @@ import SwiftUI
 /// Debug only. When the app is launched with `HEARSAY_UI_SNAPSHOTS=<dir>`,
 /// renders the app's own views (never a screen capture) into PNGs in
 /// `<dir>`: every main-window tab, every Settings section, the confirm,
-/// naming, onboarding, and unfinished-recording sheets with sample data, the
+/// naming, onboarding, unfinished-recording, and permission sheets with
+/// sample data (and the Record tab with both permissions granted), the
 /// menu bar panel, and the help page (top and the Meeting notes section).
 /// Then it quits with status 0 (1 when a file could not be written).
 ///
@@ -79,10 +80,21 @@ enum UISnapshots {
         let tabs = MainTabSelection()
         let opener = MainWindowOpener(tabs: tabs)
         let hotkeys = HotkeyManager(settings: settings) { _ in }
+        // Sample permission states, never the real ones: a microphone never
+        // asked and a system audio grant made stale by an update (already
+        // reset for this build, so nothing runs).
+        let sampleIdentity = "cdhash H\"sample-new\""
+        settings.screenAudioGrantedCodeHash = "cdhash H\"sample-old\""
+        settings.screenAudioResetCodeHash = sampleIdentity
+        let stalePermissions = PermissionMonitor(
+            settings: settings, sources: .fixed(microphone: .notDetermined, screenGranted: false),
+            codeIdentity: sampleIdentity, bundleIdentifier: nil, allowsReset: false
+        )
+        say("code identity \(PermissionMonitor.currentCodeIdentity() ?? "unknown")")
         let context = Context(
             settings: settings, modelStore: modelStore, aiStore: aiStore, controller: controller,
             engine: delegate.whisperEngine, hotkeys: hotkeys, tabs: tabs, opener: opener,
-            relauncher: delegate.relauncher, updates: delegate.updateService
+            relauncher: delegate.relauncher, updates: delegate.updateService, permissions: stalePermissions
         )
         let language = InterfaceLanguageLaunch.applied
         say("language \(language.code), bundle localization \(Bundle.main.preferredLocalizations.first ?? "none")")
@@ -113,6 +125,20 @@ enum UISnapshots {
         for (name, pane) in panes {
             await render(name, width: 720, height: 1000, SettingsView(initialPane: pane))
         }
+        await render("21-sheet-permission-guidance", width: 460,
+                     PermissionGuidanceSheet(kind: .screenAudio, onClose: {}))
+        await render("22-sheet-permission-guidance-microphone", width: 460,
+                     PermissionGuidanceSheet(kind: .microphone, onClose: {}))
+        // Granted: the Record tab collapses to one line, the sheet says so.
+        let grantedPermissions = PermissionMonitor(
+            settings: settings, sources: .fixed(microphone: .authorized, screenGranted: true),
+            codeIdentity: sampleIdentity, bundleIdentifier: nil, allowsReset: false
+        )
+        tabs.tab = .record
+        await render("23-record-permissions-granted", width: 720, height: 560,
+                     MainView().environment(grantedPermissions))
+        await render("24-sheet-permission-guidance-granted", width: 460,
+                     PermissionGuidanceSheet(kind: .screenAudio, onClose: {}).environment(grantedPermissions))
         aiStore.selectPreset(.claudeCodeCLI)
         await render("10-settings-ai-cli", width: 720, height: 1000, SettingsView(initialPane: .ai))
         aiStore.selectPreset(.custom)
@@ -244,6 +270,7 @@ enum UISnapshots {
         let opener: MainWindowOpener
         let relauncher: AppRelauncher
         let updates: UpdateService
+        let permissions: PermissionMonitor
 
         func apply(to view: some View) -> some View {
             view
@@ -258,6 +285,7 @@ enum UISnapshots {
                 .environment(opener)
                 .environment(relauncher)
                 .environment(updates)
+                .environment(permissions)
         }
     }
 

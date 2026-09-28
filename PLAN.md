@@ -474,6 +474,30 @@ NSAudioCaptureUsageDescription "Hearsay captures the audio of your calls so both
 
 System audio needs the Screen & System Audio Recording TCC permission.
 
+**Ad-hoc signing and TCC (2026-09-28).** TCC keys a grant on the app's
+code-signing requirement. An ad-hoc signature's designated requirement is
+its cdhash (`cdhash H"…"`), which changes with every build, so after an
+update `CGPreflightScreenCaptureAccess()` returns false while System
+Settings still lists Hearsay as on, and macOS shows no prompt. Hearsay
+stores the designated requirement (`SecCodeCopyDesignatedRequirement`,
+falling back to the cdhash from `kSecCodeInfoUnique`) whenever it sees a
+permission granted (`screenAudioGrantedCodeHash`,
+`microphoneGrantedCodeHash`). `StaleGrantDetector` (HearsayCore) calls a
+denial under a different requirement a stale grant. For system audio,
+`PermissionMonitor` then runs `/usr/bin/tccutil reset ScreenCapture
+tw.og1o.hearsay` once per requirement (`screenAudioResetCodeHash`; no
+administrator rights needed; never in debug runs) and shows the
+re-approval sheet; "Open System Settings" first calls
+`CGRequestScreenCaptureAccess()` so Hearsay is listed again. The microphone
+is never reset (macOS asks again by itself for `.notDetermined`); a stale
+`.denied` only shows "Fix…" and the Microphone pane. Using the designated
+requirement rather than the raw cdhash means builds signed with a stable
+certificate (the local self-signed identity in `run-debug.sh`, a release
+certificate secret, or a Developer ID) never look stale. The Record tab's
+Permissions row shows both permissions; `PermissionMonitor` refreshes at
+launch, whenever Hearsay becomes active, and every 2 s while the sheet is
+open.
+
 Transcripts never leave the machine unless the user confirms the AI step.
 That sentence goes in the README and in the confirm sheet.
 
@@ -590,7 +614,7 @@ cd .. && Spike/.build/derived/Build/Products/Release/hearsay-spike \
 
 Things no agent could verify because they need permissions or a person.
 Verified 2026-09-28: recording, live preview, final pass, File mode (items
-1, 10, 12 in part). Still open: 2 to 9, 11, 13, 14.
+1, 10, 12 in part). Still open: 2 to 9, 11, 13 to 16.
 
 1. First Start: grant Microphone, then Screen & System Audio Recording;
    relaunch if system audio stays off after granting.
@@ -619,6 +643,20 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
 14. Releases (section 4.7): push a test tag, check the Actions run, mount
     the DMG, drag Hearsay to Applications, and open it the first time as
     the release notes describe.
+15. Permissions row, fresh grant (section 9): on a Mac (or user) that
+    never granted Hearsay, the Record tab shows "Microphone: Not asked
+    yet" with Allow and "System audio: Not granted" with Open System
+    Settings. Allow shows the macOS prompt; Open System Settings shows the
+    Screen & System Audio Recording prompt and pane. After turning Hearsay
+    on (and relaunching if needed), the row collapses to one green line.
+16. Update then re-grant (section 9): with system audio granted, install an
+    ad-hoc signed build over it (`HEARSAY_SIGNING_IDENTITY=- Scripts/run-debug.sh
+    --release`) and open it. Expect the sheet "System audio permission
+    needs re-approval" once, "System audio: Needs re-approval after update"
+    with Fix… on the Record tab, and in Console (subsystem
+    `tw.og1o.hearsay`, category `permissions`) one `tccutil reset` line with
+    status 0. Turn Hearsay on again; the sheet turns to "Granted" within
+    2 s (or after Relaunch Hearsay). Quit and reopen: no second reset.
 
 ## 17. Polish list (found during review, not yet scheduled)
 
@@ -643,6 +681,17 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
   the owner to delete the container.
 
 - Windows version: planned in section 18 (owner request 2026-09-28).
+
+- Permission grants survive updates only with a stable signing identity.
+  Any stable certificate, even a self-signed one, gives a designated
+  requirement of identifier plus certificate, which stays the same across
+  builds, so TCC keeps the grants and the re-approval sheet (section 9)
+  never appears. `run-debug.sh` already signs local builds with "Hearsay
+  Code Signing (self-signed)"; releases are ad-hoc unless the certificate
+  secret in `.github/workflows/README.md` is set. Setting it is the cheap
+  fix until a Developer ID exists.
+- The restart-failed alert after "Relaunch Hearsay" still says "to use the
+  new language" (`AppDelegate.replyToTerminate`); make it neutral.
 
 - **To do (owner request 2026-09-28): "Reduce background noise" switch** on
   the Record tab. Routes only the mic through Apple voice processing so

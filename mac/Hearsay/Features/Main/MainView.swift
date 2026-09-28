@@ -22,6 +22,7 @@ struct MainView: View {
     @Environment(AppSettings.self) private var settings
     @Environment(ModelStore.self) private var modelStore
     @Environment(RecordingController.self) private var recording
+    @Environment(PermissionMonitor.self) private var permissions
     @Environment(\.whisperEngine) private var whisperEngine
     @State private var recovery: UnfinishedRecordingQueue?
     @Environment(MainTabSelection.self) private var tabs
@@ -52,6 +53,13 @@ struct MainView: View {
             SettingsView()
                 .tabItem { Label(String(localized: "Settings", comment: "Main window tab"), systemImage: "gearshape") }
                 .tag(MainTab.settings)
+        }
+        // On the tab view, not beside the recovery sheet below: one sheet
+        // modifier per view.
+        .sheet(isPresented: guidanceShown) {
+            if let kind = permissions.guidance {
+                PermissionGuidanceSheet(kind: kind) { permissions.guidance = nil }
+            }
         }
         .padding()
         .frame(minWidth: 560, minHeight: 360)
@@ -85,6 +93,10 @@ struct MainView: View {
             get: { recovery?.current != nil },
             set: { shown in if !shown { recovery = nil } }
         )
+    }
+
+    private var guidanceShown: Binding<Bool> {
+        Binding(get: { permissions.guidance != nil }, set: { if !$0 { permissions.guidance = nil } })
     }
 
     private var recoveryErrorShown: Binding<Bool> {
