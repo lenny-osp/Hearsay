@@ -491,7 +491,7 @@ weekends counted as half days.
 | 4a. Decoder | Done 2026-09-28. Byte-identical SRT to Python on both fixtures; 38 tests. Run tests with `TEST_RUNNER_HEARSAY_MODEL_DIR=<model dir>`. | done |
 | 4b. Transcription | Done. Live preview, final pass, and File mode verified live by the owner 2026-09-28. | done |
 | 5. Notes | Done 2026-09-28 in code; runs from History > Generate notes. Not yet tried against a live provider. | done, unverified live |
-| 6. Ship | History, hotkeys, quit handling, crash recovery, launch at login, app icon, README done 2026-09-28. Update check, CI, release workflow, and DMG script done 2026-09-28 (sections 4.6, 4.7). Remaining: Developer ID signing and notarization (workflow steps ready, need an Apple Developer account), quick-start guide note (`docs/whisper-tools-note.md`). | 2 days |
+| 6. Ship | Done 2026-09-28: v0.1.0 published from GitHub Actions (public repo lenny-osp/Hearsay; CI on macos-26 with Xcode 26.6; DMG plus SHA256; GitHub-releases update check; sections 4.6, 4.7). Remaining: Developer ID signing and notarization once the owner has an Apple Developer account (workflow steps are ready). | done |
 
 Total: about 8 to 9 weeks of calendar time.
 
