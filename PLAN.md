@@ -34,8 +34,8 @@ output rule ported here.
 | AI notes | Direct HTTPS to any OpenAI-compatible `/chat/completions` endpoint. Same JSON contract as the Python tool. Copilot CLI is dropped. GitHub Models was shut down on 2026-07-30 (the Python tool handles its HTTP 410), so there is no GitHub preset; users bring an OpenAI, Anthropic, Azure, Ollama, or custom endpoint. Decided 2026-09-28, corrected after the first live run. |
 | Window mode | User setting: "Menu bar and Dock", "Menu bar only", "Dock only". Switched at runtime with `NSApp.setActivationPolicy`. |
 | Platform floor | macOS 14 Sonoma, Apple Silicon only (MLX requirement). Intel is out of scope. |
-| Sandbox | App Sandbox on from day one so a Mac App Store build stays possible. |
-| Distribution v1 | Developer ID signed + notarized DMG. App Store later if wanted. |
+| Sandbox | **Off** since 2026-09-28 (owner decision after the first live run). Needed so the app can run the GitHub Copilot CLI as a child process, exactly like the Python tool. Hardened runtime stays on; Developer ID + notarization is the distribution path. Mac App Store is out. |
+| Distribution v1 | Developer ID signed + notarized DMG. |
 
 ## 2. Prerequisites on the dev machine
 
@@ -373,6 +373,7 @@ alignment heads), beam search.
 
 | Preset | Base URL | Notes |
 |---|---|---|
+| GitHub Copilot CLI | runs the installed `copilot` binary with `--prompt … --silent --output-format text`, same argv as the Python tool; uses the CLI's own login; default preset when the binary is found | needs the sandbox off |
 | OpenAI | `https://api.openai.com/v1/chat/completions` | |
 | Azure OpenAI | user-entered deployment URL | `api-key` header instead of Bearer |
 | Anthropic (OpenAI compat) | `https://api.anthropic.com/v1/chat/completions` | `claude-sonnet-5` default |
@@ -387,14 +388,8 @@ a one-line prompt.
 
 - Window mode (section 4.4).
 - Output folder (default `~/Documents/Hearsay`, chosen through
-  `NSOpenPanel`, stored as a security-scoped bookmark). Sandbox note,
-  2026-09-28: the sandbox cannot write to the real `~/Documents` until the
-  user picks it once, and there is no entitlement for Documents. So the
-  first-run onboarding shows an open panel already pointed at
-  `~/Documents/Hearsay` (created on the spot); one click on "Choose"
-  stores the bookmark. Until then outputs go to the app container's
-  Documents folder, and the Output settings tab shows a "Choose folder"
-  hint. Never silently write into the container without saying where.
+  `NSOpenPanel`, stored as a bookmark). With the sandbox off (section 1)
+  the default is the real `~/Documents/Hearsay`, created on first use.
 - Default language, default input device, capture system audio by
   default, default model.
 - Ask before sending to AI: always / never.
@@ -408,17 +403,13 @@ a one-line prompt.
 ## 9. Entitlements and privacy
 
 ```text
-com.apple.security.app-sandbox                       true
-com.apple.security.device.audio-input                true
-com.apple.security.network.client                    true
-com.apple.security.files.user-selected.read-write    true
-com.apple.security.files.bookmarks.app-scope         true
+com.apple.security.app-sandbox                       false   (see section 1)
+com.apple.security.device.audio-input                true    (hardened runtime needs it)
 NSMicrophoneUsageDescription  "Hearsay records meetings you start and transcribes them on this Mac."
 NSAudioCaptureUsageDescription "Hearsay captures the audio of your calls so both sides of a meeting are transcribed."
 ```
 
-System audio needs the Screen & System Audio Recording TCC permission
-(no extra sandbox entitlement). ScreenCaptureKit works inside the sandbox.
+System audio needs the Screen & System Audio Recording TCC permission.
 
 Transcripts never leave the machine unless the user confirms the AI step.
 That sentence goes in the README and in the confirm sheet.
@@ -462,7 +453,7 @@ Total: about 8 to 9 weeks of calendar time.
 | Timestamped decoder port has subtle bugs | Cues drift or overlap | Compare against the Python SRT for every fixture in tests; keep the Python CLI installed as the oracle. |
 | Memory: large-v3 fp16 needs ~4 GB unified memory while loaded | 8 GB Macs struggle | Recommend turbo; unload model after 10 min idle. |
 | Full Xcode needed | Blocks day one | Section 2, step 1. |
-| Sandbox blocks Copilot CLI | Users of the Copilot path lose it | Documented. GitHub Models is gone too (shut down 2026-07-30), so a paid API key or a local Ollama is required for notes. |
+| Copilot CLI needs the sandbox off | No Mac App Store | Accepted 2026-09-28. GitHub Models is gone too (shut down 2026-07-30), so Copilot CLI is the zero-key path; the others need an API key or a local Ollama. |
 | npz-only repos | Catalog entry silently unusable | Catalog lists safetensors repos only; spike verifies each. |
 | ScreenCaptureKit audio always needs a video config | Wasted CPU, "Screen & System Audio Recording" permission wording | 2x2 frame at 1 fps, frames dropped. Verified against the macOS 27 SDK: no audio-only option exists. |
 | Mic and system audio drift apart over an hour | Echo-like doubling in the mix | Align on host timestamps, resample the slower stream, test with a 60 min run. |
