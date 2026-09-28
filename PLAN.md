@@ -387,7 +387,14 @@ a one-line prompt.
 
 - Window mode (section 4.4).
 - Output folder (default `~/Documents/Hearsay`, chosen through
-  `NSOpenPanel`, stored as a security-scoped bookmark).
+  `NSOpenPanel`, stored as a security-scoped bookmark). Sandbox note,
+  2026-09-28: the sandbox cannot write to the real `~/Documents` until the
+  user picks it once, and there is no entitlement for Documents. So the
+  first-run onboarding shows an open panel already pointed at
+  `~/Documents/Hearsay` (created on the spot); one click on "Choose"
+  stores the bookmark. Until then outputs go to the app container's
+  Documents folder, and the Output settings tab shows a "Choose folder"
+  hint. Never silently write into the container without saying where.
 - Default language, default input device, capture system audio by
   default, default model.
 - Ask before sending to AI: always / never.
