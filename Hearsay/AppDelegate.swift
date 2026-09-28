@@ -121,6 +121,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var appliedMode: WindowMode?
     private var isStoppingForQuit = false
 
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        // One main window, never tabbed: removes View > Show Tab Bar and
+        // Show All Tabs. Set before any window exists.
+        NSWindow.allowsAutomaticWindowTabbing = false
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Debug only: HEARSAY_TRANSCRIBE_FILE + HEARSAY_MODEL_DIR transcribe
         // one file, print the SRT path, and quit (see FileViewModel).

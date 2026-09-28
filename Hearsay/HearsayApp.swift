@@ -11,7 +11,9 @@ struct HearsayApp: App {
     private var windowModeRaw: String = WindowMode.menuBarAndDock.rawValue
 
     var body: some Scene {
-        WindowGroup("Hearsay", id: MainWindowOpener.mainWindowID) {
+        // A single-window scene: Hearsay never has more than one main window,
+        // so there is no File > New Window item.
+        Window("Hearsay", id: MainWindowOpener.mainWindowID) {
             MainView()
                 .environment(appDelegate.settings)
                 .environment(appDelegate.modelStore)
@@ -29,6 +31,8 @@ struct HearsayApp: App {
             CommandGroup(replacing: .appSettings) {
                 SettingsCommand(opener: appDelegate.windowOpener)
             }
+            // No File > New items: one main window only.
+            CommandGroup(replacing: .newItem) {}
         }
 
         MenuBarExtra(isInserted: menuBarItemInserted) {
