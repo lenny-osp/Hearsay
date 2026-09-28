@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-/// The chat-completions provider the user configured (PLAN.md sections 7, 8).
+/// The notes provider the user configured (PLAN.md sections 7, 8).
 public struct AIProviderConfiguration: Codable, Sendable, Equatable {
     public var presetID: String
     /// Full `/chat/completions` endpoint.
@@ -18,8 +18,12 @@ public struct AIProviderConfiguration: Codable, Sendable, Equatable {
     public var askBeforeSending: Bool
     public var selectedTemplateID: UUID
     /// The `copilot` binary to run for the Copilot CLI preset. Nil or empty
-    /// means auto-detect (`CopilotCLILocator`).
+    /// means auto-detect (`CLILocator`).
     public var copilotPath: String?
+    /// The `claude` binary for the Claude Code CLI preset; nil auto-detects.
+    public var claudeCodePath: String?
+    /// The `codex` binary for the Codex CLI preset; nil auto-detects.
+    public var codexPath: String?
 
     public init(
         presetID: String,
@@ -31,7 +35,9 @@ public struct AIProviderConfiguration: Codable, Sendable, Equatable {
         extraHeaders: [String: String] = [:],
         askBeforeSending: Bool = true,
         selectedTemplateID: UUID = PromptTemplate.generalMeetingID,
-        copilotPath: String? = nil
+        copilotPath: String? = nil,
+        claudeCodePath: String? = nil,
+        codexPath: String? = nil
     ) {
         self.presetID = presetID
         self.baseURL = baseURL
@@ -43,28 +49,32 @@ public struct AIProviderConfiguration: Codable, Sendable, Equatable {
         self.askBeforeSending = askBeforeSending
         self.selectedTemplateID = selectedTemplateID
         self.copilotPath = copilotPath
+        self.claudeCodePath = claudeCodePath
+        self.codexPath = codexPath
     }
 
-    /// The preset's defaults: its URL, model, and auth, plus reasoning effort
-    /// "max" when the preset supports it.
+    /// The preset's defaults: its URL, model, and auth, its default reasoning
+    /// effort ("max" unless the preset says otherwise) when it supports one,
+    /// and temperature 0.3 when it supports one (HTTP presets only).
     public init(preset: ProviderPreset) {
         self.init(
             presetID: preset.id,
             baseURL: preset.baseURL,
             model: preset.defaultModel,
-            reasoningEffort: preset.supportsReasoningEffort ? ProviderPreset.defaultReasoningEffort : nil,
+            reasoningEffort: preset.supportsReasoningEffort ? preset.defaultEffort : nil,
+            temperature: preset.supportsTemperature ? Self.defaultTemperature : nil,
             auth: preset.auth
         )
     }
 
-    /// The configuration used when nothing is stored and the Copilot CLI is
-    /// not installed.
-    public static let `default` = AIProviderConfiguration(preset: .openAI)
+    /// The configuration used when nothing is stored and no CLI is found:
+    /// the GitHub Copilot CLI preset, whose settings explain how to install it.
+    public static let `default` = AIProviderConfiguration(preset: .copilotCLI)
 
-    /// The first-launch configuration: Copilot CLI when its binary is found,
-    /// otherwise OpenAI.
-    public static func firstLaunch(copilotInstalled: Bool) -> AIProviderConfiguration {
-        copilotInstalled ? AIProviderConfiguration(preset: .copilotCLI) : .default
+    /// The first-launch configuration: the first CLI found, in preset order
+    /// (Copilot, Claude Code, Codex), otherwise `default`.
+    public static func firstLaunch(installedCLI: CLITool?) -> AIProviderConfiguration {
+        installedCLI.map { AIProviderConfiguration(preset: .preset(for: $0)) } ?? .default
     }
 
     /// Python `generate_meeting_notes` payload `"temperature": 0.3`.
@@ -73,6 +83,7 @@ public struct AIProviderConfiguration: Codable, Sendable, Equatable {
     private enum CodingKeys: String, CodingKey {
         case presetID, baseURL, model, reasoningEffort, temperature, auth
         case extraHeaders, askBeforeSending, selectedTemplateID, copilotPath
+        case claudeCodePath, codexPath
     }
 
     /// A missing `temperature` key (configurations saved before the field
@@ -94,6 +105,8 @@ public struct AIProviderConfiguration: Codable, Sendable, Equatable {
         selectedTemplateID = try container.decodeIfPresent(UUID.self, forKey: .selectedTemplateID)
             ?? PromptTemplate.generalMeetingID
         copilotPath = try container.decodeIfPresent(String.self, forKey: .copilotPath)
+        claudeCodePath = try container.decodeIfPresent(String.self, forKey: .claudeCodePath)
+        codexPath = try container.decodeIfPresent(String.self, forKey: .codexPath)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -109,6 +122,8 @@ public struct AIProviderConfiguration: Codable, Sendable, Equatable {
         try container.encode(askBeforeSending, forKey: .askBeforeSending)
         try container.encode(selectedTemplateID, forKey: .selectedTemplateID)
         try container.encodeIfPresent(copilotPath, forKey: .copilotPath)
+        try container.encodeIfPresent(claudeCodePath, forKey: .claudeCodePath)
+        try container.encodeIfPresent(codexPath, forKey: .codexPath)
     }
 
     public var preset: ProviderPreset {
@@ -123,6 +138,41 @@ public struct AIProviderConfiguration: Codable, Sendable, Equatable {
         var migrated = self
         migrated.presetID = ProviderPreset.custom.id
         return migrated
+    }
+
+    /// The configured binary path for `tool`; nil or empty auto-detects.
+    public func cliPath(for tool: CLITool) -> String? {
+        switch tool {
+        case .copilot: copilotPath
+        case .claudeCode: claudeCodePath
+        case .codex: codexPath
+        }
+    }
+
+    public mutating func setCLIPath(_ path: String?, for tool: CLITool) {
+        switch tool {
+        case .copilot: copilotPath = path
+        case .claudeCode: claudeCodePath = path
+        case .codex: codexPath = path
+        }
+    }
+
+    /// The temperature to send, or nil to omit it. Always nil for CLI presets.
+    public var effectiveTemperature: Double? {
+        preset.supportsTemperature ? temperature : nil
+    }
+
+    /// The model as the confirm sheet shows it. An empty model is what the
+    /// provider then uses: the Copilot default (Python `or`), the CLI's own
+    /// default for Claude Code and Codex, or nothing for HTTP.
+    public var modelDescription: String {
+        let trimmed = model.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty { return trimmed }
+        switch preset.kind {
+        case .copilotCLI: return ProviderPreset.defaultOpenAIModel
+        case .claudeCodeCLI, .codexCLI: return "CLI default"
+        case .http: return "(none set)"
+        }
     }
 
     /// The reasoning effort to send, or nil to omit the field.
@@ -159,13 +209,13 @@ public final class AIProviderStore {
     /// Bumped on every token change so views re-read `hasToken`.
     public private(set) var tokenRevision = 0
 
-    /// `copilotInstalled` is asked only on first launch (nothing stored) to
-    /// pick the default preset. The default checks the well-known install
+    /// `installedCLI` is asked only on first launch (nothing stored) to pick
+    /// the default preset. The default checks the well-known install
     /// locations and never starts a shell, so it is safe on the main thread.
     public init(
         defaults: UserDefaults = .standard,
         secrets: any SecretStore = KeychainSecretStore(),
-        copilotInstalled: () -> Bool = { CopilotCLILocator().knownInstallation() != nil }
+        installedCLI: () -> CLITool? = { CLILocator().firstKnownTool() }
     ) {
         self.defaults = defaults
         self.secrets = secrets
@@ -179,7 +229,7 @@ public final class AIProviderStore {
         }
         self.templates = [.generalMeeting] + userTemplates
         var needsSave = storedConfiguration == nil
-        var configuration = storedConfiguration ?? .firstLaunch(copilotInstalled: copilotInstalled())
+        var configuration = storedConfiguration ?? .firstLaunch(installedCLI: installedCLI())
         if let migrated = configuration.migratingRetiredPreset() {
             Self.moveToken(from: configuration.presetID, to: migrated.presetID, in: secrets)
             configuration = migrated
@@ -213,13 +263,15 @@ public final class AIProviderStore {
 
     /// Switches to `preset`, resetting URL, model, auth, reasoning effort, and
     /// temperature to its defaults. Keeps extra headers, the ask setting, the
-    /// template, and the Copilot CLI path.
+    /// template, and the three CLI paths.
     public func selectPreset(_ preset: ProviderPreset) {
         var updated = AIProviderConfiguration(preset: preset)
         updated.extraHeaders = configuration.extraHeaders
         updated.askBeforeSending = configuration.askBeforeSending
         updated.selectedTemplateID = configuration.selectedTemplateID
         updated.copilotPath = configuration.copilotPath
+        updated.claudeCodePath = configuration.claudeCodePath
+        updated.codexPath = configuration.codexPath
         configuration = updated
     }
 

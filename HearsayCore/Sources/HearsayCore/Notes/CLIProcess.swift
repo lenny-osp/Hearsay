@@ -1,51 +1,164 @@
 import Foundation
 
-/// Why a GitHub Copilot CLI call produced no usable reply. Wording follows the
-/// Copilot branch of Python `generate_meeting_notes`.
-public enum CopilotCLIError: Error, LocalizedError, Equatable {
-    /// No `copilot` binary at the configured path or any searched location.
-    case notInstalled(searched: [String])
+/// A command-line program that writes meeting notes with the user's own
+/// login: GitHub Copilot CLI, Claude Code, or OpenAI Codex.
+public enum CLITool: String, Sendable, CaseIterable, Codable {
+    case copilot
+    case claudeCode
+    case codex
+
+    /// The executable's file name.
+    public var binaryName: String {
+        switch self {
+        case .copilot: "copilot"
+        case .claudeCode: "claude"
+        case .codex: "codex"
+        }
+    }
+
+    public var displayName: String {
+        switch self {
+        case .copilot: "GitHub Copilot CLI"
+        case .claudeCode: "Claude Code CLI"
+        case .codex: "Codex CLI"
+        }
+    }
+
+    /// For the "Check <name>" button.
+    public var shortName: String {
+        switch self {
+        case .copilot: "Copilot"
+        case .claudeCode: "Claude Code"
+        case .codex: "Codex"
+        }
+    }
+
+    public var installCommand: String {
+        switch self {
+        case .copilot: "npm install -g @github/copilot"
+        case .claudeCode: "curl -fsSL https://claude.ai/install.sh | bash"
+        case .codex: "npm install -g @openai/codex"
+        }
+    }
+
+    /// What to run once in Terminal to log in.
+    public var loginCommand: String {
+        switch self {
+        case .copilot: "copilot"
+        case .claudeCode: "claude"
+        case .codex: "codex login"
+        }
+    }
+
+    /// Arguments after the binary that report the login state, or nil when
+    /// the CLI has no such command.
+    public var loginStatusArguments: [String]? {
+        switch self {
+        case .copilot: nil
+        case .claudeCode: ["auth", "status"]
+        case .codex: ["login", "status"]
+        }
+    }
+
+    /// Prefix of the temporary working folder of one run.
+    public var temporaryFolderPrefix: String { "Hearsay-\(rawValue)-" }
+}
+
+/// Why a CLI provider call produced no usable reply. The Copilot wording
+/// follows the Copilot branch of Python `generate_meeting_notes`.
+public enum CLIProviderError: Error, LocalizedError, Equatable {
+    /// No binary at the configured path or any searched location.
+    case notInstalled(CLITool, searched: [String])
     /// The binary could not be started.
-    case launchFailed(String)
-    /// Nonzero exit status. `stderrExcerpt` is at most
-    /// `ChatCompletionsError.excerptLength` characters.
-    case failed(exitCode: Int32, stderrExcerpt: String)
-    /// Still running after `CopilotCLIClient.timeout`; it was terminated.
-    case timedOut
-    /// Exit status 0 but nothing on stdout.
-    case emptyOutput
+    case launchFailed(CLITool, String)
+    /// Nonzero exit status. `excerpt` is at most
+    /// `ChatCompletionsError.excerptLength` characters (`CLIClient.excerpt`).
+    case failed(CLITool, exitCode: Int32, excerpt: String)
+    /// Nonzero exit status whose output says the CLI has no valid login
+    /// (Claude Code and Codex only; Copilot keeps the Python wording).
+    case notLoggedIn(CLITool, excerpt: String)
+    /// Still running after `CLIClient.timeout`; it was terminated.
+    case timedOut(CLITool)
+    /// Exit status 0 but no reply.
+    case emptyOutput(CLITool)
+    /// The configuration's preset does not run a CLI.
+    case notACLIPreset(String)
 
     public var errorDescription: String? {
         switch self {
-        case .notInstalled:
-            return "GitHub Copilot CLI not found. Install it with `npm install -g @github/copilot` or set the path in Settings > AI."
-        case .launchFailed(let detail):
-            return "GitHub Copilot CLI call failed. Check the Copilot login status and model configuration: \(detail)"
-        case let .failed(code, excerpt):
-            var message = "GitHub Copilot CLI call failed (exit code \(code)). Check the Copilot login status and model configuration."
+        case let .notInstalled(tool, _):
+            return "\(tool.displayName) not found. Install it with `\(tool.installCommand)` or set the path in Settings > AI."
+        case let .launchFailed(tool, detail):
+            if tool == .copilot {
+                return "GitHub Copilot CLI call failed. Check the Copilot login status and model configuration: \(detail)"
+            }
+            return "\(tool.displayName) could not be started: \(detail)"
+        case let .failed(tool, code, excerpt):
+            let trimmed = excerpt.trimmingCharacters(in: .whitespacesAndNewlines)
+            var message: String
+            if tool == .copilot {
+                message = "GitHub Copilot CLI call failed (exit code \(code)). Check the Copilot login status and model configuration."
+            } else {
+                message = "\(tool.displayName) call failed (exit code \(code)). Check the model and reasoning effort in Settings > AI."
+            }
+            if !trimmed.isEmpty {
+                message += "\n\(trimmed)"
+            }
+            if tool == .copilot, Self.mentionsLogin(trimmed) {
+                message += "\nRun `copilot` once in Terminal to log in."
+            }
+            return message
+        case let .notLoggedIn(tool, excerpt):
+            var message = "\(tool.displayName) is not logged in. Run `\(tool.loginCommand)` once in Terminal to log in"
+            switch tool {
+            case .claudeCode: message += " with your Claude subscription."
+            case .codex: message += " with your ChatGPT account."
+            case .copilot: message += "."
+            }
             let trimmed = excerpt.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmed.isEmpty {
                 message += "\n\(trimmed)"
             }
-            if Self.mentionsLogin(trimmed) {
-                message += "\nRun `copilot` once in Terminal to log in."
-            }
             return message
-        case .timedOut:
-            return "GitHub Copilot CLI did not answer within \(Int(CopilotCLIClient.timeout / 60)) minutes and was stopped."
-        case .emptyOutput:
-            return "GitHub Copilot CLI returned empty output."
+        case .timedOut(let tool):
+            return "\(tool.displayName) did not answer within \(Int(CLIClient.timeout / 60)) minutes and was stopped."
+        case .emptyOutput(let tool):
+            return "\(tool.displayName) returned empty output."
+        case .notACLIPreset(let name):
+            return "The \(name) preset does not use a command-line tool."
         }
     }
 
+    /// Copilot: any hint of a login problem (Python parity).
     static func mentionsLogin(_ text: String) -> Bool {
         let lowered = text.lowercased()
         return ["auth", "login", "log in", "logged in", "sign in", "token"].contains { lowered.contains($0) }
     }
+
+    /// Claude Code and Codex: output that means the login is missing or no
+    /// longer valid. Stricter than `mentionsLogin`, because Codex always
+    /// prints "tokens used".
+    static func indicatesLoggedOut(_ text: String, tool: CLITool) -> Bool {
+        let lowered = text.lowercased()
+        let markers: [String]
+        switch tool {
+        case .copilot:
+            return false
+        case .claudeCode:
+            // "Not logged in · Please run /login", "Invalid API key · Please
+            // run /login", "OAuth token has expired", "API Error: 401".
+            markers = ["not logged in", "please run /login", "invalid api key", "oauth token", "api error: 401"]
+        case .codex:
+            // "Not logged in"; with no login every request ends in
+            // "unexpected status 401 Unauthorized".
+            markers = ["not logged in", "401 unauthorized", "codex login"]
+        }
+        return markers.contains { lowered.contains($0) }
+    }
 }
 
 /// What one run of a program produced.
-public struct CopilotCLIRunResult: Sendable, Equatable {
+public struct CLIRunResult: Sendable, Equatable {
     public var exitCode: Int32
     public var stdout: String
     public var stderr: String
@@ -63,21 +176,34 @@ public struct CopilotCLIRunResult: Sendable, Equatable {
 /// Runs `argv` (argv[0] is an absolute executable path) in `directory` with
 /// `environment`, terminating it after `timeout` seconds. Injected in tests so
 /// no process is spawned.
-public typealias CopilotCLIRunner = @Sendable (
+public typealias CLIRunner = @Sendable (
     _ argv: [String],
     _ directory: URL,
     _ environment: [String: String],
     _ timeout: TimeInterval
-) async throws -> CopilotCLIRunResult
+) async throws -> CLIRunResult
 
-/// Where the `copilot` binary was found and what `copilot --version` says.
-public struct CopilotInstallation: Sendable, Equatable {
+/// Where a CLI was found, what `--version` says, and its login state.
+public struct CLIInstallation: Sendable, Equatable {
+    public var tool: CLITool
     public var path: String
     public var version: String
+    /// One line from the CLI's login status command; nil when it has none.
+    public var loginStatus: String?
+    /// Nil when unknown (no status command).
+    public var loggedIn: Bool?
+
+    public init(tool: CLITool, path: String, version: String, loginStatus: String? = nil, loggedIn: Bool? = nil) {
+        self.tool = tool
+        self.path = path
+        self.version = version
+        self.loginStatus = loginStatus
+        self.loggedIn = loggedIn
+    }
 }
 
-/// Finds the `copilot` binary (PLAN.md section 7, Copilot CLI preset).
-public struct CopilotCLILocator: Sendable {
+/// Finds a CLI binary (PLAN.md section 7).
+public struct CLILocator: Sendable {
     public var homeDirectory: String
     public var isExecutable: @Sendable (String) -> Bool
     public var directoryContents: @Sendable (String) -> [String]
@@ -95,43 +221,53 @@ public struct CopilotCLILocator: Sendable {
     }
 
     /// The login-shell lookup run when no well-known location has the binary.
-    public static let shellLookupArguments = ["/bin/zsh", "-lc", "command -v copilot"]
+    public static func shellLookupArguments(for tool: CLITool) -> [String] {
+        ["/bin/zsh", "-lc", "command -v \(tool.binaryName)"]
+    }
+
     public static let shellLookupTimeout: TimeInterval = 5
 
-    /// `/opt/homebrew/bin/copilot`, `/usr/local/bin/copilot`, then
-    /// `~/.nvm/versions/node/<v>/bin/copilot` from the newest Node version.
-    public func knownCandidates() -> [String] {
+    /// `~/.local/bin`, `/opt/homebrew/bin`, `/usr/local/bin`, then
+    /// `~/.nvm/versions/node/<v>/bin` from the newest Node version.
+    public func knownCandidates(for tool: CLITool) -> [String] {
+        let name = tool.binaryName
+        let localBin = (homeDirectory as NSString).appendingPathComponent(".local/bin/\(name)")
         let nvmRoot = (homeDirectory as NSString).appendingPathComponent(".nvm/versions/node")
         let versions = directoryContents(nvmRoot).sorted { Self.isNewer($0, than: $1) }
-        return ["/opt/homebrew/bin/copilot", "/usr/local/bin/copilot"]
-            + versions.map { "\(nvmRoot)/\($0)/bin/copilot" }
+        return [localBin, "/opt/homebrew/bin/\(name)", "/usr/local/bin/\(name)"]
+            + versions.map { "\(nvmRoot)/\($0)/bin/\(name)" }
     }
 
     /// The first executable well-known candidate. No shell is started.
-    public func knownInstallation() -> String? {
-        knownCandidates().first(where: isExecutable)
+    public func knownInstallation(for tool: CLITool) -> String? {
+        knownCandidates(for: tool).first(where: isExecutable)
+    }
+
+    /// The first tool, in preset order, with a binary in a well-known place.
+    public func firstKnownTool() -> CLITool? {
+        CLITool.allCases.first { knownInstallation(for: $0) != nil }
     }
 
     /// The configured path when set, else a well-known location, else what
-    /// `zsh -lc 'command -v copilot'` prints (5 s timeout).
-    public func locate(configuredPath: String?, runner: CopilotCLIRunner) async throws -> String {
+    /// `zsh -lc 'command -v <tool>'` prints (5 s timeout).
+    public func locate(_ tool: CLITool, configuredPath: String?, runner: CLIRunner) async throws -> String {
         let configured = configuredPath?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if !configured.isEmpty {
             let expanded = (configured as NSString).expandingTildeInPath
-            guard isExecutable(expanded) else { throw CopilotCLIError.notInstalled(searched: [expanded]) }
+            guard isExecutable(expanded) else { throw CLIProviderError.notInstalled(tool, searched: [expanded]) }
             return expanded
         }
-        let candidates = knownCandidates()
+        let candidates = knownCandidates(for: tool)
         if let found = candidates.first(where: isExecutable) { return found }
-        let searched = candidates + ["zsh -lc 'command -v copilot'"]
+        let searched = candidates + ["zsh -lc 'command -v \(tool.binaryName)'"]
         let result = try? await runner(
-            Self.shellLookupArguments,
+            Self.shellLookupArguments(for: tool),
             URL(fileURLWithPath: homeDirectory, isDirectory: true),
             ProcessInfo.processInfo.environment,
             Self.shellLookupTimeout
         )
         guard let result, result.exitCode == 0, !result.timedOut else {
-            throw CopilotCLIError.notInstalled(searched: searched)
+            throw CLIProviderError.notInstalled(tool, searched: searched)
         }
         // A login shell may print profile noise first; the path is the last
         // absolute line.
@@ -140,7 +276,7 @@ public struct CopilotCLILocator: Sendable {
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .last { $0.hasPrefix("/") }
         guard let path, isExecutable(path) else {
-            throw CopilotCLIError.notInstalled(searched: searched)
+            throw CLIProviderError.notInstalled(tool, searched: searched)
         }
         return path
     }
@@ -160,139 +296,13 @@ public struct CopilotCLILocator: Sendable {
     }
 }
 
-/// Meeting notes through the installed GitHub Copilot CLI (port of the
-/// Copilot branch of Python `generate_meeting_notes`). The prompt goes in
-/// `--prompt`; as in Python there is no system message and no token, since
-/// the CLI uses its own login.
-public actor CopilotCLIClient: ChatCompleting {
-    /// Generous: a long meeting at reasoning effort "max" takes minutes.
-    public static let timeout: TimeInterval = 600
-    public static let versionTimeout: TimeInterval = 15
-
-    private let runner: CopilotCLIRunner
-    private let locator: CopilotCLILocator
-
-    public init(
-        runner: @escaping CopilotCLIRunner = CopilotProcessRunner.run,
-        locator: CopilotCLILocator = CopilotCLILocator()
-    ) {
-        self.runner = runner
-        self.locator = locator
-    }
-
-    /// Python `copilot_argv`, with the resolved binary as argv[0]. An empty
-    /// model or effort falls back to the defaults, as Python's `or` does.
-    public static func arguments(
-        executable: String,
-        prompt: String,
-        model: String,
-        reasoningEffort: String?
-    ) -> [String] {
-        let trimmedModel = model.trimmingCharacters(in: .whitespacesAndNewlines)
-        let targetModel = trimmedModel.isEmpty ? ProviderPreset.defaultOpenAIModel : trimmedModel
-        let trimmedEffort = reasoningEffort?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let effort = trimmedEffort.isEmpty ? ProviderPreset.defaultReasoningEffort : trimmedEffort
-        var argv = [
-            executable,
-            "--prompt", prompt,
-            "--silent",
-            "--no-color",
-            "--no-ask-user",
-            "--no-auto-update",
-            "--output-format", "text",
-            "--reasoning-effort", effort,
-        ]
-        if targetModel != "auto" {
-            argv += ["--model", targetModel]
-        }
-        return argv
-    }
-
-    /// The inherited environment with the binary's folder first on PATH, so
-    /// `#!/usr/bin/env node` finds the Node that installed it.
-    public static func environment(
-        executable: String,
-        base: [String: String] = ProcessInfo.processInfo.environment
-    ) -> [String: String] {
-        var environment = base
-        let directory = (executable as NSString).deletingLastPathComponent
-        let path = base["PATH"].flatMap { $0.isEmpty ? nil : $0 } ?? "/usr/bin:/bin:/usr/sbin:/sbin"
-        environment["PATH"] = directory + ":" + path
-        return environment
-    }
-
-    public func locate(configuredPath: String?) async throws -> String {
-        try await locator.locate(configuredPath: configuredPath, runner: runner)
-    }
-
-    public func complete(
-        systemMessage: String,
-        userMessage: String,
-        configuration: AIProviderConfiguration,
-        token: String?
-    ) async throws -> String {
-        let executable = try await locate(configuredPath: configuration.copilotPath)
-        let argv = Self.arguments(
-            executable: executable,
-            prompt: userMessage,
-            model: configuration.model,
-            reasoningEffort: configuration.reasoningEffort
-        )
-        let result = try await run(argv, executable: executable, timeout: Self.timeout)
-        if result.timedOut { throw CopilotCLIError.timedOut }
-        guard result.exitCode == 0 else {
-            throw CopilotCLIError.failed(
-                exitCode: result.exitCode,
-                stderrExcerpt: String(result.stderr.prefix(ChatCompletionsError.excerptLength))
-            )
-        }
-        guard !result.stdout.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw CopilotCLIError.emptyOutput
-        }
-        return result.stdout
-    }
-
-    /// The binary's path and `copilot --version` output, for Settings > AI.
-    public func checkInstallation(configuredPath: String?) async throws -> CopilotInstallation {
-        let executable = try await locate(configuredPath: configuredPath)
-        let result = try await run([executable, "--version"], executable: executable, timeout: Self.versionTimeout)
-        if result.timedOut { throw CopilotCLIError.timedOut }
-        guard result.exitCode == 0 else {
-            throw CopilotCLIError.failed(
-                exitCode: result.exitCode,
-                stderrExcerpt: String(result.stderr.prefix(ChatCompletionsError.excerptLength))
-            )
-        }
-        let version = result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
-        return CopilotInstallation(path: executable, version: version)
-    }
-
-    /// Runs in a fresh temporary folder, removed afterwards: Copilot can use
-    /// tools, so it is kept away from the user's files.
-    private func run(_ argv: [String], executable: String, timeout: TimeInterval) async throws -> CopilotCLIRunResult {
-        let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("Hearsay-copilot-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: directory) }
-        do {
-            return try await runner(argv, directory, Self.environment(executable: executable), timeout)
-        } catch let error as CopilotCLIError {
-            throw error
-        } catch is CancellationError {
-            throw CancellationError()
-        } catch {
-            throw CopilotCLIError.launchFailed(error.localizedDescription)
-        }
-    }
-}
-
-/// The real `CopilotCLIRunner`: `Process` with piped stdout and stderr, stdin
-/// from /dev/null, terminated on timeout or task cancellation.
-public enum CopilotProcessRunner {
-    public static let run: CopilotCLIRunner = { argv, directory, environment, timeout in
+/// The real `CLIRunner`: `Process` with piped stdout and stderr, stdin from
+/// /dev/null, terminated on timeout or task cancellation.
+public enum CLIProcessRunner {
+    public static let run: CLIRunner = { argv, directory, environment, timeout in
         try Task.checkCancellation()
         guard let executable = argv.first else {
-            throw CopilotCLIError.launchFailed("No executable.")
+            throw LaunchError(detail: "No executable.")
         }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
@@ -306,7 +316,7 @@ public enum CopilotProcessRunner {
         process.standardError = stderr
 
         let state = RunState(process: process)
-        let result: CopilotCLIRunResult = try await withTaskCancellationHandler {
+        let result: CLIRunResult = try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
                 state.continuation = continuation
                 stdout.fileHandleForReading.readabilityHandler = { handle in
@@ -343,6 +353,13 @@ public enum CopilotProcessRunner {
         return result
     }
 
+    /// Thrown by the runner when `Process.run()` fails; `CLIClient` maps it
+    /// to `CLIProviderError.launchFailed` for the right tool.
+    struct LaunchError: Error, LocalizedError {
+        var detail: String
+        var errorDescription: String? { detail }
+    }
+
     /// Shared between the pipe handlers, the termination handler, the
     /// timeout, and cancellation; every access holds `lock`.
     private final class RunState: @unchecked Sendable {
@@ -356,11 +373,11 @@ public enum CopilotProcessRunner {
         private var timedOut = false
         private var cancelled = false
         private var resumed = false
-        var continuation: CheckedContinuation<CopilotCLIRunResult, Error>? {
+        var continuation: CheckedContinuation<CLIRunResult, Error>? {
             get { lock.withLock { storedContinuation } }
             set { lock.withLock { storedContinuation = newValue } }
         }
-        private var storedContinuation: CheckedContinuation<CopilotCLIRunResult, Error>?
+        private var storedContinuation: CheckedContinuation<CLIRunResult, Error>?
 
         /// After exit, how long to wait for the pipes to reach end of file. A
         /// child process that inherited them could otherwise hold the result.
@@ -415,7 +432,7 @@ public enum CopilotProcessRunner {
             let continuation = storedContinuation
             storedContinuation = nil
             lock.unlock()
-            continuation?.resume(throwing: CopilotCLIError.launchFailed(error.localizedDescription))
+            continuation?.resume(throwing: LaunchError(detail: error.localizedDescription))
         }
 
         private func finish() {
@@ -425,7 +442,7 @@ public enum CopilotProcessRunner {
                 return
             }
             resumed = true
-            let result = CopilotCLIRunResult(
+            let result = CLIRunResult(
                 exitCode: status,
                 stdout: String(decoding: stdout, as: UTF8.self),
                 stderr: String(decoding: stderr, as: UTF8.self),

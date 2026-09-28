@@ -19,7 +19,7 @@ struct ConfirmSendSheet: View {
                 }
                 GridRow {
                     Text("Model:").foregroundStyle(.secondary)
-                    Text(store.configuration.model.isEmpty ? "(none set)" : store.configuration.model)
+                    Text(store.configuration.modelDescription)
                 }
                 GridRow {
                     Text("Transcript:").foregroundStyle(.secondary)

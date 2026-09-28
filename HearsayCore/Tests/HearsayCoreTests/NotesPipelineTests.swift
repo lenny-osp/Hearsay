@@ -194,7 +194,7 @@ struct NotesPipelineTests {
     }
 
     @Test func temperatureNilSurvivesAReloadAndMissingKeyMeansDefault() throws {
-        var config = AIProviderConfiguration.default
+        var config = AIProviderConfiguration(preset: .custom)
         config.temperature = nil
         let decoded = try JSONDecoder().decode(AIProviderConfiguration.self, from: JSONEncoder().encode(config))
         #expect(decoded.temperature == nil)
@@ -373,37 +373,68 @@ struct NotesPipelineTests {
 // MARK: - Presets, store, secrets
 
 @MainActor
-struct AIProviderStoreTests {
-    private static func freshDefaults() -> UserDefaults {
-        let suite = "tw.og1o.hearsay.tests.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suite) ?? .standard
-        defaults.removePersistentDomain(forName: suite)
-        return defaults
-    }
+final class AIProviderStoreTests {
+    private let scratch = ScratchDefaults()
+
+    private func freshDefaults() -> UserDefaults { scratch.make() }
 
     @Test func presetTable() {
-        #expect(ProviderPreset.all.map(\.id) == ["copilotCLI", "openai", "azureOpenAI", "anthropic", "ollama", "custom"])
-        #expect(ProviderPreset.preset(id: "githubModels") == nil)
-        #expect(ProviderPreset.openAI.baseURL == "https://api.openai.com/v1/chat/completions")
-        #expect(ProviderPreset.openAI.defaultModel == "gpt-5.6-luna")
-        #expect(ProviderPreset.anthropic.baseURL == "https://api.anthropic.com/v1/chat/completions")
+        #expect(ProviderPreset.all.map(\.id) == ["copilotCLI", "claudeCodeCLI", "codexCLI", "azureOpenAI", "ollama", "custom"])
+        #expect(ProviderPreset.all.map(\.name) == [
+            "GitHub Copilot CLI", "Claude Code CLI (Claude subscription)", "Codex CLI (ChatGPT subscription)",
+            "Azure OpenAI", "Ollama / LM Studio", "Custom",
+        ])
+        #expect(ProviderPreset.all.map(\.kind) == [.copilotCLI, .claudeCodeCLI, .codexCLI, .http, .http, .http])
+        for retired in ["githubModels", "openai", "anthropic"] {
+            #expect(ProviderPreset.preset(id: retired) == nil)
+            #expect(ProviderPreset.retiredIDs.contains(retired))
+        }
+        #expect(ProviderPreset.claudeCodeCLI.defaultModel == "claude-sonnet-5")
+        #expect(ProviderPreset.codexCLI.defaultModel == "gpt-6-luna")
+        #expect(AIProviderConfiguration(preset: .claudeCodeCLI).reasoningEffort == "high")
+        #expect(AIProviderConfiguration(preset: .codexCLI).reasoningEffort == "max")
+        #expect(AIProviderConfiguration(preset: .copilotCLI).reasoningEffort == "max")
         #expect(ProviderPreset.ollama.baseURL == "http://localhost:11434/v1/chat/completions")
-        #expect(AIProviderConfiguration.default.presetID == "openai")
+        #expect(AIProviderConfiguration.default.presetID == "copilotCLI")
         #expect(ProviderPreset.azureOpenAI.baseURL.isEmpty)
         #expect(ProviderPreset.azureOpenAI.auth == .apiKey)
-        #expect(ProviderPreset.anthropic.defaultModel == "claude-sonnet-5")
         #expect(ProviderPreset.ollama.auth == AuthHeaderStyle.none)
         #expect(ProviderPreset.ollama.defaultModel.isEmpty)
-        #expect(AIProviderConfiguration(preset: .openAI).reasoningEffort == "max")
-        #expect(AIProviderConfiguration(preset: .openAI).model == "gpt-5.6-luna")
+        #expect(AIProviderConfiguration(preset: .azureOpenAI).reasoningEffort == "max")
+        #expect(AIProviderConfiguration(preset: .azureOpenAI).model == "gpt-5.6-luna")
         #expect(AIProviderConfiguration(preset: .ollama).reasoningEffort == nil)
-        #expect(AIProviderConfiguration(preset: .openAI).temperature == 0.3)
+        #expect(AIProviderConfiguration(preset: .azureOpenAI).temperature == 0.3)
         #expect(AIProviderConfiguration(preset: .ollama).temperature == 0.3)
+        #expect(AIProviderConfiguration(preset: .custom).temperature == 0.3)
+    }
+
+    /// No CLI has a temperature option: CLI presets start without one, never
+    /// report one to send, and the AI tab hides the field. HTTP presets keep it.
+    @Test func temperatureIsOnlyForHTTPPresets() {
+        for preset in ProviderPreset.all {
+            #expect(preset.supportsTemperature == (preset.kind == .http))
+            var configuration = AIProviderConfiguration(preset: preset)
+            #expect(configuration.temperature == (preset.kind == .http ? 0.3 : nil))
+            configuration.temperature = 0.9
+            #expect(configuration.effectiveTemperature == (preset.kind == .http ? 0.9 : nil))
+        }
+    }
+
+    @Test func modelDescriptionNamesWhatAnEmptyModelMeans() {
+        var copilot = AIProviderConfiguration(preset: .copilotCLI)
+        copilot.model = ""
+        #expect(copilot.modelDescription == "gpt-5.6-luna")
+        var codex = AIProviderConfiguration(preset: .codexCLI)
+        #expect(codex.modelDescription == "gpt-6-luna")
+        codex.model = " "
+        #expect(codex.modelDescription == "CLI default")
+        #expect(AIProviderConfiguration(preset: .claudeCodeCLI).modelDescription == "claude-sonnet-5")
+        #expect(AIProviderConfiguration(preset: .custom).modelDescription == "(none set)")
     }
 
     @Test func defaultsOnFirstLaunch() {
         let store = AIProviderStore(
-            defaults: Self.freshDefaults(), secrets: InMemorySecretStore(), copilotInstalled: { false }
+            defaults: freshDefaults(), secrets: InMemorySecretStore(), installedCLI: { nil }
         )
         #expect(store.configuration == .default)
         #expect(store.configuration.askBeforeSending)
@@ -413,8 +444,8 @@ struct AIProviderStoreTests {
     }
 
     @Test func configurationAndTemplatesRoundTrip() {
-        let defaults = Self.freshDefaults()
-        let store = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore(), copilotInstalled: { false })
+        let defaults = freshDefaults()
+        let store = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore(), installedCLI: { nil })
         store.selectPreset(.azureOpenAI)
         store.configuration.baseURL = "https://me.openai.azure.com/openai/deployments/x/chat/completions"
         store.configuration.extraHeaders = ["X-A": "b"]
@@ -422,7 +453,7 @@ struct AIProviderStoreTests {
         let standup = store.addTemplate(name: "Standup", instructions: "Short.")
         store.setDefaultTemplate(id: standup.id)
 
-        let reloaded = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore(), copilotInstalled: { false })
+        let reloaded = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore(), installedCLI: { nil })
         #expect(reloaded.configuration == store.configuration)
         #expect(reloaded.configuration.presetID == "azureOpenAI")
         #expect(reloaded.configuration.auth == .apiKey)
@@ -431,7 +462,7 @@ struct AIProviderStoreTests {
     }
 
     @Test func builtInTemplateCannotBeEditedOrDeleted() {
-        let store = AIProviderStore(defaults: Self.freshDefaults(), secrets: InMemorySecretStore(), copilotInstalled: { false })
+        let store = AIProviderStore(defaults: freshDefaults(), secrets: InMemorySecretStore(), installedCLI: { nil })
         var edited = PromptTemplate.generalMeeting
         edited.name = "Changed"
         store.updateTemplate(edited)
@@ -440,8 +471,8 @@ struct AIProviderStoreTests {
     }
 
     @Test func editAndDeleteUserTemplate() {
-        let defaults = Self.freshDefaults()
-        let store = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore(), copilotInstalled: { false })
+        let defaults = freshDefaults()
+        let store = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore(), installedCLI: { nil })
         var template = store.addTemplate(name: "A", instructions: "a")
         template.name = "B"
         template.instructions = "b"
@@ -451,11 +482,11 @@ struct AIProviderStoreTests {
         store.deleteTemplate(id: template.id)
         #expect(store.templates == [.generalMeeting])
         #expect(store.configuration.selectedTemplateID == PromptTemplate.generalMeetingID)
-        #expect(AIProviderStore(defaults: defaults, secrets: InMemorySecretStore(), copilotInstalled: { false }).templates == [.generalMeeting])
+        #expect(AIProviderStore(defaults: defaults, secrets: InMemorySecretStore(), installedCLI: { nil }).templates == [.generalMeeting])
     }
 
     @Test func storedTemplatesAlwaysStartWithTheBuiltIn() throws {
-        let defaults = Self.freshDefaults()
+        let defaults = freshDefaults()
         var tampered = PromptTemplate.generalMeeting
         tampered.instructions = "tampered"
         let user = PromptTemplate(name: "U", instructions: "u")
@@ -464,13 +495,13 @@ struct AIProviderStoreTests {
         config.selectedTemplateID = UUID()
         defaults.set(try JSONEncoder().encode(config), forKey: AIProviderStore.Key.configuration)
 
-        let store = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore(), copilotInstalled: { false })
+        let store = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore(), installedCLI: { nil })
         #expect(store.templates == [.generalMeeting, user])
         #expect(store.configuration.selectedTemplateID == PromptTemplate.generalMeetingID)
     }
 
     @Test func selectPresetResetsProviderFieldsButKeepsPreferences() {
-        let store = AIProviderStore(defaults: Self.freshDefaults(), secrets: InMemorySecretStore(), copilotInstalled: { false })
+        let store = AIProviderStore(defaults: freshDefaults(), secrets: InMemorySecretStore(), installedCLI: { nil })
         store.configuration.askBeforeSending = false
         store.configuration.model = "other"
         store.selectPreset(.ollama)
@@ -483,28 +514,29 @@ struct AIProviderStoreTests {
 
     @Test func tokensArePerPreset() throws {
         let secrets = InMemorySecretStore()
-        let store = AIProviderStore(defaults: Self.freshDefaults(), secrets: secrets, copilotInstalled: { false })
-        try store.setToken("  sk-openai \n")
-        #expect(store.currentToken == "sk-openai")
-        store.selectPreset(.anthropic)
+        let store = AIProviderStore(defaults: freshDefaults(), secrets: secrets, installedCLI: { nil })
+        store.selectPreset(.azureOpenAI)
+        try store.setToken("  sk-azure \n")
+        #expect(store.currentToken == "sk-azure")
+        store.selectPreset(.custom)
         #expect(!store.hasToken)
-        try store.setToken("sk-ant")
-        #expect(try secrets.read(account: "openai") == "sk-openai")
-        #expect(try secrets.read(account: "anthropic") == "sk-ant")
+        try store.setToken("sk-custom")
+        #expect(try secrets.read(account: "azureOpenAI") == "sk-azure")
+        #expect(try secrets.read(account: "custom") == "sk-custom")
         try store.setToken("")
         #expect(!store.hasToken)
-        store.selectPreset(.openAI)
+        store.selectPreset(.azureOpenAI)
         try store.deleteToken()
-        #expect(try secrets.read(account: "openai") == nil)
+        #expect(try secrets.read(account: "azureOpenAI") == nil)
     }
 }
 
 @MainActor
-struct RetiredPresetMigrationTests {
-    private static func defaults(storing configuration: AIProviderConfiguration) throws -> UserDefaults {
-        let suite = "tw.og1o.hearsay.tests.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suite) ?? .standard
-        defaults.removePersistentDomain(forName: suite)
+final class RetiredPresetMigrationTests {
+    private let scratch = ScratchDefaults()
+
+    private func defaults(storing configuration: AIProviderConfiguration) throws -> UserDefaults {
+        let defaults = scratch.make()
         defaults.set(try JSONEncoder().encode(configuration), forKey: AIProviderStore.Key.configuration)
         return defaults
     }
@@ -519,9 +551,28 @@ struct RetiredPresetMigrationTests {
         askBeforeSending: false
     )
 
+    /// What the removed OpenAI and Anthropic presets stored.
+    private static let openAIConfiguration = AIProviderConfiguration(
+        presetID: "openai",
+        baseURL: "https://api.openai.com/v1/chat/completions",
+        model: "gpt-5.6-luna",
+        reasoningEffort: "max",
+        temperature: 0.3,
+        auth: .bearer
+    )
+    private static let anthropicConfiguration = AIProviderConfiguration(
+        presetID: "anthropic",
+        baseURL: "https://api.anthropic.com/v1/chat/completions",
+        model: "claude-sonnet-5",
+        reasoningEffort: nil,
+        temperature: nil,
+        auth: .bearer,
+        askBeforeSending: false
+    )
+
     @Test func githubModelsLoadsAsCustomKeepingItsFields() throws {
-        let defaults = try Self.defaults(storing: Self.githubConfiguration)
-        let store = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore(), copilotInstalled: { false })
+        let defaults = try defaults(storing: Self.githubConfiguration)
+        let store = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore(), installedCLI: { nil })
         var expected = Self.githubConfiguration
         expected.presetID = "custom"
         #expect(store.configuration == expected)
@@ -531,15 +582,36 @@ struct RetiredPresetMigrationTests {
         #expect(try JSONDecoder().decode(AIProviderConfiguration.self, from: stored) == expected)
     }
 
+    @Test(arguments: ["openai", "anthropic"])
+    func removedAPIPresetLoadsAsCustomKeepingURLModelAndToken(presetID: String) throws {
+        let original = presetID == "openai" ? Self.openAIConfiguration : Self.anthropicConfiguration
+        let secrets = InMemorySecretStore()
+        try secrets.write("sk-\(presetID)", account: presetID)
+        let defaults = try defaults(storing: original)
+        let store = AIProviderStore(defaults: defaults, secrets: secrets, installedCLI: { .claudeCode })
+        var expected = original
+        expected.presetID = "custom"
+        #expect(store.configuration == expected)
+        #expect(store.configuration.baseURL == original.baseURL)
+        #expect(store.configuration.model == original.model)
+        #expect(store.configuration.temperature == original.temperature)
+        #expect(store.configuration.preset == .custom)
+        #expect(store.currentToken == "sk-\(presetID)")
+        #expect(try secrets.read(account: presetID) == nil)
+        let stored = try #require(defaults.data(forKey: AIProviderStore.Key.configuration))
+        #expect(try JSONDecoder().decode(AIProviderConfiguration.self, from: stored) == expected)
+    }
+
     @Test func currentPresetsAreNotMigrated() {
-        #expect(AIProviderConfiguration.default.migratingRetiredPreset() == nil)
-        #expect(AIProviderConfiguration(preset: .ollama).migratingRetiredPreset() == nil)
+        for preset in ProviderPreset.all {
+            #expect(AIProviderConfiguration(preset: preset).migratingRetiredPreset() == nil)
+        }
     }
 
     @Test func githubModelsTokenMovesToCustom() throws {
         let secrets = InMemorySecretStore()
         try secrets.write("ghp_old", account: "githubModels")
-        let store = AIProviderStore(defaults: try Self.defaults(storing: Self.githubConfiguration), secrets: secrets, copilotInstalled: { false })
+        let store = AIProviderStore(defaults: try defaults(storing: Self.githubConfiguration), secrets: secrets, installedCLI: { nil })
         #expect(store.currentToken == "ghp_old")
         #expect(try secrets.read(account: "custom") == "ghp_old")
         #expect(try secrets.read(account: "githubModels") == nil)
@@ -549,7 +621,7 @@ struct RetiredPresetMigrationTests {
         let secrets = InMemorySecretStore()
         try secrets.write("ghp_old", account: "githubModels")
         try secrets.write("sk-custom", account: "custom")
-        let store = AIProviderStore(defaults: try Self.defaults(storing: Self.githubConfiguration), secrets: secrets, copilotInstalled: { false })
+        let store = AIProviderStore(defaults: try defaults(storing: Self.githubConfiguration), secrets: secrets, installedCLI: { nil })
         #expect(store.currentToken == "sk-custom")
         #expect(try secrets.read(account: "githubModels") == "ghp_old")
     }

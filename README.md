@@ -97,21 +97,45 @@ otherwise its modification time.
 ## Meeting notes
 
 1. **Set up a provider** in Settings > AI. Pick a preset: GitHub Copilot
-   CLI, OpenAI, Azure OpenAI, Anthropic (OpenAI compatible), Ollama / LM
-   Studio, or Custom for any other OpenAI-compatible `/chat/completions`
-   endpoint. "Test connection" sends a one-line prompt.
-   - **GitHub Copilot CLI** runs the `copilot` program installed on your
-     Mac (`npm install -g @github/copilot`) and uses its own login, so
-     Hearsay needs no token; run `copilot` once in Terminal to log in.
-     Hearsay finds it in Homebrew, `/usr/local/bin`, or nvm, or through
-     your login shell; set the path in Settings > AI if it lives elsewhere.
-     "Check Copilot" shows the version it found. The default model is
+   CLI, Claude Code CLI (Claude subscription), Codex CLI (ChatGPT
+   subscription), Azure OpenAI, Ollama / LM Studio, or Custom for any other
+   OpenAI-compatible `/chat/completions` endpoint. "Test connection" sends
+   a one-line prompt.
+   - **The three CLI presets** run a program installed on your Mac and use
+     the login you already have in it, so Hearsay needs no API key.
+     Requests count against that subscription's usage limits (your
+     Copilot plan, your Claude plan, or your ChatGPT plan), the same as
+     using the tool yourself. Hearsay finds each program in `~/.local/bin`,
+     Homebrew, `/usr/local/bin`, or nvm, or through your login shell; set
+     the path in Settings > AI if it lives elsewhere. "Check <tool>" shows
+     the version it found and, for Claude Code and Codex, whether you are
+     logged in. Each run happens in an empty temporary folder that is
+     deleted afterwards. None of the CLIs takes a temperature, so that
+     field is only shown for the HTTP presets. On first launch the first
+     CLI found (Copilot, then Claude Code, then Codex) is the default
+     provider.
+   - **GitHub Copilot CLI** (`npm install -g @github/copilot`; run
+     `copilot` once in Terminal to log in). The default model is
      `gpt-5.6-luna` with reasoning effort `max`; model `auto` lets Copilot
-     choose. When Hearsay finds the CLI on first launch, this is the
-     default provider.
-   - **The other presets** need the model and your token; tokens are stored
-     in the macOS Keychain. Ollama and LM Studio run locally and need no
-     token.
+     choose.
+   - **Claude Code CLI** (`curl -fsSL https://claude.ai/install.sh | bash`;
+     run `claude` once in Terminal to log in with your Claude
+     subscription). The default model is `claude-sonnet-5` with effort
+     `high`; an alias such as `sonnet` or `opus` works too. Effort is
+     `low`, `medium`, `high`, `xhigh`, or `max` (`none` and `minimal`
+     become `low`). Hearsay runs it with no tools and without your Claude
+     Code settings, hooks, CLAUDE.md, or MCP servers, and the session is
+     not saved.
+   - **Codex CLI** (`npm install -g @openai/codex`; run `codex login` once
+     in Terminal). The default model is `gpt-6-luna` with reasoning effort
+     `max`; clear the model to use Codex's own default. Effort is `none`,
+     `minimal`, `low`, `medium`, `high`, `xhigh`, or `max`. Hearsay runs it
+     in a read-only sandbox without your `~/.codex/config.toml`, and the
+     session is not saved.
+   - **Azure OpenAI and Custom** need the endpoint, the model, and your API
+     key; keys are stored in the macOS Keychain. **Ollama and LM Studio**
+     run locally and need no key. Earlier OpenAI and Anthropic API
+     settings were moved to Custom with their URL, model, and key.
 2. **Confirm.** After a transcript is saved, Hearsay asks "Send transcript
    for meeting notes?" and shows the provider, model, and transcript size.
    "Keep local" keeps everything on the Mac; you can still give the files a
@@ -158,7 +182,7 @@ recording and asks whether to transcribe it, keep it, or delete it.
 
 Hearsay is distributed with Developer ID (signed and notarized), not
 through the Mac App Store, and it runs without the App Sandbox because it
-starts your installed Copilot CLI, which needs its own login files, and
+starts your installed Copilot, Claude Code, or Codex CLI, which need their own login files, and
 saves straight to `~/Documents/Hearsay`. It still uses the hardened runtime,
 and macOS still asks before it can use the microphone or record system
 audio.
@@ -178,6 +202,12 @@ audio.
   Settings > AI.
 - **The Copilot CLI call fails.** Run `copilot` once in Terminal to log in,
   and check that the model name is one your Copilot plan offers.
+- **"Claude Code CLI not found" or "Codex CLI not found".** Install it with
+  the command in the message, or enter the full path (the output of
+  `command -v claude` or `command -v codex`) in Settings > AI.
+- **"Claude Code CLI is not logged in" or "Codex CLI is not logged in".**
+  Run `claude` (then `/login`) or `codex login` once in Terminal, then
+  click "Check Claude Code" or "Check Codex".
 - **Launch at login waits for approval.** Approve Hearsay in System
   Settings > General > Login Items ("Open Login Items" in Settings >
   General takes you there).
@@ -189,7 +219,8 @@ Hearsay is the native macOS version of the `whisper-tools` Python CLI
 `.md`, `_transcript.md`, and the WAV) and sends the same meeting-note prompt,
 so files from both tools sit side by side. The GitHub Copilot CLI provider
 runs `copilot` with the same arguments the CLI uses (`AI_PROVIDER=copilot`),
-and the other presets cover its `AI_API_URL` path. One difference: Chinese
+and the HTTP presets cover its `AI_API_URL` path; the Claude Code and Codex
+presets have no counterpart in the CLI. One difference: Chinese
 runs without an initial prompt, because the CLI's English prompt made the
 turbo model echo the prompt and made large-v3 write Simplified characters,
 while no prompt gives Traditional script and natural cue boundaries.

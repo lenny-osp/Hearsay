@@ -14,30 +14,29 @@ public enum NotesPipelineError: Error, LocalizedError, Equatable {
 
 /// SRT text in, validated `NotesResponse` out: Python
 /// `generate_meeting_notes` without any file handling. The preset kind picks
-/// the Copilot branch (`CopilotCLIClient`) or the API branch (`client`).
+/// a CLI branch (`CLIClient`: Copilot, Claude Code, Codex) or the API branch
+/// (`client`).
 ///
 /// As in Python, `SRT.cleanText` only guards against a transcript with no
 /// caption text; the prompt carries the SRT as is (timings included), since
-/// the prompt asks the model to preserve useful timestamps. The Copilot branch
-/// strips surrounding whitespace first, as Python's `srt_text.strip()` does.
+/// the prompt asks the model to preserve useful timestamps. The CLI branches
+/// strip surrounding whitespace first, as Python's Copilot branch does with
+/// `srt_text.strip()`, and never pass a token.
 public struct NotesPipeline: Sendable {
     public let client: any ChatCompleting
-    public let copilotClient: CopilotCLIClient
+    public let cliClient: CLIClient
 
     public init(
         client: any ChatCompleting = ChatCompletionsClient(),
-        copilotClient: CopilotCLIClient = CopilotCLIClient()
+        cliClient: CLIClient = CLIClient()
     ) {
         self.client = client
-        self.copilotClient = copilotClient
+        self.cliClient = cliClient
     }
 
     /// The client that serves `configuration`'s preset.
     public func client(for configuration: AIProviderConfiguration) -> any ChatCompleting {
-        switch configuration.preset.kind {
-        case .copilotCLI: copilotClient
-        case .http: client
-        }
+        configuration.preset.kind.isCLI ? cliClient : client
     }
 
     public func generate(
@@ -50,20 +49,23 @@ public struct NotesPipeline: Sendable {
         guard !SRT.cleanText(srtText).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw NotesPipelineError.emptyTranscript
         }
-        let isCopilot = configuration.preset.kind == .copilotCLI
-        let transcript = isCopilot ? srtText.trimmingCharacters(in: .whitespacesAndNewlines) : srtText
+        let isCLI = configuration.preset.kind.isCLI
+        let transcript = isCLI ? srtText.trimmingCharacters(in: .whitespacesAndNewlines) : srtText
         let prompt = try MeetingPrompt.build(transcript: transcript, languageCode: languageCode, template: template)
         let content = try await client(for: configuration).complete(
             systemMessage: MeetingPrompt.systemMessage,
             userMessage: prompt,
             configuration: configuration,
-            token: isCopilot ? nil : token
+            token: isCLI ? nil : token
         )
         return try NotesResponse.parse(content)
     }
 
-    /// Where the Copilot CLI is and its `--version` output (Settings > AI).
-    public func checkInstallation(configuration: AIProviderConfiguration) async throws -> CopilotInstallation {
-        try await copilotClient.checkInstallation(configuredPath: configuration.copilotPath)
+    /// Where the preset's CLI is, its `--version` output, and its login
+    /// state (Settings > AI).
+    public func checkInstallation(configuration: AIProviderConfiguration) async throws -> CLIInstallation {
+        let preset = configuration.preset
+        guard let tool = preset.kind.cliTool else { throw CLIProviderError.notACLIPreset(preset.name) }
+        return try await cliClient.checkInstallation(tool, configuredPath: configuration.cliPath(for: tool))
     }
 }

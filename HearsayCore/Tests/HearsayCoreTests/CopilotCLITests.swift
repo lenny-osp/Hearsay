@@ -2,8 +2,9 @@ import Foundation
 import Testing
 @testable import HearsayCore
 
-/// Records every runner call and answers from a canned result.
-private final class FakeRunner: @unchecked Sendable {
+/// Records every runner call and answers from a canned result. `respond`
+/// also gets the working folder, so a fake can write the Codex reply file.
+final class FakeCLIRunner: @unchecked Sendable {
     struct Call {
         var argv: [String]
         var directory: URL
@@ -13,43 +14,42 @@ private final class FakeRunner: @unchecked Sendable {
 
     private let lock = NSLock()
     private var recorded: [Call] = []
-    private let respond: @Sendable ([String]) throws -> CopilotCLIRunResult
+    private let respond: @Sendable ([String], URL) throws -> CLIRunResult
 
-    init(_ respond: @escaping @Sendable ([String]) throws -> CopilotCLIRunResult) {
+    init(_ respond: @escaping @Sendable ([String]) throws -> CLIRunResult) {
+        self.respond = { argv, _ in try respond(argv) }
+    }
+
+    init(withDirectory respond: @escaping @Sendable ([String], URL) throws -> CLIRunResult) {
         self.respond = respond
     }
 
     var calls: [Call] { lock.withLock { recorded } }
 
-    var runner: CopilotCLIRunner {
+    var runner: CLIRunner {
         { [self] argv, directory, environment, timeout in
             lock.withLock {
                 recorded.append(Call(argv: argv, directory: directory, environment: environment, timeout: timeout))
             }
-            return try respond(argv)
+            return try respond(argv, directory)
         }
     }
 }
 
 private let copilotPath = "/usr/bin/copilot"
 
-private func freshDefaults() -> UserDefaults {
-    let suite = "hearsay.copilot.tests.\(UUID().uuidString)"
-    return UserDefaults(suiteName: suite) ?? .standard
-}
-
 /// A locator that finds `copilotPath` only.
-private func locator(found: Set<String> = [copilotPath]) -> CopilotCLILocator {
-    CopilotCLILocator(
+func locator(found: Set<String> = [copilotPath]) -> CLILocator {
+    CLILocator(
         homeDirectory: "/Users/test",
         isExecutable: { found.contains($0) },
         directoryContents: { _ in [] }
     )
 }
 
-private let copilotSRT = "1\n00:00:01,000 --> 00:00:02,000\nDiscuss launch\n"
+let copilotSRT = "1\n00:00:01,000 --> 00:00:02,000\nDiscuss launch\n"
 
-private let launchNotes = ##"{"filename": "Product Launch Plan", "markdown": "# Notes\n", "transcript_markdown": "# Transcript\n\n## 00:00 — Launch\n"}"##
+let launchNotes = ##"{"filename": "Product Launch Plan", "markdown": "# Notes\n", "transcript_markdown": "# Transcript\n\n## 00:00 — Launch\n"}"##
 
 private func copilotConfiguration(model: String) -> AIProviderConfiguration {
     var configuration = AIProviderConfiguration(preset: .copilotCLI)
@@ -58,7 +58,11 @@ private func copilotConfiguration(model: String) -> AIProviderConfiguration {
     return configuration
 }
 
-struct CopilotCLITests {
+final class CopilotCLITests {
+    private let scratch = ScratchDefaults()
+
+    private func freshDefaults() -> UserDefaults { scratch.make() }
+
     // MARK: - Preset
 
     @Test func presetShape() {
@@ -71,44 +75,60 @@ struct CopilotCLITests {
         #expect(preset.supportsReasoningEffort)
         #expect(preset.kind == .copilotCLI)
         #expect(ProviderPreset.all.first == preset)
-        #expect(ProviderPreset.all.dropFirst().allSatisfy { $0.kind == .http })
+        #expect(ProviderPreset.all.prefix(3).allSatisfy { $0.kind.isCLI })
+        #expect(ProviderPreset.all.dropFirst(3).allSatisfy { $0.kind == .http })
     }
 
-    @MainActor @Test func firstLaunchPicksCopilotOnlyWhenInstalled() {
-        let withCopilot = AIProviderStore(
-            defaults: freshDefaults(), secrets: InMemorySecretStore(),
-            copilotInstalled: { true }
-        )
-        #expect(withCopilot.configuration == AIProviderConfiguration(preset: .copilotCLI))
+    @MainActor @Test func firstLaunchPicksTheFirstInstalledCLI() {
+        for tool in CLITool.allCases {
+            let store = AIProviderStore(
+                defaults: freshDefaults(), secrets: InMemorySecretStore(), installedCLI: { tool }
+            )
+            #expect(store.configuration == AIProviderConfiguration(preset: .preset(for: tool)))
+        }
         let without = AIProviderStore(
-            defaults: freshDefaults(), secrets: InMemorySecretStore(),
-            copilotInstalled: { false }
+            defaults: freshDefaults(), secrets: InMemorySecretStore(), installedCLI: { nil }
         )
         #expect(without.configuration == .default)
+        #expect(without.configuration.presetID == "copilotCLI")
+    }
+
+    @Test func firstKnownToolFollowsPresetOrder() {
+        func make(_ found: Set<String>) -> CLILocator {
+            CLILocator(homeDirectory: "/Users/test", isExecutable: { found.contains($0) }, directoryContents: { _ in [] })
+        }
+        #expect(make([]).firstKnownTool() == nil)
+        #expect(make(["/opt/homebrew/bin/codex"]).firstKnownTool() == .codex)
+        #expect(make(["/opt/homebrew/bin/codex", "/Users/test/.local/bin/claude"]).firstKnownTool() == .claudeCode)
+        #expect(make(["/opt/homebrew/bin/codex", "/usr/local/bin/copilot"]).firstKnownTool() == .copilot)
     }
 
     @MainActor @Test func firstLaunchChoiceIsSavedAndNotReconsidered() {
         let defaults = freshDefaults()
-        _ = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore(), copilotInstalled: { false })
-        let later = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore(), copilotInstalled: { true })
-        #expect(later.configuration.presetID == "openai")
+        _ = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore(), installedCLI: { .codex })
+        let later = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore(), installedCLI: { .copilot })
+        #expect(later.configuration.presetID == "codexCLI")
     }
 
-    @MainActor @Test func copilotPathSurvivesReloadAndPresetSwitch() {
+    @MainActor @Test func cliPathsSurviveReloadAndPresetSwitch() {
         let defaults = freshDefaults()
-        let store = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore(), copilotInstalled: { true })
+        let store = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore(), installedCLI: { .copilot })
         store.configuration.copilotPath = "/custom/copilot"
-        store.selectPreset(.openAI)
+        store.configuration.setCLIPath("/custom/claude", for: .claudeCode)
+        store.configuration.setCLIPath("/custom/codex", for: .codex)
+        store.selectPreset(.azureOpenAI)
         store.selectPreset(.copilotCLI)
-        let reloaded = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore(), copilotInstalled: { false })
+        let reloaded = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore(), installedCLI: { nil })
         #expect(reloaded.configuration.copilotPath == "/custom/copilot")
+        #expect(reloaded.configuration.cliPath(for: .claudeCode) == "/custom/claude")
+        #expect(reloaded.configuration.cliPath(for: .codex) == "/custom/codex")
         #expect(reloaded.configuration.presetID == "copilotCLI")
     }
 
     // MARK: - argv (Python test_copilot_success_failure_and_auto_model)
 
     @Test func argvForNamedModel() {
-        let argv = CopilotCLIClient.arguments(
+        let argv = CLIArguments.copilot(
             executable: copilotPath, prompt: "PROMPT", model: "gpt-5.6-luna", reasoningEffort: "max"
         )
         #expect(argv == [
@@ -119,7 +139,7 @@ struct CopilotCLITests {
     }
 
     @Test func argvForAutoModelOmitsModel() {
-        let argv = CopilotCLIClient.arguments(
+        let argv = CLIArguments.copilot(
             executable: copilotPath, prompt: "PROMPT", model: "auto", reasoningEffort: "max"
         )
         #expect(argv == [
@@ -131,14 +151,14 @@ struct CopilotCLITests {
 
     /// Python `env.get("AI_MODEL") or DEFAULT_AI_MODEL` and the same for effort.
     @Test func emptyModelAndEffortFallBackToDefaults() {
-        let argv = CopilotCLIClient.arguments(executable: copilotPath, prompt: "P", model: " ", reasoningEffort: nil)
+        let argv = CLIArguments.copilot(executable: copilotPath, prompt: "P", model: " ", reasoningEffort: nil)
         #expect(argv[argv.firstIndex(of: "--reasoning-effort").map { $0 + 1 } ?? 0] == "max")
         #expect(argv.suffix(2) == ["--model", "gpt-5.6-luna"])
     }
 
     @Test func environmentPrefixesBinaryFolderOnPath() {
-        let environment = CopilotCLIClient.environment(
-            executable: "/Users/x/.nvm/versions/node/v24.16.0/bin/copilot",
+        let environment = CLIClient.environment(
+            for: .copilot, executable: "/Users/x/.nvm/versions/node/v24.16.0/bin/copilot",
             base: ["PATH": "/usr/bin:/bin", "HOME": "/Users/x"]
         )
         #expect(environment["PATH"] == "/Users/x/.nvm/versions/node/v24.16.0/bin:/usr/bin:/bin")
@@ -148,10 +168,10 @@ struct CopilotCLITests {
     // MARK: - Pipeline through the CLI
 
     @Test func successParsesFencedJSONReplyAndSendsOnlyTheUserPrompt() async throws {
-        let fake = FakeRunner { _ in
-            CopilotCLIRunResult(exitCode: 0, stdout: "```json\n\(launchNotes)\n```\n", stderr: "")
+        let fake = FakeCLIRunner { _ in
+            CLIRunResult(exitCode: 0, stdout: "```json\n\(launchNotes)\n```\n", stderr: "")
         }
-        let pipeline = NotesPipeline(copilotClient: CopilotCLIClient(runner: fake.runner, locator: locator()))
+        let pipeline = NotesPipeline(cliClient: CLIClient(runner: fake.runner, locator: locator()))
         let response = try await pipeline.generate(
             srtText: "\n" + copilotSRT + "\n\n", languageCode: "en", template: .generalMeeting,
             configuration: copilotConfiguration(model: "auto"), token: "ignored"
@@ -180,15 +200,15 @@ struct CopilotCLITests {
 
     @Test func nonzeroExitMapsToFailedWithStderrExcerpt() async throws {
         let longStderr = "Error: not logged in. " + String(repeating: "x", count: 600)
-        let fake = FakeRunner { _ in CopilotCLIRunResult(exitCode: 1, stdout: "", stderr: longStderr) }
-        let client = CopilotCLIClient(runner: fake.runner, locator: locator())
+        let fake = FakeCLIRunner { _ in CLIRunResult(exitCode: 1, stdout: "", stderr: longStderr) }
+        let client = CLIClient(runner: fake.runner, locator: locator())
         do {
             _ = try await client.complete(
                 systemMessage: "s", userMessage: "u", configuration: copilotConfiguration(model: "auto"), token: nil
             )
             Issue.record("expected failure")
-        } catch let error as CopilotCLIError {
-            #expect(error == .failed(exitCode: 1, stderrExcerpt: String(longStderr.prefix(500))))
+        } catch let error as CLIProviderError {
+            #expect(error == .failed(.copilot, exitCode: 1, excerpt: String(longStderr.prefix(500))))
             let message = error.errorDescription ?? ""
             #expect(message.contains("exit code 1"))
             #expect(message.contains("not logged in"))
@@ -197,15 +217,15 @@ struct CopilotCLITests {
     }
 
     @Test func failureWithoutLoginHintHasNoLoginAdvice() {
-        let message = CopilotCLIError.failed(exitCode: 2, stderrExcerpt: "Unknown model").errorDescription ?? ""
+        let message = CLIProviderError.failed(.copilot, exitCode: 2, excerpt: "Unknown model").errorDescription ?? ""
         #expect(message.contains("Unknown model"))
         #expect(!message.contains("log in"))
     }
 
     @Test func emptyStdoutMapsToEmptyOutput() async {
-        let fake = FakeRunner { _ in CopilotCLIRunResult(exitCode: 0, stdout: " \n", stderr: "") }
-        let client = CopilotCLIClient(runner: fake.runner, locator: locator())
-        await #expect(throws: CopilotCLIError.emptyOutput) {
+        let fake = FakeCLIRunner { _ in CLIRunResult(exitCode: 0, stdout: " \n", stderr: "") }
+        let client = CLIClient(runner: fake.runner, locator: locator())
+        await #expect(throws: CLIProviderError.emptyOutput(.copilot)) {
             _ = try await client.complete(
                 systemMessage: "s", userMessage: "u", configuration: copilotConfiguration(model: "auto"), token: nil
             )
@@ -213,9 +233,9 @@ struct CopilotCLITests {
     }
 
     @Test func timeoutMapsToTimedOut() async {
-        let fake = FakeRunner { _ in CopilotCLIRunResult(exitCode: 15, stdout: "partial", stderr: "", timedOut: true) }
-        let client = CopilotCLIClient(runner: fake.runner, locator: locator())
-        await #expect(throws: CopilotCLIError.timedOut) {
+        let fake = FakeCLIRunner { _ in CLIRunResult(exitCode: 15, stdout: "partial", stderr: "", timedOut: true) }
+        let client = CLIClient(runner: fake.runner, locator: locator())
+        await #expect(throws: CLIProviderError.timedOut(.copilot)) {
             _ = try await client.complete(
                 systemMessage: "s", userMessage: "u", configuration: copilotConfiguration(model: "auto"), token: nil
             )
@@ -224,9 +244,9 @@ struct CopilotCLITests {
 
     @Test func launchErrorMapsToLaunchFailed() async {
         struct Boom: Error, LocalizedError { var errorDescription: String? { "boom" } }
-        let fake = FakeRunner { _ in throw Boom() }
-        let client = CopilotCLIClient(runner: fake.runner, locator: locator())
-        await #expect(throws: CopilotCLIError.launchFailed("boom")) {
+        let fake = FakeCLIRunner { _ in throw Boom() }
+        let client = CLIClient(runner: fake.runner, locator: locator())
+        await #expect(throws: CLIProviderError.launchFailed(.copilot, "boom")) {
             _ = try await client.complete(
                 systemMessage: "s", userMessage: "u", configuration: copilotConfiguration(model: "auto"), token: nil
             )
@@ -236,18 +256,19 @@ struct CopilotCLITests {
     // MARK: - Locating the binary
 
     @Test func missingBinaryMapsToNotInstalled() async {
-        let fake = FakeRunner { _ in CopilotCLIRunResult(exitCode: 1, stdout: "", stderr: "") }
-        let client = CopilotCLIClient(runner: fake.runner, locator: locator(found: []))
+        let fake = FakeCLIRunner { _ in CLIRunResult(exitCode: 1, stdout: "", stderr: "") }
+        let client = CLIClient(runner: fake.runner, locator: locator(found: []))
         var configuration = copilotConfiguration(model: "auto")
         configuration.copilotPath = nil
         do {
             _ = try await client.complete(systemMessage: "s", userMessage: "u", configuration: configuration, token: nil)
             Issue.record("expected notInstalled")
-        } catch let error as CopilotCLIError {
-            guard case .notInstalled(let searched) = error else {
+        } catch let error as CLIProviderError {
+            guard case .notInstalled(.copilot, let searched) = error else {
                 Issue.record("unexpected \(error)")
                 return
             }
+            #expect(searched.contains("/Users/test/.local/bin/copilot"))
             #expect(searched.contains("/opt/homebrew/bin/copilot"))
             #expect(searched.contains("/usr/local/bin/copilot"))
             #expect(error.errorDescription?.contains("npm install -g @github/copilot") == true)
@@ -255,15 +276,15 @@ struct CopilotCLITests {
             Issue.record("unexpected \(error)")
         }
         // Only the login-shell lookup ran; copilot itself never did.
-        #expect(fake.calls.map(\.argv) == [CopilotCLILocator.shellLookupArguments])
+        #expect(fake.calls.map(\.argv) == [CLILocator.shellLookupArguments(for: .copilot)])
         #expect(fake.calls.first?.timeout == 5)
     }
 
     @Test func configuredPathThatDoesNotExistIsNotInstalled() async {
-        let fake = FakeRunner { _ in CopilotCLIRunResult(exitCode: 0, stdout: "/usr/bin/copilot\n", stderr: "") }
-        let client = CopilotCLIClient(runner: fake.runner, locator: locator())
-        await #expect(throws: CopilotCLIError.notInstalled(searched: ["/nowhere/copilot"])) {
-            _ = try await client.locate(configuredPath: "/nowhere/copilot")
+        let fake = FakeCLIRunner { _ in CLIRunResult(exitCode: 0, stdout: "/usr/bin/copilot\n", stderr: "") }
+        let client = CLIClient(runner: fake.runner, locator: locator())
+        await #expect(throws: CLIProviderError.notInstalled(.copilot, searched: ["/nowhere/copilot"])) {
+            _ = try await client.locate(.copilot, configuredPath: "/nowhere/copilot")
         }
         #expect(fake.calls.isEmpty)
     }
@@ -271,49 +292,51 @@ struct CopilotCLITests {
     @Test func searchOrderPrefersHomebrewThenUsrLocalThenNewestNvm() async throws {
         let nvm = "/Users/test/.nvm/versions/node"
         let versions = ["v9.11.2", "v24.16.0", "v24.2.0"]
-        func make(_ found: Set<String>) -> CopilotCLILocator {
-            CopilotCLILocator(
+        func make(_ found: Set<String>) -> CLILocator {
+            CLILocator(
                 homeDirectory: "/Users/test",
                 isExecutable: { found.contains($0) },
                 directoryContents: { $0 == nvm ? versions : [] }
             )
         }
-        let fake = FakeRunner { _ in CopilotCLIRunResult(exitCode: 1, stdout: "", stderr: "") }
+        let fake = FakeCLIRunner { _ in CLIRunResult(exitCode: 1, stdout: "", stderr: "") }
         let allNvm = Set(versions.map { "\(nvm)/\($0)/bin/copilot" })
-        #expect(try await make(allNvm).locate(configuredPath: nil, runner: fake.runner)
+        #expect(try await make(allNvm).locate(.copilot, configuredPath: nil, runner: fake.runner)
                 == "\(nvm)/v24.16.0/bin/copilot")
-        #expect(try await make(allNvm.union(["/usr/local/bin/copilot"])).locate(configuredPath: nil, runner: fake.runner)
+        #expect(try await make(allNvm.union(["/usr/local/bin/copilot"])).locate(.copilot, configuredPath: nil, runner: fake.runner)
                 == "/usr/local/bin/copilot")
         #expect(try await make(allNvm.union(["/usr/local/bin/copilot", "/opt/homebrew/bin/copilot"]))
-                    .locate(configuredPath: nil, runner: fake.runner) == "/opt/homebrew/bin/copilot")
+                    .locate(.copilot, configuredPath: nil, runner: fake.runner) == "/opt/homebrew/bin/copilot")
         #expect(fake.calls.isEmpty)
-        #expect(make(allNvm).knownInstallation() == "\(nvm)/v24.16.0/bin/copilot")
+        #expect(make(allNvm).knownInstallation(for: .copilot) == "\(nvm)/v24.16.0/bin/copilot")
     }
 
     @Test func loginShellLookupIsTheLastResort() async throws {
-        let fake = FakeRunner { _ in
-            CopilotCLIRunResult(exitCode: 0, stdout: "welcome banner\n/opt/tools/copilot\n", stderr: "")
+        let fake = FakeCLIRunner { _ in
+            CLIRunResult(exitCode: 0, stdout: "welcome banner\n/opt/tools/copilot\n", stderr: "")
         }
-        let found = try await locator(found: ["/opt/tools/copilot"]).locate(configuredPath: nil, runner: fake.runner)
+        let found = try await locator(found: ["/opt/tools/copilot"]).locate(.copilot, configuredPath: nil, runner: fake.runner)
         #expect(found == "/opt/tools/copilot")
     }
 
     @Test func checkInstallationReportsPathAndVersion() async throws {
-        let fake = FakeRunner { argv in
+        let fake = FakeCLIRunner { argv in
             #expect(argv == [copilotPath, "--version"])
-            return CopilotCLIRunResult(exitCode: 0, stdout: "1.0.78\n", stderr: "")
+            return CLIRunResult(exitCode: 0, stdout: "1.0.78\n", stderr: "")
         }
-        let pipeline = NotesPipeline(copilotClient: CopilotCLIClient(runner: fake.runner, locator: locator()))
+        let pipeline = NotesPipeline(cliClient: CLIClient(runner: fake.runner, locator: locator()))
         let installation = try await pipeline.checkInstallation(configuration: copilotConfiguration(model: "auto"))
-        #expect(installation == CopilotInstallation(path: copilotPath, version: "1.0.78"))
+        #expect(installation == CLIInstallation(tool: .copilot, path: copilotPath, version: "1.0.78"))
+        // Copilot has no login status command; only `--version` ran.
+        #expect(fake.calls.count == 1)
     }
 
     // MARK: - Routing
 
     @Test func pipelineRoutesCopilotPresetToTheCLIAndOthersToHTTP() async throws {
-        let fake = FakeRunner { _ in CopilotCLIRunResult(exitCode: 0, stdout: launchNotes, stderr: "") }
+        let fake = FakeCLIRunner { _ in CLIRunResult(exitCode: 0, stdout: launchNotes, stderr: "") }
         let http = RecordingChatClient()
-        let pipeline = NotesPipeline(client: http, copilotClient: CopilotCLIClient(runner: fake.runner, locator: locator()))
+        let pipeline = NotesPipeline(client: http, cliClient: CLIClient(runner: fake.runner, locator: locator()))
 
         _ = try await pipeline.generate(
             srtText: copilotSRT, languageCode: "en", template: .generalMeeting,
@@ -322,7 +345,8 @@ struct CopilotCLITests {
         #expect(fake.calls.count == 1)
         #expect(await http.count == 0)
 
-        var openAI = AIProviderConfiguration(preset: .openAI)
+        var openAI = AIProviderConfiguration(preset: .azureOpenAI)
+        openAI.baseURL = "https://example.test/chat/completions"
         openAI.copilotPath = copilotPath
         _ = try await pipeline.generate(
             srtText: copilotSRT, languageCode: "en", template: .generalMeeting,
@@ -330,12 +354,12 @@ struct CopilotCLITests {
         )
         #expect(fake.calls.count == 1)
         #expect(await http.count == 1)
-        #expect(pipeline.client(for: AIProviderConfiguration(preset: .copilotCLI)) is CopilotCLIClient)
+        #expect(pipeline.client(for: AIProviderConfiguration(preset: .copilotCLI)) is CLIClient)
         #expect(pipeline.client(for: openAI) is RecordingChatClient)
     }
 }
 
-private actor RecordingChatClient: ChatCompleting {
+actor RecordingChatClient: ChatCompleting {
     private(set) var count = 0
 
     func complete(

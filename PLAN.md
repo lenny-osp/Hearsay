@@ -32,7 +32,7 @@ output rule ported here.
 | Output folder | Default `~/Documents/Hearsay`, user-configurable in Settings. Decided 2026-09-28. |
 | Languages | Added 2026-09-28 (owner request): Auto, EN, ZH, DE, ES. Auto is the picker default for new users. Detection only compares the four supported languages (probabilities renormalized over them), skips silent windows (below about -60 dBFS, or no-speech probability above 0.6; the turbo model's no-speech probability alone never flags silence, measured 2026-09-28), averages the restricted probabilities of up to three speech windows, and locks the language once per session. Below the confidence threshold it uses the **preferred language** from Settings > General (default English, owner choice; never changed automatically by what the user picks elsewhere) and says so, with one-click re-run in another language. When the user picked a language and detection is confident it is a different one, a banner offers to re-run in the detected language; nothing switches automatically. Meeting notes default to the transcript language; the confirm sheet can pick another of the four for that run only (added 2026-09-28, owner request). History SRTs with no stored language default to the language NaturalLanguage detects in the text (probability at least 0.6), else the language choice or preferred language. Mixed-language (code-switching) meetings are out of scope. |
 | v1 extras | Global hotkey, pause/resume, Sparkle auto-updates, crash recovery of an unfinished recording, custom prompt templates, and a setting that decides whether the WAV is kept at all. Decided 2026-09-28. |
-| AI notes | Direct HTTPS to any OpenAI-compatible `/chat/completions` endpoint. Same JSON contract as the Python tool. Copilot CLI is dropped. GitHub Models was shut down on 2026-07-30 (the Python tool handles its HTTP 410), so there is no GitHub preset; users bring an OpenAI, Anthropic, Azure, Ollama, or custom endpoint. Decided 2026-09-28, corrected after the first live run. |
+| AI notes | Direct HTTPS to any OpenAI-compatible `/chat/completions` endpoint. Same JSON contract as the Python tool. Providers (2026-09-28, after the first live runs): GitHub Copilot CLI, Claude Code CLI, and Codex CLI use the owner's subscription logins (no API keys, no temperature); Azure OpenAI, Ollama, and Custom are HTTP. GitHub Models was shut down on 2026-07-30, and the OpenAI and Anthropic API presets were replaced by the two CLIs. |
 | Window mode | User setting: "Menu bar and Dock", "Menu bar only", "Dock only". Switched at runtime with `NSApp.setActivationPolicy`. |
 | Platform floor | macOS 14 Sonoma, Apple Silicon only (MLX requirement). Intel is out of scope. |
 | Sandbox | **Off** since 2026-09-28 (owner decision after the first live run). Needed so the app can run the GitHub Copilot CLI as a child process, exactly like the Python tool. Hardened runtime stays on; Developer ID + notarization is the distribution path. Mac App Store is out. |
@@ -116,7 +116,7 @@ Hearsay/                      this repo
         PromptTemplate.swift         user templates, built-in "General meeting"
         ChatCompletionsClient.swift  OpenAI-compatible POST, error mapping
         NotesResponse.swift          parse + validate {filename, markdown, transcript_markdown}
-        ProviderPresets.swift        OpenAI, Azure, Anthropic compat, Ollama, custom
+        ProviderPresets.swift        Copilot/Claude Code/Codex CLIs, Azure, Ollama, custom
       Naming/
         FilenameSanitizer.swift      port of sanitize_ai_filename
         MeetingNameInserter.swift    port of insert_meeting_name
@@ -378,12 +378,12 @@ alignment heads), beam search.
 
 | Preset | Base URL | Notes |
 |---|---|---|
-| GitHub Copilot CLI | runs the installed `copilot` binary with `--prompt … --silent --output-format text`, same argv as the Python tool; uses the CLI's own login; default preset when the binary is found | needs the sandbox off |
-| OpenAI | `https://api.openai.com/v1/chat/completions` | |
+| GitHub Copilot CLI | runs the installed `copilot` binary with the Python tool's argv; default `gpt-5.6-luna`, effort max | uses the CLI's own login |
+| Claude Code CLI | `claude --print` with no tools, no user settings, no session persistence; default `claude-sonnet-5`, effort high (owner choice 2026-09-28) | Claude subscription login; no temperature |
+| Codex CLI | `codex exec --sandbox read-only --ephemeral --ignore-user-config`, reply read from `--output-last-message`; default `gpt-6-luna`, effort max (owner choice 2026-09-28) | ChatGPT subscription login; no temperature |
 | Azure OpenAI | user-entered deployment URL | `api-key` header instead of Bearer |
-| Anthropic (OpenAI compat) | `https://api.anthropic.com/v1/chat/completions` | `claude-sonnet-5` default |
-| Ollama / LM Studio | `http://localhost:11434/v1/chat/completions` | local, no token; sandbox needs `network.client` |
-| Custom | any URL | header name selectable |
+| Ollama / LM Studio | `http://localhost:11434/v1/chat/completions` | local, no token |
+| Custom | any OpenAI-compatible URL | header name selectable |
 
 Fields per provider: base URL, model, token (Keychain), reasoning effort
 (optional, omitted when empty), extra headers. "Test connection" button sends
@@ -558,8 +558,8 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
 ## 17. Polish list (found during review, not yet scheduled)
 
 - Unit tests that use `UserDefaults(suiteName:)` leave a plist per test in
-  `~/Library/Preferences` (1,341 removed by hand on 2026-09-28). Tests must
-  call `removePersistentDomain(forName:)` and delete the file in teardown.
+  `~/Library/Preferences` (1,341 removed by hand on 2026-09-28). Use `ScratchDefaults` in tests;
+  AppSettingsTests, AudioTests, and ModelStoreTests still need switching.
 - The old sandbox container `~/Library/Containers/tw.og1o.hearsay/` still
   exists, so the `defaults` command reads its stale copy of the settings,
   not the app's real `~/Library/Preferences/tw.og1o.hearsay.plist`. Use
@@ -593,8 +593,6 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
 - `NSAlert` for quit is modal; a SwiftUI confirmation would fit better.
 - Stale sandbox comments in `RecordingSpool.swift` line 14 and
   `HotkeyManager.swift` line 7.
-- Confirm sheet shows "(none set)" for an empty Copilot model although
-  gpt-5.6-luna is used.
 - Data left by the sandboxed builds was moved by hand on 2026-09-28 from
   `~/Library/Containers/tw.og1o.hearsay/` to `~/Library/Application
   Support/Hearsay/` and `defaults`; no in-app migration exists.

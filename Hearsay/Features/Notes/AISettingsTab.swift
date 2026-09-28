@@ -3,9 +3,10 @@ import SwiftUI
 
 /// Settings > AI (PLAN.md sections 7 and 8): provider preset, endpoint,
 /// model, reasoning effort, temperature, token (Keychain), extra headers, the ask-before-
-/// sending switch, a connection test, and the prompt templates. The GitHub
-/// Copilot CLI preset shows the binary path, model, and reasoning effort
-/// instead, plus "Check Copilot".
+/// sending switch, a connection test, and the prompt templates. The CLI
+/// presets (GitHub Copilot, Claude Code, Codex) show the binary path, model,
+/// and reasoning effort instead, plus "Check <tool>"; none of the CLIs takes
+/// a temperature, so that field is only shown for HTTP presets.
 struct AISettingsTab: View {
     @Environment(AIProviderStore.self) private var store
 
@@ -15,13 +16,13 @@ struct AISettingsTab: View {
     @State private var testState: TestState = .idle
     @State private var editingTemplate: PromptTemplate?
     @State private var selectedTemplateID: UUID?
-    @State private var detectedCopilotPath: String?
-    @State private var copilotCheck: CopilotCheck = .idle
+    @State private var detectedCLIPath: String?
+    @State private var cliCheck: CLICheck = .idle
 
-    private enum CopilotCheck: Equatable {
+    private enum CLICheck: Equatable {
         case idle
         case running
-        case found(path: String, version: String)
+        case found(CLIInstallation)
         case failed(String)
     }
 
@@ -42,8 +43,8 @@ struct AISettingsTab: View {
                         Text(preset.name).tag(preset.id)
                     }
                 }
-                if preset.kind == .copilotCLI {
-                    copilotFields
+                if let tool = preset.kind.cliTool {
+                    cliFields(tool)
                 } else {
                     httpFields
                 }
@@ -76,14 +77,15 @@ struct AISettingsTab: View {
         .formStyle(.grouped)
         .onAppear {
             loadHeaders()
-            detectCopilot()
+            detectCLI()
         }
         .onChange(of: store.configuration.presetID) {
             tokenInput = ""
             tokenError = nil
             testState = .idle
-            copilotCheck = .idle
-            detectCopilot()
+            cliCheck = .idle
+            detectedCLIPath = nil
+            detectCLI()
         }
         .sheet(item: $editingTemplate) { template in
             TemplateEditorSheet(template: template) { edited in
@@ -102,36 +104,56 @@ struct AISettingsTab: View {
 
     // MARK: - Provider fields
 
-    @ViewBuilder private var copilotFields: some View {
+    @ViewBuilder private func cliFields(_ tool: CLITool) -> some View {
         @Bindable var store = store
-        TextField("Copilot CLI path:", text: copilotPathBinding,
-                  prompt: Text(detectedCopilotPath ?? "not found; enter the path to copilot"))
+        let preset = store.configuration.preset
+        TextField("\(tool.shortName) CLI path:", text: cliPathBinding(tool),
+                  prompt: Text(detectedCLIPath ?? "not found; enter the path to \(tool.binaryName)"))
         TextField("Model:", text: $store.configuration.model,
-                  prompt: Text(ProviderPreset.defaultOpenAIModel))
-        TextField("Reasoning effort:", text: reasoningBinding,
-                  prompt: Text(ProviderPreset.defaultReasoningEffort))
-        HStack {
-            Button("Check Copilot", action: checkCopilot)
-                .disabled(copilotCheck == .running)
-            switch copilotCheck {
+                  prompt: Text(tool == .copilot ? ProviderPreset.defaultOpenAIModel : "CLI default"))
+        if preset.supportsReasoningEffort {
+            TextField("Reasoning effort:", text: reasoningBinding,
+                      prompt: Text(tool == .copilot ? ProviderPreset.defaultReasoningEffort : "CLI default"))
+        }
+        HStack(alignment: .firstTextBaseline) {
+            Button("Check \(tool.shortName)", action: checkCLI)
+                .disabled(cliCheck == .running)
+            switch cliCheck {
             case .idle:
                 EmptyView()
             case .running:
                 ProgressView().controlSize(.small)
-            case let .found(path, version):
-                Text("\(version) at \(path)")
-                    .foregroundStyle(.green)
-                    .lineLimit(2)
-                    .truncationMode(.middle)
-                    .textSelection(.enabled)
+            case .found(let installation):
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(installation.version) at \(installation.path)")
+                        .foregroundStyle(.green)
+                        .lineLimit(2)
+                        .truncationMode(.middle)
+                    if let status = installation.loginStatus {
+                        Text(status)
+                            .foregroundStyle(installation.loggedIn == false ? Color.red : Color.green)
+                    }
+                }
+                .textSelection(.enabled)
             case .failed(let message):
                 Text(message).foregroundStyle(.red).textSelection(.enabled)
             }
         }
-        Text("Uses the Copilot CLI installed on this Mac and its own login. Run `copilot` once in Terminal to log in. \"auto\" lets Copilot pick the model.")
+        Text(cliCaption(tool))
             .font(.caption)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func cliCaption(_ tool: CLITool) -> String {
+        switch tool {
+        case .copilot:
+            "Uses the Copilot CLI installed on this Mac and its own login. Run `copilot` once in Terminal to log in. \"auto\" lets Copilot pick the model."
+        case .claudeCode:
+            "Uses Claude Code installed on this Mac and your Claude subscription login; requests count against its usage limits. Run `claude` once in Terminal to log in. Model: an alias (sonnet, opus) or a full id. Effort: low, medium, high, xhigh, or max (none and minimal become low)."
+        case .codex:
+            "Uses Codex installed on this Mac and your ChatGPT login; requests count against your plan's usage limits. Run `codex login` once in Terminal to log in. Effort: none, minimal, low, medium, high, xhigh, or max. An empty model uses Codex's default."
+        }
     }
 
     @ViewBuilder private var httpFields: some View {
@@ -142,9 +164,11 @@ struct AISettingsTab: View {
         TextField("Model:", text: $store.configuration.model)
         TextField("Reasoning effort:", text: reasoningBinding, prompt: Text("omitted when empty"))
             .disabled(!preset.supportsReasoningEffort)
-        TextField("Temperature:", value: $store.configuration.temperature,
-                  format: .number.precision(.fractionLength(0...2)),
-                  prompt: Text("omitted when empty"))
+        if preset.supportsTemperature {
+            TextField("Temperature:", value: $store.configuration.temperature,
+                      format: .number.precision(.fractionLength(0...2)),
+                      prompt: Text("omitted when empty"))
+        }
         if preset.id == ProviderPreset.custom.id {
             Picker("Token header:", selection: $store.configuration.auth) {
                 ForEach(AuthHeaderStyle.allCases, id: \.self) { style in
@@ -241,13 +265,13 @@ struct AISettingsTab: View {
         )
     }
 
-    private var copilotPathBinding: Binding<String> {
+    private func cliPathBinding(_ tool: CLITool) -> Binding<String> {
         Binding(
-            get: { store.configuration.copilotPath ?? "" },
+            get: { store.configuration.cliPath(for: tool) ?? "" },
             set: { value in
                 let trimmed = value.trimmingCharacters(in: .whitespaces)
-                store.configuration.copilotPath = trimmed.isEmpty ? nil : value
-                copilotCheck = .idle
+                store.configuration.setCLIPath(trimmed.isEmpty ? nil : value, for: tool)
+                cliCheck = .idle
             }
         )
     }
@@ -329,25 +353,28 @@ struct AISettingsTab: View {
 }
 
 extension AISettingsTab {
-    // MARK: - Copilot CLI
+    // MARK: - CLI presets
 
     /// Fills the path placeholder with the auto-detected binary.
-    fileprivate func detectCopilot() {
-        guard store.configuration.preset.kind == .copilotCLI else { return }
+    fileprivate func detectCLI() {
+        guard let tool = store.configuration.preset.kind.cliTool else { return }
         Task {
-            detectedCopilotPath = try? await CopilotCLIClient().locate(configuredPath: nil)
+            let path = try? await CLIClient().locate(tool, configuredPath: nil)
+            if store.configuration.preset.kind.cliTool == tool { detectedCLIPath = path }
         }
     }
 
-    fileprivate func checkCopilot() {
-        copilotCheck = .running
+    /// Runs `--version` and, for Claude Code and Codex, the login status
+    /// command.
+    fileprivate func checkCLI() {
+        cliCheck = .running
         let configuration = store.configuration
         Task {
             do {
                 let installation = try await NotesPipeline().checkInstallation(configuration: configuration)
-                copilotCheck = .found(path: installation.path, version: installation.version)
+                cliCheck = .found(installation)
             } catch {
-                copilotCheck = .failed(NotesFlowViewModel.describe(error))
+                cliCheck = .failed(NotesFlowViewModel.describe(error))
             }
         }
     }
