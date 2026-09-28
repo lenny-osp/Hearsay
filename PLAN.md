@@ -1,6 +1,7 @@
 # Hearsay: native macOS port of whisper-tools
 
-Status: plan, 2026-09-28. Nothing in this folder is built yet.
+Status: Phase 0 spike done 2026-09-28, verdict GO. See section 15 for
+results. `Spike/` holds the throwaway spike; the app itself is not built yet.
 
 Hearsay is a SwiftUI menu-bar/dock app that reproduces the macOS flow of
 `whisper-tools/run_whisper.py` without Python, FFmpeg, or a shell.
@@ -23,7 +24,7 @@ output rule ported here.
 | Topic | Decision |
 |---|---|
 | Language / UI | Swift 6, SwiftUI, AppKit only where SwiftUI has no API (activation policy, CoreAudio device pick). |
-| Inference | MLX via `Blaizzy/mlx-audio-swift`, product `MLXAudioSTT`, class `WhisperModel`. MIT. Pulls in `ml-explore/mlx-swift` and `huggingface/swift-transformers`. |
+| Inference | MLX. The Whisper module of `Blaizzy/mlx-audio-swift` (MIT, 1,526 lines, commit `01dec7c9`) is vendored into `HearsayCore/Whisper/` and its decode loop is replaced with a timestamped decoder ported from `mlx_whisper` 0.4.3. Reason: section 15. Direct dependencies become `ml-explore/mlx-swift` and `huggingface/swift-transformers` only. |
 | Models | Downloaded on demand from Hugging Face `mlx-community/whisper-*` repos into the app's own model directory. User picks the model. Nothing ships inside the bundle. |
 | Audio I/O | AVFoundation. `AVAudioEngine` input tap for the mic, `AVAudioFile` for files. No FFmpeg. |
 | System audio | Captured with ScreenCaptureKit (`SCStream`, audio only) and mixed with the mic, so Zoom/Teams/Meet calls are transcribed, not just the room. Decided 2026-09-28. |
@@ -46,7 +47,12 @@ Tools only**. That is not enough:
    command line cannot do that; the app must be built with Xcode or
    `xcodebuild`.
 2. After install: `sudo xcode-select -s /Applications/Xcode.app` and accept
-   the license once by launching Xcode.
+   the license once by launching Xcode. Done 2026-09-28: Xcode 27.0 (27A266a).
+2b. The Metal compiler is a separate 839 MB component:
+   `xcodebuild -downloadComponent MetalToolchain`. Done 2026-09-28.
+2c. Every `xcodebuild` invocation needs `-skipPackagePluginValidation
+   -skipMacroValidation`, because `mlx-swift` ships a build plugin that
+   Xcode otherwise refuses to run from the command line.
 3. Apple Developer account for signing and notarization (a free account
    builds and runs locally; Developer ID needs the paid one).
 4. A short test WAV (16 kHz mono, 30 to 60 s, English and one Chinese) in
@@ -288,26 +294,36 @@ for pre-releases.
 
 ## 5. Model catalog and download
 
-Built-in `ModelCatalog.json`, editable later without a code change:
+Built-in `ModelCatalog.json`, editable later without a code change. Every
+entry below was checked against the Hugging Face API on 2026-09-28 and ships
+`config.json` plus one `.safetensors` file in the mlx-whisper layout:
 
-| id (HF repo) | Size on disk | Speed | Note |
-|---|---|---|---|
-| `mlx-community/whisper-tiny-mlx` | ~75 MB | fastest | quick test, low accuracy |
-| `mlx-community/whisper-base-mlx` | ~145 MB | | |
-| `mlx-community/whisper-small-mlx` | ~480 MB | | |
-| `mlx-community/whisper-medium-mlx` | ~1.5 GB | | |
-| `mlx-community/whisper-large-v3-turbo` | 1.61 GB | fast | recommended default |
-| `mlx-community/whisper-large-v3-turbo-4bit` | ~460 MB | fast | small, slight accuracy loss |
-| `mlx-community/whisper-large-v3-fp16` | ~3.1 GB | slowest | closest to the Python tool's model |
+| id (HF repo) | Download | Note |
+|---|---|---|
+| `mlx-community/whisper-tiny-fp16` | 74 MB | smoke test, low accuracy |
+| `mlx-community/whisper-base-fp16` | 143 MB | |
+| `mlx-community/whisper-small-fp16` | 481 MB | |
+| `mlx-community/whisper-small-4bit` | 139 MB | |
+| `mlx-community/whisper-medium-fp16` | 1.52 GB | |
+| `mlx-community/whisper-large-v3-turbo` | 1.61 GB | recommended default |
+| `mlx-community/whisper-large-v3-turbo-8bit` | 863 MB | |
+| `mlx-community/whisper-large-v3-turbo-4bit` | 463 MB | smallest good option |
+| `mlx-community/whisper-large-v3-fp16` | 3.08 GB | same weights as the Python tool's model |
+| `mlx-community/whisper-large-v3-8bit` | 1.64 GB | |
+| `mlx-community/whisper-large-v3-4bit` | 877 MB | |
+
+The tokenizer is not in these repos. Seven small files (about 4 MB) come
+from `openai/whisper-large-v3` (`tokenizer.json`, `tokenizer_config.json`,
+`generation_config.json`, `vocab.json`, `merges.txt`, `added_tokens.json`,
+`special_tokens_map.json`) and are stored once, shared by every model.
 
 Catalog entry fields: `repo`, `displayName`, `sizeBytes`, `files[]`,
 `quantization`, `multilingual`, `recommended`.
 
-**npz caveat.** The Python default `mlx-community/whisper-large-v3-mlx`
-ships `weights.npz`. `mlx-swift` loads `.safetensors` and `.npy`, not
-`.npz`. So the catalog lists only safetensors repos. The Phase 0 spike must
-confirm each listed repo's file layout before it goes in the JSON; the sizes
-above for tiny/base/small/medium are estimates to verify.
+**npz caveat, confirmed.** `mlx-community/whisper-{tiny,base,small,medium,
+large-v3}-mlx` (the Python default among them) ship `weights.npz`, which
+`mlx-swift` cannot load. They are excluded. The `-fp16`, `-4bit`, and
+`-8bit` variants carry the same weights as safetensors.
 
 Download design:
 
@@ -328,25 +344,29 @@ Download design:
 - First launch with no model: onboarding step that recommends
   `whisper-large-v3-turbo` and starts the download on one click.
 
-Loading: after download, `WhisperModel.fromPretrained` is pointed at the
-local directory. The spike must confirm `mlx-audio-swift` accepts a local
-path or a custom HF cache directory; if it only accepts repo IDs and its own
-cache, set `HF_HOME`-equivalent to our folder or vendor its loader.
+Loading: `WhisperModel.fromDirectory(URL)` accepts any local folder that
+holds `config.json`, a `.safetensors` file, and `tokenizer.json`. Confirmed
+in the spike. Quantized configs (`quantization` key in `config.json`) load
+through the same path.
 
 ## 6. Whisper option parity
 
-Python passes these to `mlx_whisper`:
+The vendored decoder ports these from `mlx_whisper` 0.4.3
+(`transcribe.py`, `decoding.py`); the upstream Swift module has none of
+them:
 
-| Python | Hearsay |
+| Python | Hearsay decoder |
 |---|---|
-| `--condition-on-previous-text False` | `STTGenerateParameters` if exposed; otherwise post-filter repeated segments. Verify in spike. |
-| `--hallucination-silence-threshold 2.0` | Same: use if exposed; else drop segments whose span overlaps a >2 s silence detected by the level meter. |
-| `--language en\|zh` | Supported. |
-| `--initial-prompt` for zh | Supported if the API exposes a prompt/prefix; otherwise document the gap. |
+| timestamp tokens, one cue per sentence | port the timestamp rules from `decoding.py` (`ApplyTimestampRules`) and segment splitting from `transcribe.py`; seek by the last timestamp instead of fixed 30 s windows |
+| `--condition-on-previous-text False` | supported; default off, like the Python tool |
+| `--hallucination-silence-threshold 2.0` | port from `transcribe.py`; needs word timestamps only for the strict version, the segment-level version is enough for v1 |
+| `--language en\|zh` | supported |
+| `--initial-prompt` for zh | `<\|startofprev\|>` prompt tokens, port from `decoding.py` |
+| temperature fallback on compression ratio / logprob | port; it is what stops repeated-phrase loops |
+| no-speech threshold | port; skips silent windows |
 
-`mlx-audio-swift` Whisper works on 30 s windows and joins chunks with
-spaces. Segment timestamps from each chunk are offset by chunk start when
-building the SRT.
+Not ported in v1: word-level timestamps (`timing.py`, needs cross-attention
+alignment heads), beam search.
 
 ## 7. AI provider presets
 
@@ -403,15 +423,16 @@ weekends counted as half days.
 
 | Phase | Deliverable | Estimate |
 |---|---|---|
-| 0. Spike | Xcode installed. Empty app links `MLXAudioSTT`, loads a downloaded turbo model from a local folder, transcribes a fixture WAV, prints segments with timestamps. Measure load time and real-time factor. Confirm the four items marked "verify" above. Go/no-go. | 2 to 3 days |
+| 0. Spike | Done 2026-09-28, section 15. | done |
 | 1. Skeleton | Project layout from section 3, `HearsayCore` package with tests running, `AppState`, Settings window, window-mode switching working, menu bar item with static content. | 2 to 3 days |
 | 2. Models | Catalog, downloader with resume and progress, model manager UI, first-launch onboarding, loading into `WhisperEngine`. | 3 to 4 days |
 | 3. Audio | Device list, mic recorder, system audio recorder, mixer, level meters, spooled WAV writer, keep/delete setting, pause/resume, global hotkeys, crash recovery, silence warning, permission flows, menu bar live state. | 8 to 10 days |
-| 4. Transcription | SRT writer, live chunk preview, final full pass, File mode with drag and drop, failure path to File mode, timestamp rules. | 5 to 7 days |
+| 4a. Decoder | Vendor the Whisper module, replace the decode loop with the timestamped port of `mlx_whisper` (section 6), tests against the Python SRT of `Fixtures/en-30s.wav`. | 5 to 7 days |
+| 4b. Transcription | SRT writer, live chunk preview, final full pass, File mode with drag and drop, failure path to File mode, timestamp rules. | 4 to 5 days |
 | 5. Notes | Prompt port, prompt templates, client, presets, Keychain, confirm sheet with template picker, naming sheet, `OutputWriter` with all collision and rollback rules, manual-naming path. Port every relevant Python test. | 5 to 6 days |
 | 6. Ship | History view, error copy review, app icon, Sparkle + appcast, signing, notarization, DMG script, README, update both quick-start guides to mention Hearsay. | 5 to 6 days |
 
-Total: about 7 to 8 weeks of calendar time.
+Total: about 8 to 9 weeks of calendar time.
 
 ## 11. Testing
 
@@ -430,9 +451,8 @@ Total: about 7 to 8 weeks of calendar time.
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| `mlx-audio-swift` is pre-1.0 on `main` | API churn breaks the build | Pin to a commit. Keep `WhisperEngine` as the only file that imports it. |
-| Local-path model loading not supported by the library | Cannot use our own download manager | Spike item. Fallback: vendor the Whisper loader (it is a few files) into `HearsayCore`. |
-| Whisper options (initial prompt, hallucination threshold) not exposed | ZH quality differs from the CLI | Spike item. Post-processing fallback in section 6. Contribute upstream. |
+| Vendored Whisper module drifts from upstream | Miss upstream fixes | Record the source commit in the file headers; diff against upstream every few months. |
+| Timestamped decoder port has subtle bugs | Cues drift or overlap | Compare against the Python SRT for every fixture in tests; keep the Python CLI installed as the oracle. |
 | Memory: large-v3 fp16 needs ~4 GB unified memory while loaded | 8 GB Macs struggle | Recommend turbo; unload model after 10 min idle. |
 | Full Xcode needed | Blocks day one | Section 2, step 1. |
 | Sandbox blocks Copilot CLI | Users of the Copilot path lose it | Documented; presets cover GitHub Models with the same PAT. |
@@ -465,3 +485,42 @@ Not planned:
 Resolved 2026-09-28: output folder defaults to `~/Documents/Hearsay`
 (configurable); Copilot CLI is dropped in favor of the GitHub Models
 preset; system audio capture and live preview are both in v1.
+
+## 15. Phase 0 spike results (2026-09-28)
+
+Setup: `Spike/` Swift package, executable `hearsay-spike`, depends on
+`mlx-audio-swift` at commit `01dec7c9`. Built with `xcodebuild` after
+installing the Metal Toolchain. Fixture: `Fixtures/en-30s.wav`, 18.9 s of
+synthesized English speech. Machine: this Mac, Apple Silicon, macOS 27.0.
+
+| Check | Result |
+|---|---|
+| Build links MLX and compiles Metal kernels | Yes, after `-downloadComponent MetalToolchain` and the two `-skip...Validation` flags |
+| Load a model from our own folder | Yes, `WhisperModel.fromDirectory(URL)` |
+| Quantized model (turbo-4bit, 463 MB) | Loads and transcribes; same text |
+| Library's own HF download path | Works, writes to `~/.cache/huggingface/hub/mlx-audio/` |
+| Model load time, turbo fp16 | 0.3 to 0.5 s |
+| Transcribe 18.9 s, cold | 4.6 s (RTF 0.24) |
+| Transcribe 18.9 s, warm | 1.0 s (RTF 0.05). A 60 min meeting is about 3 to 4 min |
+| Text accuracy vs Python large-v3 | Identical wording |
+| Python baseline, large-v3 fp16, whole run | 7.4 s including model load |
+| Per-sentence timestamps | **No.** One segment per 30 s chunk. The decoder prompts `<\|notimestamps\|>` and masks every timestamp token |
+| Initial prompt, condition-on-previous, hallucination threshold, no-speech, temperature fallback | **Not exposed.** The decode loop is greedy with fixed 30 s windows |
+| Language auto-detect | Runs implicitly but the detected language is not reported |
+
+Decision: vendor the Whisper module and write the decoder ourselves
+(section 1, section 6). The model, layers, weight sanitizing, mel
+spectrogram, and tokenizer wrapper are reused as is. Only
+`transcribeChunk` and the chunking loop are replaced.
+
+Reproduce:
+
+```bash
+cd Spike && xcodebuild -scheme hearsay-spike -destination 'platform=macOS,arch=arm64' \
+  -configuration Release -derivedDataPath .build/derived \
+  -skipPackagePluginValidation -skipMacroValidation build
+cd .. && Spike/.build/derived/Build/Products/Release/hearsay-spike \
+  Spike/models/mlx-community_whisper-large-v3-turbo Fixtures/en-30s.wav en
+```
+
+`Spike/models/` is git-ignored; re-download with the URLs in section 5.
