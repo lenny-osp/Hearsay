@@ -11,8 +11,7 @@ struct MainView: View {
                 .tabItem { Label("File", systemImage: "doc.badge.plus") }
             ModelManagerView()
                 .tabItem { Label("Models", systemImage: "square.and.arrow.down") }
-            placeholder("History", systemImage: "clock",
-                        text: "Past recordings and transcripts will be listed here.")
+            NotesDevView()
                 .tabItem { Label("History", systemImage: "clock") }
         }
         .padding()

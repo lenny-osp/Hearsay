@@ -63,6 +63,7 @@ extension View {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let settings = AppSettings()
+    let aiProviderStore = AIProviderStore()
     lazy var modelStore = ModelStore(settings: settings)
     let windowOpener = MainWindowOpener()
 

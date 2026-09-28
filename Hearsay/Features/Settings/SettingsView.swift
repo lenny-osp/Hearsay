@@ -11,6 +11,8 @@ struct SettingsView: View {
                 .tabItem { Label("Window", systemImage: "macwindow") }
             OutputSettingsView()
                 .tabItem { Label("Output", systemImage: "folder") }
+            AISettingsTab()
+                .tabItem { Label("AI", systemImage: "sparkles") }
         }
         .frame(width: 480, height: 220)
     }

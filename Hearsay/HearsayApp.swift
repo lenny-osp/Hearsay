@@ -15,6 +15,7 @@ struct HearsayApp: App {
             MainView()
                 .environment(appDelegate.settings)
                 .environment(appDelegate.modelStore)
+                .environment(appDelegate.aiProviderStore)
                 .registeringMainWindowOpener(appDelegate.windowOpener)
         }
         .defaultSize(width: 720, height: 480)
@@ -23,6 +24,7 @@ struct HearsayApp: App {
             SettingsView()
                 .environment(appDelegate.settings)
                 .environment(appDelegate.modelStore)
+                .environment(appDelegate.aiProviderStore)
                 .registeringMainWindowOpener(appDelegate.windowOpener)
         }
 
@@ -30,6 +32,7 @@ struct HearsayApp: App {
             MenuBarView()
                 .environment(appDelegate.settings)
                 .environment(appDelegate.modelStore)
+                .environment(appDelegate.aiProviderStore)
                 .environment(appDelegate.windowOpener)
                 .registeringMainWindowOpener(appDelegate.windowOpener)
         }
