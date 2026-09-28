@@ -29,8 +29,7 @@ struct SettingsView: View {
 private struct GeneralSettingsView: View {
     var body: some View {
         Form {
-            Text("Language, input device, model, and AI settings arrive in later phases.")
-                .foregroundStyle(.secondary)
+            HotkeySettingsSection()
         }
         .padding()
     }

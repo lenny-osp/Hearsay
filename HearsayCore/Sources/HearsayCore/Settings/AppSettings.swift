@@ -34,6 +34,8 @@ public final class AppSettings {
         public static let defaultLanguageCode = "defaultLanguageCode"
         public static let activeModelRepo = "activeModelRepo"
         public static let captureSystemAudio = "captureSystemAudio"
+        public static let startStopHotkey = "startStopHotkey"
+        public static let pauseHotkey = "pauseHotkey"
     }
 
     @ObservationIgnored private let defaults: UserDefaults
@@ -77,6 +79,16 @@ public final class AppSettings {
         didSet { defaults.set(captureSystemAudio, forKey: Key.captureSystemAudio) }
     }
 
+    /// Global shortcut that toggles Start / Stop (PLAN.md 4.4). Default ⌃⌥⌘R.
+    public var startStopHotkey: HotkeyBinding {
+        didSet { Self.store(startStopHotkey, forKey: Key.startStopHotkey, in: defaults) }
+    }
+
+    /// Global shortcut that toggles Pause / Resume (PLAN.md 4.4). Default ⌃⌥⌘P.
+    public var pauseHotkey: HotkeyBinding {
+        didSet { Self.store(pauseHotkey, forKey: Key.pauseHotkey, in: defaults) }
+    }
+
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         let rawMode = defaults.string(forKey: Key.windowMode) ?? ""
@@ -85,5 +97,18 @@ public final class AppSettings {
         self.defaultLanguageCode = defaults.string(forKey: Key.defaultLanguageCode) ?? "en"
         self.activeModelRepo = defaults.string(forKey: Key.activeModelRepo)
         self.captureSystemAudio = defaults.object(forKey: Key.captureSystemAudio) as? Bool ?? true
+        self.startStopHotkey = Self.loadHotkey(forKey: Key.startStopHotkey, from: defaults)
+            ?? .defaultStartStop
+        self.pauseHotkey = Self.loadHotkey(forKey: Key.pauseHotkey, from: defaults) ?? .defaultPause
+    }
+
+    private static func loadHotkey(forKey key: String, from defaults: UserDefaults) -> HotkeyBinding? {
+        guard let data = defaults.data(forKey: key) else { return nil }
+        return try? JSONDecoder().decode(HotkeyBinding.self, from: data)
+    }
+
+    private static func store(_ binding: HotkeyBinding, forKey key: String, in defaults: UserDefaults) {
+        guard let data = try? JSONEncoder().encode(binding) else { return }
+        defaults.set(data, forKey: key)
     }
 }

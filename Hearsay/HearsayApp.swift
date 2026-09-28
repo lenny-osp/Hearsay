@@ -16,6 +16,7 @@ struct HearsayApp: App {
                 .environment(appDelegate.settings)
                 .environment(appDelegate.modelStore)
                 .environment(appDelegate.aiProviderStore)
+                .environment(appDelegate.recordingController)
                 .registeringMainWindowOpener(appDelegate.windowOpener)
         }
         .defaultSize(width: 720, height: 480)
@@ -25,16 +26,21 @@ struct HearsayApp: App {
                 .environment(appDelegate.settings)
                 .environment(appDelegate.modelStore)
                 .environment(appDelegate.aiProviderStore)
+                .environment(appDelegate.recordingController)
+                .environment(appDelegate.hotkeyManager)
                 .registeringMainWindowOpener(appDelegate.windowOpener)
         }
 
-        MenuBarExtra("Hearsay", systemImage: "waveform", isInserted: menuBarItemInserted) {
+        MenuBarExtra(isInserted: menuBarItemInserted) {
             MenuBarView()
                 .environment(appDelegate.settings)
                 .environment(appDelegate.modelStore)
                 .environment(appDelegate.aiProviderStore)
+                .environment(appDelegate.recordingController)
                 .environment(appDelegate.windowOpener)
                 .registeringMainWindowOpener(appDelegate.windowOpener)
+        } label: {
+            MenuBarLabel(recording: appDelegate.recordingController)
         }
         .menuBarExtraStyle(.window)
     }

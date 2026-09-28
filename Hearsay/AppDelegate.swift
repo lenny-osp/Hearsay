@@ -59,19 +59,32 @@ extension View {
 
 /// Applies the window mode (PLAN.md 4.4): activation policy on launch and on
 /// every change, hide-instead-of-quit in menu-bar-only mode, and reopening
-/// the main window so the user is never left without an entry point.
+/// the main window so the user is never left without an entry point. Also
+/// owns the app-level recording session and its global hotkeys, and asks
+/// before quitting while a recording is active.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let settings = AppSettings()
     let aiProviderStore = AIProviderStore()
     lazy var modelStore = ModelStore(settings: settings)
     let windowOpener = MainWindowOpener()
+    lazy var recordingController = RecordingController(settings: settings)
+    lazy var hotkeyManager = HotkeyManager(settings: settings) { [weak self] action in
+        guard let recording = self?.recordingController else { return }
+        switch action {
+        case .startStop: recording.toggleStartStop()
+        case .pause: recording.togglePause()
+        }
+    }
 
     private var appliedMode: WindowMode?
+    private var isStoppingForQuit = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         applyWindowMode(settings.windowMode)
         observeWindowMode()
+        recordingController.activate()
+        hotkeyManager.start()
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(windowWillClose(_:)),
@@ -82,6 +95,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
+    }
+
+    // MARK: - Quit while recording
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard recordingController.isSessionActive else { return .terminateNow }
+        // A second Quit while the recording is being saved just waits.
+        guard !isStoppingForQuit else { return .terminateLater }
+
+        NSApp.activate()
+        let alert = NSAlert()
+        alert.messageText = "Stop recording and quit?"
+        alert.informativeText = "The recording is saved before Hearsay quits."
+        alert.addButton(withTitle: "Stop & Quit")
+        alert.addButton(withTitle: "Cancel")
+        guard alert.runModal() == .alertFirstButtonReturn else { return .terminateCancel }
+
+        isStoppingForQuit = true
+        Task { @MainActor in
+            await recordingController.stop()
+            NSApp.reply(toApplicationShouldTerminate: true)
+        }
+        return .terminateLater
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {

@@ -2,13 +2,14 @@ import HearsayCore
 import SwiftUI
 
 /// The Record tab: microphone, system audio, language, controls, level
-/// meters, and the saved recording (PLAN.md 4.1).
+/// meters, and the saved recording (PLAN.md 4.1). The session itself lives
+/// in the app-level `RecordingController`, so this view only reflects it and
+/// closing the window never stops a recording.
 struct RecordView: View {
-    @Environment(AppSettings.self) private var settings
-    @State private var model = RecordViewModel()
+    @Environment(RecordingController.self) private var model
 
     var body: some View {
-        @Bindable var settings = settings
+        @Bindable var model = model
         Form {
             Section {
                 Picker("Microphone", selection: $model.selectedDeviceUID) {
@@ -19,18 +20,18 @@ struct RecordView: View {
                         Text(device.name).tag(Optional(device.uid))
                     }
                 }
-                .disabled(model.isBusy)
+                .disabled(model.isSessionActive)
 
-                Toggle("Also capture system audio", isOn: $settings.captureSystemAudio)
-                    .disabled(model.isBusy)
+                Toggle("Also capture system audio", isOn: $model.captureSystemAudio)
+                    .disabled(model.isSessionActive)
 
-                Picker("Language", selection: $settings.defaultLanguageCode) {
-                    ForEach(RecordViewModel.languages, id: \.code) { language in
+                Picker("Language", selection: $model.languageCode) {
+                    ForEach(RecordingController.languages, id: \.code) { language in
                         Text(language.label).tag(language.code)
                     }
                 }
                 .pickerStyle(.segmented)
-                .disabled(model.isBusy)
+                .disabled(model.isSessionActive)
             }
 
             Section {
@@ -57,7 +58,7 @@ struct RecordView: View {
                             .foregroundStyle(.secondary)
                             .textSelection(.enabled)
                         Spacer()
-                        if model.systemAudioPermissionDenied {
+                        if model.systemAudioDenied {
                             Button("Open System Settings") { model.openScreenCaptureSettings() }
                         }
                     }
@@ -77,7 +78,7 @@ struct RecordView: View {
                 }
             }
 
-            if let saved = model.savedRecording {
+            if let saved = model.finishedRecording {
                 Section("Saved recording") {
                     Text(saved.path)
                         .textSelection(.enabled)
@@ -113,15 +114,17 @@ struct RecordView: View {
     @ViewBuilder
     private var statusLabel: some View {
         switch model.phase {
-        case .idle:
+        case .idle, .failed:
             Text("Ready").foregroundStyle(.secondary)
+        case .finished:
+            Text("Saved").foregroundStyle(.secondary)
         case .starting:
             Text("Starting…").foregroundStyle(.secondary)
         case .recording:
             Label("Recording", systemImage: "record.circle.fill").foregroundStyle(.red)
         case .paused:
             Label("Paused", systemImage: "pause.circle.fill").foregroundStyle(.secondary)
-        case .saving:
+        case .stopping:
             Text("Saving…").foregroundStyle(.secondary)
         }
     }
@@ -130,21 +133,19 @@ struct RecordView: View {
     private var controls: some View {
         HStack {
             switch model.phase {
-            case .idle, .starting:
-                Button("Start", systemImage: "record.circle") {
-                    Task { await model.start(settings: settings) }
-                }
+            case .idle, .starting, .finished, .failed:
+                Button("Start", systemImage: "record.circle") { model.start() }
                 .keyboardShortcut(.defaultAction)
                 .disabled(model.phase == .starting)
             case .recording:
                 Button("Pause", systemImage: "pause.fill") { model.pause() }
-                Button("Stop", systemImage: "stop.fill") { model.stop() }
+                Button("Stop", systemImage: "stop.fill") { Task { await model.stop() } }
                     .keyboardShortcut(.defaultAction)
             case .paused:
                 Button("Resume", systemImage: "play.fill") { model.resume() }
-                Button("Stop", systemImage: "stop.fill") { model.stop() }
+                Button("Stop", systemImage: "stop.fill") { Task { await model.stop() } }
                     .keyboardShortcut(.defaultAction)
-            case .saving:
+            case .stopping:
                 ProgressView().controlSize(.small)
             }
             Spacer()
@@ -154,5 +155,5 @@ struct RecordView: View {
 
 #Preview {
     RecordView()
-        .environment(AppSettings())
+        .environment(RecordingController(settings: AppSettings()))
 }

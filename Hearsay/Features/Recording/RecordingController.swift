@@ -3,34 +3,45 @@ import AVFoundation
 import HearsayCore
 import Observation
 
-/// Drives the Record tab (PLAN.md 4.1): device and language choice, the
-/// system audio toggle, Start / Pause / Resume / Stop, the level meters, and
-/// moving the finished spool WAV into the output folder.
+/// Owns the one recording session the app can run at a time (PLAN.md 4.1,
+/// 4.4). It lives in `AppDelegate`, not in a view, so closing the main
+/// window never stops a recording; the Record tab, the menu bar extra, the
+/// global hotkeys, and the quit prompt all drive this same object.
 ///
 /// The microphone and, when enabled and permitted, the system audio run
-/// through `AudioMixer`; the mixed stream feeds the WAV and the main meter,
-/// and each source's level feeds its small meter. A missing screen-capture
-/// permission never blocks a recording: it goes on mic-only with a notice.
+/// through `AudioMixer`; the mixed stream feeds the spool WAV and the main
+/// meter, and each source's level feeds its small meter. A missing
+/// screen-capture permission never blocks a recording: it goes on mic-only
+/// with a notice.
 ///
 /// Elapsed time is derived from the number of samples written, so paused
 /// time never counts and the display matches the WAV exactly.
 @MainActor
 @Observable
-final class RecordViewModel {
+final class RecordingController {
     enum Phase: Equatable {
         case idle
         case starting
         case recording
         case paused
-        case saving
+        case stopping
+        /// The last recording was saved at `url` without problems.
+        case finished(url: URL)
+        /// The last recording or the last start attempt had a problem. Any
+        /// audio that was captured is still at `finishedRecording`.
+        case failed(message: String)
     }
 
     /// Codes match whisper-tools `MEETING_NOTE_LANGUAGES`.
     static let languages: [(code: String, label: String)] = [("en", "EN"), ("zh", "ZH")]
 
+    static let screenCaptureSettingsURL = URL(
+        string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
+    )
+
+    private(set) var phase: Phase = .idle
     private(set) var devices: [AudioInputDevice] = []
     var selectedDeviceUID: String?
-    private(set) var phase: Phase = .idle
     private(set) var elapsed: TimeInterval = 0
     private(set) var levelFraction: Double = 0
     private(set) var micLevelFraction: Double = 0
@@ -40,12 +51,12 @@ final class RecordViewModel {
     private(set) var systemAudioNotice: String?
     /// The notice is about the Screen & System Audio Recording permission,
     /// so the badge offers to open System Settings.
-    private(set) var systemAudioPermissionDenied = false
+    private(set) var systemAudioDenied = false
     private(set) var silenceWarning: String?
-    private(set) var errorMessage: String?
-    /// Where the last recording ended up.
-    private(set) var savedRecording: URL?
+    /// Where the last recording ended up, also after a failure.
+    private(set) var finishedRecording: URL?
 
+    @ObservationIgnored private let settings: AppSettings
     @ObservationIgnored private let spool: RecordingSpool
     @ObservationIgnored private var recorder: MicrophoneRecorder?
     @ObservationIgnored private var systemRecorder: SystemAudioRecorder?
@@ -53,23 +64,54 @@ final class RecordViewModel {
     @ObservationIgnored private var writeError: Error?
     @ObservationIgnored private var meter = LevelMeter()
     @ObservationIgnored private var sampleCount = 0
+    @ObservationIgnored private var startTask: Task<Void, Never>?
     @ObservationIgnored private var consumer: Task<Void, Never>?
-    @ObservationIgnored private var settings: AppSettings?
+    @ObservationIgnored private var stopRequestedWhileStarting = false
     @ObservationIgnored private var deviceObservation: AudioDeviceListObservation?
     @ObservationIgnored private var engineObservation: NotificationToken?
 
-    init(spool: RecordingSpool = RecordingSpool()) {
+    init(settings: AppSettings, spool: RecordingSpool = RecordingSpool()) {
+        self.settings = settings
         self.spool = spool
     }
 
-    var isBusy: Bool { phase != .idle }
+    // MARK: - State
 
-    static let screenCaptureSettingsURL = URL(
-        string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
-    )
+    /// Language of the recording, persisted as the default for the next one.
+    var languageCode: String {
+        get { settings.defaultLanguageCode }
+        set { settings.defaultLanguageCode = newValue }
+    }
+
+    /// "Also capture system audio", persisted as the default.
+    var captureSystemAudio: Bool {
+        get { settings.captureSystemAudio }
+        set { settings.captureSystemAudio = newValue }
+    }
+
+    /// A session is being set up, is running, or is being saved. Settings
+    /// that shape the recording are locked and quitting asks first.
+    var isSessionActive: Bool {
+        switch phase {
+        case .starting, .recording, .paused, .stopping: true
+        case .idle, .finished, .failed: false
+        }
+    }
+
+    /// Audio is being captured or is paused; Stop applies.
+    var isCapturing: Bool {
+        phase == .recording || phase == .paused
+    }
+
+    var errorMessage: String? {
+        if case .failed(let message) = phase { return message }
+        return nil
+    }
+
+    // MARK: - Devices
 
     /// Loads the device list and starts watching for device changes. Safe to
-    /// call on every appearance.
+    /// call more than once.
     func activate() {
         refreshDevices()
         guard deviceObservation == nil else { return }
@@ -95,21 +137,110 @@ final class RecordViewModel {
 
     // MARK: - Controls
 
-    func start(settings: AppSettings) async {
-        guard phase == .idle else { return }
+    /// Starts a new recording unless one is already active. Returns at once;
+    /// `phase` moves through `.starting` to `.recording` or `.failed`.
+    func start() {
+        guard !isSessionActive else { return }
         phase = .starting
-        errorMessage = nil
-        savedRecording = nil
+        finishedRecording = nil
+        stopRequestedWhileStarting = false
+        startTask = Task { [weak self] in
+            await self?.performStart()
+            self?.startTask = nil
+        }
+    }
+
+    func pause() {
+        guard phase == .recording, let recorder else { return }
+        recorder.pause()
+        systemRecorder?.pause()
+        phase = .paused
+        levelFraction = 0
+        micLevelFraction = 0
+        if systemLevelFraction != nil {
+            systemLevelFraction = 0
+        }
+    }
+
+    func resume() {
+        guard phase == .paused, let recorder else { return }
+        do {
+            try recorder.resume()
+            systemRecorder?.resume()
+            phase = .recording
+        } catch {
+            // The recorder stopped itself and recorded the failure;
+            // `recordingEnded` saves what exists and reports it.
+        }
+    }
+
+    /// Start when nothing is recording, Stop when something is (global
+    /// hotkey and menu bar button).
+    func toggleStartStop() {
+        if isCapturing || phase == .starting {
+            Task { await stop() }
+        } else {
+            start()
+        }
+    }
+
+    func togglePause() {
+        switch phase {
+        case .recording: pause()
+        case .paused: resume()
+        default: break
+        }
+    }
+
+    /// Stops the recording and returns once the WAV is closed and moved to
+    /// the output folder. A start in progress is cancelled first. Does
+    /// nothing when no session is active.
+    func stop() async {
+        if phase == .starting {
+            stopRequestedWhileStarting = true
+            await startTask?.value
+        }
+        if isCapturing {
+            phase = .stopping
+            recorder?.stop()
+            systemRecorder?.stop()
+        }
+        // The consumer finishes once both streams drain, then saves.
+        await consumer?.value
+    }
+
+    func revealInFinder() {
+        guard let finishedRecording else { return }
+        NSWorkspace.shared.activateFileViewerSelecting([finishedRecording])
+    }
+
+    func openScreenCaptureSettings() {
+        guard let url = Self.screenCaptureSettingsURL else { return }
+        NSWorkspace.shared.open(url)
+    }
+
+    // MARK: - Start
+
+    private func performStart() async {
         guard await MicrophoneRecorder.requestPermission() else {
-            errorMessage = MicrophoneRecorderError.permissionDenied.description
+            phase = .failed(message: MicrophoneRecorderError.permissionDenied.description)
+            return
+        }
+        if stopRequestedWhileStarting {
             phase = .idle
             return
         }
 
         systemAudioNotice = nil
-        systemAudioPermissionDenied = false
+        systemAudioDenied = false
         let systemRecorder = settings.captureSystemAudio ? await startSystemAudio() : nil
+        if stopRequestedWhileStarting {
+            systemRecorder?.stop()
+            phase = .idle
+            return
+        }
 
+        refreshDevices()
         let device = devices.first { $0.uid == selectedDeviceUID }
         let url = spool.newRecordingURL(timestamp: Timestamps.now())
         let writer: WavWriter
@@ -117,8 +248,7 @@ final class RecordViewModel {
             writer = try WavWriter(url: url)
         } catch {
             systemRecorder?.stop()
-            errorMessage = "Could not create the recording file: \(error.localizedDescription)"
-            phase = .idle
+            phase = .failed(message: "Could not create the recording file: \(error.localizedDescription)")
             return
         }
         let recorder = MicrophoneRecorder()
@@ -128,12 +258,10 @@ final class RecordViewModel {
             systemRecorder?.stop()
             try? writer.close()
             try? FileManager.default.removeItem(at: url)
-            errorMessage = String(describing: error)
-            phase = .idle
+            phase = .failed(message: String(describing: error))
             return
         }
 
-        self.settings = settings
         self.writer = writer
         self.recorder = recorder
         self.systemRecorder = systemRecorder
@@ -165,7 +293,7 @@ final class RecordViewModel {
     /// so the recording continues mic-only.
     private func startSystemAudio() async -> SystemAudioRecorder? {
         if SystemAudioRecorder.permission != .authorized, !SystemAudioRecorder.requestPermission() {
-            systemAudioPermissionDenied = true
+            systemAudioDenied = true
             systemAudioNotice = "System audio off: permission denied"
             return nil
         }
@@ -174,53 +302,12 @@ final class RecordViewModel {
             try await recorder.start()
             return recorder
         } catch SystemAudioRecorderError.permissionDenied {
-            systemAudioPermissionDenied = true
+            systemAudioDenied = true
             systemAudioNotice = "System audio off: permission denied"
         } catch {
             systemAudioNotice = "System audio off: \(error)"
         }
         return nil
-    }
-
-    func openScreenCaptureSettings() {
-        guard let url = Self.screenCaptureSettingsURL else { return }
-        NSWorkspace.shared.open(url)
-    }
-
-    func pause() {
-        guard phase == .recording, let recorder else { return }
-        recorder.pause()
-        systemRecorder?.pause()
-        phase = .paused
-        levelFraction = 0
-        micLevelFraction = 0
-        if systemLevelFraction != nil {
-            systemLevelFraction = 0
-        }
-    }
-
-    func resume() {
-        guard phase == .paused, let recorder else { return }
-        do {
-            try recorder.resume()
-            systemRecorder?.resume()
-            phase = .recording
-        } catch {
-            // The recorder has stopped; `recordingEnded` saves what exists.
-            errorMessage = String(describing: error)
-        }
-    }
-
-    func stop() {
-        guard phase == .recording || phase == .paused, let recorder else { return }
-        phase = .saving
-        recorder.stop()
-        systemRecorder?.stop()
-    }
-
-    func revealInFinder() {
-        guard let savedRecording else { return }
-        NSWorkspace.shared.activateFileViewerSelecting([savedRecording])
     }
 
     // MARK: - Pipeline
@@ -254,11 +341,11 @@ final class RecordViewModel {
     /// unplugged) ends the recording; system audio ending on its own leaves
     /// the recording going mic-only with a notice.
     private func sourceEnded(_ source: AudioMixer.Source) {
-        guard phase == .recording || phase == .paused else { return }
+        guard isCapturing else { return }
         switch source {
         case .mic:
             if recorder?.failure != nil {
-                phase = .saving
+                phase = .stopping
                 systemRecorder?.stop()
             }
         case .system:
@@ -270,7 +357,7 @@ final class RecordViewModel {
     }
 
     private func recordingEnded() {
-        phase = .saving
+        phase = .stopping
         elapsed = Double(sampleCount) / Double(WavWriter.sampleRate)
         var problems: [String] = []
         if let failure = recorder?.failure {
@@ -281,38 +368,43 @@ final class RecordViewModel {
             problems.append("Writing the recording failed: \(writeError.localizedDescription)")
         }
 
+        var saved: URL?
         if let writer {
             let spoolURL = writer.url
             do {
                 try writer.close()
-                savedRecording = try finalize(spoolURL)
+                saved = try finalize(spoolURL)
             } catch {
-                savedRecording = spoolURL
+                saved = spoolURL
                 problems.append("Could not move the recording to the output folder: "
                     + "\(error.localizedDescription) It is kept at \(spoolURL.path).")
             }
         }
 
-        errorMessage = problems.isEmpty ? nil : problems.joined(separator: "\n")
         recorder = nil
         systemRecorder = nil
         writer = nil
         consumer = nil
-        settings = nil
         levelFraction = 0
         micLevelFraction = 0
         systemLevelFraction = nil
         silenceWarning = nil
-        phase = .idle
+        finishedRecording = saved
+        if !problems.isEmpty {
+            phase = .failed(message: problems.joined(separator: "\n"))
+        } else if let saved {
+            phase = .finished(url: saved)
+        } else {
+            phase = .idle
+        }
     }
 
     /// No transcription exists yet in this phase, so the WAV is always kept.
     private func finalize(_ spoolURL: URL) throws -> URL? {
-        let bookmark = settings?.outputFolderBookmark
-        let folder = try OutputLocation.resolve(bookmark: bookmark)
+        let folder = try OutputLocation.resolve(bookmark: settings.outputFolderBookmark)
         defer { folder.stopAccessing() }
         if let refreshed = folder.refreshedBookmark {
-            settings?.outputFolderBookmark = refreshed
+            settings.outputFolderBookmark = refreshed
         }
         return try spool.finalize(spoolURL, keep: true, outputFolder: folder.url)
     }
