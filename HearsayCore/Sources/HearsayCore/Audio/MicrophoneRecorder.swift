@@ -16,8 +16,8 @@ public enum MicrophoneRecorderError: Error, Equatable, Sendable, CustomStringCon
     case noInputDevice
     case cannotSelectDevice(name: String, status: OSStatus)
     case engineFailed(String)
-    /// The audio hardware configuration changed while recording, usually
-    /// because the input device was unplugged. Recording stopped.
+    /// The input device disappeared, could not be restarted after a
+    /// configuration change, or kept changing. Recording stopped.
     case configurationChanged
     case invalidState(String)
 
@@ -53,6 +53,17 @@ public enum MicrophoneRecorderError: Error, Equatable, Sendable, CustomStringCon
 /// the device goes away, and a new recording needs a new recorder. When the
 /// stream finishes without `stop()` having been called, `failure` says why.
 ///
+/// `AVAudioEngineConfigurationChange` means "the engine stopped itself and
+/// must be restarted", not "the device is gone". CoreAudio posts it whenever
+/// the input unit's device or stream format is (re)configured, which
+/// routinely happens right after `engine.start()` (for example once the
+/// device chosen with `kAudioOutputUnitProperty_CurrentDevice` settles on its
+/// hardware format), and also on sample-rate switches or when another app
+/// changes the device. The recorder therefore reinstalls the tap when the
+/// input format changed and restarts the engine, and only gives up (see
+/// `ConfigurationRecovery`) when the device really disappeared, the restart
+/// fails, or the device keeps flapping.
+///
 /// `timedSamples` carries the same chunks stamped with host time, for
 /// `AudioMixer`. Read a recording through one of the two streams: the first
 /// one accessed claims the chunks and the other finishes empty.
@@ -73,12 +84,30 @@ public final class MicrophoneRecorder {
     public private(set) var state: State = .idle
     /// Set when the recorder stopped on its own (see `configurationChanged`).
     public private(set) var failure: MicrophoneRecorderError?
+    /// Configuration changes survived by reinstalling and restarting.
+    public private(set) var configurationRecoveries = 0
 
-    private let output = ChunkFanout()
+    let output = ChunkFanout()
     private let engine = AVAudioEngine()
+    private let notificationCenter: NotificationCenter
     private var configurationObserver: NSObjectProtocol?
+    private var recovery = ConfigurationRecovery()
+    /// True once the tap is installed; the engine is left alone otherwise.
+    private var engineConfigured = false
+    private var isStarting = false
+    private var pendingConfigurationChange = false
+    private var tapFormat: AVAudioFormat?
+    private var selectedDevice: AudioInputDevice?
+    /// Replaces the engine in `onConfigurationChange` for unit tests.
+    private var testProbe: TestProbe?
 
-    public init() {}
+    public convenience init() {
+        self.init(notificationCenter: .default)
+    }
+
+    init(notificationCenter: NotificationCenter) {
+        self.notificationCenter = notificationCenter
+    }
 
     // MARK: - Permission
 
@@ -107,7 +136,7 @@ public final class MicrophoneRecorder {
     /// Starts recording from `device`, or from the system default input when
     /// nil. Requires microphone permission.
     public func start(device: AudioInputDevice?) throws {
-        guard state == .idle else {
+        guard state == .idle, !isStarting else {
             throw MicrophoneRecorderError.invalidState("This recorder has already been started.")
         }
         guard Self.permission == .authorized else { throw MicrophoneRecorderError.permissionDenied }
@@ -116,34 +145,36 @@ public final class MicrophoneRecorder {
         if let device {
             try select(device, on: input)
         }
+        selectedDevice = device
         let format = input.outputFormat(forBus: 0)
-        guard format.sampleRate > 0, format.channelCount > 0 else {
+        guard Self.isUsable(format) else {
             throw MicrophoneRecorderError.noInputDevice
         }
-        let handler: TapHandler
         do {
-            handler = TapHandler(resampler: try MonoResampler(inputFormat: format), output: output)
+            try installTap(format: format)
         } catch {
             throw MicrophoneRecorderError.engineFailed(String(describing: error))
         }
-        // 0.1 s at the hardware rate, like the Python pump chunk; the system
-        // may pick another size.
-        let bufferSize = AVAudioFrameCount(max(1024, format.sampleRate / 10))
-        input.installTap(onBus: 0, bufferSize: bufferSize, format: format, block: Self.makeTapBlock(handler))
+
+        // Observe before starting: CoreAudio often posts a configuration
+        // change right after the engine starts.
+        isStarting = true
+        pendingConfigurationChange = false
+        observeConfigurationChanges()
         engine.prepare()
         do {
             try engine.start()
         } catch {
-            input.removeTap(onBus: 0)
+            isStarting = false
+            stopObservingConfigurationChanges()
+            removeTap()
             throw MicrophoneRecorderError.engineFailed(error.localizedDescription)
         }
+        isStarting = false
         state = .recording
-        configurationObserver = NotificationCenter.default.addObserver(
-            forName: .AVAudioEngineConfigurationChange, object: engine, queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.finish(failure: .configurationChanged)
-            }
+        if pendingConfigurationChange {
+            pendingConfigurationChange = false
+            onConfigurationChange()
         }
     }
 
@@ -151,18 +182,23 @@ public final class MicrophoneRecorder {
     /// paused.
     public func pause() {
         guard state == .recording else { return }
-        engine.pause()
+        if engineConfigured {
+            engine.pause()
+        }
         output.pause(at: currentHostTimeSeconds())
         state = .paused
     }
 
     public func resume() throws {
         guard state == .paused else { return }
-        do {
-            try engine.start()
-        } catch {
-            finish(failure: .engineFailed(error.localizedDescription))
-            throw MicrophoneRecorderError.engineFailed(error.localizedDescription)
+        if engineConfigured {
+            do {
+                engine.prepare()
+                try engine.start()
+            } catch {
+                finish(failure: .engineFailed(error.localizedDescription))
+                throw MicrophoneRecorderError.engineFailed(error.localizedDescription)
+            }
         }
         output.resume(at: currentHostTimeSeconds())
         state = .recording
@@ -174,6 +210,126 @@ public final class MicrophoneRecorder {
         finish(failure: nil)
     }
 
+    // MARK: - Configuration changes
+
+    /// What `handleConfigurationChange` did.
+    enum ConfigurationChangeOutcome: Equatable {
+        /// Not recording (idle or already stopped).
+        case ignored
+        /// Tap reinstalled if needed; engine restarted unless paused.
+        case recovered
+        /// Gave up and finished with `.configurationChanged`.
+        case finished
+    }
+
+    /// The recovery state machine, independent of the engine so it can be
+    /// unit-tested. `inputFormatValid` is false when the device is gone
+    /// (zero channels or sample rate, or the chosen device disconnected).
+    /// `reinstall` swaps the tap when the format changed; `restart` starts
+    /// the engine again and is skipped while paused.
+    @discardableResult
+    func handleConfigurationChange(
+        inputFormatValid: Bool,
+        now: TimeInterval = ProcessInfo.processInfo.systemUptime,
+        reinstall: () throws -> Void = {},
+        restart: () throws -> Void
+    ) -> ConfigurationChangeOutcome {
+        guard state == .recording || state == .paused else { return .ignored }
+        guard inputFormatValid, recovery.allowRecovery(at: now) else {
+            finish(failure: .configurationChanged)
+            return .finished
+        }
+        do {
+            try reinstall()
+            if state == .recording {
+                try restart()
+            }
+        } catch {
+            finish(failure: .configurationChanged)
+            return .finished
+        }
+        configurationRecoveries += 1
+        return .recovered
+    }
+
+    private func onConfigurationChange() {
+        if isStarting {
+            pendingConfigurationChange = true
+            return
+        }
+        if let testProbe {
+            handleConfigurationChange(inputFormatValid: testProbe.inputFormatValid(), restart: testProbe.restart)
+            return
+        }
+        guard engineConfigured else { return }
+        let input = engine.inputNode
+        if let selectedDevice, AudioDeviceList.inputDevice(uid: selectedDevice.uid) == nil {
+            // The chosen device was unplugged; do not silently fall back to
+            // another microphone.
+            handleConfigurationChange(inputFormatValid: false, restart: {})
+            return
+        }
+        let format = input.outputFormat(forBus: 0)
+        handleConfigurationChange(
+            inputFormatValid: Self.isUsable(format),
+            reinstall: { [self] in
+                if let tapFormat, tapFormat == format { return }
+                try installTap(format: format)
+            },
+            restart: { [engine] in
+                engine.prepare()
+                try engine.start()
+            }
+        )
+    }
+
+    private func observeConfigurationChanges() {
+        guard configurationObserver == nil else { return }
+        configurationObserver = notificationCenter.addObserver(
+            forName: .AVAudioEngineConfigurationChange, object: engine, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.onConfigurationChange()
+            }
+        }
+    }
+
+    private func stopObservingConfigurationChanges() {
+        if let configurationObserver {
+            notificationCenter.removeObserver(configurationObserver)
+            self.configurationObserver = nil
+        }
+    }
+
+    // MARK: - Engine plumbing
+
+    private static func isUsable(_ format: AVAudioFormat) -> Bool {
+        format.sampleRate > 0 && format.channelCount > 0
+    }
+
+    /// Installs (or replaces) the tap with a fresh handler and resampler for
+    /// `format`, so a format change never reuses a stale converter.
+    private func installTap(format: AVAudioFormat) throws {
+        let handler = TapHandler(resampler: try MonoResampler(inputFormat: format), output: output)
+        let input = engine.inputNode
+        if engineConfigured {
+            input.removeTap(onBus: 0)
+        }
+        // 0.1 s at the hardware rate, like the Python pump chunk; the system
+        // may pick another size.
+        let bufferSize = AVAudioFrameCount(max(1024, format.sampleRate / 10))
+        input.installTap(onBus: 0, bufferSize: bufferSize, format: format, block: Self.makeTapBlock(handler))
+        tapFormat = format
+        engineConfigured = true
+    }
+
+    private func removeTap() {
+        guard engineConfigured else { return }
+        engine.inputNode.removeTap(onBus: 0)
+        engineConfigured = false
+        tapFormat = nil
+    }
+
     private func finish(failure: MicrophoneRecorderError?) {
         guard state == .recording || state == .paused else {
             if state == .idle {
@@ -182,12 +338,11 @@ public final class MicrophoneRecorder {
             }
             return
         }
-        if let configurationObserver {
-            NotificationCenter.default.removeObserver(configurationObserver)
-            self.configurationObserver = nil
+        stopObservingConfigurationChanges()
+        if engineConfigured {
+            removeTap()
+            engine.stop()
         }
-        engine.inputNode.removeTap(onBus: 0)
-        engine.stop()
         self.failure = failure
         state = .stopped
         output.finish()
@@ -215,6 +370,42 @@ public final class MicrophoneRecorder {
     /// it runs on the realtime audio thread.
     private nonisolated static func makeTapBlock(_ handler: TapHandler) -> AVAudioNodeTapBlock {
         { buffer, when in handler.handle(buffer, when: when) }
+    }
+
+    // MARK: - Test support
+
+    struct TestProbe {
+        var inputFormatValid: () -> Bool
+        var restart: () throws -> Void
+    }
+
+    /// The object `AVAudioEngineConfigurationChange` is posted for.
+    var configurationNotificationObject: AnyObject { engine }
+
+    /// Puts the recorder in `.recording` without touching the audio engine
+    /// (no microphone permission needed) and observes configuration changes
+    /// on the injected notification center, answering them through `probe`.
+    func beginForTesting(probe: TestProbe) {
+        testProbe = probe
+        state = .recording
+        observeConfigurationChanges()
+    }
+}
+
+/// Decides whether another configuration-change recovery is allowed: at most
+/// `maxRecoveries` within any `window` seconds, so a flapping device ends the
+/// recording instead of restarting forever.
+struct ConfigurationRecovery: Equatable {
+    static let maxRecoveries = 5
+    static let window: TimeInterval = 10
+
+    private(set) var recent: [TimeInterval] = []
+
+    mutating func allowRecovery(at time: TimeInterval) -> Bool {
+        recent.removeAll { time - $0 >= Self.window }
+        guard recent.count < Self.maxRecoveries else { return false }
+        recent.append(time)
+        return true
     }
 }
 

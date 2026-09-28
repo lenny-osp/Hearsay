@@ -338,3 +338,161 @@ struct DefaultLanguageSettingTests {
         #expect(AppSettings(defaults: defaults).defaultLanguageCode == "zh")
     }
 }
+
+struct ConfigurationRecoveryTests {
+    @Test func allowsFiveRecoveriesPerTenSecondsThenRefuses() {
+        var recovery = ConfigurationRecovery()
+        for second in 0..<5 {
+            let allowed = recovery.allowRecovery(at: Double(second))
+            #expect(allowed)
+        }
+        do { let allowed = recovery.allowRecovery(at: 5); #expect(!allowed) }
+        do { let allowed = recovery.allowRecovery(at: 9.9); #expect(!allowed) }
+        // The first recovery (t = 0) has left the window.
+        do { let allowed = recovery.allowRecovery(at: 10); #expect(allowed) }
+        do { let allowed = recovery.allowRecovery(at: 10.5); #expect(!allowed) }
+    }
+
+    @Test func spacedOutChangesAreAlwaysAllowed() {
+        var recovery = ConfigurationRecovery()
+        for index in 0..<50 {
+            let allowed = recovery.allowRecovery(at: Double(index) * 2.5)
+            #expect(allowed)
+        }
+    }
+}
+
+@MainActor
+struct MicrophoneRecorderConfigurationTests {
+    private final class Counter: @unchecked Sendable {
+        var restarts = 0
+        var reinstalls = 0
+        var probes = 0
+    }
+
+    private func recordingRecorder(
+        center: NotificationCenter = NotificationCenter(),
+        counter: Counter = Counter(),
+        valid: Bool = true
+    ) -> MicrophoneRecorder {
+        let recorder = MicrophoneRecorder(notificationCenter: center)
+        recorder.beginForTesting(probe: .init(
+            inputFormatValid: { counter.probes += 1; return valid },
+            restart: { counter.restarts += 1 }
+        ))
+        return recorder
+    }
+
+    private func collect(_ recorder: MicrophoneRecorder) async -> [[Float]] {
+        var chunks: [[Float]] = []
+        for await chunk in recorder.samples {
+            chunks.append(chunk)
+        }
+        return chunks
+    }
+
+    @Test func changeRightAfterStartRestartsAndKeepsRecording() async {
+        let counter = Counter()
+        let recorder = recordingRecorder(counter: counter)
+        let outcome = recorder.handleConfigurationChange(
+            inputFormatValid: true, now: 0,
+            reinstall: { counter.reinstalls += 1 },
+            restart: { counter.restarts += 1 }
+        )
+        #expect(outcome == .recovered)
+        #expect(recorder.state == .recording)
+        #expect(recorder.failure == nil)
+        #expect(recorder.configurationRecoveries == 1)
+        #expect(counter.reinstalls == 1)
+        #expect(counter.restarts == 1)
+
+        // The stream is still open: a later chunk arrives before stop.
+        recorder.output.yield([0.25], hostTime: 1)
+        recorder.stop()
+        #expect(await collect(recorder) == [[0.25]])
+        #expect(recorder.failure == nil)
+    }
+
+    @Test func postedNotificationIsRecoveredNotFinished() async throws {
+        let center = NotificationCenter()
+        let counter = Counter()
+        let recorder = recordingRecorder(center: center, counter: counter)
+        center.post(name: .AVAudioEngineConfigurationChange, object: recorder.configurationNotificationObject)
+        for _ in 0..<100 where counter.probes == 0 {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(counter.probes == 1)
+        #expect(counter.restarts == 1)
+        #expect(recorder.state == .recording)
+        #expect(recorder.configurationRecoveries == 1)
+
+        // A notification for another engine is not ours.
+        center.post(name: .AVAudioEngineConfigurationChange, object: AVAudioEngine())
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(counter.probes == 1)
+
+        recorder.output.yield([0.5, -0.5], hostTime: 2)
+        recorder.stop()
+        #expect(await collect(recorder) == [[0.5, -0.5]])
+    }
+
+    @Test func pausedRecorderReinstallsWithoutStarting() {
+        let counter = Counter()
+        let recorder = recordingRecorder(counter: counter)
+        recorder.pause()
+        let outcome = recorder.handleConfigurationChange(
+            inputFormatValid: true, now: 0,
+            reinstall: { counter.reinstalls += 1 },
+            restart: { counter.restarts += 1 }
+        )
+        #expect(outcome == .recovered)
+        #expect(recorder.state == .paused)
+        #expect(counter.reinstalls == 1)
+        #expect(counter.restarts == 0)
+        #expect(throws: Never.self) { try recorder.resume() }
+        #expect(recorder.state == .recording)
+    }
+
+    @Test func deviceGoneFinishesWithConfigurationChanged() async {
+        let recorder = recordingRecorder()
+        let outcome = recorder.handleConfigurationChange(inputFormatValid: false, now: 0, restart: {})
+        #expect(outcome == .finished)
+        #expect(recorder.state == .stopped)
+        #expect(recorder.failure == .configurationChanged)
+        #expect(await collect(recorder).isEmpty)
+    }
+
+    @Test func failedRestartFinishesWithConfigurationChanged() {
+        struct Boom: Error {}
+        let recorder = recordingRecorder()
+        let outcome = recorder.handleConfigurationChange(inputFormatValid: true, now: 0, restart: { throw Boom() })
+        #expect(outcome == .finished)
+        #expect(recorder.failure == .configurationChanged)
+        #expect(recorder.configurationRecoveries == 0)
+    }
+
+    @Test func flappingDeviceFinishesOnSixthChangeWithinTenSeconds() {
+        let counter = Counter()
+        let recorder = recordingRecorder(counter: counter)
+        for index in 0..<5 {
+            #expect(recorder.handleConfigurationChange(
+                inputFormatValid: true, now: Double(index), restart: { counter.restarts += 1 }
+            ) == .recovered)
+        }
+        #expect(recorder.handleConfigurationChange(inputFormatValid: true, now: 6, restart: {}) == .finished)
+        #expect(recorder.failure == .configurationChanged)
+        #expect(recorder.configurationRecoveries == 5)
+        #expect(counter.restarts == 5)
+    }
+
+    @Test func changesWhenNotRecordingAreIgnored() {
+        let idle = MicrophoneRecorder(notificationCenter: NotificationCenter())
+        #expect(idle.handleConfigurationChange(inputFormatValid: false, restart: {}) == .ignored)
+        #expect(idle.state == .idle)
+
+        let stopped = recordingRecorder()
+        stopped.stop()
+        #expect(stopped.handleConfigurationChange(inputFormatValid: false, restart: {}) == .ignored)
+        #expect(stopped.failure == nil)
+    }
+}
