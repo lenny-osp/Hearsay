@@ -98,22 +98,22 @@ otherwise its modification time.
 
 1. **Set up a provider** in Settings > AI. Pick a preset: GitHub Copilot
    CLI, Claude Code CLI (Claude subscription), Codex CLI (ChatGPT
-   subscription), Azure OpenAI, Ollama / LM Studio, or Custom for any other
-   OpenAI-compatible `/chat/completions` endpoint. "Test connection" sends
+   subscription), Antigravity CLI (agy), Ollama / LM Studio, or Custom for
+   any other OpenAI-compatible `/chat/completions` endpoint. "Test connection" sends
    a one-line prompt.
-   - **The three CLI presets** run a program installed on your Mac and use
+   - **The four CLI presets** run a program installed on your Mac and use
      the login you already have in it, so Hearsay needs no API key.
      Requests count against that subscription's usage limits (your
-     Copilot plan, your Claude plan, or your ChatGPT plan), the same as
-     using the tool yourself. Hearsay finds each program in `~/.local/bin`,
+     Copilot plan, your Claude plan, your ChatGPT plan, or your Google
+     account's Antigravity limits), the same as using the tool yourself. Hearsay finds each program in `~/.local/bin`,
      Homebrew, `/usr/local/bin`, or nvm, or through your login shell; set
      the path in Settings > AI if it lives elsewhere. "Check <tool>" shows
-     the version it found and, for Claude Code and Codex, whether you are
-     logged in. Each run happens in an empty temporary folder that is
+     the version it found and, for Claude Code, Codex, and Antigravity,
+     whether you are logged in. Each run happens in an empty temporary folder that is
      deleted afterwards. None of the CLIs takes a temperature, so that
      field is only shown for the HTTP presets. On first launch the first
-     CLI found (Copilot, then Claude Code, then Codex) is the default
-     provider.
+     CLI found (Copilot, then Claude Code, then Codex, then Antigravity) is
+     the default provider.
    - **GitHub Copilot CLI** (`npm install -g @github/copilot`; run
      `copilot` once in Terminal to log in). The default model is
      `gpt-5.6-luna` with reasoning effort `max`; model `auto` lets Copilot
@@ -132,10 +132,26 @@ otherwise its modification time.
      `minimal`, `low`, `medium`, `high`, `xhigh`, or `max`. Hearsay runs it
      in a read-only sandbox without your `~/.codex/config.toml`, and the
      session is not saved.
-   - **Azure OpenAI and Custom** need the endpoint, the model, and your API
-     key; keys are stored in the macOS Keychain. **Ollama and LM Studio**
-     run locally and need no key. Earlier OpenAI and Anthropic API
-     settings were moved to Custom with their URL, model, and key.
+   - **Antigravity CLI** (`curl -fsSL https://antigravity.google/cli/install.sh | bash`;
+     run `agy` once in Terminal to log in with your Google account). It
+     uses your Antigravity login, and requests count against that
+     account's limits. The default model is `gemini-3.8-flash-high`;
+     `agy models` lists the others. A model id that ends in `-high`,
+     `-medium`, or `-low` already sets its effort, so the effort field is
+     only used for ids without one (`low`, `medium`, `high`, or `max`).
+     Hearsay runs it in print mode with the reply format enforced, in an
+     empty temporary folder, with the terminal sandbox on and slash
+     commands off; a tool that would need your approval is refused at
+     once. agy has no option to turn tools off or to skip saving the
+     session: commands in your own agy allow list (`permissions.allow` in
+     `~/.gemini/antigravity-cli/settings.json`) can still run, and each run
+     is kept in agy's history under `~/.gemini/antigravity-cli`, in a
+     project named `hearsay-notes` that the first run creates.
+   - **Custom** needs the endpoint, the model, and your API key; keys are
+     stored in the macOS Keychain. Pick the `api-key` token header for
+     Azure OpenAI. **Ollama and LM Studio** run locally and need no key.
+     Earlier OpenAI, Anthropic API, and Azure OpenAI settings were moved to
+     Custom with their URL, model, headers, and key.
 2. **Confirm.** After a transcript is saved, Hearsay asks "Send transcript
    for meeting notes?" and shows the provider, model, and transcript size.
    "Keep local" keeps everything on the Mac; you can still give the files a

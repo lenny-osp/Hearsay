@@ -379,13 +379,13 @@ final class AIProviderStoreTests {
     private func freshDefaults() -> UserDefaults { scratch.make() }
 
     @Test func presetTable() {
-        #expect(ProviderPreset.all.map(\.id) == ["copilotCLI", "claudeCodeCLI", "codexCLI", "azureOpenAI", "ollama", "custom"])
+        #expect(ProviderPreset.all.map(\.id) == ["copilotCLI", "claudeCodeCLI", "codexCLI", "antigravityCLI", "ollama", "custom"])
         #expect(ProviderPreset.all.map(\.name) == [
             "GitHub Copilot CLI", "Claude Code CLI (Claude subscription)", "Codex CLI (ChatGPT subscription)",
-            "Azure OpenAI", "Ollama / LM Studio", "Custom",
+            "Antigravity CLI (agy)", "Ollama / LM Studio", "Custom",
         ])
-        #expect(ProviderPreset.all.map(\.kind) == [.copilotCLI, .claudeCodeCLI, .codexCLI, .http, .http, .http])
-        for retired in ["githubModels", "openai", "anthropic"] {
+        #expect(ProviderPreset.all.map(\.kind) == [.copilotCLI, .claudeCodeCLI, .codexCLI, .antigravityCLI, .http, .http])
+        for retired in ["githubModels", "openai", "anthropic", "azureOpenAI"] {
             #expect(ProviderPreset.preset(id: retired) == nil)
             #expect(ProviderPreset.retiredIDs.contains(retired))
         }
@@ -393,17 +393,19 @@ final class AIProviderStoreTests {
         #expect(ProviderPreset.codexCLI.defaultModel == "gpt-6-luna")
         #expect(AIProviderConfiguration(preset: .claudeCodeCLI).reasoningEffort == "high")
         #expect(AIProviderConfiguration(preset: .codexCLI).reasoningEffort == "max")
+        #expect(AIProviderConfiguration(preset: .antigravityCLI).reasoningEffort == "high")
+        #expect(AIProviderConfiguration(preset: .antigravityCLI).model == "gemini-3.8-flash-high")
         #expect(AIProviderConfiguration(preset: .copilotCLI).reasoningEffort == "max")
         #expect(ProviderPreset.ollama.baseURL == "http://localhost:11434/v1/chat/completions")
         #expect(AIProviderConfiguration.default.presetID == "copilotCLI")
-        #expect(ProviderPreset.azureOpenAI.baseURL.isEmpty)
-        #expect(ProviderPreset.azureOpenAI.auth == .apiKey)
+        #expect(ProviderPreset.custom.baseURL.isEmpty)
+        #expect(ProviderPreset.custom.auth == .bearer)
+        #expect(AuthHeaderStyle.allCases == [.bearer, .apiKey, .none])
         #expect(ProviderPreset.ollama.auth == AuthHeaderStyle.none)
         #expect(ProviderPreset.ollama.defaultModel.isEmpty)
-        #expect(AIProviderConfiguration(preset: .azureOpenAI).reasoningEffort == "max")
-        #expect(AIProviderConfiguration(preset: .azureOpenAI).model == "gpt-5.6-luna")
+        #expect(AIProviderConfiguration(preset: .custom).reasoningEffort == "max")
+        #expect(AIProviderConfiguration(preset: .custom).model.isEmpty)
         #expect(AIProviderConfiguration(preset: .ollama).reasoningEffort == nil)
-        #expect(AIProviderConfiguration(preset: .azureOpenAI).temperature == 0.3)
         #expect(AIProviderConfiguration(preset: .ollama).temperature == 0.3)
         #expect(AIProviderConfiguration(preset: .custom).temperature == 0.3)
     }
@@ -446,7 +448,8 @@ final class AIProviderStoreTests {
     @Test func configurationAndTemplatesRoundTrip() {
         let defaults = freshDefaults()
         let store = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore(), installedCLI: { nil })
-        store.selectPreset(.azureOpenAI)
+        store.selectPreset(.custom)
+        store.configuration.auth = .apiKey
         store.configuration.baseURL = "https://me.openai.azure.com/openai/deployments/x/chat/completions"
         store.configuration.extraHeaders = ["X-A": "b"]
         store.configuration.askBeforeSending = false
@@ -455,7 +458,7 @@ final class AIProviderStoreTests {
 
         let reloaded = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore(), installedCLI: { nil })
         #expect(reloaded.configuration == store.configuration)
-        #expect(reloaded.configuration.presetID == "azureOpenAI")
+        #expect(reloaded.configuration.presetID == "custom")
         #expect(reloaded.configuration.auth == .apiKey)
         #expect(reloaded.templates == [.generalMeeting, standup])
         #expect(reloaded.selectedTemplate == standup)
@@ -515,19 +518,19 @@ final class AIProviderStoreTests {
     @Test func tokensArePerPreset() throws {
         let secrets = InMemorySecretStore()
         let store = AIProviderStore(defaults: freshDefaults(), secrets: secrets, installedCLI: { nil })
-        store.selectPreset(.azureOpenAI)
+        store.selectPreset(.ollama)
         try store.setToken("  sk-azure \n")
         #expect(store.currentToken == "sk-azure")
         store.selectPreset(.custom)
         #expect(!store.hasToken)
         try store.setToken("sk-custom")
-        #expect(try secrets.read(account: "azureOpenAI") == "sk-azure")
+        #expect(try secrets.read(account: "ollama") == "sk-azure")
         #expect(try secrets.read(account: "custom") == "sk-custom")
         try store.setToken("")
         #expect(!store.hasToken)
-        store.selectPreset(.azureOpenAI)
+        store.selectPreset(.ollama)
         try store.deleteToken()
-        #expect(try secrets.read(account: "azureOpenAI") == nil)
+        #expect(try secrets.read(account: "ollama") == nil)
     }
 }
 
@@ -600,6 +603,42 @@ final class RetiredPresetMigrationTests {
         #expect(try secrets.read(account: presetID) == nil)
         let stored = try #require(defaults.data(forKey: AIProviderStore.Key.configuration))
         #expect(try JSONDecoder().decode(AIProviderConfiguration.self, from: stored) == expected)
+    }
+
+    /// What the removed Azure OpenAI preset stored: a deployment URL, the
+    /// `api-key` header, extra headers, and a temperature.
+    private static let azureConfiguration = AIProviderConfiguration(
+        presetID: "azureOpenAI",
+        baseURL: "https://me.openai.azure.com/openai/deployments/notes/chat/completions?api-version=2026-06-01",
+        model: "gpt-5.6-luna",
+        reasoningEffort: "max",
+        temperature: 0.2,
+        auth: .apiKey,
+        extraHeaders: ["X-Team": "notes"],
+        askBeforeSending: false
+    )
+
+    @Test func azureOpenAILoadsAsCustomKeepingURLModelTokenHeadersAndTemperature() throws {
+        let secrets = InMemorySecretStore()
+        try secrets.write("azure-key", account: "azureOpenAI")
+        let defaults = try defaults(storing: Self.azureConfiguration)
+        let store = AIProviderStore(defaults: defaults, secrets: secrets, installedCLI: { .antigravity })
+        var expected = Self.azureConfiguration
+        expected.presetID = "custom"
+        #expect(store.configuration == expected)
+        #expect(store.configuration.preset == .custom)
+        #expect(store.configuration.auth == .apiKey)
+        #expect(store.configuration.extraHeaders == ["X-Team": "notes"])
+        #expect(store.configuration.effectiveTemperature == 0.2)
+        #expect(store.currentToken == "azure-key")
+        #expect(try secrets.read(account: "azureOpenAI") == nil)
+        let stored = try #require(defaults.data(forKey: AIProviderStore.Key.configuration))
+        #expect(try JSONDecoder().decode(AIProviderConfiguration.self, from: stored) == expected)
+        let request = try ChatCompletionsClient.makeRequest(
+            systemMessage: "s", userMessage: "u", configuration: store.configuration, token: store.currentToken
+        )
+        #expect(request.value(forHTTPHeaderField: "api-key") == "azure-key")
+        #expect(request.value(forHTTPHeaderField: "Authorization") == nil)
     }
 
     @Test func currentPresetsAreNotMigrated() {

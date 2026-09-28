@@ -4,9 +4,9 @@ import SwiftUI
 /// Settings > AI (PLAN.md sections 7 and 8): provider preset, endpoint,
 /// model, reasoning effort, temperature, token (Keychain), extra headers, the ask-before-
 /// sending switch, a connection test, and the prompt templates. The CLI
-/// presets (GitHub Copilot, Claude Code, Codex) show the binary path, model,
-/// and reasoning effort instead, plus "Check <tool>"; none of the CLIs takes
-/// a temperature, so that field is only shown for HTTP presets.
+/// presets (GitHub Copilot, Claude Code, Codex, Antigravity) show the binary
+/// path, model, and reasoning effort instead, plus "Check <tool>"; none of
+/// the CLIs takes a temperature, so that field is only shown for HTTP presets.
 struct AISettingsTab: View {
     @Environment(AIProviderStore.self) private var store
 
@@ -153,6 +153,8 @@ struct AISettingsTab: View {
             "Uses Claude Code installed on this Mac and your Claude subscription login; requests count against its usage limits. Run `claude` once in Terminal to log in. Model: an alias (sonnet, opus) or a full id. Effort: low, medium, high, xhigh, or max (none and minimal become low)."
         case .codex:
             "Uses Codex installed on this Mac and your ChatGPT login; requests count against your plan's usage limits. Run `codex login` once in Terminal to log in. Effort: none, minimal, low, medium, high, xhigh, or max. An empty model uses Codex's default."
+        case .antigravity:
+            "Uses the Antigravity CLI (agy) installed on this Mac and the Google account it is logged in with; requests count against that account's limits. Run `agy` once in Terminal to log in; `agy models` lists the model ids. Effort: low, medium, high, or max, only for a model id without its own level (a model ending in -high, -medium, or -low ignores it). agy saves each run in its own history under ~/.gemini."
         }
     }
 
@@ -365,7 +367,7 @@ extension AISettingsTab {
     }
 
     /// Runs `--version` and, for Claude Code and Codex, the login status
-    /// command.
+    /// command; for Antigravity, `agy models` as the login check.
     fileprivate func checkCLI() {
         cliCheck = .running
         let configuration = store.configuration

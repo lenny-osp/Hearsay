@@ -454,6 +454,9 @@ struct CodexCLITests {
 struct CLIRoutingTests {
     @Test func everyCLIPresetGoesToTheCLIClientAndHTTPPresetsDoNot() async throws {
         let fake = FakeCLIRunner(withDirectory: { argv, directory in
+            if argv.contains("--json-schema") {
+                return CLIRunResult(exitCode: 0, stdout: antigravityEnvelope(response: launchNotes), stderr: "")
+            }
             if argv.contains("exec") {
                 try launchNotes.write(
                     to: directory.appendingPathComponent(CLIArguments.codexReplyFileName), atomically: true, encoding: .utf8
@@ -465,21 +468,26 @@ struct CLIRoutingTests {
         let http = RecordingChatClient()
         let pipeline = NotesPipeline(
             client: http,
-            cliClient: CLIClient(runner: fake.runner, locator: locator(found: ["/usr/bin/copilot", claudePath, codexPath]))
+            cliClient: CLIClient(
+                runner: fake.runner, locator: locator(found: ["/usr/bin/copilot", claudePath, codexPath, agyPath]),
+                antigravityProjectExists: { true }
+            )
         )
         var copilot = AIProviderConfiguration(preset: .copilotCLI)
         copilot.copilotPath = "/usr/bin/copilot"
-        for configuration in [copilot, claudeConfiguration(), codexConfiguration()] {
+        var antigravity = AIProviderConfiguration(preset: .antigravityCLI)
+        antigravity.antigravityPath = agyPath
+        for configuration in [copilot, claudeConfiguration(), codexConfiguration(), antigravity] {
             #expect(pipeline.client(for: configuration) is CLIClient)
             _ = try await pipeline.generate(
                 srtText: copilotSRT, languageCode: "en", template: .generalMeeting,
                 configuration: configuration, token: "t"
             )
         }
-        #expect(fake.calls.map { $0.argv[0] } == ["/usr/bin/copilot", claudePath, codexPath])
+        #expect(fake.calls.map { $0.argv[0] } == ["/usr/bin/copilot", claudePath, codexPath, agyPath])
         #expect(await http.count == 0)
 
-        for preset in [ProviderPreset.azureOpenAI, .ollama, .custom] {
+        for preset in [ProviderPreset.ollama, .custom] {
             #expect(pipeline.client(for: AIProviderConfiguration(preset: preset)) is RecordingChatClient)
         }
         await #expect(throws: CLIProviderError.notACLIPreset("Custom")) {

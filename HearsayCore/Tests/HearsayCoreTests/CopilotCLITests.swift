@@ -75,8 +75,8 @@ final class CopilotCLITests {
         #expect(preset.supportsReasoningEffort)
         #expect(preset.kind == .copilotCLI)
         #expect(ProviderPreset.all.first == preset)
-        #expect(ProviderPreset.all.prefix(3).allSatisfy { $0.kind.isCLI })
-        #expect(ProviderPreset.all.dropFirst(3).allSatisfy { $0.kind == .http })
+        #expect(ProviderPreset.all.prefix(4).allSatisfy { $0.kind.isCLI })
+        #expect(ProviderPreset.all.dropFirst(4).allSatisfy { $0.kind == .http })
     }
 
     @MainActor @Test func firstLaunchPicksTheFirstInstalledCLI() {
@@ -98,6 +98,8 @@ final class CopilotCLITests {
             CLILocator(homeDirectory: "/Users/test", isExecutable: { found.contains($0) }, directoryContents: { _ in [] })
         }
         #expect(make([]).firstKnownTool() == nil)
+        #expect(make(["/Users/test/.local/bin/agy"]).firstKnownTool() == .antigravity)
+        #expect(make(["/Users/test/.local/bin/agy", "/opt/homebrew/bin/codex"]).firstKnownTool() == .codex)
         #expect(make(["/opt/homebrew/bin/codex"]).firstKnownTool() == .codex)
         #expect(make(["/opt/homebrew/bin/codex", "/Users/test/.local/bin/claude"]).firstKnownTool() == .claudeCode)
         #expect(make(["/opt/homebrew/bin/codex", "/usr/local/bin/copilot"]).firstKnownTool() == .copilot)
@@ -116,12 +118,15 @@ final class CopilotCLITests {
         store.configuration.copilotPath = "/custom/copilot"
         store.configuration.setCLIPath("/custom/claude", for: .claudeCode)
         store.configuration.setCLIPath("/custom/codex", for: .codex)
-        store.selectPreset(.azureOpenAI)
+        store.configuration.setCLIPath("/custom/agy", for: .antigravity)
+        store.selectPreset(.ollama)
         store.selectPreset(.copilotCLI)
         let reloaded = AIProviderStore(defaults: defaults, secrets: InMemorySecretStore(), installedCLI: { nil })
         #expect(reloaded.configuration.copilotPath == "/custom/copilot")
         #expect(reloaded.configuration.cliPath(for: .claudeCode) == "/custom/claude")
         #expect(reloaded.configuration.cliPath(for: .codex) == "/custom/codex")
+        #expect(reloaded.configuration.cliPath(for: .antigravity) == "/custom/agy")
+        #expect(reloaded.configuration.antigravityPath == "/custom/agy")
         #expect(reloaded.configuration.presetID == "copilotCLI")
     }
 
@@ -345,7 +350,7 @@ final class CopilotCLITests {
         #expect(fake.calls.count == 1)
         #expect(await http.count == 0)
 
-        var openAI = AIProviderConfiguration(preset: .azureOpenAI)
+        var openAI = AIProviderConfiguration(preset: .custom)
         openAI.baseURL = "https://example.test/chat/completions"
         openAI.copilotPath = copilotPath
         _ = try await pipeline.generate(

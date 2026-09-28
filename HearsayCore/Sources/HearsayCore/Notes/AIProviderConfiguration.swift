@@ -24,6 +24,8 @@ public struct AIProviderConfiguration: Codable, Sendable, Equatable {
     public var claudeCodePath: String?
     /// The `codex` binary for the Codex CLI preset; nil auto-detects.
     public var codexPath: String?
+    /// The `agy` binary for the Antigravity CLI preset; nil auto-detects.
+    public var antigravityPath: String?
 
     public init(
         presetID: String,
@@ -37,7 +39,8 @@ public struct AIProviderConfiguration: Codable, Sendable, Equatable {
         selectedTemplateID: UUID = PromptTemplate.generalMeetingID,
         copilotPath: String? = nil,
         claudeCodePath: String? = nil,
-        codexPath: String? = nil
+        codexPath: String? = nil,
+        antigravityPath: String? = nil
     ) {
         self.presetID = presetID
         self.baseURL = baseURL
@@ -51,6 +54,7 @@ public struct AIProviderConfiguration: Codable, Sendable, Equatable {
         self.copilotPath = copilotPath
         self.claudeCodePath = claudeCodePath
         self.codexPath = codexPath
+        self.antigravityPath = antigravityPath
     }
 
     /// The preset's defaults: its URL, model, and auth, its default reasoning
@@ -72,7 +76,7 @@ public struct AIProviderConfiguration: Codable, Sendable, Equatable {
     public static let `default` = AIProviderConfiguration(preset: .copilotCLI)
 
     /// The first-launch configuration: the first CLI found, in preset order
-    /// (Copilot, Claude Code, Codex), otherwise `default`.
+    /// (Copilot, Claude Code, Codex, Antigravity), otherwise `default`.
     public static func firstLaunch(installedCLI: CLITool?) -> AIProviderConfiguration {
         installedCLI.map { AIProviderConfiguration(preset: .preset(for: $0)) } ?? .default
     }
@@ -83,7 +87,7 @@ public struct AIProviderConfiguration: Codable, Sendable, Equatable {
     private enum CodingKeys: String, CodingKey {
         case presetID, baseURL, model, reasoningEffort, temperature, auth
         case extraHeaders, askBeforeSending, selectedTemplateID, copilotPath
-        case claudeCodePath, codexPath
+        case claudeCodePath, codexPath, antigravityPath
     }
 
     /// A missing `temperature` key (configurations saved before the field
@@ -107,6 +111,7 @@ public struct AIProviderConfiguration: Codable, Sendable, Equatable {
         copilotPath = try container.decodeIfPresent(String.self, forKey: .copilotPath)
         claudeCodePath = try container.decodeIfPresent(String.self, forKey: .claudeCodePath)
         codexPath = try container.decodeIfPresent(String.self, forKey: .codexPath)
+        antigravityPath = try container.decodeIfPresent(String.self, forKey: .antigravityPath)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -124,6 +129,7 @@ public struct AIProviderConfiguration: Codable, Sendable, Equatable {
         try container.encodeIfPresent(copilotPath, forKey: .copilotPath)
         try container.encodeIfPresent(claudeCodePath, forKey: .claudeCodePath)
         try container.encodeIfPresent(codexPath, forKey: .codexPath)
+        try container.encodeIfPresent(antigravityPath, forKey: .antigravityPath)
     }
 
     public var preset: ProviderPreset {
@@ -146,6 +152,7 @@ public struct AIProviderConfiguration: Codable, Sendable, Equatable {
         case .copilot: copilotPath
         case .claudeCode: claudeCodePath
         case .codex: codexPath
+        case .antigravity: antigravityPath
         }
     }
 
@@ -154,6 +161,7 @@ public struct AIProviderConfiguration: Codable, Sendable, Equatable {
         case .copilot: copilotPath = path
         case .claudeCode: claudeCodePath = path
         case .codex: codexPath = path
+        case .antigravity: antigravityPath = path
         }
     }
 
@@ -164,13 +172,13 @@ public struct AIProviderConfiguration: Codable, Sendable, Equatable {
 
     /// The model as the confirm sheet shows it. An empty model is what the
     /// provider then uses: the Copilot default (Python `or`), the CLI's own
-    /// default for Claude Code and Codex, or nothing for HTTP.
+    /// default for Claude Code, Codex, and Antigravity, or nothing for HTTP.
     public var modelDescription: String {
         let trimmed = model.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty { return trimmed }
         switch preset.kind {
         case .copilotCLI: return ProviderPreset.defaultOpenAIModel
-        case .claudeCodeCLI, .codexCLI: return "CLI default"
+        case .claudeCodeCLI, .codexCLI, .antigravityCLI: return "CLI default"
         case .http: return "(none set)"
         }
     }
@@ -263,7 +271,7 @@ public final class AIProviderStore {
 
     /// Switches to `preset`, resetting URL, model, auth, reasoning effort, and
     /// temperature to its defaults. Keeps extra headers, the ask setting, the
-    /// template, and the three CLI paths.
+    /// template, and the CLI paths.
     public func selectPreset(_ preset: ProviderPreset) {
         var updated = AIProviderConfiguration(preset: preset)
         updated.extraHeaders = configuration.extraHeaders
@@ -272,6 +280,7 @@ public final class AIProviderStore {
         updated.copilotPath = configuration.copilotPath
         updated.claudeCodePath = configuration.claudeCodePath
         updated.codexPath = configuration.codexPath
+        updated.antigravityPath = configuration.antigravityPath
         configuration = updated
     }
 

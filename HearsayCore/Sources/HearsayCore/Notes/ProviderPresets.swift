@@ -4,7 +4,8 @@ import Foundation
 public enum AuthHeaderStyle: String, Codable, Sendable, CaseIterable {
     /// `Authorization: Bearer <token>` (most OpenAI-compatible servers).
     case bearer
-    /// `api-key: <token>` (Azure OpenAI).
+    /// `api-key: <token>` (Azure OpenAI and similar servers; chosen under
+    /// Custom).
     case apiKey
     /// No token (local servers such as Ollama or LM Studio).
     case none
@@ -27,6 +28,7 @@ public enum ProviderKind: String, Codable, Sendable {
     case copilotCLI
     case claudeCodeCLI
     case codexCLI
+    case antigravityCLI
 
     /// The CLI this kind runs, or nil for HTTP.
     public var cliTool: CLITool? {
@@ -35,6 +37,7 @@ public enum ProviderKind: String, Codable, Sendable {
         case .copilotCLI: .copilot
         case .claudeCodeCLI: .claudeCode
         case .codexCLI: .codex
+        case .antigravityCLI: .antigravity
         }
     }
 
@@ -42,7 +45,8 @@ public enum ProviderKind: String, Codable, Sendable {
 }
 
 /// A known meeting-notes provider (PLAN.md section 7): an OpenAI-compatible
-/// chat-completions endpoint, or a CLI (GitHub Copilot, Claude Code, Codex).
+/// chat-completions endpoint, or a CLI (GitHub Copilot, Claude Code, Codex,
+/// Antigravity).
 public struct ProviderPreset: Identifiable, Sendable, Codable, Equatable {
     public var id: String
     public var kind: ProviderKind
@@ -112,10 +116,16 @@ public struct ProviderPreset: Identifiable, Sendable, Codable, Equatable {
         defaultModel: "gpt-6-luna", auth: .none, supportsReasoningEffort: true,
         kind: .codexCLI
     )
-    public static let azureOpenAI = ProviderPreset(
-        id: "azureOpenAI", name: "Azure OpenAI",
+    /// The installed `agy` binary, using the Google account it is logged in
+    /// with. Gemini 3.8 Flash (High) (owner decision, 2026-09-28); its effort
+    /// is part of the model id, so `--effort` is only sent for model ids
+    /// without an effort suffix (`CLIArguments.antigravityEffort`).
+    public static let antigravityCLI = ProviderPreset(
+        id: "antigravityCLI", name: "Antigravity CLI (agy)",
         baseURL: "",
-        defaultModel: defaultOpenAIModel, auth: .apiKey, supportsReasoningEffort: true
+        defaultModel: "gemini-3.8-flash-high", auth: .none, supportsReasoningEffort: true,
+        defaultEffort: "high",
+        kind: .antigravityCLI
     )
     public static let ollama = ProviderPreset(
         id: "ollama", name: "Ollama / LM Studio",
@@ -128,14 +138,16 @@ public struct ProviderPreset: Identifiable, Sendable, Codable, Equatable {
         defaultModel: "", auth: .bearer, supportsReasoningEffort: true
     )
 
-    public static let all: [ProviderPreset] = [copilotCLI, claudeCodeCLI, codexCLI, azureOpenAI, ollama, custom]
+    public static let all: [ProviderPreset] = [copilotCLI, claudeCodeCLI, codexCLI, antigravityCLI, ollama, custom]
 
     /// Preset ids that existed in earlier builds and were removed. A stored
     /// configuration with one of these loads as `custom`, keeping its URL and
     /// model. GitHub Models was shut down on 2026-07-30; the OpenAI and
     /// Anthropic API presets were replaced by the Codex and Claude Code CLI
-    /// presets, which use the subscriptions instead of API keys.
-    public static let retiredIDs: Set<String> = ["githubModels", "openai", "anthropic"]
+    /// presets, which use the subscriptions instead of API keys. The Azure
+    /// OpenAI preset was removed on 2026-09-28; Custom with the `api-key`
+    /// header does the same.
+    public static let retiredIDs: Set<String> = ["githubModels", "openai", "anthropic", "azureOpenAI"]
 
     public static func preset(id: String) -> ProviderPreset? {
         all.first { $0.id == id }
@@ -147,6 +159,7 @@ public struct ProviderPreset: Identifiable, Sendable, Codable, Equatable {
         case .copilot: copilotCLI
         case .claudeCode: claudeCodeCLI
         case .codex: codexCLI
+        case .antigravity: antigravityCLI
         }
     }
 }

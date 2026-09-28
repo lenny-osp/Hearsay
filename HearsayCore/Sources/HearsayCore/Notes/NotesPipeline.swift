@@ -14,8 +14,8 @@ public enum NotesPipelineError: Error, LocalizedError, Equatable {
 
 /// SRT text in, validated `NotesResponse` out: Python
 /// `generate_meeting_notes` without any file handling. The preset kind picks
-/// a CLI branch (`CLIClient`: Copilot, Claude Code, Codex) or the API branch
-/// (`client`).
+/// a CLI branch (`CLIClient`: Copilot, Claude Code, Codex, Antigravity) or
+/// the API branch (`client`).
 ///
 /// As in Python, `SRT.cleanText` only guards against a transcript with no
 /// caption text; the prompt carries the SRT as is (timings included), since

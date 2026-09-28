@@ -1,11 +1,12 @@
 import Foundation
 
 /// A command-line program that writes meeting notes with the user's own
-/// login: GitHub Copilot CLI, Claude Code, or OpenAI Codex.
+/// login: GitHub Copilot CLI, Claude Code, OpenAI Codex, or Google Antigravity.
 public enum CLITool: String, Sendable, CaseIterable, Codable {
     case copilot
     case claudeCode
     case codex
+    case antigravity
 
     /// The executable's file name.
     public var binaryName: String {
@@ -13,6 +14,7 @@ public enum CLITool: String, Sendable, CaseIterable, Codable {
         case .copilot: "copilot"
         case .claudeCode: "claude"
         case .codex: "codex"
+        case .antigravity: "agy"
         }
     }
 
@@ -21,6 +23,7 @@ public enum CLITool: String, Sendable, CaseIterable, Codable {
         case .copilot: "GitHub Copilot CLI"
         case .claudeCode: "Claude Code CLI"
         case .codex: "Codex CLI"
+        case .antigravity: "Antigravity CLI"
         }
     }
 
@@ -30,6 +33,7 @@ public enum CLITool: String, Sendable, CaseIterable, Codable {
         case .copilot: "Copilot"
         case .claudeCode: "Claude Code"
         case .codex: "Codex"
+        case .antigravity: "Antigravity"
         }
     }
 
@@ -38,6 +42,9 @@ public enum CLITool: String, Sendable, CaseIterable, Codable {
         case .copilot: "npm install -g @github/copilot"
         case .claudeCode: "curl -fsSL https://claude.ai/install.sh | bash"
         case .codex: "npm install -g @openai/codex"
+        // https://antigravity.google/docs/cli/install; `agy install` only
+        // sets up PATH and shell aliases for an existing binary.
+        case .antigravity: "curl -fsSL https://antigravity.google/cli/install.sh | bash"
         }
     }
 
@@ -47,17 +54,26 @@ public enum CLITool: String, Sendable, CaseIterable, Codable {
         case .copilot: "copilot"
         case .claudeCode: "claude"
         case .codex: "codex login"
+        case .antigravity: "agy"
         }
     }
 
     /// Arguments after the binary that report the login state, or nil when
-    /// the CLI has no such command.
+    /// the CLI has no such command. Antigravity has none; `agy models` only
+    /// succeeds when logged in, so it stands in.
     public var loginStatusArguments: [String]? {
         switch self {
         case .copilot: nil
         case .claudeCode: ["auth", "status"]
         case .codex: ["login", "status"]
+        case .antigravity: ["models"]
         }
+    }
+
+    /// Time limit of the login status command. `agy models` asks the
+    /// server, so it gets longer than a local status check.
+    public var loginStatusTimeout: TimeInterval {
+        self == .antigravity ? 20 : CLIClient.versionTimeout
     }
 
     /// Prefix of the temporary working folder of one run.
@@ -75,7 +91,7 @@ public enum CLIProviderError: Error, LocalizedError, Equatable {
     /// `ChatCompletionsError.excerptLength` characters (`CLIClient.excerpt`).
     case failed(CLITool, exitCode: Int32, excerpt: String)
     /// Nonzero exit status whose output says the CLI has no valid login
-    /// (Claude Code and Codex only; Copilot keeps the Python wording).
+    /// (Claude Code, Codex, Antigravity; Copilot keeps the Python wording).
     case notLoggedIn(CLITool, excerpt: String)
     /// Still running after `CLIClient.timeout`; it was terminated.
     case timedOut(CLITool)
@@ -113,6 +129,7 @@ public enum CLIProviderError: Error, LocalizedError, Equatable {
             switch tool {
             case .claudeCode: message += " with your Claude subscription."
             case .codex: message += " with your ChatGPT account."
+            case .antigravity: message += " with your Google account."
             case .copilot: message += "."
             }
             let trimmed = excerpt.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -135,7 +152,7 @@ public enum CLIProviderError: Error, LocalizedError, Equatable {
         return ["auth", "login", "log in", "logged in", "sign in", "token"].contains { lowered.contains($0) }
     }
 
-    /// Claude Code and Codex: output that means the login is missing or no
+    /// Claude Code, Codex, Antigravity: output that means the login is missing or no
     /// longer valid. Stricter than `mentionsLogin`, because Codex always
     /// prints "tokens used".
     static func indicatesLoggedOut(_ text: String, tool: CLITool) -> Bool {
@@ -152,6 +169,16 @@ public enum CLIProviderError: Error, LocalizedError, Equatable {
             // "Not logged in"; with no login every request ends in
             // "unexpected status 401 Unauthorized".
             markers = ["not logged in", "401 unauthorized", "codex login"]
+        case .antigravity:
+            // Print mode without a login shows "Authentication required.
+            // Please visit the URL to log in:", waits 60 s, then "Error:
+            // authentication timed out." / "error: authentication failed or
+            // timed out". `agy models`: "Please sign in to view available
+            // models."
+            markers = [
+                "authentication required", "authentication failed", "authentication timed out",
+                "not logged into antigravity", "please sign in",
+            ]
         }
         return markers.contains { lowered.contains($0) }
     }
