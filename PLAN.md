@@ -26,7 +26,7 @@ output rule ported here.
 | Language / UI | Swift 6, SwiftUI, AppKit only where SwiftUI has no API (activation policy, CoreAudio device pick). |
 | Inference | MLX. The Whisper module of `Blaizzy/mlx-audio-swift` (MIT, 1,526 lines, commit `01dec7c9`) is vendored into `HearsayCore/Whisper/` and its decode loop is replaced with a timestamped decoder ported from `mlx_whisper` 0.4.3. Reason: section 15. Direct dependencies become `ml-explore/mlx-swift` and `huggingface/swift-transformers` only. |
 | Models | Downloaded on demand from Hugging Face `mlx-community/whisper-*` repos into the app's own model directory. User picks the model. Nothing ships inside the bundle. |
-| Audio I/O | AVFoundation. `AVAudioEngine` input tap for the mic, `AVAudioFile` for files. No FFmpeg. |
+| Audio I/O | AVFoundation. Mic via `AVCaptureSession` + `AVCaptureAudioDataOutput` (16 kHz mono Float32), chosen by CoreAudio UID; `AVAudioFile` for files. No FFmpeg. Changed 2026-09-28: the `AVAudioEngine` tap got no buffers after switching input device, because the input node kept reporting the previous device's rate. |
 | System audio | Captured with ScreenCaptureKit (`SCStream`, audio only) and mixed with the mic, so Zoom/Teams/Meet calls are transcribed, not just the room. Decided 2026-09-28. |
 | Live transcript | Yes in v1. 30 s chunks are transcribed while recording and shown as a live preview; the final SRT comes from one full pass after Stop. Decided 2026-09-28. |
 | Output folder | Default `~/Documents/Hearsay`, user-configurable in Settings. Decided 2026-09-28. |
@@ -93,7 +93,7 @@ Hearsay/                      this repo
     Sources/HearsayCore/
       Audio/
         AudioDeviceList.swift        CoreAudio enumeration of input devices
-        MicrophoneRecorder.swift     AVAudioEngine tap -> 16 kHz mono PCM stream
+        MicrophoneRecorder.swift     AVCaptureSession -> 16 kHz mono PCM stream
         SystemAudioRecorder.swift    ScreenCaptureKit SCStream audio -> 16 kHz mono PCM stream
         AudioMixer.swift             aligns and sums mic + system streams into one mono stream
         LevelMeter.swift             port of StreamingLevelMeter (RMS dB, silence warning)
@@ -552,9 +552,8 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
 
 ## 17. Polish list (found during review, not yet scheduled)
 
-- `MicrophoneRecorder` stops on any `AVAudioEngineConfigurationChange`;
-  plugging in headphones would end a meeting. Try to restart the engine
-  on the same device first.
+- `RecordingController.activate()` still observes `AVAudioEngineConfigurationChange`; harmless, remove.
+- `SystemAudioRecorder` has its own copy of the sample-buffer converter; share `PCMSampleBufferConverter`.
 - Cancelling the naming sheet after notes came back discards the notes
   (Python parity). Better: save under the AI-suggested name.
 - `RecordingController` should expose its active spool URL so the recovery

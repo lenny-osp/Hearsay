@@ -91,6 +91,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ) {
             return
         }
+        // Debug only: HEARSAY_RECORD_SECONDS + HEARSAY_RECORD_DEVICE record
+        // from one device, print diagnostics, and quit (see RecordingDebug).
+        if RecordingDebug.runIfRequested() {
+            return
+        }
         applyWindowMode(settings.windowMode)
         observeWindowMode()
         recordingController.activate()

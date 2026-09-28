@@ -91,3 +91,44 @@ final class MonoResampler {
         return result
     }
 }
+
+/// Turns `CMSampleBuffer`s of linear PCM into 16 kHz mono Float32, copying
+/// directly when they already are, resampling otherwise. Not thread-safe:
+/// use one instance from one queue.
+final class PCMSampleBufferConverter {
+    let format: AVAudioFormat
+    private let resampler: MonoResampler?
+
+    init(format: AVAudioFormat) throws {
+        self.format = format
+        let isTarget = format.commonFormat == .pcmFormatFloat32
+            && format.sampleRate == MonoResampler.sampleRate
+            && format.channelCount == 1
+        resampler = isTarget ? nil : try MonoResampler(inputFormat: format)
+    }
+
+    func convert(_ sampleBuffer: CMSampleBuffer) throws -> [Float] {
+        let frames = AVAudioFrameCount(sampleBuffer.numSamples)
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames) else {
+            throw AudioConversionError.conversionFailed("cannot allocate a buffer for \(frames) frames")
+        }
+        buffer.frameLength = frames
+        let status = CMSampleBufferCopyPCMDataIntoAudioBufferList(
+            sampleBuffer, at: 0, frameCount: Int32(frames), into: buffer.mutableAudioBufferList
+        )
+        guard status == noErr else {
+            throw AudioConversionError.conversionFailed("CoreMedia error \(status)")
+        }
+        if let resampler {
+            return try resampler.convert(buffer)
+        }
+        guard let channel = buffer.floatChannelData?[0] else {
+            throw AudioConversionError.conversionFailed("no float channel data")
+        }
+        return Array(UnsafeBufferPointer(start: channel, count: Int(buffer.frameLength)))
+    }
+
+    func flush() throws -> [Float] {
+        try resampler?.flush() ?? []
+    }
+}

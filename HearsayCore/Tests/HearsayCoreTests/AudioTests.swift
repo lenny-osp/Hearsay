@@ -377,7 +377,7 @@ struct MicrophoneRecorderConfigurationTests {
     ) -> MicrophoneRecorder {
         let recorder = MicrophoneRecorder(notificationCenter: center)
         recorder.beginForTesting(probe: .init(
-            inputFormatValid: { counter.probes += 1; return valid },
+            deviceConnected: { counter.probes += 1; return valid },
             restart: { counter.restarts += 1 }
         ))
         return recorder
@@ -413,11 +413,16 @@ struct MicrophoneRecorderConfigurationTests {
         #expect(recorder.failure == nil)
     }
 
-    @Test func postedNotificationIsRecoveredNotFinished() async throws {
+    @Test func runtimeErrorNotificationIsRecoveredNotFinished() async throws {
         let center = NotificationCenter()
         let counter = Counter()
         let recorder = recordingRecorder(center: center, counter: counter)
-        center.post(name: .AVAudioEngineConfigurationChange, object: recorder.configurationNotificationObject)
+        let error = NSError(domain: AVFoundationErrorDomain, code: -11819)
+        center.post(
+            name: AVCaptureSession.runtimeErrorNotification,
+            object: recorder.configurationNotificationObject,
+            userInfo: [AVCaptureSessionErrorKey: error]
+        )
         for _ in 0..<100 where counter.probes == 0 {
             try await Task.sleep(for: .milliseconds(10))
         }
@@ -425,15 +430,63 @@ struct MicrophoneRecorderConfigurationTests {
         #expect(counter.restarts == 1)
         #expect(recorder.state == .recording)
         #expect(recorder.configurationRecoveries == 1)
+        #expect(recorder.diagnostics.runtimeErrors == 1)
+        #expect(recorder.diagnostics.lastRuntimeError?.contains("-11819") == true)
 
-        // A notification for another engine is not ours.
-        center.post(name: .AVAudioEngineConfigurationChange, object: AVAudioEngine())
+        // A notification for another session is not ours.
+        center.post(name: AVCaptureSession.runtimeErrorNotification, object: NSObject())
         try await Task.sleep(for: .milliseconds(50))
         #expect(counter.probes == 1)
 
         recorder.output.yield([0.5, -0.5], hostTime: 2)
         recorder.stop()
         #expect(await collect(recorder) == [[0.5, -0.5]])
+    }
+
+    @Test func runtimeErrorWithDeviceGoneFinishes() async throws {
+        let center = NotificationCenter()
+        let recorder = recordingRecorder(center: center, valid: false)
+        center.post(name: AVCaptureSession.runtimeErrorNotification, object: recorder.configurationNotificationObject)
+        for _ in 0..<100 where recorder.state != .stopped {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(recorder.failure == .configurationChanged)
+        #expect(await collect(recorder).isEmpty)
+    }
+
+    @Test func disconnectOfChosenDeviceFinishesOthersAreIgnored() async throws {
+        let center = NotificationCenter()
+        let recorder = recordingRecorder(center: center)
+        center.post(name: AVCaptureDevice.wasDisconnectedNotification, object: NSObject())
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(recorder.state == .recording)
+
+        recorder.output.yield([0.125], hostTime: 1)
+        center.post(name: AVCaptureDevice.wasDisconnectedNotification, object: recorder.deviceNotificationObject)
+        for _ in 0..<100 where recorder.state != .stopped {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(recorder.state == .stopped)
+        #expect(recorder.failure == .configurationChanged)
+        // What arrived before the disconnect is still delivered.
+        #expect(await collect(recorder) == [[0.125]])
+    }
+
+    @Test func interruptionIsCountedAndRestartsWhenItEnds() async throws {
+        let center = NotificationCenter()
+        let counter = Counter()
+        let recorder = recordingRecorder(center: center, counter: counter)
+        let session = recorder.configurationNotificationObject
+        center.post(name: AVCaptureSession.wasInterruptedNotification, object: session)
+        center.post(name: AVCaptureSession.interruptionEndedNotification, object: session)
+        for _ in 0..<100 where counter.restarts == 0 {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(recorder.diagnostics.interruptions == 1)
+        #expect(counter.restarts == 1)
+        #expect(recorder.state == .recording)
+        #expect(recorder.failure == nil)
+        recorder.stop()
     }
 
     @Test func pausedRecorderReinstallsWithoutStarting() {
@@ -494,5 +547,116 @@ struct MicrophoneRecorderConfigurationTests {
         stopped.stop()
         #expect(stopped.handleConfigurationChange(inputFormatValid: false, restart: {}) == .ignored)
         #expect(stopped.failure == nil)
+    }
+}
+
+struct NoAudioWatchdogTests {
+    @Test func firesAfterThreeSecondsOfRecordingWithoutSamples() {
+        var watchdog = NoAudioWatchdog()
+        do { let fired = watchdog.check(now: 100, isRecording: true, samplesDelivered: 0); #expect(!fired) }
+        do { let fired = watchdog.check(now: 101.5, isRecording: true, samplesDelivered: 0); #expect(!fired) }
+        do { let fired = watchdog.check(now: 102.9, isRecording: true, samplesDelivered: 0); #expect(!fired) }
+        do { let fired = watchdog.check(now: 103, isRecording: true, samplesDelivered: 0); #expect(fired) }
+    }
+
+    @Test func neverFiresOnceAudioArrived() {
+        var watchdog = NoAudioWatchdog()
+        do { let fired = watchdog.check(now: 0, isRecording: true, samplesDelivered: 0); #expect(!fired) }
+        do { let fired = watchdog.check(now: 1, isRecording: true, samplesDelivered: 1600); #expect(!fired) }
+        // A later silent device is the silence warning's job, not this one.
+        do { let fired = watchdog.check(now: 10, isRecording: true, samplesDelivered: 1600); #expect(!fired) }
+    }
+
+    @Test func pausedTimeDoesNotCount() {
+        var watchdog = NoAudioWatchdog()
+        do { let fired = watchdog.check(now: 0, isRecording: true, samplesDelivered: 0); #expect(!fired) }
+        do { let fired = watchdog.check(now: 2, isRecording: true, samplesDelivered: 0); #expect(!fired) }
+        do { let fired = watchdog.check(now: 3, isRecording: false, samplesDelivered: 0); #expect(!fired) }
+        do { let fired = watchdog.check(now: 60, isRecording: false, samplesDelivered: 0); #expect(!fired) }
+        do { let fired = watchdog.check(now: 60.5, isRecording: true, samplesDelivered: 0); #expect(!fired) }
+        do { let fired = watchdog.check(now: 61, isRecording: true, samplesDelivered: 0); #expect(!fired) }
+        do { let fired = watchdog.check(now: 61.5, isRecording: true, samplesDelivered: 0); #expect(fired) }
+    }
+
+    @Test func noAudioMessageNamesTheDevice() {
+        let message = MicrophoneRecorderError.noAudio(deviceName: "AirPods Pro").description
+        #expect(message.hasPrefix("No audio from AirPods Pro."))
+        #expect(message.contains("3 seconds"))
+    }
+}
+
+struct MicrophoneDiagnosticsTests {
+    @Test func describesFormatsAndCounters() {
+        var asbd = AudioStreamBasicDescription()
+        asbd.mFormatID = kAudioFormatLinearPCM
+        asbd.mFormatFlags = kAudioFormatFlagIsFloat | kAudioFormatFlagIsNonInterleaved
+        asbd.mSampleRate = 16_000
+        asbd.mChannelsPerFrame = 1
+        asbd.mBitsPerChannel = 32
+        #expect(MicrophoneDiagnostics.describe(asbd) == "1 ch, 16000 Hz, Float32 non-interleaved")
+
+        var diagnostics = MicrophoneDiagnostics()
+        diagnostics.deviceName = "AirPods Pro"
+        diagnostics.deviceNominalSampleRate = 24_000
+        diagnostics.conversionFailures = 2
+        diagnostics.lastConversionError = "boom"
+        let text = diagnostics.description
+        #expect(text.contains("device nominal rate: 24000 Hz"))
+        #expect(text.contains("conversion failures: 2 (last: boom)"))
+    }
+
+    @Test func sampleBufferConverterPassesTargetFormatThrough() throws {
+        let format = try MonoResampler.outputFormat()
+        let converter = try PCMSampleBufferConverter(format: format)
+        let samples: [Float] = [0, 0.25, -0.5, 1]
+        let buffer = try makeSampleBuffer(samples, format: format)
+        #expect(try converter.convert(buffer) == samples)
+    }
+
+    @Test func sampleBufferConverterResamples48kStereo() throws {
+        let format = try #require(AVAudioFormat(
+            commonFormat: .pcmFormatFloat32, sampleRate: 48_000, channels: 2, interleaved: false
+        ))
+        let converter = try PCMSampleBufferConverter(format: format)
+        var total = 0
+        for _ in 0..<10 {
+            let buffer = try makeSampleBuffer([Float](repeating: 0.5, count: 4800), format: format)
+            total += try converter.convert(buffer).count
+        }
+        total += try converter.flush().count
+        #expect(abs(total - 16_000) <= 32)
+    }
+
+    /// A CMSampleBuffer holding `samples` in every channel of `format`.
+    private func makeSampleBuffer(_ samples: [Float], format: AVAudioFormat) throws -> CMSampleBuffer {
+        let frames = AVAudioFrameCount(samples.count)
+        let pcm = try #require(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames))
+        pcm.frameLength = frames
+        let channels = try #require(pcm.floatChannelData)
+        for channel in 0..<Int(format.channelCount) {
+            for (index, value) in samples.enumerated() {
+                channels[channel][index] = value
+            }
+        }
+        var timing = CMSampleTimingInfo(
+            duration: CMTime(value: 1, timescale: CMTimeScale(format.sampleRate)),
+            presentationTimeStamp: .zero,
+            decodeTimeStamp: .invalid
+        )
+        var buffer: CMSampleBuffer?
+        var status = CMSampleBufferCreate(
+            allocator: kCFAllocatorDefault, dataBuffer: nil, dataReady: false,
+            makeDataReadyCallback: nil, refcon: nil, formatDescription: format.formatDescription,
+            sampleCount: CMItemCount(frames), sampleTimingEntryCount: 1, sampleTimingArray: &timing,
+            sampleSizeEntryCount: 0, sampleSizeArray: nil, sampleBufferOut: &buffer
+        )
+        #expect(status == noErr)
+        let sampleBuffer = try #require(buffer)
+        status = CMSampleBufferSetDataBufferFromAudioBufferList(
+            sampleBuffer, blockBufferAllocator: kCFAllocatorDefault, blockBufferMemoryAllocator: kCFAllocatorDefault,
+            flags: 0, bufferList: pcm.audioBufferList
+        )
+        #expect(status == noErr)
+        return sampleBuffer
     }
 }

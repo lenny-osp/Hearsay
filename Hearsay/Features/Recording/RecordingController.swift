@@ -33,7 +33,9 @@ import Observation
 /// -> transcribing(progress) -> finished(srt:wav:) or failed(message:).
 /// `starting` can also end in idle (stop while starting) or failed; a
 /// capture problem goes from stopping straight to failed with the WAV kept;
-/// a recording with no samples goes from stopping to finished(srt: nil);
+/// a microphone that delivers nothing within `NoAudioWatchdog.timeout`
+/// seconds stops the recording, and a recording with no samples at all goes
+/// from stopping to failed with the empty WAV deleted;
 /// "Use live preview instead" ends transcribing in finished at once;
 /// `retryTranscription()` goes from failed to transcribing again.
 @MainActor
@@ -121,6 +123,11 @@ final class RecordingController {
     @ObservationIgnored private var stopRequestedWhileStarting = false
     @ObservationIgnored private var deviceObservation: AudioDeviceListObservation?
     @ObservationIgnored private var engineObservation: NotificationToken?
+    /// Name of the device being recorded, for error messages.
+    @ObservationIgnored private var recordingDeviceName = "the input device"
+    /// Set when the watchdog stopped a recording that never got audio.
+    @ObservationIgnored private var noAudioFailure: MicrophoneRecorderError?
+    @ObservationIgnored private var watchdogTask: Task<Void, Never>?
 
     // Transcription state
     /// Every mixed sample of the current recording, for the final pass.
@@ -442,6 +449,8 @@ final class RecordingController {
         self.writer = writer
         self.recorder = recorder
         self.systemRecorder = systemRecorder
+        recordingDeviceName = recorder.diagnostics.deviceName ?? device?.name ?? "the input device"
+        noAudioFailure = nil
         writeError = nil
         meter = LevelMeter()
         sampleCount = 0
@@ -467,6 +476,57 @@ final class RecordingController {
             }
             self?.recordingEnded()
         }
+        startNoAudioWatchdog(for: recorder)
+    }
+
+    /// Stops the recording loudly when the microphone delivers nothing
+    /// within `NoAudioWatchdog.timeout` seconds of recording, instead of
+    /// silently recording nothing.
+    private func startNoAudioWatchdog(for recorder: MicrophoneRecorder) {
+        watchdogTask?.cancel()
+        let id = session
+        watchdogTask = Task { [weak self, weak recorder] in
+            var watchdog = NoAudioWatchdog()
+            while !Task.isCancelled {
+                guard let self, let recorder, self.session == id, self.isCapturing,
+                      self.recorder === recorder
+                else { return }
+                let delivered = recorder.diagnostics.samplesDelivered
+                if delivered > 0 { return }
+                let fired = watchdog.check(
+                    now: ProcessInfo.processInfo.systemUptime,
+                    isRecording: self.phase == .recording,
+                    samplesDelivered: delivered
+                )
+                if fired {
+                    self.failNoAudio()
+                    return
+                }
+                try? await Task.sleep(for: .milliseconds(250))
+            }
+        }
+    }
+
+    private func failNoAudio() {
+        guard isCapturing else { return }
+        noAudioFailure = .noAudio(deviceName: recordingDeviceName)
+        phase = .stopping
+        recorder?.stop()
+        systemRecorder?.stop()
+    }
+
+    /// The no-audio message plus what capture saw, for the error display.
+    private func noAudioMessage(_ error: MicrophoneRecorderError) -> String {
+        guard let diagnostics = recorder?.diagnostics else { return error.description }
+        var detail = "Capture details: \(diagnostics.callbacks) buffers received"
+        if diagnostics.conversionFailures > 0 {
+            detail += ", \(diagnostics.conversionFailures) failed to convert"
+            if let last = diagnostics.lastConversionError { detail += " (\(last))" }
+        }
+        if let last = diagnostics.lastRuntimeError {
+            detail += ", capture error: \(last)"
+        }
+        return error.description + "\n" + detail + "."
     }
 
     /// Starts system audio capture, or records why it is off and returns nil
@@ -542,8 +602,18 @@ final class RecordingController {
 
     private func recordingEnded() {
         phase = .stopping
+        watchdogTask?.cancel()
+        watchdogTask = nil
         elapsed = Double(sampleCount) / Double(WavWriter.sampleRate)
         var problems: [String] = []
+        let micDelivered = recorder?.diagnostics.samplesDelivered ?? 0
+        if let noAudioFailure {
+            problems.append(noAudioMessage(noAudioFailure))
+        } else if sampleCount == 0, micDelivered == 0, recorder?.failure == nil {
+            // Stopped before the watchdog fired, with nothing captured.
+            problems.append(noAudioMessage(.noAudio(deviceName: recordingDeviceName)))
+        }
+        noAudioFailure = nil
         if let failure = recorder?.failure {
             problems.append(failure.description)
             refreshDevices()
@@ -582,19 +652,20 @@ final class RecordingController {
             phase = problems.isEmpty ? .idle : .failed(message: problems.joined(separator: "\n"))
             return
         }
+        if sampleCount == 0 {
+            // Nothing was captured: never keep a zero-length recording.
+            try? FileManager.default.removeItem(at: closed)
+            var lines = problems.isEmpty
+                ? [MicrophoneRecorderError.noAudio(deviceName: recordingDeviceName).description]
+                : problems
+            lines.append("Nothing was recorded, so no file was kept.")
+            phase = .failed(message: lines.joined(separator: "\n"))
+            return
+        }
         if !problems.isEmpty {
             // Capture failed: keep what exists and let the user transcribe it.
             pendingSpoolWAV = closed
             failTranscription(problems.joined(separator: "\n"))
-            return
-        }
-        if sampleCount == 0 {
-            // Nothing was captured: keep the empty WAV as before, no transcript.
-            let folder = try? TranscriptOutput.resolveFolder(settings: settings)
-            defer { folder?.stopAccessing() }
-            let kept = folder.flatMap { try? spool.finalize(closed, keep: true, outputFolder: $0.url) } ?? closed
-            finishedRecording = kept
-            phase = .finished(srt: nil, wav: kept)
             return
         }
         pendingSpoolWAV = closed
