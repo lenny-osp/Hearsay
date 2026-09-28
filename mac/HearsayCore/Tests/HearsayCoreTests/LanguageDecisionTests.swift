@@ -197,3 +197,84 @@ struct LanguageDecisionTests {
         }
     }
 }
+
+// MARK: - shared/language-decision-tests.json
+
+private struct LanguageDecisionVectors: Decodable {
+    struct Detection: Decodable {
+        let code: String?
+        let confidence: Float
+    }
+
+    struct Expect: Decodable {
+        let language: String
+        let reason: String
+        let confidence: Float?
+        let suggestion: String?
+    }
+
+    struct Case: Decodable {
+        let note: String
+        let choice: String
+        let preferred: String
+        let detection: Detection?
+        let expect: Expect
+    }
+
+    struct Thresholds: Decodable {
+        let auto: Float
+        let mismatch: Float
+    }
+
+    let thresholds: Thresholds
+    let cases: [Case]
+}
+
+struct SharedLanguageDecisionVectorTests {
+    typealias D = LanguageDecision
+
+    private func load() throws -> LanguageDecisionVectors {
+        try JSONDecoder().decode(LanguageDecisionVectors.self, from: sharedData("language-decision-tests.json"))
+    }
+
+    @Test func thresholdsMatch() throws {
+        let vectors = try load()
+        #expect(vectors.thresholds.auto == D.autoThreshold)
+        #expect(vectors.thresholds.mismatch == D.mismatchThreshold)
+        // The "just below" vectors really are the next float down.
+        let confidences = vectors.cases.compactMap { $0.detection?.confidence }
+        #expect(confidences.contains(D.autoThreshold.nextDown))
+        #expect(confidences.contains(D.mismatchThreshold.nextDown))
+        #expect(confidences.contains(D.autoThreshold))
+        #expect(confidences.contains(D.mismatchThreshold))
+    }
+
+    @Test func everyVector() throws {
+        let cases = try load().cases
+        #expect(!cases.isEmpty)
+        for vector in cases {
+            let choice = try #require(LanguageChoice(storageValue: vector.choice), "\(vector.note)")
+            let preferred = try #require(TranscriptLanguage(rawValue: vector.preferred), "\(vector.note)")
+            let language = try #require(TranscriptLanguage(rawValue: vector.expect.language), "\(vector.note)")
+            let suggestion = try vector.expect.suggestion.map {
+                try #require(TranscriptLanguage(rawValue: $0), "\(vector.note)")
+            }
+            let reason: D.Reason
+            switch vector.expect.reason {
+            case "chosen":
+                #expect(vector.expect.confidence == nil, "\(vector.note)")
+                reason = .chosen
+            case "detected":
+                reason = .detected(confidence: try #require(vector.expect.confidence, "\(vector.note)"))
+            case "fallbackToPreferred":
+                reason = .fallbackToPreferred(detectedConfidence: vector.expect.confidence)
+            default:
+                Issue.record("unknown reason \(vector.expect.reason) in \(vector.note)")
+                continue
+            }
+            let detection = vector.detection.map { (code: $0.code, confidence: $0.confidence) }
+            let decision = D.decide(choice: choice, preferred: preferred, detection: detection)
+            #expect(decision == D(language: language, reason: reason, suggestion: suggestion), "\(vector.note)")
+        }
+    }
+}

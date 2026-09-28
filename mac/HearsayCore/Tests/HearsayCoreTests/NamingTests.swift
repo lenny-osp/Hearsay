@@ -780,3 +780,99 @@ private final class FakeTrash: @unchecked Sendable {
         #expect(renamed.map(\.lastPathComponent) == ["2026-09-03_14-05-06_launch.srt"])
     }
 }
+
+// MARK: - shared/naming-tests.json
+
+/// The naming vectors both platforms run. Expected values come from the
+/// whisper-tools Python CLI (`shared/scripts/make-naming-tests.py`).
+private struct NamingVectors: Decodable {
+    struct Sanitize: Decodable {
+        let input: String
+        let output: String?
+    }
+
+    struct Insert: Decodable {
+        let markdown: String
+        let name: String
+        let fallbackHeading: String
+        let output: String
+    }
+
+    struct TimestampCase: Decodable {
+        let filename: String
+        let timestamp: String?
+    }
+
+    struct OutputName: Decodable {
+        let timestamp: String
+        let name: String
+        let existing: [String]
+        let stem: String
+    }
+
+    let sanitize: [Sanitize]
+    let insertMeetingName: [Insert]
+    let timestampFromFilename: [TimestampCase]
+    let outputNames: [OutputName]
+
+    static func load() throws -> NamingVectors {
+        try JSONDecoder().decode(NamingVectors.self, from: sharedData("naming-tests.json"))
+    }
+}
+
+@Suite struct SharedNamingVectorTests {
+    @Test func sanitize() throws {
+        let vectors = try NamingVectors.load().sanitize
+        #expect(!vectors.isEmpty)
+        for vector in vectors {
+            #expect(FilenameSanitizer.sanitize(vector.input) == vector.output, "input: \(vector.input.debugDescription)")
+        }
+    }
+
+    @Test func insertMeetingName() throws {
+        let vectors = try NamingVectors.load().insertMeetingName
+        #expect(!vectors.isEmpty)
+        for vector in vectors {
+            let result = MeetingNameInserter.insert(
+                into: vector.markdown, meetingName: vector.name, fallbackHeading: vector.fallbackHeading
+            )
+            #expect(result == vector.output, "markdown: \(vector.markdown.debugDescription)")
+        }
+    }
+
+    @Test func timestampFromFilename() throws {
+        let vectors = try NamingVectors.load().timestampFromFilename
+        #expect(!vectors.isEmpty)
+        for vector in vectors {
+            #expect(Timestamps.parse(fromFilename: vector.filename) == vector.timestamp, "filename: \(vector.filename)")
+            // Python source_file_timestamp on a path that does not exist.
+            let missing = URL(fileURLWithPath: "/nonexistent-\(UUID().uuidString)").appendingPathComponent(vector.filename)
+            #expect(Timestamps.sourceFileTimestamp(url: missing) == vector.timestamp, "filename: \(vector.filename)")
+        }
+    }
+
+    /// Each vector: the existing files plus `source.srt` in an empty folder,
+    /// then `saveNamed` with the given timestamp.
+    @Test func outputNames() throws {
+        let vectors = try NamingVectors.load().outputNames
+        #expect(!vectors.isEmpty)
+        for vector in vectors {
+            let directory = try TemporaryDirectory()
+            defer { directory.remove() }
+            for name in vector.existing {
+                _ = try directory.write(name, "")
+            }
+            let srt = try directory.write("source.srt", "1\n")
+            let result = try OutputWriter.saveNamed(
+                srtURL: srt, meetingName: vector.name, markdown: "# N", transcriptMarkdown: "# T",
+                timestamp: vector.timestamp
+            )
+            #expect(result.srt.lastPathComponent == vector.stem + ".srt", "vector: \(vector.stem)")
+            #expect(result.markdown.lastPathComponent == vector.stem + ".md")
+            #expect(result.transcript.lastPathComponent == vector.stem + "_transcript.md")
+            #expect(try directory.listing() == (vector.existing + [
+                vector.stem + ".md", vector.stem + ".srt", vector.stem + "_transcript.md",
+            ]).sorted())
+        }
+    }
+}

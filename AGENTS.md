@@ -11,6 +11,12 @@ fully before editing anything.
 shared/         resources both platforms use
   fixtures/     test audio (en, zh, de, es) and the Python reference SRTs
   localization/ GLOSSARY.md, strings-en.json, de/es/zh-Hant/zh-Hans.json
+  help/         Help.html per interface language (the only copies to edit)
+  prompts/      meeting-notes prompt text, languages, assembly and JSON contract
+  assets/       icon-1024.png, written by mac/Scripts/make-icon.swift
+  models/       model catalog schema (each platform keeps its own list)
+  scripts/      make-naming-tests.py (regenerates the naming vectors)
+  naming-tests.json, language-decision-tests.json   shared test vectors
 mac/            the macOS app (Swift 6, SwiftUI, MLX)
   Hearsay/      app target (features, resources, string catalogs, help pages)
   HearsayCore/  pure logic, no UI, no MLX; tested with `swift test`
@@ -101,8 +107,9 @@ byte-identical to the Python tool (tests in `NotesTests.swift`).
   run `Scripts/export-strings.py --configuration Release`, add the new keys
   to each `shared/localization/<lang>.json` following `GLOSSARY.md`, then
   `Scripts/merge-translations.py` (use `--check <lang>` first). UI labels
-  quoted in `Hearsay/Resources/<lang>.lproj/Help.html` must match the
-  catalogs.
+  quoted in the help pages must match the catalogs. Help pages are edited
+  only in `shared/help/<lang>/Help.html`; `Scripts/sync-shared.sh` copies
+  them to the git-ignored `Hearsay/Resources/<lang>.lproj/Help.html`.
 - Third-party notices: after a dependency change run
   `mac/Scripts/make-notices.sh`; it fails loudly if a license file moved.
 - Git: author is Chihling Wang <chihlingw@gmail.com> (repo-local config).

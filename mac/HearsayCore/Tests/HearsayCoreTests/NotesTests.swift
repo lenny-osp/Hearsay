@@ -47,6 +47,20 @@ private let pythonPromptZH = #"""
         ---
         """#
 
+/// The repository's `shared/` folder, located from this file.
+let sharedDirectory = URL(fileURLWithPath: #filePath)
+    .deletingLastPathComponent()  // HearsayCoreTests
+    .deletingLastPathComponent()  // Tests
+    .deletingLastPathComponent()  // HearsayCore
+    .deletingLastPathComponent()  // mac
+    .deletingLastPathComponent()  // repo root
+    .appendingPathComponent("shared", isDirectory: true)
+
+/// Raw bytes of a file under `shared/`.
+func sharedData(_ path: String) throws -> Data {
+    try Data(contentsOf: sharedDirectory.appendingPathComponent(path))
+}
+
 @Suite struct NotesTests {
     // MARK: MeetingPrompt
 
@@ -141,6 +155,39 @@ private let pythonPromptZH = #"""
 
     @Test func systemMessageMatchesPython() {
         #expect(MeetingPrompt.systemMessage == "You are a professional and efficient meeting-note assistant.")
+    }
+
+    // MARK: shared/prompts (the compiled-in constants are the same bytes)
+
+    @Test func generalMeetingTemplateMatchesSharedFile() throws {
+        #expect(try sharedData("prompts/general-meeting.txt") == Data(PromptTemplate.generalMeeting.instructions.utf8))
+    }
+
+    @Test func responseRulesMatchSharedFile() throws {
+        #expect(try sharedData("prompts/response-rules.txt") == Data(MeetingPrompt.responseRules.utf8))
+    }
+
+    @Test func systemMessageMatchesSharedFile() throws {
+        #expect(try sharedData("prompts/system-message.txt") == Data(MeetingPrompt.systemMessage.utf8))
+    }
+
+    @Test func languagesMatchSharedFile() throws {
+        let shared = try JSONDecoder().decode([String: String].self, from: sharedData("prompts/languages.json"))
+        #expect(shared == MeetingPrompt.languages)
+    }
+
+    /// `shared/prompts/assembly.md` describes this concatenation; building it
+    /// from the shared files gives the same prompt as `MeetingPrompt.build`.
+    @Test func sharedFilesAssembleToThePythonPrompt() throws {
+        let template = String(decoding: try sharedData("prompts/general-meeting.txt"), as: UTF8.self)
+        let rules = String(decoding: try sharedData("prompts/response-rules.txt"), as: UTF8.self)
+        let names = try JSONDecoder().decode([String: String].self, from: sharedData("prompts/languages.json"))
+        for (code, python) in [("en", pythonPromptEN), ("zh-TW", pythonPromptZH)] {
+            let name = try #require(names[code])
+            let assembled = template.replacingOccurrences(of: "{output_language}", with: name)
+                + "\n\n" + rules + "\n\nThe source SRT is below:\n---\n" + "hello transcript" + "\n---"
+            #expect(Array(assembled.utf8) == Array(python.utf8))
+        }
     }
 
     // MARK: NotesResponse (parse assertions in test_ai_result_parsing_and_filename_sanitizing)

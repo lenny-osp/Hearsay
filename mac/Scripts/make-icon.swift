@@ -1,4 +1,6 @@
-// Draws the Hearsay app icon and writes every PNG the macOS AppIcon set needs.
+// Draws the Hearsay app icon and writes every PNG the macOS AppIcon set needs,
+// plus the same 1024 px render to shared/assets/icon-1024.png (the source
+// the Windows build makes its .ico from).
 // Usage, from mac/: swift Scripts/make-icon.swift
 //
 // The icon is a macOS-style rounded square (Big Sur grid: 824 pt body on a
@@ -260,6 +262,7 @@ func drawRobot(unit u: CGFloat, detailed: Bool) {
 let scriptURL = URL(fileURLWithPath: CommandLine.arguments[0]).standardizedFileURL
 let repoRoot = scriptURL.deletingLastPathComponent().deletingLastPathComponent()
 let iconSet = repoRoot.appendingPathComponent("Hearsay/Resources/Assets.xcassets/AppIcon.appiconset")
+let sharedAssets = repoRoot.deletingLastPathComponent().appendingPathComponent("shared/assets")
 
 do {
     try FileManager.default.createDirectory(at: iconSet, withIntermediateDirectories: true)
@@ -268,6 +271,12 @@ do {
         let url = iconSet.appendingPathComponent(fileName(forPixels: pixels))
         try data.write(to: url, options: .atomic)
         print("wrote \(url.lastPathComponent) (\(pixels)x\(pixels), \(data.count) bytes)")
+        if pixels == 1024 {
+            try FileManager.default.createDirectory(at: sharedAssets, withIntermediateDirectories: true)
+            let shared = sharedAssets.appendingPathComponent("icon-1024.png")
+            try data.write(to: shared, options: .atomic)
+            print("wrote shared/assets/\(shared.lastPathComponent) (\(data.count) bytes)")
+        }
     }
 
     let images: [[String: String]] = slots.map { slot in

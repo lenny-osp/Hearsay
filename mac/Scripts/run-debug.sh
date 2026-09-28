@@ -16,6 +16,8 @@ for arg in "$@"; do
   esac
 done
 mkdir -p .build
+# Help pages live in shared/help; copy them into the .lproj folders first.
+Scripts/sync-shared.sh
 xcodegen generate -q
 # Xcode does not re-copy a resource bundle whose inner folders changed (for
 # example new .lproj translations), so drop the embedded copies first.

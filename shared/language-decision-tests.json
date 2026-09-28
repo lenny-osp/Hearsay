@@ -1,0 +1,573 @@
+{
+  "about": "Language-decision vectors (PLAN.md section 1, 'Languages'), shared by the macOS and Windows apps. choice: 'auto' or a transcript language (en, zh-TW, zh-CN, de, es). preferred: Settings > General preferred language. detection: null when detection did not run, else a Whisper code (en, zh, de, es; null for no speech; any other code counts as no speech) and a confidence. Confidences are 32-bit floats compared with >= against 0.7 (auto) and 0.85 (fixed-choice suggestion); 0.69999993 and 0.84999996 parse to the float just below each threshold. expect.reason: chosen | detected | fallbackToPreferred; expect.confidence is the detected confidence for 'detected', the detected confidence or null for 'fallbackToPreferred', and null for 'chosen'. expect.suggestion is the language offered for a re-run, or null. Mirrors LanguageDecisionTests.swift.",
+  "thresholds": {
+    "auto": 0.7,
+    "mismatch": 0.85
+  },
+  "cases": [
+    {
+      "note": "auto, confident detection is used",
+      "choice": "auto",
+      "preferred": "en",
+      "detection": {
+        "code": "de",
+        "confidence": 0.93
+      },
+      "expect": {
+        "language": "de",
+        "reason": "detected",
+        "confidence": 0.93,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "auto, exactly at the 0.7 threshold is used",
+      "choice": "auto",
+      "preferred": "en",
+      "detection": {
+        "code": "es",
+        "confidence": 0.7
+      },
+      "expect": {
+        "language": "es",
+        "reason": "detected",
+        "confidence": 0.7,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "auto, just below 0.7 (Float(0.7).nextDown) falls back",
+      "choice": "auto",
+      "preferred": "zh-CN",
+      "detection": {
+        "code": "es",
+        "confidence": 0.69999993
+      },
+      "expect": {
+        "language": "zh-CN",
+        "reason": "fallbackToPreferred",
+        "confidence": 0.69999993,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "auto, low confidence falls back, no suggestion",
+      "choice": "auto",
+      "preferred": "en",
+      "detection": {
+        "code": "zh",
+        "confidence": 0.4
+      },
+      "expect": {
+        "language": "en",
+        "reason": "fallbackToPreferred",
+        "confidence": 0.4,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "auto, detected zh uses the preferred Chinese variant",
+      "choice": "auto",
+      "preferred": "zh-CN",
+      "detection": {
+        "code": "zh",
+        "confidence": 0.9
+      },
+      "expect": {
+        "language": "zh-CN",
+        "reason": "detected",
+        "confidence": 0.9,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "auto, detected zh uses the preferred Chinese variant",
+      "choice": "auto",
+      "preferred": "zh-TW",
+      "detection": {
+        "code": "zh",
+        "confidence": 0.9
+      },
+      "expect": {
+        "language": "zh-TW",
+        "reason": "detected",
+        "confidence": 0.9,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "auto, detected zh defaults to zh-TW when the preferred language is not Chinese",
+      "choice": "auto",
+      "preferred": "en",
+      "detection": {
+        "code": "zh",
+        "confidence": 0.9
+      },
+      "expect": {
+        "language": "zh-TW",
+        "reason": "detected",
+        "confidence": 0.9,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "auto, detected zh defaults to zh-TW when the preferred language is not Chinese",
+      "choice": "auto",
+      "preferred": "de",
+      "detection": {
+        "code": "zh",
+        "confidence": 0.9
+      },
+      "expect": {
+        "language": "zh-TW",
+        "reason": "detected",
+        "confidence": 0.9,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "auto, detected zh defaults to zh-TW when the preferred language is not Chinese",
+      "choice": "auto",
+      "preferred": "es",
+      "detection": {
+        "code": "zh",
+        "confidence": 0.9
+      },
+      "expect": {
+        "language": "zh-TW",
+        "reason": "detected",
+        "confidence": 0.9,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "auto, detecting the preferred language is still 'detected'",
+      "choice": "auto",
+      "preferred": "en",
+      "detection": {
+        "code": "en",
+        "confidence": 0.9
+      },
+      "expect": {
+        "language": "en",
+        "reason": "detected",
+        "confidence": 0.9,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "auto, no speech (code null) falls back without a confidence",
+      "choice": "auto",
+      "preferred": "de",
+      "detection": {
+        "code": null,
+        "confidence": 0
+      },
+      "expect": {
+        "language": "de",
+        "reason": "fallbackToPreferred",
+        "confidence": null,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "auto, detection did not run falls back without a confidence",
+      "choice": "auto",
+      "preferred": "es",
+      "detection": null,
+      "expect": {
+        "language": "es",
+        "reason": "fallbackToPreferred",
+        "confidence": null,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "auto, an unsupported code counts as no speech",
+      "choice": "auto",
+      "preferred": "en",
+      "detection": {
+        "code": "fr",
+        "confidence": 0.99
+      },
+      "expect": {
+        "language": "en",
+        "reason": "fallbackToPreferred",
+        "confidence": null,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "fixed, same language, no suggestion",
+      "choice": "zh-TW",
+      "preferred": "en",
+      "detection": {
+        "code": "zh",
+        "confidence": 0.99
+      },
+      "expect": {
+        "language": "zh-TW",
+        "reason": "chosen",
+        "confidence": null,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "fixed Chinese variant never suggests the other variant",
+      "choice": "zh-TW",
+      "preferred": "en",
+      "detection": {
+        "code": "zh",
+        "confidence": 0.99
+      },
+      "expect": {
+        "language": "zh-TW",
+        "reason": "chosen",
+        "confidence": null,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "fixed Chinese variant never suggests the other variant",
+      "choice": "zh-CN",
+      "preferred": "en",
+      "detection": {
+        "code": "zh",
+        "confidence": 0.99
+      },
+      "expect": {
+        "language": "zh-CN",
+        "reason": "chosen",
+        "confidence": null,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "fixed Chinese variant never suggests the other variant",
+      "choice": "zh-TW",
+      "preferred": "zh-TW",
+      "detection": {
+        "code": "zh",
+        "confidence": 0.99
+      },
+      "expect": {
+        "language": "zh-TW",
+        "reason": "chosen",
+        "confidence": null,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "fixed Chinese variant never suggests the other variant",
+      "choice": "zh-CN",
+      "preferred": "zh-TW",
+      "detection": {
+        "code": "zh",
+        "confidence": 0.99
+      },
+      "expect": {
+        "language": "zh-CN",
+        "reason": "chosen",
+        "confidence": null,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "fixed Chinese variant never suggests the other variant",
+      "choice": "zh-TW",
+      "preferred": "zh-CN",
+      "detection": {
+        "code": "zh",
+        "confidence": 0.99
+      },
+      "expect": {
+        "language": "zh-TW",
+        "reason": "chosen",
+        "confidence": null,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "fixed Chinese variant never suggests the other variant",
+      "choice": "zh-CN",
+      "preferred": "zh-CN",
+      "detection": {
+        "code": "zh",
+        "confidence": 0.99
+      },
+      "expect": {
+        "language": "zh-CN",
+        "reason": "chosen",
+        "confidence": null,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "fixed Chinese variant never suggests the other variant",
+      "choice": "zh-TW",
+      "preferred": "de",
+      "detection": {
+        "code": "zh",
+        "confidence": 0.99
+      },
+      "expect": {
+        "language": "zh-TW",
+        "reason": "chosen",
+        "confidence": null,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "fixed Chinese variant never suggests the other variant",
+      "choice": "zh-CN",
+      "preferred": "de",
+      "detection": {
+        "code": "zh",
+        "confidence": 0.99
+      },
+      "expect": {
+        "language": "zh-CN",
+        "reason": "chosen",
+        "confidence": null,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "fixed Chinese variant never suggests the other variant",
+      "choice": "zh-TW",
+      "preferred": "es",
+      "detection": {
+        "code": "zh",
+        "confidence": 0.99
+      },
+      "expect": {
+        "language": "zh-TW",
+        "reason": "chosen",
+        "confidence": null,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "fixed Chinese variant never suggests the other variant",
+      "choice": "zh-CN",
+      "preferred": "es",
+      "detection": {
+        "code": "zh",
+        "confidence": 0.99
+      },
+      "expect": {
+        "language": "zh-CN",
+        "reason": "chosen",
+        "confidence": null,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "fixed, mismatch to zh suggests the preferred Chinese variant",
+      "choice": "en",
+      "preferred": "zh-CN",
+      "detection": {
+        "code": "zh",
+        "confidence": 0.95
+      },
+      "expect": {
+        "language": "en",
+        "reason": "chosen",
+        "confidence": null,
+        "suggestion": "zh-CN"
+      }
+    },
+    {
+      "note": "fixed, mismatch to zh suggests zh-TW when the preferred language is not Chinese",
+      "choice": "en",
+      "preferred": "de",
+      "detection": {
+        "code": "zh",
+        "confidence": 0.95
+      },
+      "expect": {
+        "language": "en",
+        "reason": "chosen",
+        "confidence": null,
+        "suggestion": "zh-TW"
+      }
+    },
+    {
+      "note": "fixed, confident mismatch suggests",
+      "choice": "en",
+      "preferred": "en",
+      "detection": {
+        "code": "de",
+        "confidence": 0.95
+      },
+      "expect": {
+        "language": "en",
+        "reason": "chosen",
+        "confidence": null,
+        "suggestion": "de"
+      }
+    },
+    {
+      "note": "fixed, mismatch exactly at the 0.85 threshold suggests",
+      "choice": "en",
+      "preferred": "en",
+      "detection": {
+        "code": "es",
+        "confidence": 0.85
+      },
+      "expect": {
+        "language": "en",
+        "reason": "chosen",
+        "confidence": null,
+        "suggestion": "es"
+      }
+    },
+    {
+      "note": "fixed, mismatch just below 0.85 (Float(0.85).nextDown) does not suggest",
+      "choice": "en",
+      "preferred": "en",
+      "detection": {
+        "code": "es",
+        "confidence": 0.84999996
+      },
+      "expect": {
+        "language": "en",
+        "reason": "chosen",
+        "confidence": null,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "fixed, mismatch above 0.7 but below 0.85 does not suggest",
+      "choice": "de",
+      "preferred": "en",
+      "detection": {
+        "code": "en",
+        "confidence": 0.8
+      },
+      "expect": {
+        "language": "de",
+        "reason": "chosen",
+        "confidence": null,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "fixed, no speech does not suggest",
+      "choice": "es",
+      "preferred": "en",
+      "detection": {
+        "code": null,
+        "confidence": 0
+      },
+      "expect": {
+        "language": "es",
+        "reason": "chosen",
+        "confidence": null,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "fixed, detection did not run does not suggest",
+      "choice": "es",
+      "preferred": "en",
+      "detection": null,
+      "expect": {
+        "language": "es",
+        "reason": "chosen",
+        "confidence": null,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "fixed, an unsupported code does not suggest",
+      "choice": "es",
+      "preferred": "en",
+      "detection": {
+        "code": "fr",
+        "confidence": 0.99
+      },
+      "expect": {
+        "language": "es",
+        "reason": "chosen",
+        "confidence": null,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "fixed ignores the preferred language",
+      "choice": "zh-CN",
+      "preferred": "en",
+      "detection": {
+        "code": "zh",
+        "confidence": 0.2
+      },
+      "expect": {
+        "language": "zh-CN",
+        "reason": "chosen",
+        "confidence": null,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "fixed ignores the preferred language",
+      "choice": "zh-CN",
+      "preferred": "zh-TW",
+      "detection": {
+        "code": "zh",
+        "confidence": 0.2
+      },
+      "expect": {
+        "language": "zh-CN",
+        "reason": "chosen",
+        "confidence": null,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "fixed ignores the preferred language",
+      "choice": "zh-CN",
+      "preferred": "zh-CN",
+      "detection": {
+        "code": "zh",
+        "confidence": 0.2
+      },
+      "expect": {
+        "language": "zh-CN",
+        "reason": "chosen",
+        "confidence": null,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "fixed ignores the preferred language",
+      "choice": "zh-CN",
+      "preferred": "de",
+      "detection": {
+        "code": "zh",
+        "confidence": 0.2
+      },
+      "expect": {
+        "language": "zh-CN",
+        "reason": "chosen",
+        "confidence": null,
+        "suggestion": null
+      }
+    },
+    {
+      "note": "fixed ignores the preferred language",
+      "choice": "zh-CN",
+      "preferred": "es",
+      "detection": {
+        "code": "zh",
+        "confidence": 0.2
+      },
+      "expect": {
+        "language": "zh-CN",
+        "reason": "chosen",
+        "confidence": null,
+        "suggestion": null
+      }
+    }
+  ]
+}

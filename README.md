@@ -204,6 +204,12 @@ Hearsay is the native macOS version of the `whisper-tools` Python CLI
   `shared/localization/strings-en.json`; translators add `shared/localization/<lang>.json`
   (see `shared/localization/GLOSSARY.md`); `mac/Scripts/merge-translations.py` merges
   them into the string catalogs.
+- Help pages: edit `shared/help/<lang>/Help.html`; `mac/Scripts/sync-shared.sh`
+  (run by `run-debug.sh` and `generate-project.sh`) copies them into the app.
+- `shared/` also holds what the planned Windows version reuses: the
+  meeting-notes prompt (`shared/prompts/`), naming and language-decision test
+  vectors (`shared/*-tests.json`, run by the `HearsayCore` tests), the icon
+  source (`shared/assets/`), and the test audio (`shared/fixtures/`).
 - `mac/Scripts/make-notices.sh` regenerates `mac/THIRD_PARTY_NOTICES.md`.
 
 ## License

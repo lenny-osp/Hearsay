@@ -131,9 +131,16 @@ Hearsay/                      this repo
         (one test file per source file above; ports of the Python tests)
     Scripts/
       build-release.sh           xcodebuild archive, sign, notarize, staple, DMG
-  shared/
-    fixtures/                  short test audio, tiny model stub for offline tests
+  shared/                     resources both platforms use (section 18.2)
+    fixtures/                  short test audio and the Python reference SRTs
     localization/              translator files, GLOSSARY.md
+    help/<lang>/Help.html      in-app help; copied into the mac .lproj folders by Scripts/sync-shared.sh
+    prompts/                   meeting-notes prompt text, languages.json, assembly.md (JSON contract)
+    assets/icon-1024.png       app icon source, written by Scripts/make-icon.swift
+    models/README.md           model catalog schema; each platform keeps its own list
+    scripts/make-naming-tests.py  regenerates naming-tests.json from the Python tool
+    naming-tests.json          naming-rule test vectors
+    language-decision-tests.json  language-decision test vectors
   windows/                    Windows version (not started)
 ```
 
@@ -645,15 +652,24 @@ Shared resources (`shared/`) and what Windows does with them:
 |---|---|---|
 | `fixtures/` audio and expected SRTs | yes | acceptance tests (tolerant comparison, 18.5) |
 | `localization/` glossary and translations | yes | import into `.resw` with the same English keys, so the four translations are reused; new Windows-only keys are added to the JSON files |
-| prompt text and JSON contract | to extract from `MeetingPrompt.swift` into `shared/prompts/` | loaded verbatim; a test proves the English and Traditional Chinese prompts equal the Python tool's |
-| naming-rule test vectors | to extract from `NamingTests.swift` into `shared/naming-tests.json` | both platforms run the same cases |
-| help pages and CSS | to move from `mac/Hearsay/Resources/*.lproj/Help.html` into `shared/help/` | rendered in a WebView2 window |
-| model catalog schema | to split: shared schema, per-platform lists | Windows lists GGUF files from `ggerganov/whisper.cpp` on Hugging Face |
-| app icon PNGs | in `mac/Hearsay/Resources/Assets.xcassets` | move originals to `shared/assets/`, build `.ico` from them |
+| prompt text and JSON contract (`prompts/`: `general-meeting.txt`, `response-rules.txt`, `system-message.txt`, `languages.json`, `assembly.md`) | yes | loaded verbatim; a test proves the English and Traditional Chinese prompts equal the Python tool's |
+| naming-rule test vectors (`naming-tests.json`, generated from the Python tool by `scripts/make-naming-tests.py`) | yes | both platforms run the same cases |
+| language-decision vectors (`language-decision-tests.json`) | yes | both platforms run the same cases |
+| help pages with embedded CSS (`help/<lang>/Help.html`) | yes | rendered in a WebView2 window |
+| model catalog schema (`models/README.md`) | yes | Windows lists GGUF files from `ggerganov/whisper.cpp` on Hugging Face |
+| app icon source (`assets/icon-1024.png`) | yes | build `.ico` from it |
 
-The extraction rows marked "to …" are the first Windows work item; each
-one is done on the macOS side with the existing tests proving that macOS
-output does not change.
+Extraction done 2026-09-28 (W0). The macOS app keeps its compiled-in copies
+and proves they match: `NotesTests.swift` compares the Swift prompt
+constants byte for byte with `shared/prompts/`; `NamingTests.swift` and
+`LanguageDecisionTests.swift` run every shared vector. The help pages are
+edited only in `shared/help/`; `mac/Scripts/sync-shared.sh` (run by
+`run-debug.sh` and `generate-project.sh`) copies them to the git-ignored
+`mac/Hearsay/Resources/<lang>.lproj/Help.html`, so the bundled pages are
+byte-identical to before. `mac/Scripts/make-icon.swift` writes
+`shared/assets/icon-1024.png` from the same render as the AppIcon set; the
+AppIcon PNGs stay where Xcode needs them. The mac model catalog stays in
+`HearsayCore/Resources/ModelCatalog.json`.
 
 ### 18.3 Stack
 

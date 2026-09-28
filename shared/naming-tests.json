@@ -1,0 +1,311 @@
+{
+  "about": "Naming-rule test vectors shared by the macOS and Windows apps. Expected values come from the whisper-tools Python CLI (sanitize_ai_filename, insert_meeting_name, source_file_timestamp on a path that does not exist, save_named_outputs with the given timestamp and a source SRT named source.srt beside the existing files, no retained WAV). Hearsay also counts a retained <stem>.wav as a collision when the source SRT has one (PLAN.md 4.3 step 7); that case is covered in mac NamingTests.swift, not here. Regenerate with shared/scripts/make-naming-tests.py.",
+  "sanitize": [
+    {
+      "input": " Biweekly Cross Country Resource Management ",
+      "output": "biweekly-cross-country-resource-management"
+    },
+    {
+      "input": "Planning / Budget: Q4? <2026> | * Review\\Draft",
+      "output": "planning-budget-q4-2026-review-draft"
+    },
+    {
+      "input": "Café__ＲＥＶＩＥＷ\t會議 😀.MD",
+      "output": "cafe-review"
+    },
+    {
+      "input": "../../Launch---Plan.srt",
+      "output": "launch-plan"
+    },
+    {
+      "input": "會議😀 /:*?",
+      "output": null
+    },
+    {
+      "input": "   ",
+      "output": null
+    },
+    {
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "output": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "input": " Launch / Plan.md ",
+      "output": "launch-plan"
+    },
+    {
+      "input": "Launch Plan",
+      "output": "launch-plan"
+    },
+    {
+      "input": "會議?!",
+      "output": null
+    },
+    {
+      "input": "New / Launch PLAN",
+      "output": "new-launch-plan"
+    },
+    {
+      "input": "會議",
+      "output": null
+    },
+    {
+      "input": "Team Review",
+      "output": "team-review"
+    },
+    {
+      "input": "Straße Ölfeld",
+      "output": "stra-e-olfeld"
+    },
+    {
+      "input": "Ｑ４ ﬁnal",
+      "output": "q4-final"
+    },
+    {
+      "input": "İstanbul—Plan",
+      "output": "istanbul-plan"
+    },
+    {
+      "input": "x.Srt  ",
+      "output": "x"
+    },
+    {
+      "input": "notes.md.md",
+      "output": "notes-md"
+    },
+    {
+      "input": "-a-.txt",
+      "output": "a-txt"
+    },
+    {
+      "input": "日本 Meeting 2",
+      "output": "meeting-2"
+    },
+    {
+      "input": "ǅemal",
+      "output": "dzemal"
+    },
+    {
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa b",
+      "output": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "input": "Launch Plan!",
+      "output": "launch-plan"
+    },
+    {
+      "input": "會議 ?",
+      "output": null
+    },
+    {
+      "input": "genhe road trip",
+      "output": "genhe-road-trip"
+    },
+    {
+      "input": "Genhe Road Trip",
+      "output": "genhe-road-trip"
+    },
+    {
+      "input": "new name",
+      "output": "new-name"
+    }
+  ],
+  "insertMeetingName": [
+    {
+      "markdown": "# Structured Transcript\n\nDiscuss launch\n\n## Decisions\nShip it.\n",
+      "name": "launch-plan",
+      "fallbackHeading": "Structured Transcript",
+      "output": "# Structured Transcript\n\n**Meeting Name:** launch-plan\n\nDiscuss launch\n\n## Decisions\nShip it.\n"
+    },
+    {
+      "markdown": "# Structured Transcript\n\n**Meeting Name:** old-name\n\nDiscuss launch\n\n## Decisions\nShip it.\n",
+      "name": "launch-plan",
+      "fallbackHeading": "Structured Transcript",
+      "output": "# Structured Transcript\n\n**Meeting Name:** launch-plan\n\nDiscuss launch\n\n## Decisions\nShip it.\n"
+    },
+    {
+      "markdown": "Discuss launch",
+      "name": "launch-plan",
+      "fallbackHeading": "Structured Transcript",
+      "output": "# Structured Transcript\n\n**Meeting Name:** launch-plan\n\nDiscuss launch"
+    },
+    {
+      "markdown": "# Notes\n**meeting name:** old\n## Later\n**Meeting Name:** keep\n",
+      "name": "new",
+      "fallbackHeading": "Meeting Notes",
+      "output": "# Notes\n\n**Meeting Name:** new\n\n## Later\n**Meeting Name:** keep\n"
+    },
+    {
+      "markdown": "  ## Agenda\r\nItem\r\n",
+      "name": "n",
+      "fallbackHeading": "F",
+      "output": "  ## Agenda\n\n**Meeting Name:** n\n\nItem\r\n"
+    },
+    {
+      "markdown": "Intro\n#NoSpace\n# Real\n.**Meeting Name:** x\nBody",
+      "name": "n",
+      "fallbackHeading": "F",
+      "output": "Intro\n#NoSpace\n# Real\n\n**Meeting Name:** n\n\nBody"
+    },
+    {
+      "markdown": "\n\n  text  ",
+      "name": "n",
+      "fallbackHeading": "F",
+      "output": "# F\n\n**Meeting Name:** n\n\ntext  "
+    },
+    {
+      "markdown": "# Notes\n",
+      "name": "x",
+      "fallbackHeading": "Meeting Notes",
+      "output": "# Notes\n\n**Meeting Name:** x\n"
+    },
+    {
+      "markdown": "# Notes\n\nBody\n",
+      "name": "launch-plan",
+      "fallbackHeading": "Meeting Notes",
+      "output": "# Notes\n\n**Meeting Name:** launch-plan\n\nBody\n"
+    },
+    {
+      "markdown": "Speaker: hi",
+      "name": "launch-plan",
+      "fallbackHeading": "Structured Transcript",
+      "output": "# Structured Transcript\n\n**Meeting Name:** launch-plan\n\nSpeaker: hi"
+    },
+    {
+      "markdown": "# Notes\n\nNew\n",
+      "name": "trip-to-genhe",
+      "fallbackHeading": "Meeting Notes",
+      "output": "# Notes\n\n**Meeting Name:** trip-to-genhe\n\nNew\n"
+    },
+    {
+      "markdown": "# N",
+      "name": "genhe-road-trip",
+      "fallbackHeading": "Meeting Notes",
+      "output": "# N\n\n**Meeting Name:** genhe-road-trip\n"
+    }
+  ],
+  "timestampFromFilename": [
+    {
+      "filename": "2025-04-03_14-05-06_customer-call.wav",
+      "timestamp": "2025-04-03_14-05-06"
+    },
+    {
+      "filename": "customer-call-2025-04-03-14-05-06.wav",
+      "timestamp": "2025-04-03_14-05-06"
+    },
+    {
+      "filename": "20250403T140506.wav",
+      "timestamp": "2025-04-03_14-05-06"
+    },
+    {
+      "filename": "2025-02-30_14-05-06.wav",
+      "timestamp": null
+    },
+    {
+      "filename": "2025-04-03_24-05-06.wav",
+      "timestamp": null
+    },
+    {
+      "filename": "12025-04-03_14-05-06.wav",
+      "timestamp": null
+    },
+    {
+      "filename": "meeting.wav",
+      "timestamp": null
+    },
+    {
+      "filename": "2026-09-03-14-05-06.srt",
+      "timestamp": "2026-09-03_14-05-06"
+    },
+    {
+      "filename": "2026-09-03_14-05-06.srt",
+      "timestamp": "2026-09-03_14-05-06"
+    },
+    {
+      "filename": "2024-02-29_00-00-00.wav",
+      "timestamp": "2024-02-29_00-00-00"
+    },
+    {
+      "filename": "2023-02-29_00-00-00.wav",
+      "timestamp": null
+    },
+    {
+      "filename": "call 2025-04-03 14:05:06.m4a",
+      "timestamp": "2025-04-03_14-05-06"
+    },
+    {
+      "filename": "2025-02-30_14-05-06_then_2025-04-03_14-05-06.wav",
+      "timestamp": null
+    },
+    {
+      "filename": "2025-04-03_14-05-061.wav",
+      "timestamp": null
+    }
+  ],
+  "outputNames": [
+    {
+      "timestamp": "2026-09-03_14-05-06",
+      "name": "Launch Plan!",
+      "existing": [],
+      "stem": "2026-09-03_14-05-06_launch-plan"
+    },
+    {
+      "timestamp": "2020-01-01_00-00-00",
+      "name": "launch",
+      "existing": [
+        "2020-01-01_00-00-00_launch_transcript.md"
+      ],
+      "stem": "2020-01-01_00-00-00_launch-2"
+    },
+    {
+      "timestamp": "2026-09-03_14-05-06",
+      "name": "launch",
+      "existing": [
+        "2026-09-03_14-05-06_launch.srt"
+      ],
+      "stem": "2026-09-03_14-05-06_launch-2"
+    },
+    {
+      "timestamp": "2026-09-28_11-49-45",
+      "name": "launch",
+      "existing": [
+        "2026-09-28_11-49-45_launch.md"
+      ],
+      "stem": "2026-09-28_11-49-45_launch-2"
+    },
+    {
+      "timestamp": "2026-09-03_14-05-06",
+      "name": "launch",
+      "existing": [
+        "2026-09-03_14-05-06_launch.srt",
+        "2026-09-03_14-05-06_launch-2.md"
+      ],
+      "stem": "2026-09-03_14-05-06_launch-3"
+    },
+    {
+      "timestamp": "2026-09-03_14-05-06",
+      "name": "launch",
+      "existing": [
+        "2026-09-03_14-05-06_launch.txt",
+        "2026-09-03_14-05-06_launch-notes.md"
+      ],
+      "stem": "2026-09-03_14-05-06_launch"
+    },
+    {
+      "timestamp": "2026-09-03_14-05-06",
+      "name": "launch",
+      "existing": [
+        "2026-09-03_14-05-06_launch-2.srt"
+      ],
+      "stem": "2026-09-03_14-05-06_launch"
+    },
+    {
+      "timestamp": "2026-09-28_11-49-45",
+      "name": "Genhe Road Trip",
+      "existing": [
+        "2026-09-28_11-49-45_trip-to-genhe.srt"
+      ],
+      "stem": "2026-09-28_11-49-45_genhe-road-trip"
+    }
+  ]
+}

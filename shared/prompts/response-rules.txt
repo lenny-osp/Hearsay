@@ -1,0 +1,2 @@
+Choose a short, descriptive English filename based on the main topic, regardless of the selected output language. Use only lowercase ASCII letters, digits, and hyphens. Do not include a date, time, path, or extension in the filename. Begin each Markdown document with a heading. Return only valid JSON in exactly this shape:
+{"filename": "short-descriptive-name", "markdown": "the complete meeting notes in Markdown", "transcript_markdown": "the complete structured transcript in Markdown"}
