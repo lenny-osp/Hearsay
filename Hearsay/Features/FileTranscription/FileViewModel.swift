@@ -198,8 +198,7 @@ final class FileViewModel {
                     Task { @MainActor in self?.updateProgress(value, job: id) }
                 }
             )
-            let script = ChineseScript.app(language: language, settings: settings)
-            let srt = try Self.writeSRT(result.cues(script: script), for: source, in: folder.url)
+            let srt = try Self.writeSRT(result.cues(script: language.chineseScript), for: source, in: folder.url)
             phase = .finished(srt: srt, source: source)
             notesRequest = srt
             if !tracker.isSettled {
@@ -252,8 +251,7 @@ final class FileViewModel {
                                     comment: "Error. %@ is a file name.")
                 return nil
             }
-            let script = ChineseScript.app(language: language, settings: settings)
-            try TranscriptOutput.writeSRT(result.cues(script: script), to: srt)
+            try TranscriptOutput.writeSRT(result.cues(script: language.chineseScript), to: srt)
             tracker.choose(language)
             self.tracker = tracker
             languageNotice = nil
@@ -301,7 +299,7 @@ final class FileViewModel {
     /// bypassing `ModelStore`, writes the SRT into the output folder, prints
     /// its path and the language decision to stdout (timings to stderr), and
     /// quits with status 0, or 1 on failure. `HEARSAY_LANGUAGE` (auto, en,
-    /// zh, de, es) is optional and overrides the Language picker for this
+    /// zh-TW, zh-CN, de, es; zh is an alias for zh-TW) is optional and overrides the Language picker for this
     /// run only. `settings` is the throwaway copy from `DebugDefaults`, so
     /// nothing the run does reaches the user's settings. The app is not
     /// sandboxed, so both paths can be anywhere the user can read,
@@ -320,7 +318,7 @@ final class FileViewModel {
               let directory = environment["HEARSAY_MODEL_DIR"], !directory.isEmpty
         else { return false }
         let model = FileViewModel(settings: settings, modelStore: modelStore, engine: engine)
-        let choice = environment["HEARSAY_LANGUAGE"].flatMap(LanguageChoice.init(storageValue:))
+        let choice = environment["HEARSAY_LANGUAGE"].flatMap(LanguageChoice.init(debugValue:))
         let modelURL = URL(fileURLWithPath: directory, isDirectory: true)
         let source = URL(fileURLWithPath: file)
         Task { @MainActor in
@@ -335,7 +333,7 @@ final class FileViewModel {
             if let srt {
                 var lines = [srt.path]
                 lines.append("choice \((choice ?? model.languageChoice).storageValue), preferred "
-                    + settings.preferredLanguage.code)
+                    + settings.preferredLanguage.rawValue)
                 if let detection = model.lastDetection {
                     lines.append(detection.debugSummary)
                 } else {

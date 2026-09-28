@@ -705,34 +705,6 @@
         }
       }
     },
-    "Applies to Chinese transcripts. Other languages are never changed." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gilt für chinesische Transkripte. Andere Sprachen werden nie geändert."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Se aplica a las transcripciones en chino. Los demás idiomas nunca se modifican."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "适用于中文转录稿。其他语言不会被更改。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "僅套用於中文逐字稿。其他語言不會有任何變更。"
-          }
-        }
-      }
-    },
     "Approve in System Settings > General > Login Items" : {
       "localizations" : {
         "de" : {
@@ -818,30 +790,31 @@
         }
       }
     },
-    "Auto detects English, Chinese, German, or Spanish from the first speech" : {
+    "Auto detects English, Chinese, German, or Spanish from the first speech. ZH-TW writes Traditional characters, ZH-CN Simplified." : {
+      "comment" : "Tooltip of the language picker. ZH-TW and ZH-CN are the picker's labels; keep them as they are.",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "„Automatisch“ erkennt Englisch, Chinesisch, Deutsch oder Spanisch an den ersten gesprochenen Worten"
+            "value" : "„Automatisch“ erkennt Englisch, Chinesisch, Deutsch oder Spanisch an den ersten gesprochenen Worten. ZH-TW schreibt traditionelle Schriftzeichen, ZH-CN vereinfachte."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Automático detecta inglés, chino, alemán o español con las primeras palabras"
+            "value" : "Automático detecta inglés, chino, alemán o español con las primeras palabras. ZH-TW escribe caracteres tradicionales; ZH-CN, simplificados."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "“自动”会根据最先出现的语音识别英语、中文、德语或西班牙语"
+            "value" : "“自动”会根据最先出现的语音识别英语、中文、德语或西班牙语。ZH-TW 以繁体字书写，ZH-CN 以简体字书写。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "「自動」會根據最初的語音偵測英文、中文、德文或西班牙文"
+            "value" : "「自動」會根據最初的語音偵測英文、中文、德文或西班牙文。ZH-TW 以繁體字書寫，ZH-CN 以簡體字書寫。"
           }
         }
       }
@@ -989,35 +962,6 @@
         }
       }
     },
-    "Characters of the Chinese transcript" : {
-      "comment" : "Tooltip of the Chinese output picker",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Schriftzeichen des chinesischen Transkripts"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Escritura de la transcripción en chino"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "中文转录稿使用的简繁字形"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "中文逐字稿的繁簡字形"
-          }
-        }
-      }
-    },
     "Check %@" : {
       "localizations" : {
         "de" : {
@@ -1042,35 +986,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "檢查 %@"
-          }
-        }
-      }
-    },
-    "Chinese output" : {
-      "comment" : "Picker label: write Chinese transcripts in Traditional or Simplified characters",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chinesische Schrift"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Escritura china"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "中文输出"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "中文輸出"
           }
         }
       }
@@ -7294,7 +7209,7 @@
       }
     },
     "Transcribe this recording again in %@. Your language choice stays as it is." : {
-      "comment" : "Tooltip. %@ is a language name in its own language (English, 中文, Deutsch, Español).",
+      "comment" : "Tooltip. %@ is a language name in its own language (English, 繁體中文, 简体中文, Deutsch, Español).",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -7861,59 +7776,31 @@
         }
       }
     },
-    "Used when Auto can't tell the language." : {
+    "Used when Auto can't tell the language. When Auto hears Chinese, it writes 简体中文 if that is chosen here, otherwise 繁體中文." : {
+      "comment" : "Settings > General caption under Preferred language. 简体中文 and 繁體中文 are language names; keep them as they are.",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wird verwendet, wenn „Automatisch“ die Sprache nicht erkennt."
+            "value" : "Wird verwendet, wenn „Automatisch“ die Sprache nicht erkennt. Erkennt „Automatisch“ Chinesisch, wird 简体中文 geschrieben, wenn es hier ausgewählt ist, sonst 繁體中文."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Se usa cuando Automático no reconoce el idioma."
+            "value" : "Se usa cuando Automático no reconoce el idioma. Si Automático detecta chino, escribe 简体中文 si está elegido aquí y, si no, 繁體中文."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "“自动”无法判断语言时使用。"
+            "value" : "“自动”无法判断语言时使用。“自动”识别出中文时，如果此处选择简体中文，就以简体中文书写，否则以繁體中文书写。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "「自動」無法判斷語言時使用。"
-          }
-        }
-      }
-    },
-    "Used when Auto detects Chinese" : {
-      "comment" : "Tooltip of the Chinese output picker",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wird verwendet, wenn „Automatisch“ Chinesisch erkennt"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Se usa cuando Automático detecta chino"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "“自动”检测到中文时使用"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "「自動」偵測到中文時使用"
+            "value" : "「自動」無法判斷語言時使用。「自動」偵測到中文時，若此處選擇简体中文就以简体中文書寫，否則以繁體中文書寫。"
           }
         }
       }

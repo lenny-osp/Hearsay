@@ -36,15 +36,23 @@ public struct LanguageDecision: Equatable, Sendable {
     ///   - choice: what the user picked.
     ///   - preferred: the preferred language from Settings > General.
     ///   - detection: the detection result, or nil when detection did not run.
-    ///     A nil `code` means no speech was detected. A code outside the
-    ///     supported languages is treated like no speech.
+    ///     `code` is a Whisper code (`TranscriptLanguage.whisperCodes`); a nil
+    ///     `code` means no speech was detected. A code outside the supported
+    ///     languages is treated like no speech. A detected "zh" is the
+    ///     preferred language's Chinese variant when the preferred language
+    ///     is ZH-TW or ZH-CN, otherwise ZH-TW.
+    ///
+    /// With a fixed choice, a suggestion needs a different Whisper language:
+    /// "zh" never suggests the other Chinese variant.
     public static func decide(
         choice: LanguageChoice,
         preferred: TranscriptLanguage,
         detection: (code: String?, confidence: Float)?
     ) -> LanguageDecision {
         let detected = detection.flatMap { result in
-            result.code.flatMap(TranscriptLanguage.init(rawValue:)).map { ($0, result.confidence) }
+            result.code
+                .flatMap { TranscriptLanguage(whisperCode: $0, preferred: preferred) }
+                .map { ($0, result.confidence) }
         }
         switch choice {
         case .auto:
@@ -57,7 +65,7 @@ public struct LanguageDecision: Equatable, Sendable {
             )
         case .fixed(let language):
             var suggestion: TranscriptLanguage?
-            if let (other, confidence) = detected, other != language, confidence >= mismatchThreshold {
+            if let (other, confidence) = detected, other.whisperCode != language.whisperCode, confidence >= mismatchThreshold {
                 suggestion = other
             }
             return LanguageDecision(language: language, reason: .chosen, suggestion: suggestion)

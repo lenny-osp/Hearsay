@@ -334,9 +334,11 @@ struct DefaultLanguageSettingTests {
         let settings = AppSettings(defaults: defaults)
         #expect(settings.defaultLanguageCode == "en")
         settings.defaultLanguageCode = "zh"
-        #expect(defaults.string(forKey: AppSettings.Key.languageChoice) == "zh")
-        #expect(AppSettings(defaults: defaults).defaultLanguageCode == "zh")
-        #expect(AppSettings(defaults: defaults).languageChoice == .fixed(.chinese))
+        #expect(defaults.string(forKey: AppSettings.Key.languageChoice) == "zh-TW")
+        #expect(AppSettings(defaults: defaults).defaultLanguageCode == "zh-TW")
+        #expect(AppSettings(defaults: defaults).languageChoice == .fixed(.chineseTaiwan))
+        settings.defaultLanguageCode = "zh-CN"
+        #expect(AppSettings(defaults: defaults).languageChoice == .fixed(.chineseMainland))
     }
 }
 

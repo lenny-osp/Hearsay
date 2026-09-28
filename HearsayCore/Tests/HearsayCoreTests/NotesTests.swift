@@ -4,6 +4,7 @@ import Testing
 
 /// Generated once from Python:
 /// run_whisper.build_meeting_prompt("hello transcript", "en" | "zh").
+/// Python "zh" is Hearsay's "zh-TW".
 private let pythonPromptEN = #"""
         You are a professional meeting note-taker. Based on the following meeting transcript, organize a clear and well-structured set of meeting notes.
         The selected output language is English.
@@ -51,7 +52,9 @@ private let pythonPromptZH = #"""
 
     @Test func defaultPromptIsByteIdenticalToPython() throws {
         #expect(try MeetingPrompt.build(transcript: "hello transcript", languageCode: "en") == pythonPromptEN)
-        #expect(try MeetingPrompt.build(transcript: "hello transcript", languageCode: "zh") == pythonPromptZH)
+        #expect(try MeetingPrompt.build(transcript: "hello transcript", languageCode: "zh-TW") == pythonPromptZH)
+        let zhTW = try MeetingPrompt.build(transcript: "hello transcript", languageCode: "zh-TW")
+        #expect(Array(zhTW.utf8) == Array(pythonPromptZH.utf8))
         let en = try MeetingPrompt.build(transcript: "hello transcript", languageCode: "en")
         #expect(Array(en.utf8) == Array(pythonPromptEN.utf8))
     }
@@ -64,12 +67,29 @@ private let pythonPromptZH = #"""
         #expect(english.contains("1. **Meeting Topic and Summary**"))
         #expect(english.contains("3. **Action Items (tasks, owners, and follow-up timelines)**"))
 
-        let chinese = try MeetingPrompt.build(transcript: "Hello", languageCode: "zh")
+        let chinese = try MeetingPrompt.build(transcript: "Hello", languageCode: "zh-TW")
         #expect(chinese.contains("The selected output language is Traditional Chinese."))
         #expect(chinese.contains("Write the entire meeting note in Traditional Chinese"))
         #expect(chinese.contains("translating each heading into Traditional Chinese"))
         #expect(!chinese.contains("The selected output language is English."))
         #expect(chinese.contains(#""filename": "short-descriptive-name""#))
+    }
+
+    @Test func languageNames() {
+        #expect(MeetingPrompt.languages == [
+            "en": "English", "zh-TW": "Traditional Chinese", "zh-CN": "Simplified Chinese",
+            "de": "German", "es": "Spanish",
+        ])
+        for language in TranscriptLanguage.allCases {
+            #expect(MeetingPrompt.languages[language.rawValue] != nil)
+        }
+    }
+
+    @Test func simplifiedChinesePrompt() throws {
+        let prompt = try MeetingPrompt.build(transcript: "hello transcript", languageCode: "zh-CN")
+        #expect(prompt == pythonPromptZH.replacingOccurrences(of: "Traditional Chinese", with: "Simplified Chinese"))
+        #expect(prompt.contains("The selected output language is Simplified Chinese."))
+        #expect(!prompt.contains("Traditional Chinese"))
     }
 
     @Test(arguments: [("de", "German"), ("es", "Spanish")])
@@ -97,11 +117,14 @@ private let pythonPromptZH = #"""
         #expect(throws: MeetingPromptError.unsupportedLanguage("fr")) {
             try MeetingPrompt.build(transcript: "Hello", languageCode: "fr")
         }
+        #expect(throws: MeetingPromptError.unsupportedLanguage("zh")) {
+            try MeetingPrompt.build(transcript: "Hello", languageCode: "zh")
+        }
     }
 
     @Test func customTemplateKeepsFixedRulesAndTranscript() throws {
         let template = PromptTemplate(name: "Standup", instructions: "Summarize the standup in {output_language}.")
-        let prompt = try MeetingPrompt.build(transcript: "T", languageCode: "zh", template: template)
+        let prompt = try MeetingPrompt.build(transcript: "T", languageCode: "zh-TW", template: template)
         #expect(prompt.hasPrefix("Summarize the standup in Traditional Chinese.\n\nChoose a short, descriptive English filename"))
         #expect(prompt.contains(#"{"filename": "short-descriptive-name", "markdown": "#))
         #expect(prompt.hasSuffix("\n\nThe source SRT is below:\n---\nT\n---"))

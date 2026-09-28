@@ -126,7 +126,7 @@ struct NotesPipelineTests {
         ChatStubURLProtocol.register(url, status: 200, body: completion(content: goodNotes))
 
         let result = try await pipeline().generate(
-            srtText: srt, languageCode: "zh", template: .generalMeeting,
+            srtText: srt, languageCode: "zh-TW", template: .generalMeeting,
             configuration: configuration(url: url), token: "ai-token"
         )
         #expect(result == NotesResponse(filename: "Quarterly Planning", markdown: "# API Notes",
@@ -153,7 +153,7 @@ struct NotesPipelineTests {
         let user = try #require(messages[1]["content"])
         #expect(user.components(separatedBy: "Discuss launch").count - 1 == 1)
         #expect(user.contains("Write the entire meeting note in Traditional Chinese"))
-        #expect(user == (try MeetingPrompt.build(transcript: srt, languageCode: "zh")))
+        #expect(user == (try MeetingPrompt.build(transcript: srt, languageCode: "zh-TW")))
     }
 
     @Test func reasoningEffortIsAbsentWhenNilOrEmptyOrUnsupported() throws {

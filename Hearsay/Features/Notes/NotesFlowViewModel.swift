@@ -148,7 +148,7 @@ final class NotesFlowViewModel {
         let configuration = store.configuration
         let token = configuration.auth.needsToken ? store.currentToken : nil
         let text = srtText
-        let language = notesLanguage.code
+        let language = notesLanguage.rawValue
         let pipeline = pipeline
         generation = Task { [weak self] in
             do {

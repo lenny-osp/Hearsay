@@ -57,22 +57,6 @@ struct AppSettingsTests {
         #expect(AppSettings(defaults: defaults).keepRecording == false)
     }
 
-    @Test func chineseScriptDefaultsTraditionalAndRoundTrips() {
-        let (defaults, suite) = Self.freshDefaults()
-        defer { defaults.removePersistentDomain(forName: suite) }
-        let settings = AppSettings(defaults: defaults)
-        #expect(settings.chineseScript == .traditional)
-        settings.chineseScript = .simplified
-        #expect(AppSettings(defaults: defaults).chineseScript == .simplified)
-        settings.chineseScript = .asIs
-        #expect(settings.chineseScript == .traditional)
-        #expect(AppSettings(defaults: defaults).chineseScript == .traditional)
-        defaults.set("asIs", forKey: AppSettings.Key.chineseScript)
-        #expect(AppSettings(defaults: defaults).chineseScript == .traditional)
-        defaults.set("bogus", forKey: AppSettings.Key.chineseScript)
-        #expect(AppSettings(defaults: defaults).chineseScript == .traditional)
-    }
-
     @Test func languageDefaultsForFreshInstall() {
         let (defaults, suite) = Self.freshDefaults()
         defer { defaults.removePersistentDomain(forName: suite) }
@@ -112,7 +96,7 @@ struct AppSettingsTests {
         #expect(settings.preferredLanguage == .english)
     }
 
-    @Test(arguments: [("en", TranscriptLanguage.english), ("zh", .chinese)])
+    @Test(arguments: [("en", TranscriptLanguage.english), ("zh", .chineseTaiwan)])
     func legacyLanguageCodeMigratesToFixed(code: String, language: TranscriptLanguage) {
         let (defaults, suite) = Self.freshDefaults()
         defer { defaults.removePersistentDomain(forName: suite) }
@@ -120,8 +104,8 @@ struct AppSettingsTests {
         let settings = AppSettings(defaults: defaults)
         #expect(settings.languageChoice == .fixed(language))
         #expect(settings.preferredLanguage == .english)
-        #expect(settings.defaultLanguageCode == code)
-        #expect(defaults.string(forKey: AppSettings.Key.languageChoice) == code)
+        #expect(settings.defaultLanguageCode == language.rawValue)
+        #expect(defaults.string(forKey: AppSettings.Key.languageChoice) == language.rawValue)
     }
 
     @Test func storedChoiceWinsOverLegacyCode() {
@@ -150,7 +134,7 @@ struct AppSettingsTests {
                 #expect(settings.preferredLanguage == preferred)
                 #expect(AppSettings(defaults: defaults).preferredLanguage == preferred)
             }
-            for code in ["en", "zh", "de", "es", "fr"] {
+            for code in ["en", "zh", "zh-TW", "zh-CN", "de", "es", "fr"] {
                 settings.defaultLanguageCode = code
                 #expect(settings.preferredLanguage == preferred)
             }
@@ -167,9 +151,11 @@ struct AppSettingsTests {
         settings.languageChoice = .fixed(.german)
         #expect(settings.defaultLanguageCode == "de")
         settings.defaultLanguageCode = "zh"
-        #expect(settings.languageChoice == .fixed(.chinese))
+        #expect(settings.languageChoice == .fixed(.chineseTaiwan))
+        settings.defaultLanguageCode = "zh-CN"
+        #expect(settings.languageChoice == .fixed(.chineseMainland))
         settings.defaultLanguageCode = "fr"
-        #expect(settings.languageChoice == .fixed(.chinese))
+        #expect(settings.languageChoice == .fixed(.chineseMainland))
     }
 
     @Test func hotkeysDefaultToControlOptionCommand() {
@@ -273,5 +259,83 @@ struct OutputLocationTests {
         try FileManager.default.removeItem(at: chosen)
         let resolved = try OutputLocation.resolve(bookmark: bookmark, fallback: fallback)
         #expect(resolved.url == fallback)
+    }
+}
+
+/// A stored "zh" (before ZH-TW and ZH-CN) migrates by the legacy
+/// "Chinese output" setting: traditional or missing gives ZH-TW, simplified
+/// ZH-CN. Auto and the other languages are unchanged.
+@MainActor
+final class ChineseVariantMigrationTests {
+    private let scratch = ScratchDefaults()
+
+    private func defaults(choice: String?, preferred: String?, script: String?) -> UserDefaults {
+        let defaults = scratch.make()
+        if let choice { defaults.set(choice, forKey: AppSettings.Key.languageChoice) }
+        if let preferred { defaults.set(preferred, forKey: AppSettings.Key.preferredLanguage) }
+        if let script { defaults.set(script, forKey: AppSettings.Key.chineseScript) }
+        return defaults
+    }
+
+    @Test(arguments: [
+        ("traditional" as String?, TranscriptLanguage.chineseTaiwan),
+        (nil, .chineseTaiwan),
+        ("asIs", .chineseTaiwan),
+        ("simplified", .chineseMainland),
+    ])
+    func fixedZhChoiceMigrates(script: String?, expected: TranscriptLanguage) {
+        let defaults = defaults(choice: "zh", preferred: nil, script: script)
+        let settings = AppSettings(defaults: defaults)
+        #expect(settings.languageChoice == .fixed(expected))
+        #expect(settings.preferredLanguage == .english)
+        #expect(defaults.string(forKey: AppSettings.Key.languageChoice) == expected.rawValue)
+        #expect(AppSettings(defaults: defaults).languageChoice == .fixed(expected))
+    }
+
+    @Test(arguments: [
+        ("traditional" as String?, TranscriptLanguage.chineseTaiwan),
+        (nil, .chineseTaiwan),
+        ("simplified", .chineseMainland),
+    ])
+    func preferredZhMigrates(script: String?, expected: TranscriptLanguage) {
+        let defaults = defaults(choice: "auto", preferred: "zh", script: script)
+        let settings = AppSettings(defaults: defaults)
+        #expect(settings.preferredLanguage == expected)
+        #expect(settings.languageChoice == .auto)
+        #expect(defaults.string(forKey: AppSettings.Key.preferredLanguage) == expected.rawValue)
+        #expect(AppSettings(defaults: defaults).preferredLanguage == expected)
+    }
+
+    @Test func legacyDefaultLanguageCodeZhMigratesByScript() {
+        let defaults = scratch.make()
+        defaults.set("zh", forKey: AppSettings.Key.defaultLanguageCode)
+        defaults.set("simplified", forKey: AppSettings.Key.chineseScript)
+        #expect(AppSettings(defaults: defaults).languageChoice == .fixed(.chineseMainland))
+        #expect(defaults.string(forKey: AppSettings.Key.languageChoice) == "zh-CN")
+    }
+
+    @Test(arguments: ["auto", "en", "de", "es", "zh-TW", "zh-CN"])
+    func otherChoicesUnchanged(stored: String) {
+        for script in ["traditional", "simplified", nil] as [String?] {
+            let defaults = defaults(choice: stored, preferred: nil, script: script)
+            #expect(AppSettings(defaults: defaults).languageChoice.storageValue == stored)
+            #expect(defaults.string(forKey: AppSettings.Key.languageChoice) == stored)
+        }
+    }
+
+    @Test(arguments: ["en", "de", "es", "zh-TW", "zh-CN"])
+    func otherPreferredUnchanged(stored: String) {
+        for script in ["traditional", "simplified", nil] as [String?] {
+            let defaults = defaults(choice: nil, preferred: stored, script: script)
+            #expect(AppSettings(defaults: defaults).preferredLanguage.rawValue == stored)
+            #expect(defaults.string(forKey: AppSettings.Key.preferredLanguage) == stored)
+        }
+    }
+
+    @Test func bothZhMigrateTogether() {
+        let defaults = defaults(choice: "zh", preferred: "zh", script: "simplified")
+        let settings = AppSettings(defaults: defaults)
+        #expect(settings.languageChoice == .fixed(.chineseMainland))
+        #expect(settings.preferredLanguage == .chineseMainland)
     }
 }

@@ -11,8 +11,9 @@ Hearsay, Whisper, MLX, GitHub Copilot CLI, Claude Code CLI, Codex CLI,
 Antigravity CLI, Ollama, LM Studio, Hugging Face, SRT, WAV, Markdown, JSON,
 API, CLI, URL, macOS, Finder, Keychain names shown by macOS, model ids
 (such as `gemini-3.8-flash-high`), keyboard shortcut symbols (⌘ ⌥ ⌃ ⇧),
-placeholders (`%@`, `%lld`, `%1$@`), and language autonyms (English, 中文,
-Deutsch, Español, 繁體中文, 简体中文).
+placeholders (`%@`, `%lld`, `%1$@`), language autonyms (English, 繁體中文,
+简体中文, Deutsch, Español), and the language picker's short labels (EN,
+ZH-TW, ZH-CN, DE, ES).
 
 ## Tone
 
@@ -58,7 +59,6 @@ Deutsch, Español, 繁體中文, 简体中文).
 | Auto (language) | Automatisch | Automático | 自動 | 自动 |
 | Preferred language | Bevorzugte Sprache | Idioma preferido | 偏好語言 | 首选语言 |
 | Interface language | Sprache der Benutzeroberfläche | Idioma de la interfaz | 介面語言 | 界面语言 |
-| Chinese output | Chinesische Schrift | Escritura china | 中文輸出 | 中文输出 |
 | Model | Modell | Modelo | 模型 | 模型 |
 | Download / Downloading… | Laden / Wird geladen … | Descargar / Descargando… | 下載 / 正在下載… | 下载 / 正在下载… |
 | Delete / Move to Trash… | Löschen / In den Papierkorb legen … | Eliminar / Trasladar a la Papelera… | 刪除 / 丟到垃圾桶… | 删除 / 移到废纸篓… |

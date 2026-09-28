@@ -14,7 +14,8 @@ import os
 /// the totals to stderr, deletes everything it wrote, and quits with
 /// status 0 (1 when the final pass failed).
 ///
-/// `HEARSAY_LANGUAGE` (auto, en, zh, de, es; default en) is optional. Every
+/// `HEARSAY_LANGUAGE` (auto, en, zh-TW, zh-CN, de, es; zh is an alias for
+/// zh-TW; default en) is optional. Every
 /// language detection and the session's final language decision are
 /// printed to stdout. `HEARSAY_REPLAY_SYSTEM=silence`
 /// adds a second, silent source in place of system audio. Settings live in
@@ -23,7 +24,7 @@ import os
 /// (cfprefsd may still leave an empty
 /// `~/Library/Preferences/tw.og1o.hearsay.replay-*.plist` behind).
 ///
-///     HEARSAY_REPLAY_FILE=/tmp/meeting.wav HEARSAY_LANGUAGE=zh \
+///     HEARSAY_REPLAY_FILE=/tmp/meeting.wav HEARSAY_LANGUAGE=zh-TW \
 ///     HEARSAY_MODEL_DIR=Spike/models/mlx-community_whisper-large-v3-turbo \
 ///     .build/derived/Build/Products/Debug/Hearsay.app/Contents/MacOS/Hearsay
 ///
@@ -35,7 +36,7 @@ enum RecordingReplay {
         guard let file = environment["HEARSAY_REPLAY_FILE"], !file.isEmpty,
               let directory = environment["HEARSAY_MODEL_DIR"], !directory.isEmpty
         else { return false }
-        let language = environment["HEARSAY_LANGUAGE"].flatMap(LanguageChoice.init(storageValue:))
+        let language = environment["HEARSAY_LANGUAGE"].flatMap(LanguageChoice.init(debugValue:))
             ?? .fixed(.english)
         let silentSystem = environment["HEARSAY_REPLAY_SYSTEM"] == "silence"
         let modelURL = URL(fileURLWithPath: directory, isDirectory: true)
@@ -96,7 +97,9 @@ enum RecordingReplay {
         }
         settings.languageChoice = language
         if let preferred = UserDefaults.standard.string(forKey: AppSettings.Key.preferredLanguage)
-            .flatMap(TranscriptLanguage.init(rawValue:)) {
+            .flatMap({ TranscriptLanguage(
+                storedValue: $0,
+                legacyChineseScript: UserDefaults.standard.string(forKey: AppSettings.Key.chineseScript)) }) {
             // Read only: the user's preferred language, copied into the suite.
             settings.preferredLanguage = preferred
         }
@@ -167,7 +170,7 @@ enum RecordingReplay {
         defer { window?.close() }
         say(String(format: "replaying %@ (%.2f s), language %@, preferred %@, system audio %@",
                    file.lastPathComponent, Double(samples.count) / 16_000, language.storageValue,
-                   settings.preferredLanguage.code, silentSystem ? "silence" : "off"))
+                   settings.preferredLanguage.rawValue, silentSystem ? "silence" : "off"))
         clock.reset()
         controller.start()
         let snapshots = ProcessInfo.processInfo.environment["HEARSAY_REPLAY_SNAPSHOTS"]

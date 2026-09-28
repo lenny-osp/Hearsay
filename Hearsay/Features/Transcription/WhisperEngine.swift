@@ -113,7 +113,7 @@ actor WhisperEngine {
     }
 
     /// Loads `location` if needed, then detects the language of `samples`
-    /// among the supported languages (`TranscriptLanguage.allCases`), with
+    /// among the supported Whisper languages (`TranscriptLanguage.whisperCodes`), with
     /// the detector's defaults: up to three speech windows averaged, silent
     /// and no-speech windows skipped. The caller applies
     /// `LanguageDecision.decide` to the result.
@@ -124,7 +124,7 @@ actor WhisperEngine {
         guard let transcriber else { throw WhisperEngineError.noActiveModel }
         if Task.isCancelled { throw CancellationError() }
         return try transcriber.detectLanguage(
-            samples: samples, candidates: TranscriptLanguage.allCases.map(\.code)
+            samples: samples, candidates: TranscriptLanguage.whisperCodes
         )
     }
 
@@ -194,9 +194,10 @@ extension Error {
 extension Transcription {
     /// The segments as SRT cues, cleaned like mlx_whisper's `WriteSRT`
     /// (text stripped, `-->` replaced with `->`), shifted by `offset`
-    /// seconds, and converted to `script` (see `ChineseScript.app`). Every
+    /// seconds, and converted to `script` (the session language's
+    /// `chineseScript`; nil leaves the text unchanged). Every
     /// cue Hearsay shows or writes comes from here.
-    func cues(offset: TimeInterval = 0, script: ChineseScript) -> [CoreSegment] {
+    func cues(offset: TimeInterval = 0, script: ChineseScript?) -> [CoreSegment] {
         let cues = segments.map { segment in
             CoreSegment(
                 start: segment.start + offset,

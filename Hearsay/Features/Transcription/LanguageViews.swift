@@ -1,10 +1,10 @@
 import HearsayCore
 import SwiftUI
 
-/// The segmented Auto / EN / ZH / DE / ES picker of the Record and File tabs,
-/// bound to `AppSettings.languageChoice` (PLAN.md section 1, "Languages").
-/// Followed by the 繁體中文 / 简体中文 row when ZH or Auto is selected; for
-/// Auto it applies only when the session turns out to be zh.
+/// The segmented Auto / EN / ZH-TW / ZH-CN / DE / ES picker of the Record and
+/// File tabs, bound to `AppSettings.languageChoice` (PLAN.md section 1,
+/// "Languages"). ZH-TW transcripts are written in Traditional characters,
+/// ZH-CN in Simplified.
 struct LanguageChoicePicker: View {
     @Environment(AppSettings.self) private var settings
     var isDisabled = false
@@ -18,16 +18,9 @@ struct LanguageChoicePicker: View {
         }
         .pickerStyle(.segmented)
         .disabled(isDisabled)
-        .help("Auto detects English, Chinese, German, or Spanish from the first speech")
-
-        if settings.languageChoice == .auto || settings.languageChoice == .fixed(.chinese) {
-            ChineseScriptPicker()
-                .pickerStyle(.segmented)
-                .disabled(isDisabled)
-                .help(settings.languageChoice == .auto
-                      ? String(localized: "Used when Auto detects Chinese", comment: "Tooltip of the Chinese output picker")
-                      : String(localized: "Characters of the Chinese transcript", comment: "Tooltip of the Chinese output picker"))
-        }
+        .help(String(
+            localized: "Auto detects English, Chinese, German, or Spanish from the first speech. ZH-TW writes Traditional characters, ZH-CN Simplified.",
+            comment: "Tooltip of the language picker. ZH-TW and ZH-CN are the picker's labels; keep them as they are."))
     }
 }
 
@@ -50,7 +43,7 @@ struct LanguageNoticeView: View {
                     Button("Transcribe again") { onRerun(language) }
                         .help(String(
                             localized: "Transcribe this recording again in \(language.displayName). Your language choice stays as it is.",
-                            comment: "Tooltip. %@ is a language name in its own language (English, 中文, Deutsch, Español)."))
+                            comment: "Tooltip. %@ is a language name in its own language (English, 繁體中文, 简体中文, Deutsch, Español)."))
                     if let onDismiss {
                         Button("Dismiss", action: onDismiss)
                     }

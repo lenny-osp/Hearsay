@@ -116,7 +116,7 @@ final class RecordingController {
     /// The last detection result, for the debug replay.
     @ObservationIgnored private(set) var lastDetection: DetectionResult?
     /// Script the session's cues are converted to (zh only).
-    @ObservationIgnored private var sessionChineseScript: ChineseScript = .asIs
+    @ObservationIgnored private var sessionChineseScript: ChineseScript?
 
     @ObservationIgnored private let settings: AppSettings
     @ObservationIgnored private let modelStore: ModelStore
@@ -574,8 +574,7 @@ final class RecordingController {
             choice: settings.languageChoice, preferred: settings.preferredLanguage
         )
         lastDetection = nil
-        sessionChineseScript = languageTracker.language
-            .map { ChineseScript.app(language: $0, settings: settings) } ?? .asIs
+        sessionChineseScript = languageTracker.language?.chineseScript
         startLivePreview()
         phase = .recording
 
@@ -855,7 +854,7 @@ final class RecordingController {
         liveTask = Task { [weak self] in
             for await job in stream {
                 guard let language = await self?.waitForSessionLanguage(session: id) else { continue }
-                let script = self?.sessionChineseScript ?? .asIs
+                let script = self?.sessionChineseScript
                 self?.liveJobObserver?(.started(index: job.index))
                 let outcome: Result<[CoreSegment], Error>
                 do {
@@ -894,7 +893,7 @@ final class RecordingController {
     /// conversion, the banner, and any waiting live jobs follow it.
     private func languageSettled() {
         if let language = languageTracker.language {
-            sessionChineseScript = ChineseScript.app(language: language, settings: settings)
+            sessionChineseScript = language.chineseScript
         }
         resumeLanguageWaiters()
     }

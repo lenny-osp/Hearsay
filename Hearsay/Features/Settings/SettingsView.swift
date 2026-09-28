@@ -70,11 +70,8 @@ private struct GeneralSettingsView: View {
             LaunchAtLoginSection()
             Section("Transcription") {
                 PreferredLanguagePicker()
-                Text("Used when Auto can't tell the language.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                ChineseScriptPicker()
-                Text("Applies to Chinese transcripts. Other languages are never changed.")
+                Text("Used when Auto can't tell the language. When Auto hears Chinese, it writes 简体中文 if that is chosen here, otherwise 繁體中文.",
+                     comment: "Settings > General caption under Preferred language. 简体中文 and 繁體中文 are language names; keep them as they are.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -153,8 +150,9 @@ private struct LaunchAtLoginSection: View {
 }
 
 /// "Preferred language" (Settings > General): what Auto falls back to when
-/// detection is unsure. The only control that writes
-/// `AppSettings.preferredLanguage`.
+/// detection is unsure, and which Chinese variant Auto uses when it detects
+/// Chinese. Lists the five languages by autonym. The only control that
+/// writes `AppSettings.preferredLanguage`.
 private struct PreferredLanguagePicker: View {
     @Environment(AppSettings.self) private var settings
 
@@ -163,28 +161,6 @@ private struct PreferredLanguagePicker: View {
         Picker("Preferred language", selection: $settings.preferredLanguage) {
             ForEach(TranscriptLanguage.allCases, id: \.self) { language in
                 Text(language.displayName).tag(language)
-            }
-        }
-    }
-}
-
-/// "Chinese output" for zh transcripts: 繁體中文 (default) or 简体中文, bound
-/// to `AppSettings.chineseScript`. Offers only `ChineseScript.pickerCases`;
-/// the internal asIs (used for non-zh sessions) is never shown, and a stored
-/// asIs shows as 繁體中文. Shown on the Record tab on its own row below the
-/// language picker when ZH is chosen, and in Settings > General.
-struct ChineseScriptPicker: View {
-    @Environment(AppSettings.self) private var settings
-    var label = String(localized: "Chinese output",
-                       comment: "Picker label: write Chinese transcripts in Traditional or Simplified characters")
-
-    var body: some View {
-        Picker(label, selection: Binding(
-            get: { settings.chineseScript.pickerValue },
-            set: { settings.chineseScript = $0 }
-        )) {
-            ForEach(ChineseScript.pickerCases, id: \.self) { script in
-                Text(script.displayName).tag(script)
             }
         }
     }

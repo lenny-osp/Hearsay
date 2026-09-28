@@ -46,6 +46,8 @@ public final class AppSettings {
         public static let startStopHotkey = "startStopHotkey"
         public static let pauseHotkey = "pauseHotkey"
         public static let keepRecording = "keepRecording"
+        /// Legacy "Chinese output" setting ("traditional" or "simplified"),
+        /// read only to migrate a stored "zh" into ZH-TW or ZH-CN.
         public static let chineseScript = "chineseScript"
         public static let interfaceLanguage = "interfaceLanguage"
     }
@@ -81,25 +83,27 @@ public final class AppSettings {
     }
 
     /// Transcription language chosen on the Record or File tab: Auto or a
-    /// fixed language, stored as "auto" or the code. A fresh install starts
-    /// at Auto; an install that stored the legacy `defaultLanguageCode` keeps
-    /// that language as a fixed choice.
+    /// fixed language, stored as "auto" or the language's raw value. A fresh
+    /// install starts at Auto; an install that stored the legacy
+    /// `defaultLanguageCode` keeps that language as a fixed choice. A stored
+    /// "zh" becomes ZH-TW or ZH-CN by the legacy `Key.chineseScript`.
     public var languageChoice: LanguageChoice {
         didSet { defaults.set(languageChoice.storageValue, forKey: Key.languageChoice) }
     }
 
     /// The language Auto falls back to when detection is not confident
     /// (Settings > General). Default English. Only the user changes it in
-    /// Settings; nothing else in the app writes it.
+    /// Settings; nothing else in the app writes it. A stored "zh" migrates
+    /// like `languageChoice`.
     public var preferredLanguage: TranscriptLanguage {
         didSet { defaults.set(preferredLanguage.rawValue, forKey: Key.preferredLanguage) }
     }
 
     /// Deprecated: use `languageChoice` and `preferredLanguage`. Kept for
-    /// callers not yet moved to the new API. Reads the fixed language code,
-    /// or the preferred language code for Auto. Writing a supported code sets
-    /// `languageChoice` to that fixed language (never `preferredLanguage`);
-    /// other values are ignored.
+    /// callers not yet moved to the new API. Reads the fixed language's raw
+    /// value, or the preferred language's for Auto. Writing a supported raw
+    /// value (or the legacy "zh", as ZH-TW) sets `languageChoice` to that
+    /// fixed language (never `preferredLanguage`); other values are ignored.
     public var defaultLanguageCode: String {
         get {
             switch languageChoice {
@@ -108,7 +112,7 @@ public final class AppSettings {
             }
         }
         set {
-            guard let language = TranscriptLanguage(rawValue: newValue) else { return }
+            guard let language = TranscriptLanguage(storedValue: newValue, legacyChineseScript: nil) else { return }
             languageChoice = .fixed(language)
         }
     }
@@ -135,16 +139,6 @@ public final class AppSettings {
         didSet { defaults.set(keepRecording, forKey: Key.keepRecording) }
     }
 
-    /// Characters for zh transcripts (Record tab, Settings > General):
-    /// traditional or simplified. Default traditional; a stored or assigned
-    /// asIs reads as traditional. Other languages are never converted.
-    public var chineseScript: ChineseScript {
-        didSet {
-            if chineseScript == .asIs { chineseScript = .traditional }
-            defaults.set(chineseScript.rawValue, forKey: Key.chineseScript)
-        }
-    }
-
     /// The language of Hearsay's own interface (Settings > General). Default
     /// English on a fresh install, whatever the Mac's language. The app
     /// applies it through `AppleLanguages` at launch; a change needs a
@@ -159,34 +153,49 @@ public final class AppSettings {
         self.windowMode = WindowMode(rawValue: rawMode) ?? .menuBarAndDock
         self.outputFolderBookmark = defaults.data(forKey: Key.outputFolderBookmark)
         self.languageChoice = Self.loadLanguageChoice(from: defaults)
-        self.preferredLanguage = TranscriptLanguage(
-            rawValue: defaults.string(forKey: Key.preferredLanguage) ?? "") ?? .english
+        self.preferredLanguage = Self.loadPreferredLanguage(from: defaults)
         self.activeModelRepo = defaults.string(forKey: Key.activeModelRepo)
         self.captureSystemAudio = defaults.object(forKey: Key.captureSystemAudio) as? Bool ?? true
         self.startStopHotkey = Self.loadHotkey(forKey: Key.startStopHotkey, from: defaults)
             ?? .defaultStartStop
         self.pauseHotkey = Self.loadHotkey(forKey: Key.pauseHotkey, from: defaults) ?? .defaultPause
         self.keepRecording = defaults.object(forKey: Key.keepRecording) as? Bool ?? true
-        self.chineseScript = (ChineseScript(rawValue: defaults.string(forKey: Key.chineseScript) ?? "")
-            ?? .traditional).pickerValue
         self.interfaceLanguage = InterfaceLanguage(
             rawValue: defaults.string(forKey: Key.interfaceLanguage) ?? "") ?? .english
     }
 
-    /// The stored choice; otherwise the legacy code as a fixed language
-    /// (persisted under the new key); otherwise Auto.
+    /// The stored choice (a legacy "zh" migrated and persisted); otherwise
+    /// the legacy code as a fixed language (persisted under the new key);
+    /// otherwise Auto.
     private static func loadLanguageChoice(from defaults: UserDefaults) -> LanguageChoice {
+        let script = defaults.string(forKey: Key.chineseScript)
         if let stored = defaults.string(forKey: Key.languageChoice),
-           let choice = LanguageChoice(storageValue: stored) {
+           let choice = LanguageChoice(storedValue: stored, legacyChineseScript: script) {
+            if choice.storageValue != stored {
+                defaults.set(choice.storageValue, forKey: Key.languageChoice)
+            }
             return choice
         }
         if let legacy = defaults.string(forKey: Key.defaultLanguageCode),
-           let language = TranscriptLanguage(rawValue: legacy) {
+           let language = TranscriptLanguage(storedValue: legacy, legacyChineseScript: script) {
             let choice = LanguageChoice.fixed(language)
             defaults.set(choice.storageValue, forKey: Key.languageChoice)
             return choice
         }
         return .auto
+    }
+
+    /// The stored preferred language (a legacy "zh" migrated and
+    /// persisted); otherwise English.
+    private static func loadPreferredLanguage(from defaults: UserDefaults) -> TranscriptLanguage {
+        guard let stored = defaults.string(forKey: Key.preferredLanguage),
+              let language = TranscriptLanguage(
+                storedValue: stored, legacyChineseScript: defaults.string(forKey: Key.chineseScript))
+        else { return .english }
+        if language.rawValue != stored {
+            defaults.set(language.rawValue, forKey: Key.preferredLanguage)
+        }
+        return language
     }
 
     private static func loadHotkey(forKey key: String, from defaults: UserDefaults) -> HotkeyBinding? {

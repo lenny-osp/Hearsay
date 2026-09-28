@@ -15,11 +15,14 @@ public enum MeetingPromptError: Error, Equatable, LocalizedError {
 /// for the notes section. With `.generalMeeting` the result is byte-identical
 /// to the Python prompt.
 public enum MeetingPrompt {
-    /// Port of `MEETING_NOTE_LANGUAGES`, plus German and Spanish (PLAN.md
-    /// section 1, "Languages": notes are written in the transcript language).
+    /// Port of `MEETING_NOTE_LANGUAGES` keyed by `TranscriptLanguage` raw
+    /// value (Python "zh" is "zh-TW"), plus Simplified Chinese, German and
+    /// Spanish (PLAN.md section 1, "Languages": notes are written in the
+    /// transcript language).
     public static let languages: [String: String] = [
         "en": "English",
-        "zh": "Traditional Chinese",
+        "zh-TW": "Traditional Chinese",
+        "zh-CN": "Simplified Chinese",
         "de": "German",
         "es": "Spanish",
     ]

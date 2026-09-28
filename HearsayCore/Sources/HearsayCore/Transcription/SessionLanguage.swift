@@ -128,11 +128,11 @@ public enum LanguageNotice: Equatable, Sendable {
         case .suggestion(let language):
             String(localized: "This sounds like \(language.displayName). Transcribe again in \(language.displayName)?",
                    bundle: .module,
-                   comment: "Language banner. Both %@ are the same language name in its own language (English, 中文, Deutsch, Español).")
+                   comment: "Language banner. Both %@ are the same language name in its own language (English, 繁體中文, 简体中文, Deutsch, Español).")
         case .fallback(let preferred):
             String(localized: "Couldn't tell the language, so this was transcribed in \(preferred.displayName) (your preferred language).",
                    bundle: .module,
-                   comment: "Language banner. %@ is a language name in its own language (English, 中文, Deutsch, Español).")
+                   comment: "Language banner. %@ is a language name in its own language (English, 繁體中文, 简体中文, Deutsch, Español).")
         }
     }
 
@@ -162,8 +162,8 @@ extension LanguageDecision {
             reasonText = "fallback-to-preferred"
             confidence = value.map { String(format: "%.4f", $0) } ?? "none"
         }
-        return "language \(language.code), reason \(reasonText), confidence \(confidence), "
-            + "suggestion \(suggestion?.code ?? "none")"
+        return "language \(language.rawValue), reason \(reasonText), confidence \(confidence), "
+            + "suggestion \(suggestion?.rawValue ?? "none")"
     }
 }
 
@@ -209,7 +209,7 @@ extension StoredTranscriptLanguage {
 
 /// The confirm sheet's lines under the "Notes language" picker.
 public enum NotesLanguageCaption {
-    /// "Transcript language: 中文", or with the caller's note, e.g.
+    /// "Transcript language: 繁體中文", or with the caller's note, e.g.
     /// "Transcript language: Deutsch (detected from the text)".
     public static func transcriptLine(_ language: TranscriptLanguage, note: String? = nil) -> String {
         String(localized: "Transcript language: \(note ?? language.displayName)", bundle: .module,

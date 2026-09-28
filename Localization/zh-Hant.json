@@ -231,14 +231,6 @@
   },
   {
     "catalog": "app",
-    "key": "Applies to Chinese transcripts. Other languages are never changed.",
-    "english": "Applies to Chinese transcripts. Other languages are never changed.",
-    "comment": "UI text in SettingsView.swift.",
-    "placeholders": [],
-    "translation": "僅套用於中文逐字稿。其他語言不會有任何變更。"
-  },
-  {
-    "catalog": "app",
     "key": "Approve in System Settings > General > Login Items",
     "english": "Approve in System Settings > General > Login Items",
     "comment": "UI text in SettingsView.swift.",
@@ -263,11 +255,11 @@
   },
   {
     "catalog": "app",
-    "key": "Auto detects English, Chinese, German, or Spanish from the first speech",
-    "english": "Auto detects English, Chinese, German, or Spanish from the first speech",
-    "comment": "UI text in LanguageViews.swift.",
+    "key": "Auto detects English, Chinese, German, or Spanish from the first speech. ZH-TW writes Traditional characters, ZH-CN Simplified.",
+    "english": "Auto detects English, Chinese, German, or Spanish from the first speech. ZH-TW writes Traditional characters, ZH-CN Simplified.",
+    "comment": "Tooltip of the language picker. ZH-TW and ZH-CN are the picker's labels; keep them as they are.",
     "placeholders": [],
-    "translation": "「自動」會根據最初的語音偵測英文、中文、德文或西班牙文"
+    "translation": "「自動」會根據最初的語音偵測英文、中文、德文或西班牙文。ZH-TW 以繁體字書寫，ZH-CN 以簡體字書寫。"
   },
   {
     "catalog": "app",
@@ -311,14 +303,6 @@
   },
   {
     "catalog": "app",
-    "key": "Characters of the Chinese transcript",
-    "english": "Characters of the Chinese transcript",
-    "comment": "Tooltip of the Chinese output picker",
-    "placeholders": [],
-    "translation": "中文逐字稿的繁簡字形"
-  },
-  {
-    "catalog": "app",
     "key": "Check %@",
     "english": "Check %@",
     "comment": "UI text in AISettingsTab.swift.",
@@ -326,14 +310,6 @@
       "%@"
     ],
     "translation": "檢查 %@"
-  },
-  {
-    "catalog": "app",
-    "key": "Chinese output",
-    "english": "Chinese output",
-    "comment": "Picker label: write Chinese transcripts in Traditional or Simplified characters",
-    "placeholders": [],
-    "translation": "中文輸出"
   },
   {
     "catalog": "app",
@@ -2171,7 +2147,7 @@
     "catalog": "app",
     "key": "Transcribe this recording again in %@. Your language choice stays as it is.",
     "english": "Transcribe this recording again in %@. Your language choice stays as it is.",
-    "comment": "Tooltip. %@ is a language name in its own language (English, 中文, Deutsch, Español).",
+    "comment": "Tooltip. %@ is a language name in its own language (English, 繁體中文, 简体中文, Deutsch, Español).",
     "placeholders": [
       "%@"
     ],
@@ -2341,19 +2317,11 @@
   },
   {
     "catalog": "app",
-    "key": "Used when Auto can't tell the language.",
-    "english": "Used when Auto can't tell the language.",
-    "comment": "UI text in SettingsView.swift.",
+    "key": "Used when Auto can't tell the language. When Auto hears Chinese, it writes 简体中文 if that is chosen here, otherwise 繁體中文.",
+    "english": "Used when Auto can't tell the language. When Auto hears Chinese, it writes 简体中文 if that is chosen here, otherwise 繁體中文.",
+    "comment": "Settings > General caption under Preferred language. 简体中文 and 繁體中文 are language names; keep them as they are.",
     "placeholders": [],
-    "translation": "「自動」無法判斷語言時使用。"
-  },
-  {
-    "catalog": "app",
-    "key": "Used when Auto detects Chinese",
-    "english": "Used when Auto detects Chinese",
-    "comment": "Tooltip of the Chinese output picker",
-    "placeholders": [],
-    "translation": "「自動」偵測到中文時使用"
+    "translation": "「自動」無法判斷語言時使用。「自動」偵測到中文時，若此處選擇简体中文就以简体中文書寫，否則以繁體中文書寫。"
   },
   {
     "catalog": "app",
@@ -2841,7 +2809,7 @@
     "catalog": "core",
     "key": "Couldn't tell the language, so this was transcribed in %@ (your preferred language).",
     "english": "Couldn't tell the language, so this was transcribed in %@ (your preferred language).",
-    "comment": "Language banner. %@ is a language name in its own language (English, 中文, Deutsch, Español).",
+    "comment": "Language banner. %@ is a language name in its own language (English, 繁體中文, 简体中文, Deutsch, Español).",
     "placeholders": [
       "%@"
     ],
@@ -3263,7 +3231,7 @@
     "catalog": "core",
     "key": "This sounds like %@. Transcribe again in %@?",
     "english": "This sounds like %1$@. Transcribe again in %2$@?",
-    "comment": "Language banner. Both %@ are the same language name in its own language (English, 中文, Deutsch, Español).",
+    "comment": "Language banner. Both %@ are the same language name in its own language (English, 繁體中文, 简体中文, Deutsch, Español).",
     "placeholders": [
       "%@",
       "%@"

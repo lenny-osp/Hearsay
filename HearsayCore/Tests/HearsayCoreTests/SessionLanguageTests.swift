@@ -76,7 +76,10 @@ struct SessionLanguageTrackerTests {
     @Test func autoFinishBeforeDecisionUsesTheWholeRecordingResult() {
         var tracker = T(choice: .auto, preferred: .english, sampleRate: Self.rate)
         #expect(tracker.finish(detection: ("zh", 0.8))
-            == LanguageDecision(language: .chinese, reason: .detected(confidence: 0.8)))
+            == LanguageDecision(language: .chineseTaiwan, reason: .detected(confidence: 0.8)))
+        var mainland = T(choice: .auto, preferred: .chineseMainland, sampleRate: Self.rate)
+        #expect(mainland.finish(detection: ("zh", 0.8))
+            == LanguageDecision(language: .chineseMainland, reason: .detected(confidence: 0.8)))
         var unsure = T(choice: .auto, preferred: .german, sampleRate: Self.rate)
         #expect(unsure.finish(detection: (nil, 0))
             == LanguageDecision(language: .german, reason: .fallbackToPreferred(detectedConfidence: nil)))
@@ -131,8 +134,11 @@ struct LanguageNoticeTests {
         #expect(notice == .fallback(preferred: .english))
         #expect(notice.message
             == "Couldn't tell the language, so this was transcribed in English (your preferred language).")
-        #expect(notice.rerunLanguages == [.chinese, .german, .spanish])
-        #expect(LanguageNotice.fallback(preferred: .german).rerunLanguages == [.english, .chinese, .spanish])
+        #expect(notice.rerunLanguages == [.chineseTaiwan, .chineseMainland, .german, .spanish])
+        #expect(LanguageNotice.fallback(preferred: .german).rerunLanguages
+            == [.english, .chineseTaiwan, .chineseMainland, .spanish])
+        #expect(LanguageNotice.fallback(preferred: .chineseMainland).rerunLanguages
+            == [.english, .chineseTaiwan, .german, .spanish])
     }
 
     @Test func noNoticeForConfidentOrChosen() {
@@ -184,21 +190,22 @@ struct StoredTranscriptLanguageResolveTests {
         let resolved = StoredTranscriptLanguage.resolve(srtText: srt, choice: .auto, preferred: .spanish)
         #expect(resolved.language == .spanish)
         #expect(resolved.note == "Español (your preferred language; this transcript's language was not recorded)")
-        let empty = StoredTranscriptLanguage.resolve(srtText: "", choice: .fixed(.chinese), preferred: .english)
-        #expect(empty.language == .chinese)
+        let empty = StoredTranscriptLanguage.resolve(srtText: "", choice: .fixed(.chineseMainland), preferred: .english)
+        #expect(empty.language == .chineseMainland)
     }
 }
 
 struct NotesLanguageCaptionTests {
     @Test func transcriptLine() {
-        #expect(NotesLanguageCaption.transcriptLine(.chinese) == "Transcript language: 中文")
+        #expect(NotesLanguageCaption.transcriptLine(.chineseTaiwan) == "Transcript language: 繁體中文")
+        #expect(NotesLanguageCaption.transcriptLine(.chineseMainland) == "Transcript language: 简体中文")
         #expect(NotesLanguageCaption.transcriptLine(.german, note: "Deutsch (detected from the text)")
             == "Transcript language: Deutsch (detected from the text)")
     }
 
     @Test func notesLineOnlyWhenDifferent() {
         #expect(NotesLanguageCaption.notesLine(transcript: .english, notes: .english) == nil)
-        #expect(NotesLanguageCaption.notesLine(transcript: .chinese, notes: .german)
+        #expect(NotesLanguageCaption.notesLine(transcript: .chineseTaiwan, notes: .german)
             == "Notes will be written in Deutsch.")
     }
 }

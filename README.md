@@ -62,7 +62,8 @@ A signed, notarized download comes later. For now, build Hearsay from source:
 
 ## Recording
 
-- **Record tab.** Pick the microphone and the language (EN or ZH), leave
+- **Record tab.** Pick the microphone and the language (Auto, EN, ZH-TW, ZH-CN, DE, or ES;
+  ZH-TW writes Traditional characters, ZH-CN Simplified), leave
   "Also capture system audio" on to include the other side of a call, and
   press Start. A level bar shows the mix, two small meters show whether the
   microphone and the system audio are each alive, and a warning appears

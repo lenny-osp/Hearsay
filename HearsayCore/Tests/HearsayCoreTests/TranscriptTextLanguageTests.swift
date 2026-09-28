@@ -38,12 +38,12 @@ struct TranscriptTextLanguageTests {
 
     @Test func traditionalChinese() {
         let result = Self.confident("我們先從預算開始討論。報告必須在星期五之前完成，然後寄給整個團隊。")
-        #expect(result?.0 == .chinese)
+        #expect(result?.0 == .chineseTaiwan)
     }
 
     @Test func simplifiedChinese() {
         let result = Self.confident("我们先从预算开始讨论。报告必须在星期五之前完成，然后发给整个团队。")
-        #expect(result?.0 == .chinese)
+        #expect(result?.0 == .chineseMainland)
     }
 
     @Test func noLettersIsNil() {

@@ -1060,7 +1060,7 @@
       }
     },
     "Couldn't tell the language, so this was transcribed in %@ (your preferred language)." : {
-      "comment" : "Language banner. %@ is a language name in its own language (English, 中文, Deutsch, Español).",
+      "comment" : "Language banner. %@ is a language name in its own language (English, 繁體中文, 简体中文, Deutsch, Español).",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2435,7 +2435,7 @@
       }
     },
     "This sounds like %@. Transcribe again in %@?" : {
-      "comment" : "Language banner. Both %@ are the same language name in its own language (English, 中文, Deutsch, Español).",
+      "comment" : "Language banner. Both %@ are the same language name in its own language (English, 繁體中文, 简体中文, Deutsch, Español).",
       "localizations" : {
         "de" : {
           "stringUnit" : {

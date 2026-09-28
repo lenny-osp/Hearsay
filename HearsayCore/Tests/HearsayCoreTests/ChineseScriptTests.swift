@@ -14,16 +14,13 @@ struct ChineseScriptTests {
         #expect(ChineseScript.convert(Self.traditional, to: .simplified) == Self.simplified)
     }
 
-    @Test func asIsLeavesTextUnchanged() {
-        #expect(ChineseScript.convert(Self.simplified, to: .asIs) == Self.simplified)
-        #expect(ChineseScript.convert(Self.traditional, to: .asIs) == Self.traditional)
+    @Test func nilLeavesTextUnchanged() {
+        #expect(ChineseScript.convert(Self.simplified, to: nil) == Self.simplified)
+        #expect(ChineseScript.convert(Self.traditional, to: nil) == Self.traditional)
     }
 
-    @Test func pickerOffersTraditionalAndSimplifiedOnly() {
-        #expect(ChineseScript.pickerCases == [.traditional, .simplified])
-        #expect(ChineseScript.pickerCases.map(\.displayName) == ["繁體中文", "简体中文"])
-        #expect(ChineseScript.asIs.pickerValue == .traditional)
-        #expect(ChineseScript.simplified.pickerValue == .simplified)
+    @Test func onlyTwoScripts() {
+        #expect(ChineseScript.allCases == [.traditional, .simplified])
     }
 
     @Test func asciiAndEnglishUnchanged() {
@@ -41,22 +38,19 @@ struct ChineseScriptTests {
             == "我们用 Swift 和 MLX 开发软件")
     }
 
-    @Test func onlyZhSessionsConvert() {
-        #expect(ChineseScript.forSession(languageCode: "zh", preference: .traditional) == .traditional)
-        #expect(ChineseScript.forSession(languageCode: "zh", preference: .simplified) == .simplified)
-        #expect(ChineseScript.forSession(languageCode: "zh", preference: .asIs) == .traditional)
-        #expect(ChineseScript.forSession(languageCode: "en", preference: .traditional) == .asIs)
-        #expect(ChineseScript.forSession(languageCode: "en", preference: .simplified) == .asIs)
+    @Test func chineseVariantsPickTheirScript() {
+        let segments = [TranscriptSegment(start: 0, end: 1, text: Self.simplified)]
+        #expect(ChineseScript.convert(segments, to: TranscriptLanguage.chineseTaiwan.chineseScript)
+            == [TranscriptSegment(start: 0, end: 1, text: Self.traditional)])
+        let traditional = [TranscriptSegment(start: 0, end: 1, text: Self.traditional)]
+        #expect(ChineseScript.convert(traditional, to: TranscriptLanguage.chineseMainland.chineseScript) == segments)
     }
 
     @Test func nonChineseSessionsAreUntouched() {
         let segments = [TranscriptSegment(start: 0, end: 1, text: Self.simplified)]
-        for code in ["en", "de", "es"] {
-            for preference in ChineseScript.allCases {
-                let script = ChineseScript.forSession(languageCode: code, preference: preference)
-                #expect(script == .asIs)
-                #expect(ChineseScript.convert(segments, to: script) == segments)
-            }
+        for language in [TranscriptLanguage.english, .german, .spanish] {
+            #expect(language.chineseScript == nil)
+            #expect(ChineseScript.convert(segments, to: language.chineseScript) == segments)
         }
     }
 
@@ -70,6 +64,6 @@ struct ChineseScriptTests {
             TranscriptSegment(start: 0, end: 1.5, text: Self.traditional),
             TranscriptSegment(start: 1.5, end: 3, text: "OK"),
         ])
-        #expect(ChineseScript.convert(segments, to: .asIs) == segments)
+        #expect(ChineseScript.convert(segments, to: nil) == segments)
     }
 }

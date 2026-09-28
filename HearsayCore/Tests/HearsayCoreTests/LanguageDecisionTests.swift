@@ -4,19 +4,62 @@ import Testing
 
 struct TranscriptLanguageTests {
     @Test func codesAndLabels() {
-        #expect(TranscriptLanguage.allCases.map(\.rawValue) == ["en", "zh", "de", "es"])
-        #expect(TranscriptLanguage.allCases.map(\.shortLabel) == ["EN", "ZH", "DE", "ES"])
-        #expect(TranscriptLanguage.allCases.map(\.displayName) == ["English", "中文", "Deutsch", "Español"])
+        #expect(TranscriptLanguage.allCases.map(\.rawValue) == ["en", "zh-TW", "zh-CN", "de", "es"])
+        #expect(TranscriptLanguage.allCases.map(\.shortLabel) == ["EN", "ZH-TW", "ZH-CN", "DE", "ES"])
+        #expect(TranscriptLanguage.allCases.map(\.displayName)
+            == ["English", "繁體中文", "简体中文", "Deutsch", "Español"])
+        #expect(TranscriptLanguage.allCases.map(\.whisperCode) == ["en", "zh", "zh", "de", "es"])
+        #expect(TranscriptLanguage.allCases.map(\.chineseScript) == [nil, .traditional, .simplified, nil, nil])
+        #expect(TranscriptLanguage.whisperCodes == ["en", "zh", "de", "es"])
+    }
+
+    @Test func whisperCodeMapsZhToPreferredVariant() {
+        typealias L = TranscriptLanguage
+        #expect(L(whisperCode: "zh", preferred: .chineseMainland) == .chineseMainland)
+        #expect(L(whisperCode: "zh", preferred: .chineseTaiwan) == .chineseTaiwan)
+        for preferred in [L.english, .german, .spanish] {
+            #expect(L(whisperCode: "zh", preferred: preferred) == .chineseTaiwan)
+        }
+        #expect(L(whisperCode: "en", preferred: .chineseMainland) == .english)
+        #expect(L(whisperCode: "de", preferred: .english) == .german)
+        #expect(L(whisperCode: "es", preferred: .english) == .spanish)
+        #expect(L(whisperCode: "fr", preferred: .english) == nil)
+        #expect(L(whisperCode: "zh-TW", preferred: .english) == nil)
+    }
+
+    @Test func storedValueMigratesLegacyZh() {
+        typealias L = TranscriptLanguage
+        #expect(L(storedValue: "zh", legacyChineseScript: nil) == .chineseTaiwan)
+        #expect(L(storedValue: "zh", legacyChineseScript: "traditional") == .chineseTaiwan)
+        #expect(L(storedValue: "zh", legacyChineseScript: "asIs") == .chineseTaiwan)
+        #expect(L(storedValue: "zh", legacyChineseScript: "simplified") == .chineseMainland)
+        for language in L.allCases {
+            #expect(L(storedValue: language.rawValue, legacyChineseScript: "simplified") == language)
+        }
+        #expect(L(storedValue: "fr", legacyChineseScript: nil) == nil)
+    }
+
+    @Test func debugValueAcceptsZhAsTaiwanAlias() {
+        #expect(LanguageChoice(debugValue: "auto") == .auto)
+        #expect(LanguageChoice(debugValue: "en") == .fixed(.english))
+        #expect(LanguageChoice(debugValue: "zh-TW") == .fixed(.chineseTaiwan))
+        #expect(LanguageChoice(debugValue: "zh-CN") == .fixed(.chineseMainland))
+        #expect(LanguageChoice(debugValue: "zh") == .fixed(.chineseTaiwan))
+        #expect(LanguageChoice(debugValue: "de") == .fixed(.german))
+        #expect(LanguageChoice(debugValue: "es") == .fixed(.spanish))
+        #expect(LanguageChoice(debugValue: "fr") == nil)
     }
 
     @Test func choiceStorageRoundTrips() {
-        #expect(LanguageChoice.allCases.map(\.storageValue) == ["auto", "en", "zh", "de", "es"])
+        #expect(LanguageChoice.allCases.map(\.storageValue) == ["auto", "en", "zh-TW", "zh-CN", "de", "es"])
+        #expect(LanguageChoice.allCases.map(\.shortLabel) == ["Auto", "EN", "ZH-TW", "ZH-CN", "DE", "ES"])
         for choice in LanguageChoice.allCases {
             #expect(LanguageChoice(storageValue: choice.storageValue) == choice)
         }
         #expect(LanguageChoice(storageValue: "fr") == nil)
         #expect(LanguageChoice(storageValue: "") == nil)
         #expect(LanguageChoice(storageValue: "Auto") == nil)
+        #expect(LanguageChoice(storageValue: "zh") == nil)
     }
 
     @Test func choiceCodableUsesStorageString() throws {
@@ -51,14 +94,28 @@ struct LanguageDecisionTests {
 
     @Test func autoJustBelowThresholdFallsBack() {
         let below = D.autoThreshold.nextDown
-        let decision = D.decide(choice: .auto, preferred: .chinese, detection: ("es", below))
-        #expect(decision == D(language: .chinese, reason: .fallbackToPreferred(detectedConfidence: below)))
+        let decision = D.decide(choice: .auto, preferred: .chineseMainland, detection: ("es", below))
+        #expect(decision == D(language: .chineseMainland, reason: .fallbackToPreferred(detectedConfidence: below)))
     }
 
     @Test func autoLowConfidenceFallsBackToPreferred() {
         let decision = D.decide(choice: .auto, preferred: .english, detection: ("zh", 0.4))
         #expect(decision == D(language: .english, reason: .fallbackToPreferred(detectedConfidence: 0.4)))
         #expect(decision.suggestion == nil)
+    }
+
+    @Test func autoDetectedZhUsesPreferredChineseVariant() {
+        let mainland = D.decide(choice: .auto, preferred: .chineseMainland, detection: ("zh", 0.9))
+        #expect(mainland == D(language: .chineseMainland, reason: .detected(confidence: 0.9)))
+        let taiwan = D.decide(choice: .auto, preferred: .chineseTaiwan, detection: ("zh", 0.9))
+        #expect(taiwan == D(language: .chineseTaiwan, reason: .detected(confidence: 0.9)))
+    }
+
+    @Test func autoDetectedZhDefaultsToTaiwanForOtherPreferred() {
+        for preferred in [TranscriptLanguage.english, .german, .spanish] {
+            let decision = D.decide(choice: .auto, preferred: preferred, detection: ("zh", 0.9))
+            #expect(decision == D(language: .chineseTaiwan, reason: .detected(confidence: 0.9)))
+        }
     }
 
     @Test func autoDetectedPreferredLanguageIsDetected() {
@@ -84,8 +141,24 @@ struct LanguageDecisionTests {
     // MARK: Fixed
 
     @Test func fixedSameLanguageNoSuggestion() {
-        let decision = D.decide(choice: .fixed(.chinese), preferred: .english, detection: ("zh", 0.99))
-        #expect(decision == D(language: .chinese, reason: .chosen, suggestion: nil))
+        let decision = D.decide(choice: .fixed(.chineseTaiwan), preferred: .english, detection: ("zh", 0.99))
+        #expect(decision == D(language: .chineseTaiwan, reason: .chosen, suggestion: nil))
+    }
+
+    @Test func fixedChineseVariantNeverSuggestsTheOtherVariant() {
+        for preferred in TranscriptLanguage.allCases {
+            for fixed in [TranscriptLanguage.chineseTaiwan, .chineseMainland] {
+                let decision = D.decide(choice: .fixed(fixed), preferred: preferred, detection: ("zh", 0.99))
+                #expect(decision == D(language: fixed, reason: .chosen, suggestion: nil))
+            }
+        }
+    }
+
+    @Test func fixedMismatchToZhSuggestsPreferredVariant() {
+        let mainland = D.decide(choice: .fixed(.english), preferred: .chineseMainland, detection: ("zh", 0.95))
+        #expect(mainland.suggestion == .chineseMainland)
+        let other = D.decide(choice: .fixed(.english), preferred: .german, detection: ("zh", 0.95))
+        #expect(other.suggestion == .chineseTaiwan)
     }
 
     @Test func fixedConfidentMismatchSuggests() {
@@ -119,8 +192,8 @@ struct LanguageDecisionTests {
 
     @Test func fixedIgnoresPreferred() {
         for preferred in TranscriptLanguage.allCases {
-            let decision = D.decide(choice: .fixed(.chinese), preferred: preferred, detection: ("zh", 0.2))
-            #expect(decision.language == .chinese)
+            let decision = D.decide(choice: .fixed(.chineseMainland), preferred: preferred, detection: ("zh", 0.2))
+            #expect(decision.language == .chineseMainland)
         }
     }
 }

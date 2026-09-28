@@ -4,15 +4,15 @@ import NaturalLanguage
 /// Guesses the language of a transcript's text, for SRTs whose transcript
 /// language was not stored (History "Generate notes…" on an older file).
 /// Uses Apple's NaturalLanguage recognizer restricted to the supported
-/// languages; both Chinese scripts map to `.chinese`.
+/// languages; Traditional Chinese maps to ZH-TW, Simplified Chinese to ZH-CN.
 public enum TranscriptTextLanguage {
     /// Characters of text the recognizer looks at; more adds nothing.
     public static let sampleLength = 4_000
     /// The minimum probability for the detected language to be the default.
     public static let confidenceThreshold = 0.6
 
-    /// The most likely supported language and its probability (the two
-    /// Chinese scripts summed), or nil when the text gives no hypothesis.
+    /// The most likely supported language and its probability, or nil when
+    /// the text gives no hypothesis.
     public static func detect(_ text: String) -> (TranscriptLanguage, Double)? {
         let sample = String(text.prefix(sampleLength))
         guard sample.contains(where: { $0.isLetter }) else { return nil }
@@ -54,7 +54,8 @@ public enum TranscriptTextLanguage {
     private static func map(_ language: NLLanguage) -> TranscriptLanguage? {
         switch language {
         case .english: .english
-        case .simplifiedChinese, .traditionalChinese: .chinese
+        case .traditionalChinese: .chineseTaiwan
+        case .simplifiedChinese: .chineseMainland
         case .german: .german
         case .spanish: .spanish
         default: nil
