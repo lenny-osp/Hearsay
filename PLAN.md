@@ -360,10 +360,10 @@ them:
 |---|---|
 | timestamp tokens, one cue per sentence | port the timestamp rules from `decoding.py` (`ApplyTimestampRules`) and segment splitting from `transcribe.py`; seek by the last timestamp instead of fixed 30 s windows |
 | `--condition-on-previous-text False` | supported; default off, like the Python tool |
-| `--hallucination-silence-threshold 2.0` | port from `transcribe.py`; needs word timestamps only for the strict version, the segment-level version is enough for v1 |
+| `--hallucination-silence-threshold 2.0` | ported as a documented no-op: in `mlx_whisper` 0.4.3 every use of it sits inside `if word_timestamps:`, so the Python tool never applies it either |
 | `--language en\|zh` | supported |
 | `--initial-prompt` for zh | supported as an advanced setting, but **off by default**. Measured 2026-09-28 on `Fixtures/zh-30s.wav` with the turbo model: the Python tool's English prompt ("The following is a sentence in Traditional Chinese.") made turbo echo the prompt and produce no transcript, and made large-v3 output Simplified characters. A Traditional Chinese prompt ("以下是繁體中文的句子。") gave Traditional script but rounded every timestamp to whole seconds and appended a hallucinated closing line. No prompt gave Traditional script, natural cue boundaries, and no hallucination. |
-| temperature fallback on compression ratio / logprob | port; it is what stops repeated-phrase loops |
+| temperature fallback on compression ratio / logprob | ported, but **off by default** (`temperatures = [0]`): the `mlx_whisper` CLI that whisper-tools calls decodes at temperature 0 with no fallback, and parity with it is the acceptance test. The fallback list is an advanced option. |
 | no-speech threshold | port; skips silent windows |
 
 Not ported in v1: word-level timestamps (`timing.py`, needs cross-attention
@@ -435,7 +435,7 @@ weekends counted as half days.
 | 1. Skeleton | Done 2026-09-28. XcodeGen project, HearsayCore package, Settings window, window modes verified at launch. | done |
 | 2. Models | Done 2026-09-28 except loading into the engine (Phase 4b). Real download and resume verified against Hugging Face. | done |
 | 3. Audio | Done 2026-09-28 in code; needs the first hands-on run with microphone and screen-capture permissions (see section 16). | done, unverified live |
-| 4a. Decoder | Vendor the Whisper module, replace the decode loop with the timestamped port of `mlx_whisper` (section 6), tests against the Python SRT of `Fixtures/en-30s.wav`. | 5 to 7 days |
+| 4a. Decoder | Done 2026-09-28. Byte-identical SRT to Python on both fixtures; 38 tests. Run tests with `TEST_RUNNER_HEARSAY_MODEL_DIR=<model dir>`. | done |
 | 4b. Transcription | SRT writer, live chunk preview, final full pass, File mode with drag and drop, failure path to File mode, timestamp rules. | 4 to 5 days |
 | 5. Notes | Done 2026-09-28 in code; runs from History > Generate notes. Not yet tried against a live provider. | done, unverified live |
 | 6. Ship | History view, hotkeys, quit-while-recording, and crash recovery done 2026-09-28. Remaining: launch at login, app icon, Sparkle + appcast, signing, notarization, DMG script, README, quick-start guides. | 3 to 4 days |

@@ -13,6 +13,7 @@ Spike/models/
 *.m4a
 *.srt
 !Fixtures/*.wav
+!Fixtures/*.expected.srt
 # Secrets
 *.pem
 *.p8

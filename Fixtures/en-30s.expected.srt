@@ -1,0 +1,16 @@
+1
+00:00:00,000 --> 00:00:04,480
+Welcome to the Hearsay Planning Meeting. Today we will review the model download flow,
+
+2
+00:00:04,780 --> 00:00:10,700
+the live transcript preview, and the system audio capture. The first action item is to install Xcode.
+
+3
+00:00:10,980 --> 00:00:15,620
+The second action item is to record a 60-minute test call and check for drift between the
+
+4
+00:00:15,620 --> 00:00:18,440
+microphone and the system audio. Thank you everyone.
+
