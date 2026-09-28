@@ -3,28 +3,41 @@ import HearsayCore
 import ServiceManagement
 import SwiftUI
 
+/// The Settings tab of the main window (PLAN.md section 8): General,
+/// Window, Output and AI, switched with a segmented picker. Every section is
+/// a grouped form, so it scrolls inside the tab at any window height.
 struct SettingsView: View {
-    var body: some View {
-        TabView {
-            GeneralSettingsView()
-                .frame(minWidth: Self.minimumWidth)
-                .tabItem { Label("General", systemImage: "gearshape") }
-            WindowSettingsView()
-                .frame(minWidth: Self.minimumWidth)
-                .tabItem { Label("Window", systemImage: "macwindow") }
-            OutputSettingsView()
-                .frame(minWidth: Self.minimumWidth)
-                .tabItem { Label("Output", systemImage: "folder") }
-            AISettingsTab()
-                // The grouped Form scrolls, so it has no natural height;
-                // give it enough room to show every section at once.
-                .frame(minWidth: Self.minimumWidth, idealWidth: 560, minHeight: 560, idealHeight: 640)
-                .tabItem { Label("AI", systemImage: "sparkles") }
-        }
+    enum Pane: String, CaseIterable, Hashable {
+        case general = "General"
+        case window = "Window"
+        case output = "Output"
+        case ai = "AI"
     }
 
-    /// Each tab sizes to its own content, never narrower than this.
-    static let minimumWidth: CGFloat = 520
+    @State private var pane: Pane = .general
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Picker("Settings section", selection: $pane) {
+                ForEach(Pane.allCases, id: \.self) { pane in
+                    Text(pane.rawValue).tag(pane)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .fixedSize()
+            .padding(.top, 8)
+            Group {
+                switch pane {
+                case .general: GeneralSettingsView()
+                case .window: WindowSettingsView()
+                case .output: OutputSettingsView()
+                case .ai: AISettingsTab()
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
 }
 
 private struct GeneralSettingsView: View {
@@ -43,7 +56,7 @@ private struct GeneralSettingsView: View {
             }
             HotkeySettingsSection()
         }
-        .padding()
+        .formStyle(.grouped)
     }
 }
 
@@ -164,7 +177,7 @@ private struct WindowSettingsView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-        .padding()
+        .formStyle(.grouped)
     }
 }
 
@@ -200,7 +213,7 @@ private struct OutputSettingsView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-        .padding()
+        .formStyle(.grouped)
         .onAppear(perform: refresh)
         .onChange(of: settings.outputFolderBookmark) { refresh() }
     }

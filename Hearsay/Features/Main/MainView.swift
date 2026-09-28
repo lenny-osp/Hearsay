@@ -1,41 +1,54 @@
 import HearsayCore
 import SwiftUI
 
-/// Main window: Record, File, Models, History (PLAN.md section 4).
-struct MainView: View {
-    enum Tab: Hashable {
-        case record, file, models, history
-    }
+/// The main window's tabs, in display order.
+enum MainTab: Hashable {
+    case record, file, models, history, settings
+}
 
+/// Which main-window tab is showing. Owned by the app delegate so code
+/// outside the window (the Settings… command, the menu bar) can switch tabs.
+@MainActor
+@Observable
+final class MainTabSelection {
+    var tab: MainTab = .record
+}
+
+/// Main window: Record, File, Models, History, Settings (PLAN.md section 4).
+struct MainView: View {
     @Environment(AppSettings.self) private var settings
     @Environment(ModelStore.self) private var modelStore
     @Environment(RecordingController.self) private var recording
     @Environment(\.whisperEngine) private var whisperEngine
     @State private var recovery: UnfinishedRecordingQueue?
-    @State private var selection: Tab = .record
+    @Environment(MainTabSelection.self) private var tabs
     @State private var fileModel: FileViewModel?
     @State private var recoveryError: String?
 
     var body: some View {
-        TabView(selection: $selection) {
-            RecordView(onOpenModels: { selection = .models })
+        @Bindable var tabs = tabs
+        TabView(selection: $tabs.tab) {
+            RecordView(onOpenModels: { tabs.tab = .models })
                 .tabItem { Label("Record", systemImage: "record.circle") }
-                .tag(Tab.record)
+                .tag(MainTab.record)
             Group {
                 if let fileModel {
-                    FileView(model: fileModel, onOpenModels: { selection = .models })
+                    FileView(model: fileModel, onOpenModels: { tabs.tab = .models })
                 } else {
                     ProgressView()
                 }
             }
             .tabItem { Label("File", systemImage: "doc.badge.plus") }
-            .tag(Tab.file)
+            .tag(MainTab.file)
             ModelManagerView()
                 .tabItem { Label("Models", systemImage: "square.and.arrow.down") }
-                .tag(Tab.models)
+                .tag(MainTab.models)
             HistoryView()
                 .tabItem { Label("History", systemImage: "clock") }
-                .tag(Tab.history)
+                .tag(MainTab.history)
+            SettingsView()
+                .tabItem { Label("Settings", systemImage: "gearshape") }
+                .tag(MainTab.settings)
         }
         .padding()
         .frame(minWidth: 560, minHeight: 360)
@@ -78,7 +91,7 @@ struct MainView: View {
     private func takeTranscribeFileRequest() {
         guard let url = recording.transcribeFileRequest, let fileModel, !fileModel.isBusy else { return }
         recording.transcribeFileRequest = nil
-        selection = .file
+        tabs.tab = .file
         fileModel.transcribe(url)
     }
 
@@ -90,7 +103,7 @@ struct MainView: View {
             let folder = try TranscriptOutput.resolveFolder(settings: settings)
             defer { folder.stopAccessing() }
             guard let kept = try spool.finalize(spoolWAV, keep: true, outputFolder: folder.url) else { return }
-            selection = .file
+            tabs.tab = .file
             fileModel?.transcribe(kept)
         } catch {
             recoveryError = "\(error.localizedDescription) It stays at \(spoolWAV.path)."
@@ -100,4 +113,5 @@ struct MainView: View {
 
 #Preview {
     MainView()
+        .environment(MainTabSelection())
 }

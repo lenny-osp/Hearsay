@@ -10,7 +10,6 @@ struct MenuBarView: View {
     @Environment(MainWindowOpener.self) private var windowOpener
     @Environment(RecordingController.self) private var recording
     @Environment(AppSettings.self) private var settings
-    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -57,11 +56,6 @@ struct MenuBarView: View {
             menuRow("Open Hearsay") {
                 windowOpener.show()
             }
-            menuRow("Settings…") {
-                NSApp.activate()
-                openSettings()
-            }
-            .keyboardShortcut(",", modifiers: .command)
 
             Divider()
 

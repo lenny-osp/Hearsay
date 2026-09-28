@@ -3,15 +3,23 @@ import HearsayCore
 import Observation
 import SwiftUI
 
-/// Opens or brings forward the single main window. SwiftUI only hands out
-/// `OpenWindowAction` inside views, so every scene's root view registers it
-/// here and AppKit code (the app delegate) can use it later.
+/// Opens or brings forward the single main window, optionally on a given
+/// tab. SwiftUI only hands out `OpenWindowAction` inside views, so every
+/// scene's root view (and the Settings… command) registers it here and
+/// AppKit code (the app delegate) can use it later.
 @MainActor
 @Observable
 final class MainWindowOpener {
     static let mainWindowID = "main"
 
+    /// The main window's selected tab, shared with `MainView`.
+    let tabs: MainTabSelection
+
     @ObservationIgnored private var openWindow: OpenWindowAction?
+
+    init(tabs: MainTabSelection) {
+        self.tabs = tabs
+    }
 
     func register(_ action: OpenWindowAction) {
         openWindow = action
@@ -39,6 +47,34 @@ final class MainWindowOpener {
         } else if let openWindow {
             openWindow(id: Self.mainWindowID)
         }
+    }
+
+    /// Brings the main window forward (opening it if needed) on `tab`.
+    func show(tab: MainTab) {
+        tabs.tab = tab
+        show()
+    }
+
+    /// ⌘, and every other "open settings" path: the main window's Settings
+    /// tab. Works in every window mode, including menu bar only.
+    func showSettings() {
+        show(tab: .settings)
+    }
+}
+
+/// "Settings…" (⌘,) in the app menu, replacing the removed Settings scene.
+/// Registers the menu's `openWindow` so the main window can be reopened even
+/// when no scene root view has appeared yet.
+struct SettingsCommand: View {
+    let opener: MainWindowOpener
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        Button("Settings…") {
+            opener.register(openWindow)
+            opener.showSettings()
+        }
+        .keyboardShortcut(",", modifiers: .command)
     }
 }
 
@@ -68,7 +104,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let settings = AppSettings(defaults: DebugDefaults.defaults)
     let aiProviderStore = AIProviderStore()
     lazy var modelStore = ModelStore(settings: settings)
-    let windowOpener = MainWindowOpener()
+    let tabSelection = MainTabSelection()
+    lazy var windowOpener = MainWindowOpener(tabs: tabSelection)
     let whisperEngine = WhisperEngine()
     lazy var recordingController = RecordingController(
         settings: settings, modelStore: modelStore, engine: whisperEngine
@@ -189,7 +226,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         guard let previous, previous != mode else { return }
         // Changing the policy can push the app to the background; keep the
-        // window the user is working in (normally Settings) in front.
+        // window the user is working in (normally the main window's Settings
+        // tab) in front.
         NSApp.activate()
         let involvesDockOnly = previous == .dockOnly || mode == .dockOnly
         if involvesDockOnly && !windowOpener.isMainWindowVisible {

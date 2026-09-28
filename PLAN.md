@@ -270,6 +270,10 @@ live preview SRT is kept if it exists, the WAV path is shown, and a
   not stranded.
 - Recording continues while the window is closed. Quit while recording asks
   to stop and save first.
+- Settings live in the main window's last tab (after History) since
+  2026-09-28; there is no separate Settings window. ⌘, opens the main window
+  on that tab, also in Menu bar only mode. The menu bar menu has no
+  Settings row.
 - Menu bar icon changes to a filled red variant while recording, and a
   paused variant while paused.
 - Global hotkey (default ⌃⌥⌘R, editable in Settings) toggles

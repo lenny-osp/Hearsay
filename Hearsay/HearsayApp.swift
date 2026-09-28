@@ -18,19 +18,17 @@ struct HearsayApp: App {
                 .environment(appDelegate.aiProviderStore)
                 .environment(appDelegate.recordingController)
                 .environment(\.whisperEngine, appDelegate.whisperEngine)
+                .environment(appDelegate.hotkeyManager)
+                .environment(appDelegate.tabSelection)
                 .registeringMainWindowOpener(appDelegate.windowOpener)
         }
         .defaultSize(width: 720, height: 480)
-
-        Settings {
-            SettingsView()
-                .environment(appDelegate.settings)
-                .environment(appDelegate.modelStore)
-                .environment(appDelegate.aiProviderStore)
-                .environment(appDelegate.recordingController)
-                .environment(\.whisperEngine, appDelegate.whisperEngine)
-                .environment(appDelegate.hotkeyManager)
-                .registeringMainWindowOpener(appDelegate.windowOpener)
+        .commands {
+            // Settings live in the main window's Settings tab; there is no
+            // separate Settings scene.
+            CommandGroup(replacing: .appSettings) {
+                SettingsCommand(opener: appDelegate.windowOpener)
+            }
         }
 
         MenuBarExtra(isInserted: menuBarItemInserted) {
