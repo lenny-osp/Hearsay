@@ -434,9 +434,9 @@ weekends counted as half days.
 | 0. Spike | Done 2026-09-28, section 15. | done |
 | 1. Skeleton | Done 2026-09-28. XcodeGen project, HearsayCore package, Settings window, window modes verified at launch. | done |
 | 2. Models | Done 2026-09-28 except loading into the engine (Phase 4b). Real download and resume verified against Hugging Face. | done |
-| 3. Audio | Done 2026-09-28 in code; needs the first hands-on run with microphone and screen-capture permissions (see section 16). | done, unverified live |
+| 3. Audio | Done. Mic recording verified live 2026-09-28 after fixing the configuration-change stop. System audio mix still to be checked (section 16). | done |
 | 4a. Decoder | Done 2026-09-28. Byte-identical SRT to Python on both fixtures; 38 tests. Run tests with `TEST_RUNNER_HEARSAY_MODEL_DIR=<model dir>`. | done |
-| 4b. Transcription | Done 2026-09-28 in code. File mode verified byte-identical to Python through the sandboxed app (debug launch path, see `FileViewModel.swift`). Live preview and the Record-tab final pass need a live run. | done, unverified live |
+| 4b. Transcription | Done. Live preview, final pass, and File mode verified live by the owner 2026-09-28. | done |
 | 5. Notes | Done 2026-09-28 in code; runs from History > Generate notes. Not yet tried against a live provider. | done, unverified live |
 | 6. Ship | History, hotkeys, quit handling, crash recovery, launch at login, app icon, README done 2026-09-28. Remaining: Sparkle + appcast, signing, notarization, DMG script, quick-start guide note (`docs/whisper-tools-note.md`). | 2 days |
 
@@ -535,7 +535,9 @@ cd .. && Spike/.build/derived/Build/Products/Release/hearsay-spike \
 
 ## 16. Hands-on checklist for the owner (after Phase 4b)
 
-Things no agent could verify because they need permissions or a person:
+Things no agent could verify because they need permissions or a person.
+Verified 2026-09-28: recording, live preview, final pass, File mode (items
+1, 10, 12 in part). Still open: 2 to 9, 11.
 
 1. First Start: grant Microphone, then Screen & System Audio Recording;
    relaunch if system audio stays off after granting.
@@ -569,6 +571,8 @@ Things no agent could verify because they need permissions or a person:
   scan can exclude it instead of using the launch date.
 - Shortcut labels assume a US keyboard layout.
 - `NSAlert` for quit is modal; a SwiftUI confirmation would fit better.
+- `SystemAudioRecorder`: a stream error that arrives while still `.starting`
+  is lost; `start()` returns normally. Store the failure and throw it.
 - The final pass waits for the live-preview queue to drain; a lagging
   preview delays it by its backlog.
 - On quit during a final pass the live preview is saved and the WAV is
