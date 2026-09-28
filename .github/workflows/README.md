@@ -1,6 +1,6 @@
 # GitHub Actions
 
-Two workflows, both on the `macos-15` Apple Silicon runner with the newest
+Two workflows, both on the `macos-26` Apple Silicon runner with the newest
 stable Xcode installed there (selected by `.github/actions/setup-mac`).
 Neither needs or downloads a speech model. PLAN.md section 4.7 has the
 reasons.
