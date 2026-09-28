@@ -326,11 +326,11 @@ struct AudioDeviceListTests {
 }
 
 @MainActor
-struct DefaultLanguageSettingTests {
+final class DefaultLanguageSettingTests {
+    private let scratch = ScratchDefaults()
+
     @Test func defaultLanguageCodeDefaultsToEnglishAndPersists() {
-        let suite = "tw.og1o.hearsay.tests.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suite) ?? .standard
-        defer { defaults.removePersistentDomain(forName: suite) }
+        let defaults = scratch.make()
         let settings = AppSettings(defaults: defaults)
         #expect(settings.defaultLanguageCode == "en")
         settings.defaultLanguageCode = "zh"

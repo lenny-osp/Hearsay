@@ -3,17 +3,11 @@ import Testing
 @testable import HearsayCore
 
 @MainActor
-struct AppSettingsTests {
-    private static func freshDefaults() -> (UserDefaults, String) {
-        let suite = "tw.og1o.hearsay.tests.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suite) ?? .standard
-        defaults.removePersistentDomain(forName: suite)
-        return (defaults, suite)
-    }
+final class AppSettingsTests {
+    private let scratch = ScratchDefaults()
 
     @Test func defaultsWhenEmpty() {
-        let (defaults, suite) = Self.freshDefaults()
-        defer { defaults.removePersistentDomain(forName: suite) }
+        let defaults = scratch.make()
         let settings = AppSettings(defaults: defaults)
         #expect(settings.windowMode == .menuBarAndDock)
         #expect(settings.outputFolderBookmark == nil)
@@ -21,8 +15,7 @@ struct AppSettingsTests {
 
     @Test(arguments: WindowMode.allCases)
     func windowModeRoundTrips(mode: WindowMode) {
-        let (defaults, suite) = Self.freshDefaults()
-        defer { defaults.removePersistentDomain(forName: suite) }
+        let defaults = scratch.make()
         let settings = AppSettings(defaults: defaults)
         settings.windowMode = mode
         #expect(defaults.string(forKey: AppSettings.Key.windowMode) == mode.rawValue)
@@ -30,15 +23,13 @@ struct AppSettingsTests {
     }
 
     @Test func unknownWindowModeFallsBackToDefault() {
-        let (defaults, suite) = Self.freshDefaults()
-        defer { defaults.removePersistentDomain(forName: suite) }
+        let defaults = scratch.make()
         defaults.set("floating", forKey: AppSettings.Key.windowMode)
         #expect(AppSettings(defaults: defaults).windowMode == .menuBarAndDock)
     }
 
     @Test func bookmarkRoundTripsAndClears() {
-        let (defaults, suite) = Self.freshDefaults()
-        defer { defaults.removePersistentDomain(forName: suite) }
+        let defaults = scratch.make()
         let settings = AppSettings(defaults: defaults)
         let data = Data([0x01, 0x02, 0x03])
         settings.outputFolderBookmark = data
@@ -49,8 +40,7 @@ struct AppSettingsTests {
     }
 
     @Test func keepRecordingDefaultsOnAndRoundTrips() {
-        let (defaults, suite) = Self.freshDefaults()
-        defer { defaults.removePersistentDomain(forName: suite) }
+        let defaults = scratch.make()
         let settings = AppSettings(defaults: defaults)
         #expect(settings.keepRecording)
         settings.keepRecording = false
@@ -58,8 +48,7 @@ struct AppSettingsTests {
     }
 
     @Test func languageDefaultsForFreshInstall() {
-        let (defaults, suite) = Self.freshDefaults()
-        defer { defaults.removePersistentDomain(forName: suite) }
+        let defaults = scratch.make()
         let settings = AppSettings(defaults: defaults)
         #expect(settings.languageChoice == .auto)
         #expect(settings.preferredLanguage == .english)
@@ -68,8 +57,7 @@ struct AppSettingsTests {
 
     @Test(arguments: LanguageChoice.allCases)
     func languageChoiceRoundTrips(choice: LanguageChoice) {
-        let (defaults, suite) = Self.freshDefaults()
-        defer { defaults.removePersistentDomain(forName: suite) }
+        let defaults = scratch.make()
         let settings = AppSettings(defaults: defaults)
         settings.languageChoice = choice
         #expect(defaults.string(forKey: AppSettings.Key.languageChoice) == choice.storageValue)
@@ -78,8 +66,7 @@ struct AppSettingsTests {
 
     @Test(arguments: TranscriptLanguage.allCases)
     func preferredLanguageRoundTrips(language: TranscriptLanguage) {
-        let (defaults, suite) = Self.freshDefaults()
-        defer { defaults.removePersistentDomain(forName: suite) }
+        let defaults = scratch.make()
         let settings = AppSettings(defaults: defaults)
         settings.preferredLanguage = language
         #expect(defaults.string(forKey: AppSettings.Key.preferredLanguage) == language.rawValue)
@@ -87,8 +74,7 @@ struct AppSettingsTests {
     }
 
     @Test func unknownStoredLanguageValuesFallBack() {
-        let (defaults, suite) = Self.freshDefaults()
-        defer { defaults.removePersistentDomain(forName: suite) }
+        let defaults = scratch.make()
         defaults.set("fr", forKey: AppSettings.Key.languageChoice)
         defaults.set("fr", forKey: AppSettings.Key.preferredLanguage)
         let settings = AppSettings(defaults: defaults)
@@ -98,8 +84,7 @@ struct AppSettingsTests {
 
     @Test(arguments: [("en", TranscriptLanguage.english), ("zh", .chineseTaiwan)])
     func legacyLanguageCodeMigratesToFixed(code: String, language: TranscriptLanguage) {
-        let (defaults, suite) = Self.freshDefaults()
-        defer { defaults.removePersistentDomain(forName: suite) }
+        let defaults = scratch.make()
         defaults.set(code, forKey: AppSettings.Key.defaultLanguageCode)
         let settings = AppSettings(defaults: defaults)
         #expect(settings.languageChoice == .fixed(language))
@@ -109,23 +94,20 @@ struct AppSettingsTests {
     }
 
     @Test func storedChoiceWinsOverLegacyCode() {
-        let (defaults, suite) = Self.freshDefaults()
-        defer { defaults.removePersistentDomain(forName: suite) }
+        let defaults = scratch.make()
         defaults.set("zh", forKey: AppSettings.Key.defaultLanguageCode)
         defaults.set("auto", forKey: AppSettings.Key.languageChoice)
         #expect(AppSettings(defaults: defaults).languageChoice == .auto)
     }
 
     @Test func unknownLegacyCodeMigratesToAuto() {
-        let (defaults, suite) = Self.freshDefaults()
-        defer { defaults.removePersistentDomain(forName: suite) }
+        let defaults = scratch.make()
         defaults.set("fr", forKey: AppSettings.Key.defaultLanguageCode)
         #expect(AppSettings(defaults: defaults).languageChoice == .auto)
     }
 
     @Test func settingLanguageChoiceNeverChangesPreferredLanguage() {
-        let (defaults, suite) = Self.freshDefaults()
-        defer { defaults.removePersistentDomain(forName: suite) }
+        let defaults = scratch.make()
         let settings = AppSettings(defaults: defaults)
         for preferred in TranscriptLanguage.allCases {
             settings.preferredLanguage = preferred
@@ -142,8 +124,7 @@ struct AppSettingsTests {
     }
 
     @Test func deprecatedLanguageCodeReadsChoiceOrPreferred() {
-        let (defaults, suite) = Self.freshDefaults()
-        defer { defaults.removePersistentDomain(forName: suite) }
+        let defaults = scratch.make()
         let settings = AppSettings(defaults: defaults)
         settings.preferredLanguage = .spanish
         settings.languageChoice = .auto
@@ -159,8 +140,7 @@ struct AppSettingsTests {
     }
 
     @Test func hotkeysDefaultToControlOptionCommand() {
-        let (defaults, suite) = Self.freshDefaults()
-        defer { defaults.removePersistentDomain(forName: suite) }
+        let defaults = scratch.make()
         let settings = AppSettings(defaults: defaults)
         #expect(settings.startStopHotkey == .defaultStartStop)
         #expect(settings.pauseHotkey == .defaultPause)
@@ -169,8 +149,7 @@ struct AppSettingsTests {
     }
 
     @Test func hotkeysRoundTrip() {
-        let (defaults, suite) = Self.freshDefaults()
-        defer { defaults.removePersistentDomain(forName: suite) }
+        let defaults = scratch.make()
         let settings = AppSettings(defaults: defaults)
         let startStop = HotkeyBinding(keyCode: 0x01, modifiers: [.command, .shift])
         let pause = HotkeyBinding(keyCode: 0x7A, modifiers: [.option])
@@ -184,8 +163,7 @@ struct AppSettingsTests {
     }
 
     @Test func corruptHotkeyFallsBackToDefault() {
-        let (defaults, suite) = Self.freshDefaults()
-        defer { defaults.removePersistentDomain(forName: suite) }
+        let defaults = scratch.make()
         defaults.set(Data([0x7B]), forKey: AppSettings.Key.startStopHotkey)
         #expect(AppSettings(defaults: defaults).startStopHotkey == .defaultStartStop)
     }

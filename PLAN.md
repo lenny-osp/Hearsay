@@ -567,8 +567,10 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
   `implicit/*.pb` files from today's runs, which carry no conversation id.
 
 - Unit tests that use `UserDefaults(suiteName:)` leave a plist per test in
-  `~/Library/Preferences` (1,341 removed by hand on 2026-09-28). Use `ScratchDefaults` in tests;
-  AppSettingsTests, AudioTests, and ModelStoreTests still need switching.
+  `~/Library/Preferences` Fixed 2026-09-28: `ScratchDefaults` names suites by a path inside a temp
+  folder, so cfprefsd never writes them to `~/Library/Preferences`. The
+  app's debug suites (`DebugDefaults`, `RecordingReplay`) can still leave an
+  empty `tw.og1o.hearsay.debug-*.plist`; same fix applies.
 - The old sandbox container `~/Library/Containers/tw.og1o.hearsay/` still
   exists, so the `defaults` command reads its stale copy of the settings,
   not the app's real `~/Library/Preferences/tw.og1o.hearsay.plist`. Use

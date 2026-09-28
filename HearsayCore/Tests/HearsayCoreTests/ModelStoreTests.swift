@@ -334,12 +334,12 @@ struct ModelDownloaderTests {
 // MARK: - Store
 
 @MainActor
-struct ModelStoreTests {
-    private static func freshSettings() -> (AppSettings, UserDefaults, String) {
-        let suite = "tw.og1o.hearsay.tests.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suite) ?? .standard
-        defaults.removePersistentDomain(forName: suite)
-        return (AppSettings(defaults: defaults), defaults, suite)
+final class ModelStoreTests {
+    private let scratch = ScratchDefaults()
+
+    private func freshSettings() -> (AppSettings, UserDefaults) {
+        let defaults = scratch.make()
+        return (AppSettings(defaults: defaults), defaults)
     }
 
     private static let catalog = ModelCatalog(entries: [Fixture.entry], tokenizer: Fixture.tokenizer)
@@ -363,8 +363,7 @@ struct ModelStoreTests {
     }
 
     @Test func emptyRootHasNothingInstalled() {
-        let (settings, defaults, suite) = Self.freshSettings()
-        defer { defaults.removePersistentDomain(forName: suite) }
+        let (settings, _) = freshSettings()
         let store = ModelStore(settings: settings, catalog: Self.catalog, rootURL: Fixture.tempRoot())
         #expect(store.installed.isEmpty)
         #expect(!store.isTokenizerInstalled)
@@ -373,8 +372,7 @@ struct ModelStoreTests {
     }
 
     @Test func scanningRequiresManifestAndReadyRequiresTokenizer() throws {
-        let (settings, defaults, suite) = Self.freshSettings()
-        defer { defaults.removePersistentDomain(forName: suite) }
+        let (settings, _) = freshSettings()
         let root = Fixture.tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
 
@@ -400,8 +398,7 @@ struct ModelStoreTests {
     }
 
     @Test func useAndDeleteClearsActiveModel() throws {
-        let (settings, defaults, suite) = Self.freshSettings()
-        defer { defaults.removePersistentDomain(forName: suite) }
+        let (settings, defaults) = freshSettings()
         let root = Fixture.tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
         try Self.writeModel(in: root)
@@ -422,16 +419,14 @@ struct ModelStoreTests {
     }
 
     @Test func useIgnoresModelThatIsNotReady() {
-        let (settings, defaults, suite) = Self.freshSettings()
-        defer { defaults.removePersistentDomain(forName: suite) }
+        let (settings, _) = freshSettings()
         let store = ModelStore(settings: settings, catalog: Self.catalog, rootURL: Fixture.tempRoot())
         store.use(Fixture.entry)
         #expect(store.activeModelRepo == nil)
     }
 
     @Test func storeDownloadEndsInstalled() async throws {
-        let (settings, defaults, suite) = Self.freshSettings()
-        defer { defaults.removePersistentDomain(forName: suite) }
+        let (settings, _) = freshSettings()
         let root = Fixture.tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
         let hub = Fixture.hub()
@@ -452,8 +447,7 @@ struct ModelStoreTests {
     }
 
     @Test func storeDownloadFailureIsReported() async throws {
-        let (settings, defaults, suite) = Self.freshSettings()
-        defer { defaults.removePersistentDomain(forName: suite) }
+        let (settings, _) = freshSettings()
         let root = Fixture.tempRoot()
         defer { try? FileManager.default.removeItem(at: root) }
         let hub = FakeHub()
