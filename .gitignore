@@ -1,0 +1,22 @@
+# Xcode / SwiftPM
+.build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcworkspace/xcshareddata/swiftpm/
+Package.resolved.bak
+# Models, recordings, outputs
+Models/
+Spike/models/
+*.safetensors
+*.npz
+*.wav
+*.m4a
+*.srt
+!Fixtures/*.wav
+# Secrets
+*.pem
+*.p8
+.env
+# macOS
+.DS_Store
