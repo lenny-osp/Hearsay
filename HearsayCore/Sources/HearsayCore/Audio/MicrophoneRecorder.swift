@@ -515,18 +515,17 @@ private final class CaptureSession: @unchecked Sendable {
     /// own 16 kHz mono Float32 format.
     static var audioSettings: [String: Any] {
         [
+            // Native rate and channel count on purpose: MonoResampler
+            // (AVAudioConverter) downsamples and downmixes, so the quality of
+            // the conversion is under our control, not the capture output's.
             AVFormatIDKey: kAudioFormatLinearPCM,
-            AVSampleRateKey: MonoResampler.sampleRate,
-            AVNumberOfChannelsKey: 1,
             AVLinearPCMBitDepthKey: 32,
             AVLinearPCMIsFloatKey: true,
             AVLinearPCMIsNonInterleaved: true,
             AVLinearPCMIsBigEndianKey: false,
         ]
     }
-    static let requestedFormatDescription = String(
-        format: "1 ch, %.0f Hz, Float32 non-interleaved", MonoResampler.sampleRate
-    )
+    static let requestedFormatDescription = "device rate and channels, Float32 non-interleaved"
 
     let device: AVCaptureDevice
     private let session = AVCaptureSession()

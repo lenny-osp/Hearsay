@@ -82,6 +82,13 @@ enum RecordingDebug {
         recorder.stop()
         let (captured, firstChunkAfter) = await consumer.value
         try? writer.close()
+        // HEARSAY_RECORD_KEEP=<path>: keep a copy of the captured WAV there.
+        if let keep = ProcessInfo.processInfo.environment["HEARSAY_RECORD_KEEP"], !keep.isEmpty {
+            let target = URL(fileURLWithPath: keep)
+            try? FileManager.default.removeItem(at: target)
+            do { try FileManager.default.copyItem(at: url, to: target); say("kept a copy at \(keep)") }
+            catch { say("could not keep a copy: \(error)") }
+        }
         let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int) ?? -1
 
         say(recorder.diagnostics.description)
