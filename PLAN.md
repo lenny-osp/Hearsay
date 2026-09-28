@@ -561,6 +561,13 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
   scan can exclude it instead of using the launch date.
 - Shortcut labels assume a US keyboard layout.
 - `NSAlert` for quit is modal; a SwiftUI confirmation would fit better.
+- Stale sandbox comments in `RecordingSpool.swift` line 14 and
+  `HotkeyManager.swift` line 7.
+- Confirm sheet shows "(none set)" for an empty Copilot model although
+  gpt-5.6-luna is used.
+- Data left by the sandboxed builds was moved by hand on 2026-09-28 from
+  `~/Library/Containers/tw.og1o.hearsay/` to `~/Library/Application
+  Support/Hearsay/` and `defaults`; no in-app migration exists.
 - `SystemAudioRecorder`: a stream error that arrives while still `.starting`
   is lost; `start()` returns normally. Store the failure and throw it.
 - The final pass waits for the live-preview queue to drain; a lagging
