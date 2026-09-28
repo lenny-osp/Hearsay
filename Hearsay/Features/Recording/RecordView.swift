@@ -37,6 +37,13 @@ struct RecordView: View {
                 }
                 .pickerStyle(.segmented)
                 .disabled(model.isSessionActive)
+
+                // Its own row below the language picker, only for ZH.
+                if model.languageCode == "zh" {
+                    ChineseScriptPicker()
+                        .pickerStyle(.segmented)
+                        .disabled(model.isSessionActive)
+                }
             }
 
             Section {

@@ -176,9 +176,10 @@ extension Error {
 extension Transcription {
     /// The segments as SRT cues, cleaned like mlx_whisper's `WriteSRT`
     /// (text stripped, `-->` replaced with `->`), shifted by `offset`
-    /// seconds.
-    func cues(offset: TimeInterval = 0) -> [CoreSegment] {
-        segments.map { segment in
+    /// seconds, and converted to `script` (see `ChineseScript.app`). Every
+    /// cue Hearsay shows or writes comes from here.
+    func cues(offset: TimeInterval = 0, script: ChineseScript) -> [CoreSegment] {
+        let cues = segments.map { segment in
             CoreSegment(
                 start: segment.start + offset,
                 end: segment.end + offset,
@@ -187,6 +188,7 @@ extension Transcription {
                     .replacingOccurrences(of: "-->", with: "->")
             )
         }
+        return ChineseScript.convert(cues, to: script)
     }
 }
 

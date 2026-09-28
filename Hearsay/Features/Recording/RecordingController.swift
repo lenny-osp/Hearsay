@@ -107,6 +107,8 @@ final class RecordingController {
     private(set) var notesRequest: URL?
     /// Language of the last recording, for the notes flow.
     private(set) var sessionLanguageCode = "en"
+    /// Script the last recording's cues are converted to (zh only).
+    @ObservationIgnored private var sessionChineseScript: ChineseScript = .asIs
 
     @ObservationIgnored private let settings: AppSettings
     @ObservationIgnored private let modelStore: ModelStore
@@ -475,6 +477,7 @@ final class RecordingController {
         silenceWarning = nil
         recordedSamples = []
         sessionLanguageCode = settings.defaultLanguageCode
+        sessionChineseScript = ChineseScript.app(languageCode: sessionLanguageCode, settings: settings)
         startLivePreview()
         phase = .recording
 
@@ -732,6 +735,7 @@ final class RecordingController {
         liveContinuation = continuation
         let engine = engine
         let options = TranscriptionOptions.app(languageCode: sessionLanguageCode)
+        let script = sessionChineseScript
         let id = session
         // One consumer, so chunks are transcribed strictly in order.
         liveTask = Task { [weak self] in
@@ -742,7 +746,7 @@ final class RecordingController {
                     let result = try await engine.transcribe(
                         samples: job.samples, location: location, options: options, progress: { _ in }
                     )
-                    outcome = .success(result.cues(offset: job.start))
+                    outcome = .success(result.cues(offset: job.start, script: script))
                 } catch {
                     outcome = .failure(error)
                 }
@@ -824,7 +828,7 @@ final class RecordingController {
                 progress: progressHandler(session: id)
             )
             guard session == id, isTranscribing, !isUsingLivePreview else { return }
-            completeTranscription(with: result.cues())
+            completeTranscription(with: result.cues(script: sessionChineseScript))
         } catch {
             // Cancelled by "Use live preview instead" or by quitting; whoever
             // cancelled writes the SRT.
@@ -858,7 +862,7 @@ final class RecordingController {
                 progress: progressHandler(session: id)
             )
             guard session == id, isTranscribing, !isUsingLivePreview else { return }
-            completeTranscription(with: result.cues())
+            completeTranscription(with: result.cues(script: sessionChineseScript))
         } catch {
             guard !error.isTranscriptionCancelled else { return }
             guard session == id, isTranscribing, !isUsingLivePreview else { return }

@@ -137,7 +137,8 @@ final class FileViewModel {
                     Task { @MainActor in self?.updateProgress(value, job: id) }
                 }
             )
-            let srt = try Self.writeSRT(result.cues(), for: source, in: folder.url)
+            let script = ChineseScript.app(languageCode: languageCode, settings: settings)
+            let srt = try Self.writeSRT(result.cues(script: script), for: source, in: folder.url)
             phase = .finished(srt: srt, source: source)
             notesRequest = srt
             return srt

@@ -57,6 +57,22 @@ struct AppSettingsTests {
         #expect(AppSettings(defaults: defaults).keepRecording == false)
     }
 
+    @Test func chineseScriptDefaultsTraditionalAndRoundTrips() {
+        let (defaults, suite) = Self.freshDefaults()
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let settings = AppSettings(defaults: defaults)
+        #expect(settings.chineseScript == .traditional)
+        settings.chineseScript = .simplified
+        #expect(AppSettings(defaults: defaults).chineseScript == .simplified)
+        settings.chineseScript = .asIs
+        #expect(settings.chineseScript == .traditional)
+        #expect(AppSettings(defaults: defaults).chineseScript == .traditional)
+        defaults.set("asIs", forKey: AppSettings.Key.chineseScript)
+        #expect(AppSettings(defaults: defaults).chineseScript == .traditional)
+        defaults.set("bogus", forKey: AppSettings.Key.chineseScript)
+        #expect(AppSettings(defaults: defaults).chineseScript == .traditional)
+    }
+
     @Test func hotkeysDefaultToControlOptionCommand() {
         let (defaults, suite) = Self.freshDefaults()
         defer { defaults.removePersistentDomain(forName: suite) }

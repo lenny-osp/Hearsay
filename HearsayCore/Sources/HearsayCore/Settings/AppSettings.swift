@@ -37,6 +37,7 @@ public final class AppSettings {
         public static let startStopHotkey = "startStopHotkey"
         public static let pauseHotkey = "pauseHotkey"
         public static let keepRecording = "keepRecording"
+        public static let chineseScript = "chineseScript"
     }
 
     @ObservationIgnored private let defaults: UserDefaults
@@ -97,6 +98,16 @@ public final class AppSettings {
         didSet { defaults.set(keepRecording, forKey: Key.keepRecording) }
     }
 
+    /// Characters for zh transcripts (Record tab, Settings > General):
+    /// traditional or simplified. Default traditional; a stored or assigned
+    /// asIs reads as traditional. Other languages are never converted.
+    public var chineseScript: ChineseScript {
+        didSet {
+            if chineseScript == .asIs { chineseScript = .traditional }
+            defaults.set(chineseScript.rawValue, forKey: Key.chineseScript)
+        }
+    }
+
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         let rawMode = defaults.string(forKey: Key.windowMode) ?? ""
@@ -109,6 +120,8 @@ public final class AppSettings {
             ?? .defaultStartStop
         self.pauseHotkey = Self.loadHotkey(forKey: Key.pauseHotkey, from: defaults) ?? .defaultPause
         self.keepRecording = defaults.object(forKey: Key.keepRecording) as? Bool ?? true
+        self.chineseScript = (ChineseScript(rawValue: defaults.string(forKey: Key.chineseScript) ?? "")
+            ?? .traditional).pickerValue
     }
 
     private static func loadHotkey(forKey key: String, from defaults: UserDefaults) -> HotkeyBinding? {

@@ -31,6 +31,12 @@ private struct GeneralSettingsView: View {
     var body: some View {
         Form {
             LaunchAtLoginSection()
+            Section("Transcription") {
+                ChineseScriptPicker()
+                Text("Applies to ZH transcripts. English is never changed.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             HotkeySettingsSection()
         }
         .padding()
@@ -98,6 +104,27 @@ private struct LaunchAtLoginSection: View {
     private func openLoginItems() {
         guard let url = Self.loginItemsURL else { return }
         NSWorkspace.shared.open(url)
+    }
+}
+
+/// "Chinese output" for zh transcripts: 繁體中文 (default) or 简体中文, bound
+/// to `AppSettings.chineseScript`. Offers only `ChineseScript.pickerCases`;
+/// the internal asIs (used for non-zh sessions) is never shown, and a stored
+/// asIs shows as 繁體中文. Shown on the Record tab on its own row below the
+/// language picker when ZH is chosen, and in Settings > General.
+struct ChineseScriptPicker: View {
+    @Environment(AppSettings.self) private var settings
+    var label = "Chinese output"
+
+    var body: some View {
+        Picker(label, selection: Binding(
+            get: { settings.chineseScript.pickerValue },
+            set: { settings.chineseScript = $0 }
+        )) {
+            ForEach(ChineseScript.pickerCases, id: \.self) { script in
+                Text(script.displayName).tag(script)
+            }
+        }
     }
 }
 
