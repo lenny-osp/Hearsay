@@ -24,10 +24,10 @@ A signed, notarized download comes later. For now, build from source:
    `xcodebuild -downloadComponent MetalToolchain`.
 3. Install XcodeGen: `brew install xcodegen`.
 4. From the repository folder, run one of:
-   - `Scripts/run-debug.sh` builds Debug and opens
-     `.build/derived/Build/Products/Debug/Hearsay.app`.
-   - `Scripts/run-debug.sh --release` builds Release and opens
-     `.build/derived/Build/Products/Release/Hearsay.app`. Transcription is
+   - `mac/Scripts/run-debug.sh` builds Debug and opens
+     `mac/.build/derived/Build/Products/Debug/Hearsay.app`.
+   - `mac/Scripts/run-debug.sh --release` builds Release and opens
+     `mac/.build/derived/Build/Products/Release/Hearsay.app`. Transcription is
      much faster; use this one day to day.
 
    Add `--no-open` to build without launching.
@@ -195,24 +195,24 @@ Hearsay is the native macOS version of the `whisper-tools` Python CLI
 ## Development
 
 - `PLAN.md` is the design record.
-- `HearsayCore` tests: `cd HearsayCore && swift test`.
+- `HearsayCore` tests: `cd mac/HearsayCore && swift test`.
 - `HearsayWhisper` tests (MLX needs `xcodebuild`, not `swift build`):
-  `cd HearsayWhisper && xcodebuild -scheme HearsayWhisper -destination 'platform=macOS,arch=arm64' -skipPackagePluginValidation -skipMacroValidation test`.
+  `cd mac/HearsayWhisper && xcodebuild -scheme HearsayWhisper -destination 'platform=macOS,arch=arm64' -skipPackagePluginValidation -skipMacroValidation test`.
   Set `TEST_RUNNER_HEARSAY_MODEL_DIR=/abs/path/to/model` to run the
   integration tests.
-- Translations: after a build, `Scripts/export-strings.py` writes
-  `Localization/strings-en.json`; translators add `Localization/<lang>.json`
-  (see `Localization/GLOSSARY.md`); `Scripts/merge-translations.py` merges
+- Translations: after a build, `mac/Scripts/export-strings.py` writes
+  `shared/localization/strings-en.json`; translators add `shared/localization/<lang>.json`
+  (see `shared/localization/GLOSSARY.md`); `mac/Scripts/merge-translations.py` merges
   them into the string catalogs.
-- `Scripts/make-notices.sh` regenerates `THIRD_PARTY_NOTICES.md`.
+- `mac/Scripts/make-notices.sh` regenerates `mac/THIRD_PARTY_NOTICES.md`.
 
 ## License
 
 Hearsay is released under the MIT License, Copyright (c) 2026 Chihling Wang;
 see [LICENSE](LICENSE). It bundles open-source libraries and includes code
 copied or ported from other MIT-licensed projects; their licenses are in
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) (regenerate it with
-`Scripts/make-notices.sh`) and in the app under Settings > General >
+[mac/THIRD_PARTY_NOTICES.md](mac/THIRD_PARTY_NOTICES.md) (regenerate it with
+`mac/Scripts/make-notices.sh`) and in the app under Settings > General >
 Acknowledgements.
 
 ## Support

@@ -1,7 +1,7 @@
 # Hearsay: native macOS port of whisper-tools
 
 Status: Phase 0 spike done 2026-09-28, verdict GO. See section 15 for
-results. `Spike/` holds the throwaway spike; the app itself is not built yet.
+results. `mac/Spike/` holds the throwaway spike; the app itself is not built yet.
 
 Hearsay is a SwiftUI menu-bar/dock app that reproduces the macOS flow of
 `whisper-tools/run_whisper.py` without Python, FFmpeg, or a shell.
@@ -24,7 +24,7 @@ output rule ported here.
 | Topic | Decision |
 |---|---|
 | Language / UI | Swift 6, SwiftUI, AppKit only where SwiftUI has no API (activation policy, CoreAudio device pick). |
-| Inference | MLX. The Whisper module of `Blaizzy/mlx-audio-swift` (MIT, 1,526 lines, commit `01dec7c9`) is vendored into `HearsayCore/Whisper/` and its decode loop is replaced with a timestamped decoder ported from `mlx_whisper` 0.4.3. Reason: section 15. Direct dependencies become `ml-explore/mlx-swift` and `huggingface/swift-transformers` only. |
+| Inference | MLX. The Whisper module of `Blaizzy/mlx-audio-swift` (MIT, 1,526 lines, commit `01dec7c9`) is vendored into `mac/HearsayCore/Whisper/` and its decode loop is replaced with a timestamped decoder ported from `mlx_whisper` 0.4.3. Reason: section 15. Direct dependencies become `ml-explore/mlx-swift` and `huggingface/swift-transformers` only. |
 | Models | Downloaded on demand from Hugging Face `mlx-community/whisper-*` repos into the app's own model directory. User picks the model. Nothing ships inside the bundle. |
 | Audio I/O | AVFoundation. Mic via `AVCaptureSession` + `AVCaptureAudioDataOutput` (16 kHz mono Float32), chosen by CoreAudio UID; `AVAudioFile` for files. No FFmpeg. Changed 2026-09-28: the `AVAudioEngine` tap got no buffers after switching input device, because the input node kept reporting the previous device's rate. |
 | System audio | Captured with ScreenCaptureKit (`SCStream`, audio only) and mixed with the mic, so Zoom/Teams/Meet calls are transcribed, not just the room. Decided 2026-09-28. |
@@ -57,7 +57,7 @@ Tools only**. That is not enough:
 3. Apple Developer account for signing and notarization (a free account
    builds and runs locally; Developer ID needs the paid one).
 4. A short test WAV (16 kHz mono, 30 to 60 s, English and one Chinese) in
-   `Fixtures/` for integration tests. Record it yourself; do not
+   `shared/fixtures/` for integration tests. Record it yourself; do not
    commit real meetings.
 
 Existing local cache that helps the spike: `~/.cache/huggingface/hub/`
@@ -71,66 +71,70 @@ Hearsay/                      this repo
   PLAN.md                     this file
   .claude/agents/             subagent definitions used to build the app
   README.md                   user-facing: install, first run, outputs (write in Phase 6)
-  Hearsay.xcodeproj/          Xcode project (app target + test targets)
-  Hearsay/                    app target
-    HearsayApp.swift          @main, MenuBarExtra + WindowGroup + Settings scene
-    AppDelegate.swift         activation policy, dock/menu-bar switching, quit handling
-    Features/
-      Recording/              RecordView, RecordViewModel, level meter view
-      FileTranscription/      FileView (drop target, file picker), FileViewModel
-      Models/                 ModelManagerView, ModelRow, download progress UI
-      Notes/                  NotesView, NamingSheet, ConfirmSendSheet
-      History/                HistoryView (past recordings, open in Finder)
-      Recovery/               UnfinishedRecordingSheet
-      Hotkeys/                HotkeyManager (global shortcuts)
-      Updates/                Sparkle wiring
-      Settings/               General, Window mode, Output, AI provider, Models tabs
-    Resources/
-      Assets.xcassets         app icon, menu bar template icons (idle, recording)
-      ModelCatalog.json       built-in list of downloadable models (see section 5)
-    Hearsay.entitlements
-    Info.plist
-  HearsayCore/                Swift package, pure logic, no UI, fully unit-tested
-    Sources/HearsayCore/
-      Audio/
-        AudioDeviceList.swift        CoreAudio enumeration of input devices
-        MicrophoneRecorder.swift     AVCaptureSession -> 16 kHz mono PCM stream
-        SystemAudioRecorder.swift    ScreenCaptureKit SCStream audio -> 16 kHz mono PCM stream
-        AudioMixer.swift             aligns and sums mic + system streams into one mono stream
-        LevelMeter.swift             port of StreamingLevelMeter (RMS dB, silence warning)
-        WavWriter.swift              spooled WAV, same format as the Python tool
-        RecordingSpool.swift         spool folder, move-or-delete after success, crash scan
-        AudioFileLoader.swift        any AVFoundation-readable file -> 16 kHz mono Float32
-      Transcription/
-        WhisperEngine.swift          wraps MLXAudioSTT.WhisperModel
-        LiveTranscriber.swift        chunk scheduler for the live preview (section 4.1)
-        TranscriptionOptions.swift   language, initial prompt, thresholds
-        Segment.swift                start, end, text
-        SRTWriter.swift              segments -> SRT text
-      ModelStore/
-        ModelCatalog.swift           decode ModelCatalog.json
-        ModelDownloader.swift        URLSession background download, resume, cancel
-        ModelStore.swift             installed models, sizes, delete, active model
-      Notes/
-        MeetingPrompt.swift          port of build_meeting_prompt + template slot
-        PromptTemplate.swift         user templates, built-in "General meeting"
-        ChatCompletionsClient.swift  OpenAI-compatible POST, error mapping
-        NotesResponse.swift          parse + validate {filename, markdown, transcript_markdown}
-        ProviderPresets.swift        Copilot/Claude Code/Codex/Antigravity CLIs, Ollama, custom
-      Naming/
-        FilenameSanitizer.swift      port of sanitize_ai_filename
-        MeetingNameInserter.swift    port of insert_meeting_name
-        OutputWriter.swift           port of save_named_outputs + rename_transcription_outputs
-        Timestamps.swift             yyyy-MM-dd_HH-mm-ss, parse from filename, file birth time
-      Settings/
-        AppSettings.swift            UserDefaults-backed, observable
-        SecretStore.swift            Keychain for API tokens
-        OutputLocation.swift         security-scoped bookmark for the output folder
-    Tests/HearsayCoreTests/
-      (one test file per source file above; ports of the Python tests)
-  Fixtures/                    short test audio, tiny model stub for offline tests
-  Scripts/
-    build-release.sh           xcodebuild archive, sign, notarize, staple, DMG
+  mac/                        macOS app
+    Hearsay.xcodeproj/          Xcode project (app target + test targets)
+    Hearsay/                    app target
+      HearsayApp.swift          @main, MenuBarExtra + WindowGroup + Settings scene
+      AppDelegate.swift         activation policy, dock/menu-bar switching, quit handling
+      Features/
+        Recording/              RecordView, RecordViewModel, level meter view
+        FileTranscription/      FileView (drop target, file picker), FileViewModel
+        Models/                 ModelManagerView, ModelRow, download progress UI
+        Notes/                  NotesView, NamingSheet, ConfirmSendSheet
+        History/                HistoryView (past recordings, open in Finder)
+        Recovery/               UnfinishedRecordingSheet
+        Hotkeys/                HotkeyManager (global shortcuts)
+        Updates/                Sparkle wiring
+        Settings/               General, Window mode, Output, AI provider, Models tabs
+      Resources/
+        Assets.xcassets         app icon, menu bar template icons (idle, recording)
+        ModelCatalog.json       built-in list of downloadable models (see section 5)
+      Hearsay.entitlements
+      Info.plist
+    HearsayCore/                Swift package, pure logic, no UI, fully unit-tested
+      Sources/HearsayCore/
+        Audio/
+          AudioDeviceList.swift        CoreAudio enumeration of input devices
+          MicrophoneRecorder.swift     AVCaptureSession -> 16 kHz mono PCM stream
+          SystemAudioRecorder.swift    ScreenCaptureKit SCStream audio -> 16 kHz mono PCM stream
+          AudioMixer.swift             aligns and sums mic + system streams into one mono stream
+          LevelMeter.swift             port of StreamingLevelMeter (RMS dB, silence warning)
+          WavWriter.swift              spooled WAV, same format as the Python tool
+          RecordingSpool.swift         spool folder, move-or-delete after success, crash scan
+          AudioFileLoader.swift        any AVFoundation-readable file -> 16 kHz mono Float32
+        Transcription/
+          WhisperEngine.swift          wraps MLXAudioSTT.WhisperModel
+          LiveTranscriber.swift        chunk scheduler for the live preview (section 4.1)
+          TranscriptionOptions.swift   language, initial prompt, thresholds
+          Segment.swift                start, end, text
+          SRTWriter.swift              segments -> SRT text
+        ModelStore/
+          ModelCatalog.swift           decode ModelCatalog.json
+          ModelDownloader.swift        URLSession background download, resume, cancel
+          ModelStore.swift             installed models, sizes, delete, active model
+        Notes/
+          MeetingPrompt.swift          port of build_meeting_prompt + template slot
+          PromptTemplate.swift         user templates, built-in "General meeting"
+          ChatCompletionsClient.swift  OpenAI-compatible POST, error mapping
+          NotesResponse.swift          parse + validate {filename, markdown, transcript_markdown}
+          ProviderPresets.swift        Copilot/Claude Code/Codex/Antigravity CLIs, Ollama, custom
+        Naming/
+          FilenameSanitizer.swift      port of sanitize_ai_filename
+          MeetingNameInserter.swift    port of insert_meeting_name
+          OutputWriter.swift           port of save_named_outputs + rename_transcription_outputs
+          Timestamps.swift             yyyy-MM-dd_HH-mm-ss, parse from filename, file birth time
+        Settings/
+          AppSettings.swift            UserDefaults-backed, observable
+          SecretStore.swift            Keychain for API tokens
+          OutputLocation.swift         security-scoped bookmark for the output folder
+      Tests/HearsayCoreTests/
+        (one test file per source file above; ports of the Python tests)
+    Scripts/
+      build-release.sh           xcodebuild archive, sign, notarize, staple, DMG
+  shared/
+    fixtures/                  short test audio, tiny model stub for offline tests
+    localization/              translator files, GLOSSARY.md
+  windows/                    Windows version (not started)
 ```
 
 `HearsayCore` is a local Swift package so its tests run without Metal and
@@ -367,7 +371,7 @@ them:
 | `--condition-on-previous-text False` | supported; default off, like the Python tool |
 | `--hallucination-silence-threshold 2.0` | ported as a documented no-op: in `mlx_whisper` 0.4.3 every use of it sits inside `if word_timestamps:`, so the Python tool never applies it either |
 | `--language en\|zh` | supported |
-| `--initial-prompt` for zh | supported as an advanced setting, but **off by default**. Measured 2026-09-28 on `Fixtures/zh-30s.wav` with the turbo model: the Python tool's English prompt ("The following is a sentence in Traditional Chinese.") made turbo echo the prompt and produce no transcript, and made large-v3 output Simplified characters. A Traditional Chinese prompt ("以下是繁體中文的句子。") gave Traditional script but rounded every timestamp to whole seconds and appended a hallucinated closing line. No prompt gave Traditional script, natural cue boundaries, and no hallucination. |
+| `--initial-prompt` for zh | supported as an advanced setting, but **off by default**. Measured 2026-09-28 on `shared/fixtures/zh-30s.wav` with the turbo model: the Python tool's English prompt ("The following is a sentence in Traditional Chinese.") made turbo echo the prompt and produce no transcript, and made large-v3 output Simplified characters. A Traditional Chinese prompt ("以下是繁體中文的句子。") gave Traditional script but rounded every timestamp to whole seconds and appended a hallucinated closing line. No prompt gave Traditional script, natural cue boundaries, and no hallucination. |
 | temperature fallback on compression ratio / logprob | ported, but **off by default** (`temperatures = [0]`): the `mlx_whisper` CLI that whisper-tools calls decodes at temperature 0 with no fallback, and parity with it is the acceptance test. The fallback list is an advanced option. |
 | no-speech threshold | port; skips silent windows |
 
@@ -444,7 +448,7 @@ Total: about 8 to 9 weeks of calendar time.
   parsing, level meter math, prompt text, response parsing, SRT formatting.
   These run on any Mac in seconds.
 - Integration (opt-in, `HEARSAY_MODEL_DIR` set): transcribe
-  `Fixtures/en-30s.wav` and `Fixtures/zh-30s.wav`, assert a known phrase
+  `shared/fixtures/en-30s.wav` and `shared/fixtures/zh-30s.wav`, assert a known phrase
   appears and segment count is within range.
 - Manual checklist per release: each window mode, mic permission denial,
   no-model state, download cancel mid-way, network failure during notes,
@@ -491,9 +495,9 @@ system audio capture and live preview are both in v1.
 
 ## 15. Phase 0 spike results (2026-09-28)
 
-Setup: `Spike/` Swift package, executable `hearsay-spike`, depends on
+Setup: `mac/Spike/` Swift package, executable `hearsay-spike`, depends on
 `mlx-audio-swift` at commit `01dec7c9`. Built with `xcodebuild` after
-installing the Metal Toolchain. Fixture: `Fixtures/en-30s.wav`, 18.9 s of
+installing the Metal Toolchain. Fixture: `shared/fixtures/en-30s.wav`, 18.9 s of
 synthesized English speech. Machine: this Mac, Apple Silicon, macOS 27.0.
 
 | Check | Result |
@@ -519,14 +523,14 @@ spectrogram, and tokenizer wrapper are reused as is. Only
 Reproduce:
 
 ```bash
-cd Spike && xcodebuild -scheme hearsay-spike -destination 'platform=macOS,arch=arm64' \
+cd mac/Spike && xcodebuild -scheme hearsay-spike -destination 'platform=macOS,arch=arm64' \
   -configuration Release -derivedDataPath .build/derived \
   -skipPackagePluginValidation -skipMacroValidation build
 cd .. && Spike/.build/derived/Build/Products/Release/hearsay-spike \
-  Spike/models/mlx-community_whisper-large-v3-turbo Fixtures/en-30s.wav en
+  Spike/models/mlx-community_whisper-large-v3-turbo ../shared/fixtures/en-30s.wav en
 ```
 
-`Spike/models/` is git-ignored; re-download with the URLs in section 5.
+`mac/Spike/models/` is git-ignored; re-download with the URLs in section 5.
 
 ## 16. Hands-on checklist for the owner (after Phase 4b)
 
@@ -577,16 +581,7 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
   `plutil -p` on the real file when checking settings, and consider asking
   the owner to delete the container.
 
-- **To do (owner request 2026-09-28): write a Windows version plan**
-  (`PLAN-WINDOWS.md`, beside this file; plan only, no code yet). Starting
-  points agreed in discussion: native C# / .NET app (WinUI 3 or WPF) with a
-  tray icon; whisper.cpp, or faster-whisper with CUDA on NVIDIA GPUs; WASAPI
-  for the mic and loopback for system audio; Windows Credential Manager for
-  tokens; same HTTP providers plus Copilot CLI. Reuse this plan's naming
-  rules, prompt, JSON contract, and the `Fixtures/` audio with expected SRTs
-  as a shared acceptance suite. Cover CPU-only performance (smaller default
-  model), the need for a Windows machine to build and test, and an estimate
-  (discussed: about 6 to 8 weeks of agent work).
+- Windows version: planned in section 18 (owner request 2026-09-28).
 
 - **To do (owner request 2026-09-28): "Reduce background noise" switch** on
   the Record tab. Routes only the mic through Apple voice processing so
@@ -615,3 +610,115 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
   always kept; live chunks still queued are dropped (the WAV has them).
 - Debug launch path (`HEARSAY_TRANSCRIBE_FILE`) needs files inside the app
   container because of the sandbox; document or drop before release.
+
+## 18. Windows version
+
+Planned 2026-09-28 (owner request). Nothing is built yet; `windows/` holds
+a placeholder. This section is the design record for that work; expand it
+in place as decisions are made.
+
+### 18.1 Goal
+
+A native Windows app with the same user-visible behavior as the macOS
+app: record microphone plus system audio, live preview, final pass, File
+mode, the same language picker (Auto / EN / ZH-TW / ZH-CN / DE / ES), the
+same meeting-notes flow, output names, History, tray icon, hotkeys,
+interface languages, and help. Same acceptance suite where the platforms
+can agree (section 18.5).
+
+### 18.2 Layout and sharing
+
+```text
+windows/
+  Hearsay.sln
+  Hearsay.App/        WinUI 3 app (views, tray, settings, help window)
+  Hearsay.Core/       ported logic: naming, prompt, SRT, language decision, mixer
+  Hearsay.Whisper/    whisper.cpp integration and model store
+  Hearsay.Tests/      unit tests, driven by the shared vectors and fixtures
+  scripts/            build, translation import, notices
+  THIRD_PARTY_NOTICES.md
+```
+
+Shared resources (`shared/`) and what Windows does with them:
+
+| Shared item | Exists today | Windows use |
+|---|---|---|
+| `fixtures/` audio and expected SRTs | yes | acceptance tests (tolerant comparison, 18.5) |
+| `localization/` glossary and translations | yes | import into `.resw` with the same English keys, so the four translations are reused; new Windows-only keys are added to the JSON files |
+| prompt text and JSON contract | to extract from `MeetingPrompt.swift` into `shared/prompts/` | loaded verbatim; a test proves the English and Traditional Chinese prompts equal the Python tool's |
+| naming-rule test vectors | to extract from `NamingTests.swift` into `shared/naming-tests.json` | both platforms run the same cases |
+| help pages and CSS | to move from `mac/Hearsay/Resources/*.lproj/Help.html` into `shared/help/` | rendered in a WebView2 window |
+| model catalog schema | to split: shared schema, per-platform lists | Windows lists GGUF files from `ggerganov/whisper.cpp` on Hugging Face |
+| app icon PNGs | in `mac/Hearsay/Resources/Assets.xcassets` | move originals to `shared/assets/`, build `.ico` from them |
+
+The extraction rows marked "to …" are the first Windows work item; each
+one is done on the macOS side with the existing tests proving that macOS
+output does not change.
+
+### 18.3 Stack
+
+| Part | Choice | Notes |
+|---|---|---|
+| Language, UI | C# on .NET 8 or later, WinUI 3 (Windows App SDK) | tray icon through the Windows App SDK notification-icon APIs or `H.NotifyIcon` |
+| Audio capture | WASAPI via NAudio: `WasapiCapture` for the mic, `WasapiLoopbackCapture` for system audio | loopback needs no permission prompt; resample to 16 kHz mono like the Mac; port `AudioMixer` rules |
+| Whisper | `Whisper.net` (whisper.cpp) with GGUF models; CUDA runtime package on NVIDIA, Vulkan on AMD and Intel, CPU fallback | whisper.cpp has its own timestamp decoder; language detection is built in |
+| Chinese script | OpenCC (`OpenCCNET`) for Traditional and Simplified conversion | .NET has no Hans-Hant transliteration |
+| Meeting notes | same providers: Copilot CLI, Claude Code, Codex CLI (all support Windows), Antigravity CLI (confirm Windows availability first), Ollama, Custom | same JSON contract and prompt; tokens in Windows Credential Manager |
+| Settings and state | `%APPDATA%\Hearsay\settings.json`; models in `%LOCALAPPDATA%\Hearsay\Models`; spool in `%LOCALAPPDATA%\Hearsay\Recording`; output default `%USERPROFILE%\Documents\Hearsay` | |
+| Hotkeys, login, window modes | `RegisterHotKey`; `HKCU\...\Run` for launch at login; tray-only vs taskbar | |
+| Localization | `.resw` generated from `shared/localization` by a script; interface language setting applies at next launch | |
+| Help | WebView2 rendering `shared/help/<lang>/Help.html`; `hearsay://open/<tab>` links handled the same way | |
+| Packaging | MSIX (or Inno Setup) with code signing through Azure Trusted Signing; updates through MSIX or Velopack | unsigned builds trigger SmartScreen |
+
+### 18.4 Differences to accept
+
+- **Output is not byte-identical.** whisper.cpp and MLX decode differently;
+  acceptance compares text similarity and timestamps, not bytes.
+- **Speed.** Without a GPU, `large-v3-turbo` on CPU is 5 to 20 times slower
+  than on Apple Silicon. Default to a smaller quantized model on CPU-only
+  machines and recommend NVIDIA for the turbo model.
+- **System audio echo.** Loopback captures what the speakers play; a
+  microphone in the same room hears it too. Recommend a headset, and keep
+  the mixer's per-source meters so the user sees both.
+- **Bluetooth headsets** switch to call quality on Windows as on macOS.
+
+### 18.5 Acceptance
+
+For each `shared/fixtures/<lang>-30s.wav`, transcribed with the Windows
+default model and the fixed language:
+- normalized text similarity to the expected SRT at least 0.9 (en, de, es)
+  and character similarity at least 0.9 for zh after script conversion;
+- every cue start and end within 0.5 s of the expected cue it overlaps most;
+- Auto detection picks the right language with confidence above 0.9.
+Naming, prompt, SRT formatting, and language-decision tests use the shared
+vectors and must match exactly.
+
+### 18.6 Phases
+
+Estimates assume one Windows machine with Claude Code, Visual Studio 2022
+(.NET desktop and C++ desktop workloads), Git, and, if present, the CUDA
+Toolkit. Agents work the same way as on macOS: one work item each, no
+commits, a reviewer builds and tests.
+
+| Phase | Deliverable | Estimate |
+|---|---|---|
+| W0. Shared extraction (done on macOS) | `shared/prompts`, `shared/naming-tests.json`, `shared/help`, `shared/assets`, model catalog split; macOS tests unchanged | 2 days |
+| W1. Spike | Whisper.net transcribes the four fixtures; measure similarity, timestamps, speed on CPU and GPU; pick the default model | 2 to 3 days |
+| W2. Core | Port naming, prompt, SRT, language decision, mixer; all shared vectors pass | 4 to 5 days |
+| W3. Audio | WASAPI mic and loopback capture, resampling, spool WAV, no-audio watchdog | 4 to 5 days |
+| W4. Shell | WinUI window with the five tabs, tray icon, window modes, hotkeys, settings, model store and downloads | 6 to 8 days |
+| W5. Transcription | live preview, final pass, File mode, Auto detection with banners, Chinese conversion | 5 to 6 days |
+| W6. Notes | CLI providers on Windows, Ollama, Custom, confirm and naming sheets, History with regenerate | 4 to 5 days |
+| W7. Polish and ship | interface languages from shared translations, help window, crash recovery, MSIX, signing, updates, README | 5 to 6 days |
+
+Total: about 6 to 8 weeks of agent time.
+
+### 18.7 Risks
+
+| Risk | Mitigation |
+|---|---|
+| whisper.cpp quality on Chinese below MLX | measure in W1 on `zh-30s.wav`; consider the `large-v3` (non-turbo) GGUF for zh |
+| Antigravity CLI has no Windows build | ship without it; the preset is hidden when the binary is absent |
+| CPU-only machines too slow for live preview | disable live preview below a measured speed threshold and say so |
+| Loopback capture silent with exclusive-mode apps | document; offer "microphone only" |
+| Two code bases drift | shared vectors and fixtures are the contract; a behavior change must update the shared files first |

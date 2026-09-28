@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<!--
+  Hearsay Help, Deutsch. Translators: change the text only.
+  - Set <html lang="..."> to the file's language (de, es, zh-Hant, zh-Hans).
+  - Keep every id, href, class, <kbd>, <code>, and the whole <style> block.
+  - Text inside <span class="ui"> is a label the app shows. Use the exact
+    translated label from the app's string catalogs, not a new translation.
+  - macOS locations (System Settings > ...) use Apple's wording in your
+    language; see shared/localization/GLOSSARY.md.
+-->
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hearsay-Hilfe</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --text: rgba(0, 0, 0, 0.85);
+    --secondary: rgba(0, 0, 0, 0.55);
+    --background: #ffffff;
+    --rule: rgba(0, 0, 0, 0.1);
+    --panel: rgba(0, 0, 0, 0.04);
+    --link: #0068da;
+    --kbd-border: rgba(0, 0, 0, 0.2);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --text: rgba(255, 255, 255, 0.85);
+      --secondary: rgba(255, 255, 255, 0.55);
+      --background: #1e1e1e;
+      --rule: rgba(255, 255, 255, 0.12);
+      --panel: rgba(255, 255, 255, 0.06);
+      --link: #419cff;
+      --kbd-border: rgba(255, 255, 255, 0.25);
+    }
+  }
+  html { background: var(--background); }
+  body {
+    margin: 0 auto;
+    padding: 24px 28px 48px;
+    max-width: 680px;
+    font: 14px/1.6 -apple-system, system-ui, sans-serif;
+    color: var(--text);
+    background: var(--background);
+    -webkit-text-size-adjust: 100%;
+  }
+  h1 { font-size: 22px; line-height: 1.3; margin: 0 0 4px; }
+  h2 {
+    font-size: 17px; line-height: 1.3; margin: 32px 0 8px;
+    padding-top: 16px; border-top: 1px solid var(--rule);
+  }
+  h3 { font-size: 14px; margin: 16px 0 4px; }
+  p, ul, ol { margin: 0 0 10px; }
+  ul, ol { padding-left: 22px; }
+  li { margin: 3px 0; }
+  li > ul { margin: 4px 0 0; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .lead { color: var(--secondary); margin-bottom: 16px; }
+  nav {
+    background: var(--panel); border-radius: 8px;
+    padding: 10px 16px; margin: 16px 0 8px;
+  }
+  nav ol { margin: 0; columns: 2; column-gap: 24px; }
+  nav li { margin: 2px 0; break-inside: avoid; }
+  .ui { font-weight: 600; }
+  kbd {
+    font: 12px/1 -apple-system, system-ui, sans-serif;
+    display: inline-block; padding: 3px 6px; min-width: 12px; text-align: center;
+    border: 1px solid var(--kbd-border); border-bottom-width: 2px; border-radius: 5px;
+    background: var(--panel);
+  }
+  code {
+    font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: var(--panel); padding: 1px 4px; border-radius: 4px;
+  }
+  table { border-collapse: collapse; margin: 6px 0 12px; width: 100%; }
+  th, td { text-align: left; vertical-align: top; padding: 5px 10px 5px 0; border-bottom: 1px solid var(--rule); }
+  th { font-weight: 600; }
+  td:first-child { white-space: nowrap; width: 1%; padding-right: 20px; }
+  .note { color: var(--secondary); }
+  .problem { font-weight: 600; }
+</style>
+</head>
+<body>
+
+<h1>Hearsay-Hilfe</h1>
+<p class="lead">Besprechungen auf dem Mac aufnehmen und daraus Transkripte und Notizen machen.</p>
+
+<nav>
+<ol>
+  <li><a href="#getting-started">Erste Schritte</a></li>
+  <li><a href="#recording">Aufnehmen</a></li>
+  <li><a href="#file-mode">Datei transkribieren</a></li>
+  <li><a href="#meeting-notes">Besprechungsnotizen</a></li>
+  <li><a href="#history">Verlauf</a></li>
+  <li><a href="#menu-bar">Menüleiste und Tastaturkurzbefehle</a></li>
+  <li><a href="#settings">Einstellungen und mehr</a></li>
+  <li><a href="#troubleshooting">Fehlerbehebung</a></li>
+  <li><a href="#about">Über</a></li>
+</ol>
+</nav>
+
+<h2 id="getting-started">Erste Schritte</h2>
+<p>Hearsay nimmt das Mikrofon und den Ton von Anrufen auf und transkribiert beides auf dem Mac. Nichts verlässt den Mac, außer ein Transkript wird für Besprechungsnotizen an einen KI-Anbieter gesendet. Erforderlich sind ein Mac mit Apple Silicon und macOS 14 oder neuer.</p>
+<ol>
+  <li>Speicherort in <a href="hearsay://open/settings-output"><span class="ui">Einstellungen</span> &gt; <span class="ui">Ausgabe</span></a> auswählen. Standard ist der Ordner „Hearsay“ im Ordner „Dokumente“.</li>
+  <li>Den <a href="hearsay://open/models">Tab <span class="ui">Modelle</span></a> öffnen und neben einem Modell auf <span class="ui">Laden</span> klicken. Empfohlen ist whisper-large-v3-turbo (1,61 GB); whisper-large-v3-turbo-4bit (463 MB) ist die kleinste gute Wahl. Steht beim Modell nicht <span class="ui">Aktives Modell</span>, auf <span class="ui">Verwenden</span> klicken.</li>
+  <li>Auf <span class="ui">Starten</span> im <a href="hearsay://open/record">Tab <span class="ui">Aufnahme</span></a> klicken. Wenn macOS fragt, den Zugriff auf das Mikrofon und auf „Bildschirm- &amp; Systemaudioaufnahme“ erlauben (Hearsay nutzt nur den Ton). Beides lässt sich später in Systemeinstellungen &gt; Datenschutz &amp; Sicherheit ändern.</li>
+  <li>Bleibt das Systemaudio nach dem Erlauben stumm, Hearsay beenden und neu öffnen.</li>
+</ol>
+
+<h2 id="recording">Aufnehmen</h2>
+<p>Im <a href="hearsay://open/record">Tab <span class="ui">Aufnahme</span></a> wird eine Besprechung aufgenommen und transkribiert.</p>
+<ol>
+  <li>Das <span class="ui">Mikrofon</span> auswählen. <span class="ui">Auch Systemaudio aufnehmen</span> eingeschaltet lassen, um die Gegenseite eines Anrufs mit aufzunehmen.</li>
+  <li>Die <span class="ui">Sprache</span> auswählen: <span class="ui">Automatisch</span> erkennt sie, sonst EN, DE oder ES wählen. ZH-TW schreibt Chinesisch in traditionellen Schriftzeichen, ZH-CN in vereinfachten.</li>
+  <li>Auf <span class="ui">Starten</span> klicken. Die Pegelanzeigen zeigen, ob Mikrofon und Systemaudio Ton empfangen; nach 5 Sekunden Stille erscheint eine Warnung. <span class="ui">Pausieren</span> lässt diese Zeit im Transkript aus.</li>
+  <li>Neuer Text erscheint etwa alle 30 Sekunden in der <span class="ui">Live-Vorschau</span>.</li>
+  <li>Auf <span class="ui">Stoppen</span> klicken. Hearsay transkribiert die ganze Aufnahme für das endgültige Transkript noch einmal. Um das zu überspringen, auf <span class="ui">Stattdessen Live-Vorschau verwenden</span> klicken.</li>
+</ol>
+<p>Transkript (SRT) und Aufnahme (WAV) werden im Ausgabeordner gesichert und nach der Startzeit benannt, zum Beispiel <code>2026-09-28_14-05-00.srt</code>.</p>
+<ul>
+  <li><span class="ui">Automatisch</span> hört höchstens die ersten 90 Sekunden Sprache. Ist die Sprache nicht erkennbar, wird die bevorzugte Sprache verwendet und ein Hinweis mit einer Taste zum erneuten Transkribieren in einer anderen Sprache angezeigt. Klingt die Besprechung nach einer anderen als der gewählten Sprache, bietet ein Banner <span class="ui">Erneut transkribieren</span> an.</li>
+  <li>Die <span class="ui">Bevorzugte Sprache</span> wird in <a href="hearsay://open/settings-general"><span class="ui">Einstellungen</span> &gt; <span class="ui">Allgemein</span></a> festgelegt. Hört <span class="ui">Automatisch</span> Chinesisch, schreibt es vereinfachte Schriftzeichen, wenn 简体中文 die bevorzugte Sprache ist, sonst traditionelle.</li>
+</ul>
+
+<h2 id="file-mode">Datei transkribieren</h2>
+<p>Im <a href="hearsay://open/file">Tab <span class="ui">Datei</span></a> wird eine vorhandene Audio- oder Videodatei transkribiert.</p>
+<ol>
+  <li>Die Datei auf den Tab <span class="ui">Datei</span> ziehen oder auf <span class="ui">Auswählen …</span> klicken. Hearsay liest wav, m4a, mp3, aac, aiff, caf und den Ton von mp4- und mov-Dateien.</li>
+  <li>Die <span class="ui">Sprache</span> wie im Tab <span class="ui">Aufnahme</span> auswählen.</li>
+  <li>Zum Stoppen auf <span class="ui">Abbrechen</span> klicken. Dann wird nichts gesichert.</li>
+</ol>
+<p>Die SRT-Datei wird im Ausgabeordner gesichert und nach der Uhrzeit im Dateinamen benannt, ohne eine solche nach dem Datum der Datei. Die Originaldatei bleibt unverändert.</p>
+
+<h2 id="meeting-notes">Besprechungsnotizen</h2>
+<p>Hearsay kann ein Transkript an einen KI-Anbieter senden und die von ihm geschriebenen Besprechungsnotizen sichern. Dabei erhält der Anbieter das ganze Transkript.</p>
+<ol>
+  <li>In <a href="hearsay://open/settings-ai"><span class="ui">Einstellungen</span> &gt; <span class="ui">KI</span></a> unter <span class="ui">Voreinstellung:</span> einen Anbieter auswählen:
+    <ul>
+      <li>GitHub Copilot CLI, Claude Code CLI, Codex CLI und Antigravity CLI verwenden das auf dem Mac installierte Programm und die darin bestehende Anmeldung. Anfragen zählen zu den Limits dieses Abos. Die zugehörige Prüftaste (zum Beispiel <span class="ui">Claude Code prüfen</span>) zeigt, ob das Programm gefunden wird und angemeldet ist.</li>
+      <li>Ollama / LM Studio läuft auf dem Mac.</li>
+      <li><span class="ui">Benutzerdefiniert</span> funktioniert mit jedem OpenAI-kompatiblen Dienst. Dessen URL, Modell und Token eingeben.</li>
+    </ul>
+  </li>
+  <li>Auf <span class="ui">Verbindung testen</span> klicken. Unter <span class="ui">Prompt-Vorlagen</span> lassen sich eigene Anweisungen für die Notizen hinzufügen.</li>
+  <li>Nach dem Sichern eines Transkripts fragt Hearsay <span class="ui">Transkript für Besprechungsnotizen senden?</span> <span class="ui">Vorlage:</span> und <span class="ui">Notizsprache:</span> auswählen, dann auf <span class="ui">Senden</span> klicken. <span class="ui">Lokal behalten</span> sendet nichts.</li>
+  <li>Den vorgeschlagenen Besprechungsnamen bei Bedarf ändern, dann auf <span class="ui">Sichern</span> klicken.</li>
+</ol>
+<table>
+  <tr><th>Datei</th><th>Inhalt</th></tr>
+  <tr><td><code>&lt;timestamp&gt;_&lt;name&gt;.srt</code></td><td>das Transkript mit Zeitangaben</td></tr>
+  <tr><td><code>&lt;timestamp&gt;_&lt;name&gt;.md</code></td><td>die Besprechungsnotizen</td></tr>
+  <tr><td><code>&lt;timestamp&gt;_&lt;name&gt;_transcript.md</code></td><td>ein strukturiertes Transkript</td></tr>
+  <tr><td><code>&lt;timestamp&gt;_&lt;name&gt;.wav</code></td><td>die Aufnahme</td></tr>
+</table>
+
+<h2 id="history">Verlauf</h2>
+<p>Der <a href="hearsay://open/history">Tab <span class="ui">Verlauf</span></a> listet die Besprechungen im Ausgabeordner auf. Die Tasten in einer Zeile verwenden oder bei gedrückter Taste „ctrl“ auf die Zeile klicken.</p>
+<ul>
+  <li><span class="ui">SRT öffnen</span>, <span class="ui">Notizen öffnen</span> und <span class="ui">Transkript öffnen</span> öffnen eine Datei; <span class="ui">Im Finder zeigen</span> zeigt sie im Finder.</li>
+  <li><span class="ui">Notizen erstellen …</span> erstellt Notizen zu einem gesicherten Transkript. <span class="ui">Notizen neu erstellen …</span> ersetzt sie; die alten Notizen kommen in den Papierkorb, sobald die neuen gesichert sind.</li>
+  <li><span class="ui">In den Papierkorb legen …</span> legt alle Dateien einer Besprechung in den Papierkorb.</li>
+</ul>
+
+<h2 id="menu-bar">Menüleiste und Tastaturkurzbefehle</h2>
+<p>Hearsay lässt sich ohne sein Fenster steuern. Die Aufnahme läuft weiter, wenn das Fenster geschlossen ist.</p>
+<ul>
+  <li>Wo Hearsay erscheint, legt <span class="ui">Hearsay anzeigen in:</span> in <a href="hearsay://open/settings-window"><span class="ui">Einstellungen</span> &gt; <span class="ui">Fenster</span></a> fest: <span class="ui">Menüleiste und Dock</span>, <span class="ui">Nur Menüleiste</span> oder <span class="ui">Nur Dock</span>.</li>
+  <li>Ein Klick auf das Symbol in der Menüleiste zeigt den Status und startet, pausiert oder stoppt eine Aufnahme. Während der Aufnahme ist das Symbol rot.</li>
+  <li><kbd>⌃⌥⌘R</kbd> startet oder stoppt, <kbd>⌃⌥⌘P</kbd> pausiert oder setzt fort, in jeder App. Zum Ändern in <a href="hearsay://open/settings-general"><span class="ui">Einstellungen</span> &gt; <span class="ui">Allgemein</span></a> &gt; <span class="ui">Tastaturkurzbefehle</span> auf einen Kurzbefehl klicken und einen neuen drücken.</li>
+  <li><kbd>⌘,</kbd> öffnet die <span class="ui">Einstellungen</span>, <kbd>⌘?</kbd> diese Hilfe.</li>
+</ul>
+
+<h2 id="settings">Einstellungen und mehr</h2>
+<ul>
+  <li><strong><span class="ui">Sprache der Benutzeroberfläche</span>:</strong> in <a href="hearsay://open/settings-general"><span class="ui">Einstellungen</span> &gt; <span class="ui">Allgemein</span></a> auswählen. Hearsay muss neu starten; auf <span class="ui">Jetzt neu starten</span> klicken.</li>
+  <li><strong>Start:</strong> an derselben Stelle <span class="ui">Hearsay beim Anmelden öffnen</span> einschalten.</li>
+  <li><strong>Aufnahmen:</strong> Um die WAV-Datei nach erfolgreicher Transkription zu löschen, <span class="ui">Aufnahme (WAV) nach erfolgreicher Transkription behalten</span> in <a href="hearsay://open/settings-output"><span class="ui">Einstellungen</span> &gt; <span class="ui">Ausgabe</span></a> ausschalten.</li>
+  <li><strong>Unvollständige Aufnahmen:</strong> Stoppen Hearsay oder der Mac während einer Aufnahme, fragt der nächste Start, was damit geschehen soll. <span class="ui">Transkribieren</span> erstellt das Transkript, <span class="ui">Behalten</span> legt die WAV-Datei in den Ausgabeordner und <span class="ui">Löschen</span> entfernt sie.</li>
+</ul>
+
+<h2 id="troubleshooting">Fehlerbehebung</h2>
+<ul>
+  <li><span class="problem">Kein Modell installiert</span> – Den <a href="hearsay://open/models">Tab <span class="ui">Modelle</span></a> öffnen, ein Modell laden und auf <span class="ui">Verwenden</span> klicken.</li>
+  <li><span class="problem">Kein Zugriff auf das Mikrofon</span> – Hearsay in Systemeinstellungen &gt; Datenschutz &amp; Sicherheit &gt; Mikrofon einschalten.</li>
+  <li><span class="problem"><span class="ui">Systemaudio aus: Zugriff verweigert</span></span> – Hearsay in Systemeinstellungen &gt; Datenschutz &amp; Sicherheit &gt; Bildschirm- &amp; Systemaudioaufnahme einschalten, dann eine neue Aufnahme starten.</li>
+  <li><span class="problem">Systemaudio nach dem Erlauben stumm</span> – Hearsay beenden und neu öffnen.</li>
+  <li><span class="problem">„Kein Audio von“ einem Gerät</span> – Prüfen, ob das Gerät verbunden und nicht stummgeschaltet ist, oder ein anderes <span class="ui">Mikrofon</span> auswählen.</li>
+  <li><span class="problem">Schlechter Ton mit AirPods oder einem anderen Bluetooth-Headset</span> – Während der Aufnahme schaltet macOS sie in einen Anrufmodus mit geringer Qualität. In lauter Umgebung das integrierte Mikrofon des Mac verwenden.</li>
+  <li><span class="problem">Ein KI-Programm wird nicht gefunden</span> – Das Programm installieren oder seinen Pfad in <a href="hearsay://open/settings-ai"><span class="ui">Einstellungen</span> &gt; <span class="ui">KI</span></a> eingeben.</li>
+  <li><span class="problem">Ein KI-Programm ist nicht angemeldet</span> – Im Terminal einmal <code>copilot</code>, <code>claude</code>, <code>codex login</code> oder <code>agy</code> ausführen, dann in <span class="ui">Einstellungen</span> &gt; <span class="ui">KI</span> auf die zugehörige Prüftaste klicken.</li>
+  <li><span class="problem">Dateien nicht auffindbar</span> – Der Ordner steht in <a href="hearsay://open/settings-output"><span class="ui">Einstellungen</span> &gt; <span class="ui">Ausgabe</span></a>. Im Tab <span class="ui">Verlauf</span> auf <span class="ui">Im Finder zeigen</span> klicken.</li>
+</ul>
+
+<h2 id="about">Über</h2>
+<p>Hearsay stammt von Chihling Wang und steht unter der MIT-Lizenz. Es enthält Open-Source-Software; die Lizenzen zeigt <span class="ui">Lizenzen anzeigen …</span> in <a href="hearsay://open/settings-general"><span class="ui">Einstellungen</span> &gt; <span class="ui">Allgemein</span></a> &gt; <span class="ui">Danksagungen</span>.</p>
+<p>Wenn Hearsay nützlich ist, kann es über <a href="https://buymeacoffee.com/chihlingw">Buy Me a Coffee</a> unterstützt werden.</p>
+
+</body>
+</html>

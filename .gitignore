@@ -6,14 +6,14 @@ xcuserdata/
 *.xcworkspace/xcshareddata/swiftpm/
 Package.resolved.bak
 # Downloaded models, recordings, outputs
-Spike/models/
+mac/Spike/models/
 *.safetensors
 *.npz
 *.wav
 *.m4a
 *.srt
-!Fixtures/*.wav
-!Fixtures/*.expected.srt
+!shared/fixtures/*.wav
+!shared/fixtures/*.expected.srt
 # Secrets
 *.pem
 *.p8

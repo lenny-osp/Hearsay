@@ -18,7 +18,7 @@ Rules:
 - Swift 6 language mode, strict concurrency. No force unwraps in non-test
   code. No new third-party packages beyond those PLAN.md lists.
 - Build with `xcodebuild` (never `swift build` for targets that import MLX).
-  Run the HearsayCore tests with `swift test` inside HearsayCore/ when the
+  Run the HearsayCore tests with `swift test` inside mac/HearsayCore/ when the
   item touches it. Do not finish with a failing build or failing tests.
 - Every ported rule gets a unit test that mirrors the Python test.
 - Never commit. Leave the working tree for review.

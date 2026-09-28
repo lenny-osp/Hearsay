@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<!--
+  Hearsay Help, Traditional Chinese (Taiwan). Translators: change the text only.
+  - Set <html lang="..."> to the file's language (de, es, zh-Hant, zh-Hans).
+  - Keep every id, href, class, <kbd>, <code>, and the whole <style> block.
+  - Text inside <span class="ui"> is a label the app shows. Use the exact
+    translated label from the app's string catalogs, not a new translation.
+  - macOS locations (System Settings > ...) use Apple's wording in your
+    language; see shared/localization/GLOSSARY.md.
+-->
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hearsay 說明</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --text: rgba(0, 0, 0, 0.85);
+    --secondary: rgba(0, 0, 0, 0.55);
+    --background: #ffffff;
+    --rule: rgba(0, 0, 0, 0.1);
+    --panel: rgba(0, 0, 0, 0.04);
+    --link: #0068da;
+    --kbd-border: rgba(0, 0, 0, 0.2);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --text: rgba(255, 255, 255, 0.85);
+      --secondary: rgba(255, 255, 255, 0.55);
+      --background: #1e1e1e;
+      --rule: rgba(255, 255, 255, 0.12);
+      --panel: rgba(255, 255, 255, 0.06);
+      --link: #419cff;
+      --kbd-border: rgba(255, 255, 255, 0.25);
+    }
+  }
+  html { background: var(--background); }
+  body {
+    margin: 0 auto;
+    padding: 24px 28px 48px;
+    max-width: 680px;
+    font: 14px/1.6 -apple-system, system-ui, sans-serif;
+    color: var(--text);
+    background: var(--background);
+    -webkit-text-size-adjust: 100%;
+  }
+  h1 { font-size: 22px; line-height: 1.3; margin: 0 0 4px; }
+  h2 {
+    font-size: 17px; line-height: 1.3; margin: 32px 0 8px;
+    padding-top: 16px; border-top: 1px solid var(--rule);
+  }
+  h3 { font-size: 14px; margin: 16px 0 4px; }
+  p, ul, ol { margin: 0 0 10px; }
+  ul, ol { padding-left: 22px; }
+  li { margin: 3px 0; }
+  li > ul { margin: 4px 0 0; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .lead { color: var(--secondary); margin-bottom: 16px; }
+  nav {
+    background: var(--panel); border-radius: 8px;
+    padding: 10px 16px; margin: 16px 0 8px;
+  }
+  nav ol { margin: 0; columns: 2; column-gap: 24px; }
+  nav li { margin: 2px 0; break-inside: avoid; }
+  .ui { font-weight: 600; }
+  kbd {
+    font: 12px/1 -apple-system, system-ui, sans-serif;
+    display: inline-block; padding: 3px 6px; min-width: 12px; text-align: center;
+    border: 1px solid var(--kbd-border); border-bottom-width: 2px; border-radius: 5px;
+    background: var(--panel);
+  }
+  code {
+    font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: var(--panel); padding: 1px 4px; border-radius: 4px;
+  }
+  table { border-collapse: collapse; margin: 6px 0 12px; width: 100%; }
+  th, td { text-align: left; vertical-align: top; padding: 5px 10px 5px 0; border-bottom: 1px solid var(--rule); }
+  th { font-weight: 600; }
+  td:first-child { white-space: nowrap; width: 1%; padding-right: 20px; }
+  .note { color: var(--secondary); }
+  .problem { font-weight: 600; }
+</style>
+</head>
+<body>
+
+<h1>Hearsay 說明</h1>
+<p class="lead">在 Mac 上錄製會議，並轉成逐字稿與筆記。</p>
+
+<nav>
+<ol>
+  <li><a href="#getting-started">入門</a></li>
+  <li><a href="#recording">錄音</a></li>
+  <li><a href="#file-mode">轉錄檔案</a></li>
+  <li><a href="#meeting-notes">會議筆記</a></li>
+  <li><a href="#history">歷史記錄</a></li>
+  <li><a href="#menu-bar">選單列與快速鍵</a></li>
+  <li><a href="#settings">設定與其他</a></li>
+  <li><a href="#troubleshooting">疑難排解</a></li>
+  <li><a href="#about">關於</a></li>
+</ol>
+</nav>
+
+<h2 id="getting-started">入門</h2>
+<p>Hearsay 會錄下你的麥克風與通話聲音，並在 Mac 上轉錄。除非你將逐字稿送到 AI 提供者產生會議筆記，否則任何資料都不會離開你的 Mac。需要搭載 Apple 晶片、執行 macOS 14 或以後版本的 Mac。</p>
+<ol>
+  <li>在「<a href="hearsay://open/settings-output"><span class="ui">設定</span> &gt; <span class="ui">輸出</span></a>」中選擇檔案的儲存位置。預設為「文件」資料夾中的 Hearsay 資料夾。</li>
+  <li>打開<a href="hearsay://open/models">「<span class="ui">模型</span>」標籤頁</a>，然後按一下模型旁的「<span class="ui">下載</span>」。建議使用 whisper-large-v3-turbo（1.61 GB）；whisper-large-v3-turbo-4bit（463 MB）是最小且品質不錯的選項。若該模型不是「<span class="ui">使用中的模型</span>」，請按一下「<span class="ui">使用</span>」。</li>
+  <li>按下「<span class="ui">開始</span>」（位於<a href="hearsay://open/record">「<span class="ui">錄音</span>」標籤頁</a>）。macOS 詢問時，請允許取用麥克風及「螢幕與系統錄音」（Hearsay 只使用其中的音訊）。之後可在「系統設定 &gt; 隱私權與安全性」中更改這兩項設定。</li>
+  <li>若允許後仍錄不到系統聲音，請結束並重新打開 Hearsay。</li>
+</ol>
+
+<h2 id="recording">錄音</h2>
+<p>使用<a href="hearsay://open/record">「<span class="ui">錄音</span>」標籤頁</a>錄製會議並取得逐字稿。</p>
+<ol>
+  <li>選擇「<span class="ui">麥克風</span>」。保持開啟「<span class="ui">同時擷取系統聲音</span>」，即可錄進通話另一方的聲音。</li>
+  <li>選擇「<span class="ui">語言</span>」：「<span class="ui">自動</span>」會自動偵測，也可以選擇 EN、DE 或 ES。ZH-TW 以繁體字輸出中文，ZH-CN 以簡體字輸出。</li>
+  <li>按下「<span class="ui">開始</span>」。音量表會顯示麥克風與系統聲音是否有收到聲音；靜音 5 秒後會出現警告。「<span class="ui">暫停</span>」期間的內容不會列入逐字稿。</li>
+  <li>新文字大約每 30 秒會出現在「<span class="ui">即時預覽</span>」中。</li>
+  <li>按下「<span class="ui">停止</span>」。Hearsay 會再轉錄一次整段錄音，產生最終逐字稿。若要略過此步驟，請按一下「<span class="ui">改用即時預覽</span>」。</li>
+</ol>
+<p>逐字稿（SRT）和錄音（WAV）會儲存在輸出資料夾中，並以開始時間命名，例如 <code>2026-09-28_14-05-00.srt</code>。</p>
+<ul>
+  <li>「<span class="ui">自動</span>」最多會聽取前 90 秒的語音。若無法判斷語言，會改用你的偏好語言並加以提示，同時提供按鈕讓你以其他語言重新轉錄。若你選擇了某種語言，但會議聽起來是另一種語言，橫幅會提供「<span class="ui">重新轉錄</span>」。</li>
+  <li>「<span class="ui">偏好語言</span>」可在「<a href="hearsay://open/settings-general"><span class="ui">設定</span> &gt; <span class="ui">一般</span></a>」中設定。「<span class="ui">自動</span>」聽到中文時，若你的偏好語言是简体中文，會以簡體字輸出，否則以繁體字輸出。</li>
+</ul>
+
+<h2 id="file-mode">轉錄檔案</h2>
+<p>使用<a href="hearsay://open/file">「<span class="ui">檔案</span>」標籤頁</a>轉錄現有的音訊或影片檔案。</p>
+<ol>
+  <li>將檔案拖放到「<span class="ui">檔案</span>」標籤頁，或按一下「<span class="ui">選擇…</span>」。Hearsay 可讀取 wav、m4a、mp3、aac、aiff、caf 檔案，以及 mp4 和 mov 檔案中的音訊。</li>
+  <li>選擇「<span class="ui">語言</span>」，方式與「<span class="ui">錄音</span>」標籤頁相同。</li>
+  <li>若要停止，請按一下「<span class="ui">取消</span>」。不會儲存任何內容。</li>
+</ol>
+<p>SRT 會儲存在輸出資料夾中，並以檔名中的時間命名；若檔名沒有時間，則使用檔案的日期。原始檔案絕不會被更改。</p>
+
+<h2 id="meeting-notes">會議筆記</h2>
+<p>Hearsay 可將逐字稿送到 AI 提供者，並儲存其撰寫的會議筆記。送出時，整份逐字稿都會分享給該提供者。</p>
+<ol>
+  <li>在「<a href="hearsay://open/settings-ai"><span class="ui">設定</span> &gt; <span class="ui">AI</span></a>」中，於「<span class="ui">預設集：</span>」選擇提供者。
+    <ul>
+      <li>GitHub Copilot CLI、Claude Code CLI、Codex CLI 和 Antigravity CLI 會使用你 Mac 上安裝的程式，以及你在其中登入的帳號。請求會計入該訂閱方案的用量限制。各程式的檢查按鈕（例如「<span class="ui">檢查 Claude Code</span>」）會顯示是否找到程式及是否已登入。</li>
+      <li>Ollama / LM Studio 在你的 Mac 上執行。</li>
+      <li>「<span class="ui">自訂</span>」適用於任何相容 OpenAI 的服務。請輸入其 URL、模型和權杖。</li>
+    </ul>
+  </li>
+  <li>按一下「<span class="ui">測試連線</span>」。你可以在「<span class="ui">提示詞範本</span>」下加入自己的筆記指示。</li>
+  <li>逐字稿儲存後，Hearsay 會詢問「<span class="ui">要送出逐字稿以產生會議筆記嗎？</span>」選擇「<span class="ui">範本：</span>」和「<span class="ui">筆記語言：</span>」，然後按一下「<span class="ui">送出</span>」。「<span class="ui">保留在本機</span>」則不會送出任何內容。</li>
+  <li>可視需要編輯建議的會議名稱，然後按一下「<span class="ui">儲存</span>」。</li>
+</ol>
+<table>
+  <tr><th>檔案</th><th>內容</th></tr>
+  <tr><td><code>&lt;timestamp&gt;_&lt;name&gt;.srt</code></td><td>附時間的逐字稿</td></tr>
+  <tr><td><code>&lt;timestamp&gt;_&lt;name&gt;.md</code></td><td>會議筆記</td></tr>
+  <tr><td><code>&lt;timestamp&gt;_&lt;name&gt;_transcript.md</code></td><td>結構化逐字稿</td></tr>
+  <tr><td><code>&lt;timestamp&gt;_&lt;name&gt;.wav</code></td><td>錄音</td></tr>
+</table>
+
+<h2 id="history">歷史記錄</h2>
+<p><a href="hearsay://open/history">「<span class="ui">歷史記錄</span>」標籤頁</a>會列出輸出資料夾中的會議。使用列上的按鈕，或按住 Control 鍵並按一下該列。</p>
+<ul>
+  <li>「<span class="ui">打開 SRT</span>」、「<span class="ui">打開筆記</span>」和「<span class="ui">打開逐字稿</span>」會打開檔案；「<span class="ui">在 Finder 中顯示</span>」會在 Finder 中顯示檔案。</li>
+  <li>「<span class="ui">產生筆記…</span>」會為已儲存的逐字稿產生筆記。「<span class="ui">重新產生筆記…</span>」會取代現有筆記；新筆記儲存後，舊筆記會移到垃圾桶。</li>
+  <li>「<span class="ui">丟到垃圾桶…</span>」會將該會議的所有檔案移到垃圾桶。</li>
+</ul>
+
+<h2 id="menu-bar">選單列與快速鍵</h2>
+<p>不打開視窗也能控制 Hearsay。關閉視窗後，錄音仍會繼續。</p>
+<ul>
+  <li>「<span class="ui">Hearsay 顯示位置：</span>」（位於「<a href="hearsay://open/settings-window"><span class="ui">設定</span> &gt; <span class="ui">視窗</span></a>」）可選擇「<span class="ui">選單列與 Dock</span>」、「<span class="ui">僅選單列</span>」或「<span class="ui">僅 Dock</span>」。</li>
+  <li>按一下選單列圖像可查看狀態，並開始、暫停或停止錄音。錄音時圖像會變成紅色。</li>
+  <li>在任何 App 中，按下 <kbd>⌃⌥⌘R</kbd> 可開始或停止錄音，按下 <kbd>⌃⌥⌘P</kbd> 可暫停或繼續。若要更改，請前往「<a href="hearsay://open/settings-general"><span class="ui">設定</span> &gt; <span class="ui">一般</span></a> &gt; <span class="ui">快速鍵</span>」，按一下快速鍵，然後按下新的組合鍵。</li>
+  <li>按下 <kbd>⌘,</kbd> 可打開「<span class="ui">設定</span>」，按下 <kbd>⌘?</kbd> 可打開此說明。</li>
+</ul>
+
+<h2 id="settings">設定與其他</h2>
+<ul>
+  <li><strong><span class="ui">介面語言</span>：</strong>可在「<a href="hearsay://open/settings-general"><span class="ui">設定</span> &gt; <span class="ui">一般</span></a>」中選擇。Hearsay 需要重新啟動；請按一下「<span class="ui">立即重新啟動</span>」。</li>
+  <li><strong>啟動：</strong>在同一處啟用「<span class="ui">登入時開啟 Hearsay</span>」。</li>
+  <li><strong>錄音檔：</strong>若要在成功轉錄後刪除 WAV，請關閉「<span class="ui">成功轉錄後保留錄音（WAV）</span>」（位於「<a href="hearsay://open/settings-output"><span class="ui">設定</span> &gt; <span class="ui">輸出</span></a>」）。</li>
+  <li><strong>未完成的錄音：</strong>若 Hearsay 或 Mac 在錄音途中停止，下次開啟時會詢問如何處理。「<span class="ui">轉錄</span>」會產生逐字稿，「<span class="ui">保留</span>」會將 WAV 移到輸出資料夾，「<span class="ui">刪除</span>」則會移除它。</li>
+</ul>
+
+<h2 id="troubleshooting">疑難排解</h2>
+<ul>
+  <li><span class="problem">未安裝模型</span>——打開<a href="hearsay://open/models">「<span class="ui">模型</span>」標籤頁</a>，下載模型，然後按一下「<span class="ui">使用</span>」。</li>
+  <li><span class="problem">沒有麥克風取用權限</span>——在「系統設定 &gt; 隱私權與安全性 &gt; 麥克風」中開啟 Hearsay。</li>
+  <li><span class="problem"><span class="ui">系統聲音已關閉：權限遭拒</span></span>——在「系統設定 &gt; 隱私權與安全性 &gt; 螢幕與系統錄音」中開啟 Hearsay，然後開始新的錄音。</li>
+  <li><span class="problem">允許後仍錄不到系統聲音</span>——結束並重新打開 Hearsay。</li>
+  <li><span class="problem">裝置「沒有音訊」</span>——確認裝置已連接且未靜音，或選擇其他「<span class="ui">麥克風</span>」。</li>
+  <li><span class="problem">AirPods 或其他藍牙耳機的音質不佳</span>——錄音時，macOS 會將它們切換為低音質的通話模式。在吵雜的環境中，請使用 Mac 的內建麥克風。</li>
+  <li><span class="problem">找不到 AI 程式</span>——安裝該程式，或在「<a href="hearsay://open/settings-ai"><span class="ui">設定</span> &gt; <span class="ui">AI</span></a>」中輸入其路徑。</li>
+  <li><span class="problem">AI 程式尚未登入</span>——在「終端機」中執行一次 <code>copilot</code>、<code>claude</code>、<code>codex login</code> 或 <code>agy</code>，然後在「<span class="ui">設定</span> &gt; <span class="ui">AI</span>」中按一下該程式的檢查按鈕。</li>
+  <li><span class="problem">找不到檔案</span>——資料夾位置顯示在「<a href="hearsay://open/settings-output"><span class="ui">設定</span> &gt; <span class="ui">輸出</span></a>」中。在「<span class="ui">歷史記錄</span>」標籤頁中，按一下「<span class="ui">在 Finder 中顯示</span>」。</li>
+</ul>
+
+<h2 id="about">關於</h2>
+<p>Hearsay 由 Chihling Wang 製作，並以 MIT 授權條款發布。其中包含開放原始碼軟體；若要查看授權條款，請按一下「<span class="ui">顯示授權條款…</span>」（位於「<a href="hearsay://open/settings-general"><span class="ui">設定</span> &gt; <span class="ui">一般</span></a> &gt; <span class="ui">致謝</span>」）。</p>
+<p>如果 Hearsay 對你有幫助，歡迎到 <a href="https://buymeacoffee.com/chihlingw">Buy Me a Coffee</a> 支持。</p>
+
+</body>
+</html>
