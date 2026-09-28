@@ -3,11 +3,16 @@ import AVFoundation
 import HearsayCore
 import Observation
 
-/// Drives the Record tab (PLAN.md 4.1, microphone only for now): device and
-/// language choice, Start / Pause / Resume / Stop, the level meter, and
+/// Drives the Record tab (PLAN.md 4.1): device and language choice, the
+/// system audio toggle, Start / Pause / Resume / Stop, the level meters, and
 /// moving the finished spool WAV into the output folder.
 ///
-/// Elapsed time is derived from the number of samples captured, so paused
+/// The microphone and, when enabled and permitted, the system audio run
+/// through `AudioMixer`; the mixed stream feeds the WAV and the main meter,
+/// and each source's level feeds its small meter. A missing screen-capture
+/// permission never blocks a recording: it goes on mic-only with a notice.
+///
+/// Elapsed time is derived from the number of samples written, so paused
 /// time never counts and the display matches the WAV exactly.
 @MainActor
 @Observable
@@ -28,6 +33,14 @@ final class RecordViewModel {
     private(set) var phase: Phase = .idle
     private(set) var elapsed: TimeInterval = 0
     private(set) var levelFraction: Double = 0
+    private(set) var micLevelFraction: Double = 0
+    /// nil when system audio is not part of the current recording.
+    private(set) var systemLevelFraction: Double?
+    /// Why system audio is not being captured, shown as a badge.
+    private(set) var systemAudioNotice: String?
+    /// The notice is about the Screen & System Audio Recording permission,
+    /// so the badge offers to open System Settings.
+    private(set) var systemAudioPermissionDenied = false
     private(set) var silenceWarning: String?
     private(set) var errorMessage: String?
     /// Where the last recording ended up.
@@ -35,6 +48,7 @@ final class RecordViewModel {
 
     @ObservationIgnored private let spool: RecordingSpool
     @ObservationIgnored private var recorder: MicrophoneRecorder?
+    @ObservationIgnored private var systemRecorder: SystemAudioRecorder?
     @ObservationIgnored private var writer: WavWriter?
     @ObservationIgnored private var writeError: Error?
     @ObservationIgnored private var meter = LevelMeter()
@@ -49,6 +63,10 @@ final class RecordViewModel {
     }
 
     var isBusy: Bool { phase != .idle }
+
+    static let screenCaptureSettingsURL = URL(
+        string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
+    )
 
     /// Loads the device list and starts watching for device changes. Safe to
     /// call on every appearance.
@@ -88,12 +106,17 @@ final class RecordViewModel {
             return
         }
 
+        systemAudioNotice = nil
+        systemAudioPermissionDenied = false
+        let systemRecorder = settings.captureSystemAudio ? await startSystemAudio() : nil
+
         let device = devices.first { $0.uid == selectedDeviceUID }
         let url = spool.newRecordingURL(timestamp: Timestamps.now())
         let writer: WavWriter
         do {
             writer = try WavWriter(url: url)
         } catch {
+            systemRecorder?.stop()
             errorMessage = "Could not create the recording file: \(error.localizedDescription)"
             phase = .idle
             return
@@ -102,6 +125,7 @@ final class RecordViewModel {
         do {
             try recorder.start(device: device)
         } catch {
+            systemRecorder?.stop()
             try? writer.close()
             try? FileManager.default.removeItem(at: url)
             errorMessage = String(describing: error)
@@ -112,33 +136,74 @@ final class RecordViewModel {
         self.settings = settings
         self.writer = writer
         self.recorder = recorder
+        self.systemRecorder = systemRecorder
         writeError = nil
         meter = LevelMeter()
         sampleCount = 0
         elapsed = 0
         levelFraction = 0
+        micLevelFraction = 0
+        systemLevelFraction = systemRecorder == nil ? nil : 0
         silenceWarning = nil
         phase = .recording
 
+        let mixed = AudioMixer.mix(
+            mic: recorder.timedSamples,
+            system: systemRecorder?.timedSamples
+        ) { [weak self] source in
+            Task { @MainActor in self?.sourceEnded(source) }
+        }
         consumer = Task { [weak self] in
-            for await chunk in recorder.samples {
+            for await chunk in mixed {
                 self?.consume(chunk)
             }
             self?.recordingEnded()
         }
     }
 
+    /// Starts system audio capture, or records why it is off and returns nil
+    /// so the recording continues mic-only.
+    private func startSystemAudio() async -> SystemAudioRecorder? {
+        if SystemAudioRecorder.permission != .authorized, !SystemAudioRecorder.requestPermission() {
+            systemAudioPermissionDenied = true
+            systemAudioNotice = "System audio off: permission denied"
+            return nil
+        }
+        let recorder = SystemAudioRecorder()
+        do {
+            try await recorder.start()
+            return recorder
+        } catch SystemAudioRecorderError.permissionDenied {
+            systemAudioPermissionDenied = true
+            systemAudioNotice = "System audio off: permission denied"
+        } catch {
+            systemAudioNotice = "System audio off: \(error)"
+        }
+        return nil
+    }
+
+    func openScreenCaptureSettings() {
+        guard let url = Self.screenCaptureSettingsURL else { return }
+        NSWorkspace.shared.open(url)
+    }
+
     func pause() {
         guard phase == .recording, let recorder else { return }
         recorder.pause()
+        systemRecorder?.pause()
         phase = .paused
         levelFraction = 0
+        micLevelFraction = 0
+        if systemLevelFraction != nil {
+            systemLevelFraction = 0
+        }
     }
 
     func resume() {
         guard phase == .paused, let recorder else { return }
         do {
             try recorder.resume()
+            systemRecorder?.resume()
             phase = .recording
         } catch {
             // The recorder has stopped; `recordingEnded` saves what exists.
@@ -150,6 +215,7 @@ final class RecordViewModel {
         guard phase == .recording || phase == .paused, let recorder else { return }
         phase = .saving
         recorder.stop()
+        systemRecorder?.stop()
     }
 
     func revealInFinder() {
@@ -159,24 +225,48 @@ final class RecordViewModel {
 
     // MARK: - Pipeline
 
-    private func consume(_ chunk: [Float]) {
+    private func consume(_ chunk: MixedChunk) {
         guard let writer, writeError == nil else { return }
         do {
-            try writer.append(chunk)
+            try writer.append(chunk.mixed)
         } catch {
             writeError = error
             recorder?.stop()
+            systemRecorder?.stop()
             return
         }
-        sampleCount += chunk.count
+        sampleCount += chunk.mixed.count
         let time = Double(sampleCount) / Double(WavWriter.sampleRate)
-        let level = LevelMeter.rmsDB(floatSamples: chunk)
+        let level = LevelMeter.rmsDB(floatSamples: chunk.mixed)
         guard meter.observe(rmsDB: level, at: time) else { return }
         elapsed = time
         levelFraction = LevelMeter.levelFraction(rmsDB: level)
+        micLevelFraction = LevelMeter.levelFraction(rmsDB: chunk.micRMSDB)
+        if systemLevelFraction != nil {
+            systemLevelFraction = LevelMeter.levelFraction(rmsDB: chunk.systemRMSDB)
+        }
         silenceWarning = meter.isSilenceWarning
             ? "Silent for \(Int(meter.silenceSeconds))s \u{2014} check the input device"
             : nil
+    }
+
+    /// A source's stream finished. The microphone ending on its own (device
+    /// unplugged) ends the recording; system audio ending on its own leaves
+    /// the recording going mic-only with a notice.
+    private func sourceEnded(_ source: AudioMixer.Source) {
+        guard phase == .recording || phase == .paused else { return }
+        switch source {
+        case .mic:
+            if recorder?.failure != nil {
+                phase = .saving
+                systemRecorder?.stop()
+            }
+        case .system:
+            if let failure = systemRecorder?.failure {
+                systemAudioNotice = "System audio off: \(failure)"
+                systemLevelFraction = nil
+            }
+        }
     }
 
     private func recordingEnded() {
@@ -205,10 +295,13 @@ final class RecordViewModel {
 
         errorMessage = problems.isEmpty ? nil : problems.joined(separator: "\n")
         recorder = nil
+        systemRecorder = nil
         writer = nil
         consumer = nil
         settings = nil
         levelFraction = 0
+        micLevelFraction = 0
+        systemLevelFraction = nil
         silenceWarning = nil
         phase = .idle
     }

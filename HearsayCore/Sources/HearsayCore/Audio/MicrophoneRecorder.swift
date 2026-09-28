@@ -52,6 +52,10 @@ public enum MicrophoneRecorderError: Error, Equatable, Sendable, CustomStringCon
 /// One recorder makes one recording: `samples` finishes on `stop()` or when
 /// the device goes away, and a new recording needs a new recorder. When the
 /// stream finishes without `stop()` having been called, `failure` says why.
+///
+/// `timedSamples` carries the same chunks stamped with host time, for
+/// `AudioMixer`. Read a recording through one of the two streams: the first
+/// one accessed claims the chunks and the other finishes empty.
 @MainActor
 public final class MicrophoneRecorder {
     public enum State: Sendable, Equatable {
@@ -62,20 +66,19 @@ public final class MicrophoneRecorder {
     }
 
     /// 16 kHz mono Float32 chunks, in capture order.
-    public let samples: AsyncStream<[Float]>
+    public var samples: AsyncStream<[Float]> { output.samples }
+    /// The same chunks as `samples`, each stamped with the host time of its
+    /// first sample, paused time removed (see `TimedChunk`).
+    public var timedSamples: AsyncStream<TimedChunk> { output.timedSamples }
     public private(set) var state: State = .idle
     /// Set when the recorder stopped on its own (see `configurationChanged`).
     public private(set) var failure: MicrophoneRecorderError?
 
-    private let continuation: AsyncStream<[Float]>.Continuation
+    private let output = ChunkFanout()
     private let engine = AVAudioEngine()
     private var configurationObserver: NSObjectProtocol?
 
-    public init() {
-        let (stream, continuation) = AsyncStream<[Float]>.makeStream(bufferingPolicy: .unbounded)
-        self.samples = stream
-        self.continuation = continuation
-    }
+    public init() {}
 
     // MARK: - Permission
 
@@ -119,7 +122,7 @@ public final class MicrophoneRecorder {
         }
         let handler: TapHandler
         do {
-            handler = TapHandler(resampler: try MonoResampler(inputFormat: format), continuation: continuation)
+            handler = TapHandler(resampler: try MonoResampler(inputFormat: format), output: output)
         } catch {
             throw MicrophoneRecorderError.engineFailed(String(describing: error))
         }
@@ -149,6 +152,7 @@ public final class MicrophoneRecorder {
     public func pause() {
         guard state == .recording else { return }
         engine.pause()
+        output.pause(at: currentHostTimeSeconds())
         state = .paused
     }
 
@@ -160,6 +164,7 @@ public final class MicrophoneRecorder {
             finish(failure: .engineFailed(error.localizedDescription))
             throw MicrophoneRecorderError.engineFailed(error.localizedDescription)
         }
+        output.resume(at: currentHostTimeSeconds())
         state = .recording
     }
 
@@ -173,7 +178,7 @@ public final class MicrophoneRecorder {
         guard state == .recording || state == .paused else {
             if state == .idle {
                 state = .stopped
-                continuation.finish()
+                output.finish()
             }
             return
         }
@@ -185,7 +190,7 @@ public final class MicrophoneRecorder {
         engine.stop()
         self.failure = failure
         state = .stopped
-        continuation.finish()
+        output.finish()
     }
 
     private func select(_ device: AudioInputDevice, on input: AVAudioInputNode) throws {
@@ -209,7 +214,7 @@ public final class MicrophoneRecorder {
     /// Built outside the main actor so the closure is not main-actor isolated;
     /// it runs on the realtime audio thread.
     private nonisolated static func makeTapBlock(_ handler: TapHandler) -> AVAudioNodeTapBlock {
-        { buffer, _ in handler.handle(buffer) }
+        { buffer, when in handler.handle(buffer, when: when) }
     }
 }
 
@@ -217,16 +222,19 @@ public final class MicrophoneRecorder {
 /// tap thread, which calls it serially, hence `@unchecked Sendable`.
 private final class TapHandler: @unchecked Sendable {
     private let resampler: MonoResampler
-    private let continuation: AsyncStream<[Float]>.Continuation
+    private let output: ChunkFanout
 
-    init(resampler: MonoResampler, continuation: AsyncStream<[Float]>.Continuation) {
+    init(resampler: MonoResampler, output: ChunkFanout) {
         self.resampler = resampler
-        self.continuation = continuation
+        self.output = output
     }
 
-    func handle(_ buffer: AVAudioPCMBuffer) {
+    func handle(_ buffer: AVAudioPCMBuffer, when: AVAudioTime) {
         // A failed conversion drops this buffer only; the recording goes on.
         guard let chunk = try? resampler.convert(buffer), !chunk.isEmpty else { return }
-        continuation.yield(chunk)
+        let hostTime = when.isHostTimeValid
+            ? AVAudioTime.seconds(forHostTime: when.hostTime)
+            : currentHostTimeSeconds()
+        output.yield(chunk, hostTime: hostTime)
     }
 }

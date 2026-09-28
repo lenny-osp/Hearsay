@@ -33,6 +33,7 @@ public final class AppSettings {
         public static let outputFolderBookmark = "outputFolderBookmark"
         public static let defaultLanguageCode = "defaultLanguageCode"
         public static let activeModelRepo = "activeModelRepo"
+        public static let captureSystemAudio = "captureSystemAudio"
     }
 
     @ObservationIgnored private let defaults: UserDefaults
@@ -71,6 +72,11 @@ public final class AppSettings {
         didSet { defaults.set(defaultLanguageCode, forKey: Key.defaultLanguageCode) }
     }
 
+    /// "Also capture system audio" on the Record tab (PLAN.md 4.1). Default on.
+    public var captureSystemAudio: Bool {
+        didSet { defaults.set(captureSystemAudio, forKey: Key.captureSystemAudio) }
+    }
+
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         let rawMode = defaults.string(forKey: Key.windowMode) ?? ""
@@ -78,5 +84,6 @@ public final class AppSettings {
         self.outputFolderBookmark = defaults.data(forKey: Key.outputFolderBookmark)
         self.defaultLanguageCode = defaults.string(forKey: Key.defaultLanguageCode) ?? "en"
         self.activeModelRepo = defaults.string(forKey: Key.activeModelRepo)
+        self.captureSystemAudio = defaults.object(forKey: Key.captureSystemAudio) as? Bool ?? true
     }
 }

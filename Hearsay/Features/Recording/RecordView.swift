@@ -1,8 +1,8 @@
 import HearsayCore
 import SwiftUI
 
-/// The Record tab: microphone, language, controls, level meter, and the
-/// saved recording (PLAN.md 4.1, microphone only for now).
+/// The Record tab: microphone, system audio, language, controls, level
+/// meters, and the saved recording (PLAN.md 4.1).
 struct RecordView: View {
     @Environment(AppSettings.self) private var settings
     @State private var model = RecordViewModel()
@@ -20,6 +20,9 @@ struct RecordView: View {
                     }
                 }
                 .disabled(model.isBusy)
+
+                Toggle("Also capture system audio", isOn: $settings.captureSystemAudio)
+                    .disabled(model.isBusy)
 
                 Picker("Language", selection: $settings.defaultLanguageCode) {
                     ForEach(RecordViewModel.languages, id: \.code) { language in
@@ -42,6 +45,23 @@ struct RecordView: View {
                     .progressViewStyle(.linear)
                     .tint(model.silenceWarning == nil ? .green : .orange)
                     .accessibilityLabel("Input level")
+                HStack(spacing: 16) {
+                    sourceMeter("Mic", systemImage: "mic.fill", fraction: model.micLevelFraction)
+                    if let system = model.systemLevelFraction {
+                        sourceMeter("System", systemImage: "speaker.wave.2.fill", fraction: system)
+                    }
+                }
+                if let notice = model.systemAudioNotice {
+                    HStack {
+                        Label(notice, systemImage: "speaker.slash.fill")
+                            .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
+                        Spacer()
+                        if model.systemAudioPermissionDenied {
+                            Button("Open System Settings") { model.openScreenCaptureSettings() }
+                        }
+                    }
+                }
                 if let warning = model.silenceWarning {
                     Label(warning, systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(.orange)
@@ -71,6 +91,23 @@ struct RecordView: View {
         }
         .formStyle(.grouped)
         .onAppear { model.activate() }
+    }
+
+    private func sourceMeter(_ title: String, systemImage: String, fraction: Double) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: systemImage)
+                .foregroundStyle(.secondary)
+                .frame(width: 16)
+            ProgressView(value: fraction)
+                .progressViewStyle(.linear)
+                .controlSize(.small)
+                .tint(.green)
+                .frame(maxWidth: 120)
+        }
+        .help(title)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title) level")
+        .accessibilityValue(Text(fraction, format: .percent.precision(.fractionLength(0))))
     }
 
     @ViewBuilder

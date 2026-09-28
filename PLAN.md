@@ -173,8 +173,9 @@ switches models or memory pressure triggers unload.
 2. Start:
    - Mic: `AVAudioEngine` input node tap. Device set with
      `kAudioOutputUnitProperty_CurrentDevice` on the input audio unit.
-   - System audio: `SCStream` with `capturesAudio = true`, video disabled
-     (minimum 1x1 frame config on macOS 14; audio-only config on 15+),
+   - System audio: `SCStream` with `capturesAudio = true`. There is no
+     audio-only mode in any SDK up to macOS 27 (checked 2026-09-28), so the
+     stream also carries a 2x2 video frame at 1 fps that is discarded.
      `excludesCurrentProcessAudio = true`. Requires the Screen & System Audio
      Recording permission; the first Start explains why and opens System
      Settings if denied. If denied, recording continues mic-only with a
@@ -464,7 +465,7 @@ Total: about 8 to 9 weeks of calendar time.
 | Full Xcode needed | Blocks day one | Section 2, step 1. |
 | Sandbox blocks Copilot CLI | Users of the Copilot path lose it | Documented; presets cover GitHub Models with the same PAT. |
 | npz-only repos | Catalog entry silently unusable | Catalog lists safetensors repos only; spike verifies each. |
-| ScreenCaptureKit audio needs a video config on macOS 14 | Wasted CPU, odd permission wording | Use the smallest frame config on 14; switch to the audio-only API on 15+. Spike on both. |
+| ScreenCaptureKit audio always needs a video config | Wasted CPU, "Screen & System Audio Recording" permission wording | 2x2 frame at 1 fps, frames dropped. Verified against the macOS 27 SDK: no audio-only option exists. |
 | Mic and system audio drift apart over an hour | Echo-like doubling in the mix | Align on host timestamps, resample the slower stream, test with a 60 min run. |
 | Live chunks plus final pass double the compute | Battery, heat on laptops | Turbo model default; the final pass is skippable; unload model after idle. |
 
