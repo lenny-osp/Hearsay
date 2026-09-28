@@ -557,6 +557,17 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
 
 ## 17. Polish list (found during review, not yet scheduled)
 
+- **Open, needs owner decision (2026-09-28): Antigravity CLI isolation.**
+  agy honors the owner's own `~/.gemini/antigravity-cli/settings.json`
+  allow list (`ls`, `cat`, `find`, `mkdir`, ...; `allowNonWorkspaceAccess:
+  true`), so a Hearsay run could read files outside its temp folder or
+  create folders, for example if a transcript contained injected
+  instructions. Options: a deny list in the `hearsay-notes` project config,
+  deleting Hearsay's conversation after each run, or documenting the risk.
+  Probe leftovers from testing in the owner's agy data: project `w`
+  (`~/.gemini/config/projects/d5963305-d1f3-4ebc-857e-5bfa4eae54d3.json`)
+  and about 20 probe conversations.
+
 - Unit tests that use `UserDefaults(suiteName:)` leave a plist per test in
   `~/Library/Preferences` (1,341 removed by hand on 2026-09-28). Use `ScratchDefaults` in tests;
   AppSettingsTests, AudioTests, and ModelStoreTests still need switching.
