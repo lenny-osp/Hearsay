@@ -1,0 +1,229 @@
+import AppKit
+import HearsayCore
+import SwiftUI
+
+/// The History tab: past meetings in the output folder with their files.
+struct HistoryView: View {
+    @Environment(AppSettings.self) private var settings
+    @Environment(AIProviderStore.self) private var store
+    @State private var model = HistoryViewModel()
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            header
+            if let message = model.errorMessage {
+                Text(message)
+                    .font(.callout)
+                    .foregroundStyle(.red)
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            list
+            if let notesModel = model.notesModel {
+                notesPanel(notesModel)
+            }
+        }
+        .onAppear { model.open(settings: settings) }
+        .onDisappear { model.close() }
+        .onChange(of: settings.outputFolderBookmark) { model.open(settings: settings, reload: true) }
+        .alert(
+            "Move this meeting to the Trash?",
+            isPresented: deleteAlertShown,
+            presenting: model.pendingDelete
+        ) { _ in
+            Button("Move to Trash", role: .destructive) { model.confirmDelete() }
+            Button("Cancel", role: .cancel) { model.pendingDelete = nil }
+        } message: { entry in
+            Text(entry.files.map(\.lastPathComponent).joined(separator: "\n"))
+        }
+    }
+
+    // MARK: - Header
+
+    private var header: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "folder")
+                .foregroundStyle(.secondary)
+            Text(model.folderURL?.path ?? "No output folder")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .textSelection(.enabled)
+                .help(model.folderURL?.path ?? "")
+            Button("Reveal in Finder") { model.revealFolder() }
+                .disabled(model.folderURL == nil)
+            Spacer()
+            Button {
+                model.rescan()
+            } label: {
+                Label("Refresh", systemImage: "arrow.clockwise")
+            }
+            .keyboardShortcut("r", modifiers: .command)
+        }
+    }
+
+    // MARK: - List
+
+    @ViewBuilder private var list: some View {
+        if model.entries.isEmpty {
+            ContentUnavailableView(
+                "No meetings yet",
+                systemImage: "clock",
+                description: Text("Recordings, transcripts and meeting notes saved in the output folder appear here.")
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            List(model.entries) { entry in
+                HistoryRow(
+                    entry: entry,
+                    canGenerateNotes: HistoryViewModel.canGenerateNotes(entry) && !model.isGeneratingNotes
+                ) { action in
+                    perform(action, on: entry)
+                }
+                .contextMenu { menuItems(for: entry) }
+            }
+        }
+    }
+
+    @ViewBuilder private func menuItems(for entry: HistoryEntry) -> some View {
+        Button("Open Notes") { perform(.openNotes, on: entry) }
+            .disabled(entry.notes == nil)
+        Button("Open Transcript") { perform(.openTranscript, on: entry) }
+            .disabled(entry.transcript == nil)
+        Button("Open SRT") { perform(.openSRT, on: entry) }
+            .disabled(entry.srt == nil)
+        Button("Reveal in Finder") { perform(.reveal, on: entry) }
+        Divider()
+        Button("Generate Notes…") { perform(.generateNotes, on: entry) }
+            .disabled(!HistoryViewModel.canGenerateNotes(entry) || model.isGeneratingNotes)
+        Divider()
+        Button("Move to Trash…", role: .destructive) { perform(.delete, on: entry) }
+    }
+
+    private func perform(_ action: HistoryRow.Action, on entry: HistoryEntry) {
+        switch action {
+        case .openNotes: model.open(entry.notes)
+        case .openTranscript: model.open(entry.transcript)
+        case .openSRT: model.open(entry.srt)
+        case .reveal: model.reveal(entry)
+        case .generateNotes:
+            model.generateNotes(entry, store: store, languageCode: settings.defaultLanguageCode)
+        case .delete: model.pendingDelete = entry
+        }
+    }
+
+    private var deleteAlertShown: Binding<Bool> {
+        Binding(
+            get: { model.pendingDelete != nil },
+            set: { shown in if !shown { model.pendingDelete = nil } }
+        )
+    }
+
+    // MARK: - Notes
+
+    private func notesPanel(_ notesModel: NotesFlowViewModel) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Divider()
+            HStack(alignment: .top) {
+                NotesFlowView(model: notesModel)
+                Spacer()
+                if !notesModel.isRunning {
+                    Button("Done") { model.dismissNotes() }
+                }
+            }
+        }
+    }
+}
+
+/// One meeting: name, date and time, duration, file badges, action buttons.
+private struct HistoryRow: View {
+    enum Action {
+        case openNotes, openTranscript, openSRT, reveal, generateNotes, delete
+    }
+
+    let entry: HistoryEntry
+    let canGenerateNotes: Bool
+    let perform: (Action) -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(entry.meetingName ?? "Untitled")
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(entry.meetingName == nil ? .secondary : .primary)
+                HStack(spacing: 8) {
+                    Text(dateText)
+                    if let duration = entry.audioDuration {
+                        Text(Self.format(duration: duration))
+                            .monospacedDigit()
+                    }
+                }
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                HStack(spacing: 4) {
+                    if entry.srt != nil { badge("SRT") }
+                    if entry.notes != nil { badge("Notes") }
+                    if entry.transcript != nil { badge("Transcript") }
+                    if entry.audio != nil { badge("Audio") }
+                }
+            }
+            Spacer()
+            buttons
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var dateText: String {
+        guard let timestamp = entry.timestamp else { return entry.stem }
+        return timestamp.formatted(date: .abbreviated, time: .shortened)
+    }
+
+    private var buttons: some View {
+        HStack(spacing: 2) {
+            iconButton("Open notes", systemImage: "doc.text", enabled: entry.notes != nil, .openNotes)
+            iconButton("Open transcript", systemImage: "text.alignleft", enabled: entry.transcript != nil, .openTranscript)
+            iconButton("Open SRT", systemImage: "captions.bubble", enabled: entry.srt != nil, .openSRT)
+            iconButton("Reveal in Finder", systemImage: "folder", enabled: true, .reveal)
+            iconButton("Generate notes…", systemImage: "sparkles", enabled: canGenerateNotes, .generateNotes)
+            iconButton("Move to Trash…", systemImage: "trash", enabled: true, .delete)
+        }
+        .buttonStyle(.borderless)
+    }
+
+    private func iconButton(_ title: String, systemImage: String, enabled: Bool, _ action: Action) -> some View {
+        Button {
+            perform(action)
+        } label: {
+            Label(title, systemImage: systemImage)
+                .labelStyle(.iconOnly)
+                .frame(width: 22, height: 22)
+        }
+        .help(title)
+        .disabled(!enabled)
+    }
+
+    private func badge(_ title: String) -> some View {
+        Text(title)
+            .font(.caption2.weight(.semibold))
+            .padding(.horizontal, 5)
+            .padding(.vertical, 1)
+            .foregroundStyle(Color.accentColor)
+            .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                    .strokeBorder(Color.accentColor.opacity(0.6), lineWidth: 1)
+            )
+            .accessibilityLabel("\(title) saved")
+    }
+
+    /// `H:MM:SS` or `M:SS`.
+    static func format(duration: TimeInterval) -> String {
+        let total = Int(duration.rounded())
+        let hours = total / 3600
+        let minutes = total % 3600 / 60
+        let seconds = total % 60
+        return hours > 0
+            ? String(format: "%d:%02d:%02d", hours, minutes, seconds)
+            : String(format: "%d:%02d", minutes, seconds)
+    }
+}
