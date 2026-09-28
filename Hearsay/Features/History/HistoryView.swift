@@ -98,7 +98,7 @@ struct HistoryView: View {
             .disabled(entry.srt == nil)
         Button("Reveal in Finder") { perform(.reveal, on: entry) }
         Divider()
-        Button("Generate Notes…") { perform(.generateNotes, on: entry) }
+        Button(HistoryViewModel.notesActionTitle(entry)) { perform(.generateNotes, on: entry) }
             .disabled(!HistoryViewModel.canGenerateNotes(entry) || model.isGeneratingNotes)
         Divider()
         Button("Move to Trash…", role: .destructive) { perform(.delete, on: entry) }
@@ -190,7 +190,10 @@ private struct HistoryRow: View {
             iconButton("Open transcript", systemImage: "text.alignleft", enabled: entry.transcript != nil, .openTranscript)
             iconButton("Open SRT", systemImage: "captions.bubble", enabled: entry.srt != nil, .openSRT)
             iconButton("Reveal in Finder", systemImage: "folder", enabled: true, .reveal)
-            iconButton("Generate notes…", systemImage: "sparkles", enabled: canGenerateNotes, .generateNotes)
+            iconButton(
+                HistoryViewModel.notesActionTitle(entry), systemImage: "sparkles",
+                enabled: canGenerateNotes, .generateNotes
+            )
             iconButton("Move to Trash…", systemImage: "trash", enabled: true, .delete)
         }
         .buttonStyle(.borderless)

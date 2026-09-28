@@ -15,7 +15,7 @@ final class HistoryViewModel {
     private(set) var errorMessage: String?
     /// Entry waiting for the delete confirmation.
     var pendingDelete: HistoryEntry?
-    /// Notes flow started with "Generate notes…".
+    /// Notes flow started with "Generate notes…" or "Regenerate notes…".
     private(set) var notesModel: NotesFlowViewModel?
 
     @ObservationIgnored private var folder: ResolvedOutputFolder?
@@ -120,8 +120,19 @@ final class HistoryViewModel {
         NSWorkspace.shared.activateFileViewerSelecting([folderURL])
     }
 
+    /// Any entry with an SRT; one that already has notes regenerates them.
     static func canGenerateNotes(_ entry: HistoryEntry) -> Bool {
-        entry.srt != nil && entry.notes == nil
+        entry.srt != nil
+    }
+
+    /// Existing notes (or a structured transcript) are replaced, not added
+    /// beside under a `-2` name.
+    static func hasNotes(_ entry: HistoryEntry) -> Bool {
+        entry.notes != nil || entry.transcript != nil
+    }
+
+    static func notesActionTitle(_ entry: HistoryEntry) -> String {
+        hasNotes(entry) ? "Regenerate Notes…" : "Generate Notes…"
     }
 
     var isGeneratingNotes: Bool { notesModel?.isRunning == true }
@@ -139,7 +150,10 @@ final class HistoryViewModel {
         )
         let model = NotesFlowViewModel(store: store)
         notesModel = model
-        model.run(srtURL: srt, language: resolved.language, languageNote: resolved.note)
+        model.run(
+            srtURL: srt, language: resolved.language, languageNote: resolved.note,
+            replacingNotes: Self.hasNotes(entry)
+        )
         observeNotesCompletion()
     }
 

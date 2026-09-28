@@ -28,6 +28,8 @@ struct NotesFlowView: View {
         case .naming(let suggestion):
             NamingSheet(
                 suggestion: suggestion,
+                currentName: model.currentMeetingName,
+                replacesNotes: model.isRegenerating,
                 onSave: { model.saveName($0) },
                 onCancel: { model.cancelNaming() }
             )

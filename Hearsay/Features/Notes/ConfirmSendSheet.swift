@@ -63,6 +63,11 @@ struct ConfirmSendSheet: View {
             Text("This sends the whole transcript to \(model.providerName). Nothing leaves this Mac otherwise.")
                 .fixedSize(horizontal: false, vertical: true)
 
+            if model.isRegenerating {
+                Text("The current notes will be moved to the Trash when the new ones are saved.")
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             Toggle("Always ask before sending", isOn: $store.configuration.askBeforeSending)
 
             HStack {

@@ -12,6 +12,11 @@ import Observation
 ///    naming sheet with no suggestion and `OutputWriter.renameRetained`.
 ///
 /// Every failure ends in `.failed` with a message; the SRT stays where it is.
+///
+/// Regenerating (History, an entry that already has notes): the naming
+/// sheet starts from the current meeting name and saving goes through
+/// `OutputWriter.replaceNamed`, which moves the current notes to the Trash
+/// only once the new ones are saved. "Keep local" leaves every file as is.
 @MainActor
 @Observable
 final class NotesFlowViewModel {
@@ -48,6 +53,11 @@ final class NotesFlowViewModel {
     /// The language the notes and structured transcript are written in,
     /// chosen in the confirm sheet for this run only (not stored).
     var notesLanguage: TranscriptLanguage = .english
+    /// True when this run replaces existing notes (History > Regenerate).
+    private(set) var isRegenerating = false
+    /// The meeting name in the current stem while regenerating, prefilled in
+    /// the naming sheet; nil for a plain timestamp stem or a new run.
+    private(set) var currentMeetingName: String?
 
     let store: AIProviderStore
     @ObservationIgnored private let pipeline: NotesPipeline
@@ -88,9 +98,20 @@ final class NotesFlowViewModel {
     /// `language` is the transcript's language and the default notes
     /// language; `languageNote` replaces its name in the confirm sheet's
     /// caption (e.g. "Deutsch (detected from the text)").
-    func run(srtURL: URL, language: TranscriptLanguage, languageNote: String? = nil, timestamp: String? = nil) {
+    /// `replacingNotes` regenerates the notes of an existing meeting.
+    func run(
+        srtURL: URL,
+        language: TranscriptLanguage,
+        languageNote: String? = nil,
+        timestamp: String? = nil,
+        replacingNotes: Bool = false
+    ) {
         guard !isRunning else { return }
         self.srtURL = srtURL
+        isRegenerating = replacingNotes
+        currentMeetingName = replacingNotes
+            ? HistoryIndex.meetingName(stem: srtURL.deletingPathExtension().lastPathComponent)
+            : nil
         transcriptLanguage = language
         transcriptLanguageNote = languageNote
         notesLanguage = language
@@ -144,8 +165,14 @@ final class NotesFlowViewModel {
     }
 
     /// "Keep local" in the confirm sheet (Python: `n`). Not a failure.
+    /// When regenerating, the meeting already has a name and notes, so
+    /// nothing is renamed.
     func keepLocal() {
         guard phase == .confirming, let srtURL else { return }
+        if isRegenerating {
+            finish("Nothing was sent; the current notes are unchanged.", files: [srtURL])
+            return
+        }
         retainedAudio = OutputWriter.retainedAudioFiles(srtURL: srtURL)
         phase = .askingManualNaming
     }
@@ -181,11 +208,18 @@ final class NotesFlowViewModel {
         guard FilenameSanitizer.sanitize(name) != nil else { return }
         if let notes {
             do {
-                let outputs = try OutputWriter.saveNamed(
-                    srtURL: srtURL, meetingName: name,
-                    markdown: notes.markdown, transcriptMarkdown: notes.transcriptMarkdown,
-                    timestamp: timestamp
-                )
+                let outputs = isRegenerating
+                    ? try OutputWriter.replaceNamed(
+                        existingStem: srtURL.deletingPathExtension().lastPathComponent,
+                        directory: srtURL.deletingLastPathComponent(), meetingName: name,
+                        markdown: notes.markdown, transcriptMarkdown: notes.transcriptMarkdown,
+                        timestamp: timestamp
+                    )
+                    : try OutputWriter.saveNamed(
+                        srtURL: srtURL, meetingName: name,
+                        markdown: notes.markdown, transcriptMarkdown: notes.transcriptMarkdown,
+                        timestamp: timestamp
+                    )
                 self.srtURL = outputs.srt
                 finish("Meeting notes generated successfully!",
                        files: [outputs.srt, outputs.markdown, outputs.transcript] + outputs.companions)
@@ -208,7 +242,9 @@ final class NotesFlowViewModel {
         guard case .naming = phase, let srtURL else { return }
         if notes != nil {
             // Python: EOF at the name prompt after AI returns 1.
-            fail("No meeting name selected; the SRT has been retained.")
+            fail(isRegenerating
+                 ? "No meeting name selected; the current notes are unchanged."
+                 : "No meeting name selected; the SRT has been retained.")
         } else {
             finish("Skipped AI processing; kept the timestamp file names.", files: [srtURL] + retainedAudio)
         }

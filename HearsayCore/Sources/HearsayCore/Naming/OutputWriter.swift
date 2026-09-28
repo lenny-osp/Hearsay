@@ -10,6 +10,10 @@ public enum OutputWriterError: Error, LocalizedError, Equatable {
     /// and every rename (SRT and retained audio) rolled back; `unrestored`
     /// lists files whose rollback failed, by their current path.
     case writeFailed(url: URL, reason: String, unrestored: [URL])
+    /// Moving the previous notes to the Trash failed (`replaceNamed`).
+    /// Notes already trashed were put back; `unrestored` lists files whose
+    /// restore failed, by their current path.
+    case trashFailed(url: URL, reason: String, unrestored: [URL])
 
     public var errorDescription: String? {
         switch self {
@@ -27,7 +31,16 @@ public enum OutputWriterError: Error, LocalizedError, Equatable {
         case let .writeFailed(url, reason, unrestored):
             var message = "Unable to write meeting notes (\(url.path)): \(reason)."
             if unrestored.isEmpty {
-                message += " The transcript and recording keep their original names."
+                message += " The transcript, recording and any earlier notes keep their original names."
+            } else {
+                message += " These files could not be restored: "
+                    + unrestored.map(\.path).joined(separator: ", ") + "."
+            }
+            return message
+        case let .trashFailed(url, reason, unrestored):
+            var message = "Unable to move the current notes (\(url.path)) to the Trash: \(reason)."
+            if unrestored.isEmpty {
+                message += " The current notes are unchanged."
             } else {
                 message += " These files could not be restored: "
                     + unrestored.map(\.path).joined(separator: ", ") + "."
@@ -48,6 +61,9 @@ public enum OutputWriter {
 
     typealias Mover = (_ source: URL, _ destination: URL) throws -> Void
     typealias TextWriter = (_ text: String, _ destination: URL) throws -> Void
+    /// Moves a file to the Trash and returns where it ended up (nil when the
+    /// system does not say).
+    typealias Trasher = (_ url: URL) throws -> URL?
 
     public typealias NamedOutputs = (srt: URL, markdown: URL, transcript: URL, companions: [URL])
 
@@ -136,6 +152,146 @@ public enum OutputWriter {
         }
         let destinations = renamed.map(\.destination)
         return (destinations[0], finalNotes, finalTranscript, Array(destinations.dropFirst()))
+    }
+
+    // MARK: - Regenerate notes
+
+    /// Replaces the notes of an existing meeting `<existingStem>.*` in
+    /// `directory` (History > Regenerate notes). The new stem is
+    /// `<timestamp>_<meetingName>` plus `-N` on collision, where the
+    /// timestamp is the given one, else the one in `existingStem`, else now,
+    /// and the entry's own current files (`<existingStem>.srt/.wav/.md/
+    /// _transcript.md`) do not count as collisions. So the same name
+    /// regenerates in place.
+    ///
+    /// Order: the old `.md` and `_transcript.md` go to the Trash, the SRT and
+    /// WAV are renamed only when the stem changed, then the new Markdown is
+    /// written atomically. On any failure the partial new Markdown is
+    /// removed, renames are rolled back and the trashed notes are moved back
+    /// from the Trash; the error lists what could not be restored.
+    public static func replaceNamed(
+        existingStem: String,
+        directory: URL,
+        meetingName: String,
+        markdown: String,
+        transcriptMarkdown: String,
+        timestamp: String?
+    ) throws -> NamedOutputs {
+        try replaceNamed(
+            existingStem: existingStem,
+            directory: directory,
+            meetingName: meetingName,
+            markdown: markdown,
+            transcriptMarkdown: transcriptMarkdown,
+            timestamp: timestamp,
+            move: defaultMove,
+            writeText: writeAtomically,
+            trash: defaultTrash
+        )
+    }
+
+    static func replaceNamed(
+        existingStem: String,
+        directory: URL,
+        meetingName: String,
+        markdown: String,
+        transcriptMarkdown: String,
+        timestamp: String?,
+        move: Mover,
+        writeText: TextWriter,
+        trash: Trasher
+    ) throws -> NamedOutputs {
+        guard let safeName = FilenameSanitizer.sanitize(meetingName) else {
+            throw OutputWriterError.unusableMeetingName
+        }
+        let notes = MeetingNameInserter.insert(
+            into: markdown, meetingName: safeName, fallbackHeading: notesFallbackHeading
+        )
+        let transcript = MeetingNameInserter.insert(
+            into: transcriptMarkdown, meetingName: safeName, fallbackHeading: transcriptFallbackHeading
+        )
+
+        let folder = directory.standardizedFileURL
+        let srt = folder.appendingPathComponent(existingStem + ".srt")
+        let sources = [srt] + retainedAudioFiles(srtURL: srt)
+        let sourceSuffixes = sources.map(extensionSuffix)
+        let oldNotes = [".md", "_transcript.md"]
+            .map { folder.appendingPathComponent(existingStem + $0) }
+            .filter { exists($0) }
+        let ownFiles = (sources + oldNotes).compactMap(fileIdentity)
+
+        let outputTimestamp = timestamp
+            ?? Timestamps.parse(fromFilename: existingStem)
+            ?? Timestamps.now()
+        let stem = freeStem(
+            base: "\(outputTimestamp)_\(safeName)",
+            directory: folder,
+            suffixes: sourceSuffixes + [".md", "_transcript.md"],
+            ignoring: ownFiles
+        )
+        let finalNotes = folder.appendingPathComponent(stem + ".md")
+        let finalTranscript = folder.appendingPathComponent(stem + "_transcript.md")
+
+        // 1. Old notes to the Trash.
+        var trashed: [(original: URL, trashed: URL?)] = []
+        for url in oldNotes {
+            do {
+                trashed.append((url, try trash(url)))
+            } catch {
+                let unrestored = restoreFromTrash(trashed, move: move)
+                throw OutputWriterError.trashFailed(url: url, reason: reason(error), unrestored: unrestored)
+            }
+        }
+
+        // 2. SRT and WAV follow a changed name.
+        var renamed: [(source: URL, destination: URL)] = []
+        if stem != existingStem {
+            do {
+                renamed = try renameAll(sources: sources, suffixes: sourceSuffixes, stem: stem,
+                                        directory: folder, move: move)
+            } catch let OutputWriterError.renameFailed(source, destination, failure, unrestored) {
+                let notRestored = unrestored + restoreFromTrash(trashed, move: move)
+                throw OutputWriterError.renameFailed(
+                    source: source, destination: destination, reason: failure, unrestored: notRestored
+                )
+            }
+        }
+
+        // 3. New Markdown.
+        var failed = finalNotes
+        do {
+            try writeText(notes, finalNotes)
+            failed = finalTranscript
+            try writeText(transcript, finalTranscript)
+        } catch {
+            for output in [finalNotes, finalTranscript] {
+                try? FileManager.default.removeItem(at: output)
+            }
+            let unrestored = rollBack(renamed, move: move) + restoreFromTrash(trashed, move: move)
+            throw OutputWriterError.writeFailed(url: failed, reason: reason(error), unrestored: unrestored)
+        }
+        let srtResult = renamed.first?.destination ?? srt
+        let companions = renamed.isEmpty ? Array(sources.dropFirst()) : renamed.dropFirst().map(\.destination)
+        return (srtResult, finalNotes, finalTranscript, companions)
+    }
+
+    /// Moves trashed notes back to their original paths, newest first.
+    /// Returns the current paths of files that could not be restored (the
+    /// original path when the Trash location is unknown).
+    private static func restoreFromTrash(_ trashed: [(original: URL, trashed: URL?)], move: Mover) -> [URL] {
+        var unrestored: [URL] = []
+        for item in trashed.reversed() {
+            guard let location = item.trashed else {
+                unrestored.append(item.original)
+                continue
+            }
+            do {
+                try move(location, item.original)
+            } catch {
+                unrestored.append(location)
+            }
+        }
+        return unrestored
     }
 
     // MARK: - rename_transcription_outputs
@@ -231,15 +387,40 @@ public enum OutputWriter {
     // MARK: - Helpers
 
     /// First of `base`, `base-2`, `base-3`, ... for which no `stem + suffix`
-    /// exists in `directory`.
-    static func freeStem(base: String, directory: URL, suffixes: [String]) -> String {
+    /// exists in `directory`. Files in `ignoring` (by file identity, so a
+    /// case-only difference on a case-insensitive volume still matches) do
+    /// not count as taken.
+    static func freeStem(
+        base: String,
+        directory: URL,
+        suffixes: [String],
+        ignoring: [FileIdentity] = []
+    ) -> String {
+        func taken(_ url: URL) -> Bool {
+            guard exists(url) else { return false }
+            guard !ignoring.isEmpty, let identity = fileIdentity(url) else { return true }
+            return !ignoring.contains(identity)
+        }
         var candidate = base
         var sequence = 2
-        while suffixes.contains(where: { exists(directory.appendingPathComponent(candidate + $0)) }) {
+        while suffixes.contains(where: { taken(directory.appendingPathComponent(candidate + $0)) }) {
             candidate = "\(base)-\(sequence)"
             sequence += 1
         }
         return candidate
+    }
+
+    struct FileIdentity: Equatable {
+        let device: Int
+        let inode: Int
+    }
+
+    private static func fileIdentity(_ url: URL) -> FileIdentity? {
+        guard let attributes = try? FileManager.default.attributesOfItem(atPath: url.path),
+              let device = (attributes[.systemNumber] as? NSNumber)?.intValue,
+              let inode = (attributes[.systemFileNumber] as? NSNumber)?.intValue
+        else { return nil }
+        return FileIdentity(device: device, inode: inode)
     }
 
     private static func exists(_ url: URL) -> Bool {
@@ -248,6 +429,12 @@ public enum OutputWriter {
 
     static func defaultMove(_ source: URL, _ destination: URL) throws {
         try FileManager.default.moveItem(at: source, to: destination)
+    }
+
+    static func defaultTrash(_ url: URL) throws -> URL? {
+        var resulting: NSURL?
+        try FileManager.default.trashItem(at: url, resultingItemURL: &resulting)
+        return resulting as URL?
     }
 
     /// Writes to a hidden temp file in the destination directory, syncs it,

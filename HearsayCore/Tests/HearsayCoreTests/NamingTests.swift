@@ -385,6 +385,298 @@ private func exists(_ url: URL) -> Bool {
     }
 }
 
+// MARK: - OutputWriter.replaceNamed (History > Regenerate notes)
+
+/// Stands in for the Trash: moves files into a folder beside the meeting
+/// folder and records them.
+private final class FakeTrash: @unchecked Sendable {
+    let folder: URL
+    private(set) var trashed: [URL] = []
+
+    init(root: TemporaryDirectory) throws {
+        folder = root.url.appendingPathComponent(".FakeTrash", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+    }
+
+    func trash(_ url: URL) throws -> URL? {
+        let destination = folder.appendingPathComponent(url.lastPathComponent)
+        try FileManager.default.moveItem(at: url, to: destination)
+        trashed.append(destination)
+        return destination
+    }
+
+    func listing() throws -> [String] {
+        try FileManager.default.contentsOfDirectory(atPath: folder.path).sorted()
+    }
+
+    func read(_ name: String) throws -> String {
+        try String(contentsOf: folder.appendingPathComponent(name), encoding: .utf8)
+    }
+}
+
+@Suite struct ReplaceNamedOutputsTests {
+    private static let stem = "2026-09-28_11-49-45_trip-to-genhe"
+
+    /// A meeting with SRT, WAV, notes and structured transcript.
+    private func meeting(in directory: TemporaryDirectory, stem: String = stem) throws {
+        _ = try directory.write("\(stem).srt", "1\n")
+        _ = try directory.write("\(stem).wav", "RIFF")
+        _ = try directory.write("\(stem).md", "old notes")
+        _ = try directory.write("\(stem)_transcript.md", "old transcript")
+    }
+
+    /// Meeting-folder listing without the fake Trash.
+    private func listing(_ directory: TemporaryDirectory) throws -> [String] {
+        try directory.listing().filter { $0 != ".FakeTrash" }
+    }
+
+    @Test func sameNameRegeneratesInPlaceWithoutSuffix() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        try meeting(in: directory)
+        let trash = try FakeTrash(root: directory)
+
+        let result = try OutputWriter.replaceNamed(
+            existingStem: Self.stem, directory: directory.url, meetingName: "trip-to-genhe",
+            markdown: "# Notes\n\nNew\n", transcriptMarkdown: "# T\n\nNew T\n", timestamp: nil,
+            move: OutputWriter.defaultMove, writeText: OutputWriter.writeAtomically, trash: trash.trash
+        )
+        #expect(result.srt.lastPathComponent == "\(Self.stem).srt")
+        #expect(result.markdown.lastPathComponent == "\(Self.stem).md")
+        #expect(result.transcript.lastPathComponent == "\(Self.stem)_transcript.md")
+        #expect(result.companions.map(\.lastPathComponent) == ["\(Self.stem).wav"])
+        #expect(try listing(directory) == [
+            "\(Self.stem).md", "\(Self.stem).srt", "\(Self.stem).wav", "\(Self.stem)_transcript.md",
+        ])
+        #expect(try directory.read("\(Self.stem).md") == "# Notes\n\n**Meeting Name:** trip-to-genhe\n\nNew\n")
+        #expect(try directory.read("\(Self.stem)_transcript.md") == "# T\n\n**Meeting Name:** trip-to-genhe\n\nNew T\n")
+        #expect(try directory.read("\(Self.stem).wav") == "RIFF")
+    }
+
+    @Test func oldNotesEndUpInTheTrash() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        try meeting(in: directory)
+        let trash = try FakeTrash(root: directory)
+
+        _ = try OutputWriter.replaceNamed(
+            existingStem: Self.stem, directory: directory.url, meetingName: "trip-to-genhe",
+            markdown: "# N", transcriptMarkdown: "# T", timestamp: nil,
+            move: OutputWriter.defaultMove, writeText: OutputWriter.writeAtomically, trash: trash.trash
+        )
+        #expect(try trash.listing() == ["\(Self.stem).md", "\(Self.stem)_transcript.md"])
+        #expect(try trash.read("\(Self.stem).md") == "old notes")
+        #expect(try trash.read("\(Self.stem)_transcript.md") == "old transcript")
+    }
+
+    @Test func newNameRenamesSRTAndWavAndReplacesTheNotes() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        try meeting(in: directory)
+        let trash = try FakeTrash(root: directory)
+
+        let result = try OutputWriter.replaceNamed(
+            existingStem: Self.stem, directory: directory.url, meetingName: "Genhe Road Trip",
+            markdown: "# N", transcriptMarkdown: "# T", timestamp: nil,
+            move: OutputWriter.defaultMove, writeText: OutputWriter.writeAtomically, trash: trash.trash
+        )
+        let newStem = "2026-09-28_11-49-45_genhe-road-trip"
+        #expect(result.srt.lastPathComponent == "\(newStem).srt")
+        #expect(result.companions.map(\.lastPathComponent) == ["\(newStem).wav"])
+        #expect(try listing(directory) == [
+            "\(newStem).md", "\(newStem).srt", "\(newStem).wav", "\(newStem)_transcript.md",
+        ])
+        #expect(try directory.read("\(newStem).srt") == "1\n")
+        #expect(try directory.read("\(newStem).wav") == "RIFF")
+        #expect(try directory.read("\(newStem).md") == "# N\n\n**Meeting Name:** genhe-road-trip\n")
+        #expect(try trash.listing() == ["\(Self.stem).md", "\(Self.stem)_transcript.md"])
+    }
+
+    @Test func unrelatedFileWithTheNewNameStillBumpsTheSuffix() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        try meeting(in: directory)
+        _ = try directory.write("2026-09-28_11-49-45_launch.md", "taken")
+        let trash = try FakeTrash(root: directory)
+
+        let result = try OutputWriter.replaceNamed(
+            existingStem: Self.stem, directory: directory.url, meetingName: "launch",
+            markdown: "# N", transcriptMarkdown: "# T", timestamp: nil,
+            move: OutputWriter.defaultMove, writeText: OutputWriter.writeAtomically, trash: trash.trash
+        )
+        #expect(result.srt.lastPathComponent == "2026-09-28_11-49-45_launch-2.srt")
+        #expect(result.markdown.lastPathComponent == "2026-09-28_11-49-45_launch-2.md")
+        #expect(try directory.read("2026-09-28_11-49-45_launch.md") == "taken")
+    }
+
+    @Test func entryWithASuffixKeepsItWhenTheNameIsUnchanged() throws {
+        // `<ts>_launch` belongs to another meeting, so this one is `-2`.
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        let stem = "2026-09-28_11-49-45_launch-2"
+        try meeting(in: directory, stem: stem)
+        _ = try directory.write("2026-09-28_11-49-45_launch.srt", "other")
+        let trash = try FakeTrash(root: directory)
+
+        let result = try OutputWriter.replaceNamed(
+            existingStem: stem, directory: directory.url, meetingName: "launch",
+            markdown: "# N", transcriptMarkdown: "# T", timestamp: nil,
+            move: OutputWriter.defaultMove, writeText: OutputWriter.writeAtomically, trash: trash.trash
+        )
+        #expect(result.srt.lastPathComponent == "\(stem).srt")
+        #expect(try directory.read("2026-09-28_11-49-45_launch.srt") == "other")
+    }
+
+    @Test func failingWriteRestoresTheOldNotesAndNames() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        try meeting(in: directory)
+        let before = try listing(directory)
+        let trash = try FakeTrash(root: directory)
+
+        let failingWriter: OutputWriter.TextWriter = { text, destination in
+            if destination.lastPathComponent.hasSuffix("_transcript.md") {
+                throw SimulatedFailure(message: "disk full")
+            }
+            try OutputWriter.writeAtomically(text, to: destination)
+        }
+        let newStem = "2026-09-28_11-49-45_genhe-road-trip"
+        #expect(throws: OutputWriterError.writeFailed(
+            url: directory.url.standardizedFileURL.appendingPathComponent("\(newStem)_transcript.md"),
+            reason: "disk full",
+            unrestored: []
+        )) {
+            try OutputWriter.replaceNamed(
+                existingStem: Self.stem, directory: directory.url, meetingName: "genhe road trip",
+                markdown: "# N", transcriptMarkdown: "# T", timestamp: nil,
+                move: OutputWriter.defaultMove, writeText: failingWriter, trash: trash.trash
+            )
+        }
+        #expect(try listing(directory) == before)
+        #expect(try directory.read("\(Self.stem).md") == "old notes")
+        #expect(try directory.read("\(Self.stem)_transcript.md") == "old transcript")
+        #expect(try trash.listing().isEmpty)
+    }
+
+    @Test func failingWriteWithTheSameNameRestoresTheOldNotes() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        try meeting(in: directory)
+        let trash = try FakeTrash(root: directory)
+
+        let failingWriter: OutputWriter.TextWriter = { text, destination in
+            if destination.lastPathComponent.hasSuffix("_transcript.md") {
+                throw SimulatedFailure(message: "disk full")
+            }
+            try OutputWriter.writeAtomically(text, to: destination)
+        }
+        #expect(throws: OutputWriterError.self) {
+            try OutputWriter.replaceNamed(
+                existingStem: Self.stem, directory: directory.url, meetingName: "trip-to-genhe",
+                markdown: "# N", transcriptMarkdown: "# T", timestamp: nil,
+                move: OutputWriter.defaultMove, writeText: failingWriter, trash: trash.trash
+            )
+        }
+        #expect(try directory.read("\(Self.stem).md") == "old notes")
+        #expect(try directory.read("\(Self.stem)_transcript.md") == "old transcript")
+        #expect(try trash.listing().isEmpty)
+    }
+
+    @Test func unrestorableFilesAreNamedInTheError() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        try meeting(in: directory)
+        let trash = try FakeTrash(root: directory)
+
+        let failingWriter: OutputWriter.TextWriter = { _, _ in throw SimulatedFailure(message: "disk full") }
+        // Moving anything out of the fake Trash fails.
+        let trashFolder = trash.folder.standardizedFileURL.path
+        let move: OutputWriter.Mover = { source, destination in
+            if source.standardizedFileURL.path.hasPrefix(trashFolder) {
+                throw SimulatedFailure(message: "no access")
+            }
+            try OutputWriter.defaultMove(source, destination)
+        }
+        do {
+            _ = try OutputWriter.replaceNamed(
+                existingStem: Self.stem, directory: directory.url, meetingName: "trip-to-genhe",
+                markdown: "# N", transcriptMarkdown: "# T", timestamp: nil,
+                move: move, writeText: failingWriter, trash: trash.trash
+            )
+            Issue.record("replaceNamed should have thrown")
+        } catch let error as OutputWriterError {
+            guard case let .writeFailed(_, _, unrestored) = error else {
+                Issue.record("unexpected error \(error)")
+                return
+            }
+            #expect(unrestored.map(\.lastPathComponent).sorted() == ["\(Self.stem).md", "\(Self.stem)_transcript.md"])
+            #expect(error.localizedDescription.contains("could not be restored"))
+        }
+    }
+
+    @Test func failingTrashPutsBackWhatWasTrashedAndWritesNothing() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        try meeting(in: directory)
+        let before = try listing(directory)
+        let trash = try FakeTrash(root: directory)
+        let failingTrash: OutputWriter.Trasher = { url in
+            if url.lastPathComponent.hasSuffix("_transcript.md") {
+                throw SimulatedFailure(message: "Trash unavailable")
+            }
+            return try trash.trash(url)
+        }
+        #expect(throws: OutputWriterError.self) {
+            try OutputWriter.replaceNamed(
+                existingStem: Self.stem, directory: directory.url, meetingName: "new name",
+                markdown: "# N", transcriptMarkdown: "# T", timestamp: nil,
+                move: OutputWriter.defaultMove, writeText: OutputWriter.writeAtomically, trash: failingTrash
+            )
+        }
+        #expect(try listing(directory) == before)
+        #expect(try directory.read("\(Self.stem).md") == "old notes")
+        #expect(try trash.listing().isEmpty)
+    }
+
+    @Test func failingWavRenameRestoresTheSRTAndTheOldNotes() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        try meeting(in: directory)
+        let before = try listing(directory)
+        let trash = try FakeTrash(root: directory)
+        let failingMove: OutputWriter.Mover = { source, destination in
+            if source.pathExtension == "wav" {
+                throw SimulatedFailure(message: "device is busy")
+            }
+            try OutputWriter.defaultMove(source, destination)
+        }
+        #expect(throws: OutputWriterError.self) {
+            try OutputWriter.replaceNamed(
+                existingStem: Self.stem, directory: directory.url, meetingName: "new name",
+                markdown: "# N", transcriptMarkdown: "# T", timestamp: nil,
+                move: failingMove, writeText: OutputWriter.writeAtomically, trash: trash.trash
+            )
+        }
+        #expect(try listing(directory) == before)
+        #expect(try directory.read("\(Self.stem)_transcript.md") == "old transcript")
+        #expect(try trash.listing().isEmpty)
+    }
+
+    @Test func unusableNameThrowsAndTouchesNothing() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        try meeting(in: directory)
+        let before = try directory.listing()
+        #expect(throws: OutputWriterError.unusableMeetingName) {
+            try OutputWriter.replaceNamed(
+                existingStem: Self.stem, directory: directory.url, meetingName: "會議",
+                markdown: "# N", transcriptMarkdown: "# T", timestamp: nil
+            )
+        }
+        #expect(try directory.listing() == before)
+    }
+}
+
 // MARK: - OutputWriter.renameRetained
 
 @Suite struct RenameRetainedTests {
