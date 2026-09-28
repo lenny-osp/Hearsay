@@ -34,12 +34,17 @@ struct HearsayApp: App {
                 .environment(\.whisperEngine, appDelegate.whisperEngine)
                 .environment(appDelegate.hotkeyManager)
                 .environment(appDelegate.tabSelection)
+                .environment(appDelegate.updateService)
                 .registeringMainWindowOpener(appDelegate.windowOpener)
         }
         .defaultSize(width: 720, height: 480)
         .commands {
             // Settings live in the main window's Settings tab; there is no
             // separate Settings scene.
+            // Check for Updates… below About Hearsay (PLAN.md 4.6).
+            CommandGroup(after: .appInfo) {
+                CheckForUpdatesCommand(updates: appDelegate.updateService)
+            }
             CommandGroup(replacing: .appSettings) {
                 SettingsCommand(opener: appDelegate.windowOpener)
             }

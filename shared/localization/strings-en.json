@@ -235,6 +235,13 @@
   },
   {
     "catalog": "app",
+    "key": "Automatically check for updates",
+    "english": "Automatically check for updates",
+    "comment": "Settings > General > Software updates toggle",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
     "key": "Available once transcription lands",
     "english": "Available once transcription lands",
     "comment": "UI text in UnfinishedRecordingSheet.swift.",
@@ -276,6 +283,27 @@
     "placeholders": [
       "%@"
     ]
+  },
+  {
+    "catalog": "app",
+    "key": "Check Now",
+    "english": "Check Now",
+    "comment": "Settings > General > Software updates button",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "Check for Updates…",
+    "english": "Check for Updates…",
+    "comment": "App menu command",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "Checks GitHub once a day for a new release. Nothing else is sent.",
+    "english": "Checks GitHub once a day for a new release. Nothing else is sent.",
+    "comment": "Settings > General caption under Automatically check for updates",
+    "placeholders": []
   },
   {
     "catalog": "app",
@@ -329,6 +357,13 @@
     "placeholders": [
       "%@"
     ]
+  },
+  {
+    "catalog": "app",
+    "key": "Could not check for updates.",
+    "english": "Could not check for updates.",
+    "comment": "Update check failed alert title",
+    "placeholders": []
   },
   {
     "catalog": "app",
@@ -565,7 +600,7 @@
     "catalog": "app",
     "key": "Download",
     "english": "Download",
-    "comment": "UI text in ModelRowView.swift.",
+    "comment": "Button: download. Also used on the Models tab for a model; here it opens the release page of a new version",
     "placeholders": []
   },
   {
@@ -688,6 +723,15 @@
     "comment": "Settings > General error. %d is a system error number.",
     "placeholders": [
       "%d"
+    ]
+  },
+  {
+    "catalog": "app",
+    "key": "Hearsay %@ is available.",
+    "english": "Hearsay %@ is available.",
+    "comment": "Update check result. %@ is the new version.",
+    "placeholders": [
+      "%@"
     ]
   },
   {
@@ -839,9 +883,18 @@
   },
   {
     "catalog": "app",
+    "key": "Last checked %@",
+    "english": "Last checked %@",
+    "comment": "Settings > General > Software updates. %@ is a date and time.",
+    "placeholders": [
+      "%@"
+    ]
+  },
+  {
+    "catalog": "app",
     "key": "Later",
     "english": "Later",
-    "comment": "Alert button: keep running; the language changes at the next launch",
+    "comment": "Alert button: keep running; the language changes at the next launch\nUpdate available alert button: do nothing now",
     "placeholders": []
   },
   {
@@ -1086,6 +1139,13 @@
     "key": "No output folder",
     "english": "No output folder",
     "comment": "History header when the output folder cannot be opened",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "Not checked yet",
+    "english": "Not checked yet",
+    "comment": "Settings > General > Software updates: no check has succeeded",
     "placeholders": []
   },
   {
@@ -1601,6 +1661,13 @@
   },
   {
     "catalog": "app",
+    "key": "Software updates",
+    "english": "Software updates",
+    "comment": "Settings > General section header",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
     "key": "Some files could not be moved to the Trash:",
     "english": "Some files could not be moved to the Trash:",
     "comment": "History error, followed by one line per file",
@@ -1823,6 +1890,13 @@
     "key": "The transcript and recording are renamed to <timestamp>_<name>.",
     "english": "The transcript and recording are renamed to <timestamp>_<name>.",
     "comment": "Naming sheet explanation. Translate the words inside <timestamp>_<name> but keep the angle brackets and underscore.",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "This build of Hearsay has no update repository set.",
+    "english": "This build of Hearsay has no update repository set.",
+    "comment": "Update check error: Info.plist has no HearsayUpdateRepository",
     "placeholders": []
   },
   {
@@ -2088,6 +2162,16 @@
   },
   {
     "catalog": "app",
+    "key": "Version %@ (%@)",
+    "english": "Version %1$@ (%2$@)",
+    "comment": "Settings > General > Software updates. %1$@ is the version, %2$@ the build number.",
+    "placeholders": [
+      "%@",
+      "%@"
+    ]
+  },
+  {
+    "catalog": "app",
     "key": "Waiting for your answer…",
     "english": "Waiting for your answer…",
     "comment": "UI text in NotesFlowView.swift.",
@@ -2119,6 +2203,24 @@
     "key": "Writing the recording failed: %@",
     "english": "Writing the recording failed: %@",
     "comment": "Recording error. %@ is the system error message.",
+    "placeholders": [
+      "%@"
+    ]
+  },
+  {
+    "catalog": "app",
+    "key": "You have version %@. The download page opens in your browser.",
+    "english": "You have version %@. The download page opens in your browser.",
+    "comment": "Update available alert. %@ is the installed version.",
+    "placeholders": [
+      "%@"
+    ]
+  },
+  {
+    "catalog": "app",
+    "key": "You're up to date (%@).",
+    "english": "You're up to date (%@).",
+    "comment": "Update check result. %@ is the installed version.",
     "placeholders": [
       "%@"
     ]
@@ -2469,6 +2571,13 @@
   },
   {
     "catalog": "core",
+    "key": "Could not reach GitHub. Check your internet connection and try again.",
+    "english": "Could not reach GitHub. Check your internet connection and try again.",
+    "comment": "Update check error",
+    "placeholders": []
+  },
+  {
+    "catalog": "core",
     "key": "Could not select %@ (CoreAudio error %d).",
     "english": "Could not select %1$@ (CoreAudio error %2$d).",
     "comment": "Recording error. %1$@ is the input device name, %2$d a CoreAudio error number.",
@@ -2552,6 +2661,22 @@
     "placeholders": [
       "%@"
     ]
+  },
+  {
+    "catalog": "core",
+    "key": "GitHub answered the update check with HTTP status %lld.",
+    "english": "GitHub answered the update check with HTTP status %lld.",
+    "comment": "Update check error. %lld is an HTTP status code.",
+    "placeholders": [
+      "%lld"
+    ]
+  },
+  {
+    "catalog": "core",
+    "key": "GitHub sent a release description Hearsay could not read.",
+    "english": "GitHub sent a release description Hearsay could not read.",
+    "comment": "Update check error",
+    "placeholders": []
   },
   {
     "catalog": "core",
@@ -2660,6 +2785,13 @@
     "key": "No input device is available.",
     "english": "No input device is available.",
     "comment": "Recording error",
+    "placeholders": []
+  },
+  {
+    "catalog": "core",
+    "key": "No releases have been published yet.",
+    "english": "No releases have been published yet.",
+    "comment": "Update check result: the GitHub repository has no release",
     "placeholders": []
   },
   {

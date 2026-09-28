@@ -87,6 +87,7 @@ private struct GeneralSettingsView: View {
                     .foregroundStyle(.secondary)
             }
             HotkeySettingsSection()
+            SoftwareUpdatesSection()
             AcknowledgementsSection()
         }
         .formStyle(.grouped)

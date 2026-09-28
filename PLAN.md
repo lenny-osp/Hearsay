@@ -31,7 +31,7 @@ output rule ported here.
 | Live transcript | Yes in v1. 30 s chunks are transcribed while recording and shown as a live preview; the final SRT comes from one full pass after Stop. Decided 2026-09-28. |
 | Output folder | Default `~/Documents/Hearsay`, user-configurable in Settings. Decided 2026-09-28. |
 | Languages | Added 2026-09-28 (owner request): Auto, EN, ZH-TW, ZH-CN, DE, ES (the two Chinese choices replaced ZH plus a separate "Chinese output" setting, owner request 2026-09-28: both call Whisper with "zh", ZH-TW transcripts are converted to Traditional characters and ZH-CN to Simplified; when Auto detects Chinese it uses the preferred language's Chinese variant, else ZH-TW; stored "zh" settings migrate by the old Chinese output setting). Auto is the picker default for new users. Detection only compares the four supported languages (probabilities renormalized over them), skips silent windows (below about -60 dBFS, or no-speech probability above 0.6; the turbo model's no-speech probability alone never flags silence, measured 2026-09-28), averages the restricted probabilities of up to three speech windows, and locks the language once per session. Below the confidence threshold it uses the **preferred language** from Settings > General (default English, owner choice; never changed automatically by what the user picks elsewhere) and says so, with one-click re-run in another language. When the user picked a language and detection is confident it is a different one, a banner offers to re-run in the detected language; nothing switches automatically. Meeting notes default to the transcript language; the confirm sheet can pick another of the four for that run only (added 2026-09-28, owner request). History SRTs with no stored language default to the language NaturalLanguage detects in the text (probability at least 0.6), else the language choice or preferred language. Mixed-language (code-switching) meetings are out of scope. |
-| v1 extras | Global hotkey, pause/resume, Sparkle auto-updates, crash recovery of an unfinished recording, custom prompt templates, and a setting that decides whether the WAV is kept at all. Decided 2026-09-28. |
+| v1 extras | Global hotkey, pause/resume, an update check against GitHub Releases (section 4.6; replaced Sparkle 2026-09-28), crash recovery of an unfinished recording, custom prompt templates, and a setting that decides whether the WAV is kept at all. Decided 2026-09-28. |
 | AI notes | Direct HTTPS to any OpenAI-compatible `/chat/completions` endpoint. Same JSON contract as the Python tool. Providers (2026-09-28, after the first live runs): GitHub Copilot CLI, Claude Code CLI, and Codex CLI use the owner's subscription logins (no API keys, no temperature); Antigravity CLI is a fourth CLI (Azure OpenAI removed 2026-09-28); Ollama and Custom are HTTP. GitHub Models was shut down on 2026-07-30, and the OpenAI and Anthropic API presets were replaced by the two CLIs. |
 | Window mode | User setting: "Menu bar and Dock", "Menu bar only", "Dock only". Switched at runtime with `NSApp.setActivationPolicy`. |
 | Platform floor | macOS 14 Sonoma, Apple Silicon only (MLX requirement). Intel is out of scope. |
@@ -84,7 +84,7 @@ Hearsay/                      this repo
         History/                HistoryView (past recordings, open in Finder)
         Recovery/               UnfinishedRecordingSheet
         Hotkeys/                HotkeyManager (global shortcuts)
-        Updates/                Sparkle wiring
+        Updates/                UpdateService (GitHub release check, section 4.6)
         Settings/               General, Window mode, Output, AI provider, Models tabs
       Resources/
         Assets.xcassets         app icon, menu bar template icons (idle, recording)
@@ -303,11 +303,57 @@ is inside the app container, so no permission is needed.
 
 ### 4.6 Updates
 
-Sparkle 2 with `SUFeedURL` pointing at an appcast you host (GitHub Pages
-or the repo's Releases). EdDSA signing key kept out of the repo. Sparkle
-runs in the sandbox with the XPC services it ships. "Check for updates"
-in the app menu and the menu bar extra, automatic check on launch, opt-in
-for pre-releases.
+Changed 2026-09-28: a plain check against GitHub Releases replaces Sparkle.
+Reasons: there is no Developer ID or EdDSA signing key yet, so Sparkle could
+not verify or install an update anyway, and a check that only opens the
+release page needs no third-party framework.
+
+- `HearsayCore/Updates/UpdateChecker` (actor) calls
+  `GET https://api.github.com/repos/<slug>/releases/latest` with
+  `Accept: application/vnd.github+json`, a 15 s timeout, and no
+  authentication, and reads `tag_name`, `html_url`, `published_at`, `body`.
+  GitHub never returns drafts or pre-releases as "latest". Errors: offline
+  (any `URLError`), HTTP status, no release yet (404), unreadable JSON.
+- `isNewer(remote, than: current)`: numeric components compared as numbers,
+  a leading `v` and `+build` metadata ignored, missing components are 0, a
+  pre-release suffix is older than the same version without one.
+- The slug is the Info.plist key `HearsayUpdateRepository`, set in one
+  place: `HEARSAY_UPDATE_REPOSITORY` in `mac/project.yml`.
+- `UpdateService` (app): with "Automatically check for updates" on
+  (default), 10 s after launch and then hourly it checks if the last
+  successful check (`lastUpdateCheck`) is 24 h old or more; errors are
+  silent and an alert appears only for a newer version. The app menu's
+  "Check for Updates…" and Settings > General > Software updates > Check
+  Now always show a result alert. "Download" opens the release page;
+  nothing is downloaded or installed by the app. Only the request itself is
+  sent.
+- The version comes from `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` in
+  `mac/project.yml` (0.1.0 and 1 for local builds; the release workflow sets
+  both). About Hearsay and Settings > General show it.
+
+### 4.7 CI and releases
+
+Added 2026-09-28. Both workflows run on GitHub's `macos-15` Apple Silicon
+runner with the newest stable Xcode installed there
+(`.github/actions/setup-mac`), install XcodeGen and the Metal Toolchain when
+missing, cache SwiftPM checkouts, and never download a model.
+
+- `ci.yml` (pull requests, pushes to `main`): `swift test` for HearsayCore;
+  a Release build through `Scripts/run-debug.sh --release --no-open --ci`;
+  the HearsayWhisper unit tests (integration tests skip without a model);
+  `export-strings.py` plus `merge-translations.py --check` for all four
+  languages, failing if `strings-en.json` drifted; `make-notices.sh`,
+  failing if `THIRD_PARTY_NOTICES.md` drifted.
+- `release.yml` (tags `v*`): version from the tag, build number from the
+  run number, Release build, Info.plist check, `Scripts/make-dmg.sh`
+  (compressed DMG with Hearsay.app and an Applications link),
+  `SHA256SUMS.txt`, and a GitHub release with generated notes. A tag with a
+  suffix (`v0.3.0-beta.1`) is published as a pre-release.
+- Signing: ad-hoc by default (owner has no Apple Developer account yet);
+  the notes then explain the first launch (macOS 14: right-click > Open;
+  macOS 15 and later: Privacy & Security > Open Anyway). Developer ID
+  signing, notarization, and stapling run only when the secrets listed in
+  `.github/workflows/README.md` exist.
 
 ## 5. Model catalog and download
 
@@ -414,7 +460,8 @@ a one-line prompt.
   off. Off deletes the spool file; failures always keep it.
 - Global hotkeys for Start/Stop and Pause.
 - Prompt templates: list, add, edit, delete, set default.
-- Check for updates automatically: on / off.
+- Check for updates automatically: on (default) / off, with Check Now and
+  the version (section 4.6).
 
 ## 9. Entitlements and privacy
 
@@ -444,7 +491,7 @@ weekends counted as half days.
 | 4a. Decoder | Done 2026-09-28. Byte-identical SRT to Python on both fixtures; 38 tests. Run tests with `TEST_RUNNER_HEARSAY_MODEL_DIR=<model dir>`. | done |
 | 4b. Transcription | Done. Live preview, final pass, and File mode verified live by the owner 2026-09-28. | done |
 | 5. Notes | Done 2026-09-28 in code; runs from History > Generate notes. Not yet tried against a live provider. | done, unverified live |
-| 6. Ship | History, hotkeys, quit handling, crash recovery, launch at login, app icon, README done 2026-09-28. Remaining: Sparkle + appcast, signing, notarization, DMG script, quick-start guide note (`docs/whisper-tools-note.md`). | 2 days |
+| 6. Ship | History, hotkeys, quit handling, crash recovery, launch at login, app icon, README done 2026-09-28. Update check, CI, release workflow, and DMG script done 2026-09-28 (sections 4.6, 4.7). Remaining: Developer ID signing and notarization (workflow steps ready, need an Apple Developer account), quick-start guide note (`docs/whisper-tools-note.md`). | 2 days |
 
 Total: about 8 to 9 weeks of calendar time.
 
@@ -543,7 +590,7 @@ cd .. && Spike/.build/derived/Build/Products/Release/hearsay-spike \
 
 Things no agent could verify because they need permissions or a person.
 Verified 2026-09-28: recording, live preview, final pass, File mode (items
-1, 10, 12 in part). Still open: 2 to 9, 11.
+1, 10, 12 in part). Still open: 2 to 9, 11, 13, 14.
 
 1. First Start: grant Microphone, then Screen & System Audio Recording;
    relaunch if system audio stays off after granting.
@@ -565,6 +612,13 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
     should be written at once.
 12. Drop an m4a on the File tab; the SRT lands in the output folder and
     the confirm-send sheet appears.
+13. Updates (section 4.6): Hearsay > Check for Updates… before any release
+    exists shows "No releases have been published yet."; after the first
+    `v*` tag, a build with a lower version offers "Download", which opens
+    the release page. About Hearsay shows the version.
+14. Releases (section 4.7): push a test tag, check the Actions run, mount
+    the DMG, drag Hearsay to Applications, and open it the first time as
+    the release notes describe.
 
 ## 17. Polish list (found during review, not yet scheduled)
 

@@ -1,0 +1,91 @@
+# Builds and tests every pull request and every push to main (PLAN.md 4.7).
+# No step needs or downloads a speech model: the HearsayWhisper integration
+# tests skip themselves without TEST_RUNNER_HEARSAY_MODEL_DIR.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core-tests:
+    name: HearsayCore tests
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-mac
+        with:
+          app: "false"
+      - name: swift test
+        working-directory: mac/HearsayCore
+        run: swift test
+
+  app-build:
+    name: App build, decoder unit tests, strings, notices
+    runs-on: macos-15
+    timeout-minutes: 90
+    env:
+      CI: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-mac
+
+      - name: Build Release
+        working-directory: mac
+        run: Scripts/run-debug.sh --release --no-open --ci
+
+      - name: Check the built Info.plist
+        working-directory: mac
+        run: |
+          plist=.build/derived/Build/Products/Release/Hearsay.app/Contents/Info.plist
+          plutil -p "$plist" | grep -E 'CFBundleShortVersionString|CFBundleVersion|HearsayUpdateRepository'
+          for key in CFBundleShortVersionString CFBundleVersion HearsayUpdateRepository; do
+            value=$(plutil -extract "$key" raw -o - "$plist")
+            if [[ -z $value || $value == *'$('* ]]; then
+              echo "::error::$key is not set in the built Info.plist ($value)"; exit 1
+            fi
+          done
+
+      - name: HearsayWhisper unit tests (no model; integration tests skip)
+        working-directory: mac/HearsayWhisper
+        run: |
+          unset TEST_RUNNER_HEARSAY_MODEL_DIR
+          mkdir -p .build
+          xcodebuild -scheme HearsayWhisper -destination 'platform=macOS,arch=arm64' \
+            -derivedDataPath .build/derived -skipPackagePluginValidation -skipMacroValidation \
+            test < /dev/null > .build/test.log 2>&1 || { tail -n 200 .build/test.log; exit 1; }
+          grep -E 'Test Suite|Executed|TEST SUCCEEDED|passed after|failed after' .build/test.log | tail -n 20
+
+      - name: Strings are exported and every translation is complete
+        working-directory: mac
+        run: |
+          Scripts/export-strings.py --configuration Release
+          Scripts/merge-translations.py --check de es zh-Hant zh-Hans
+          git diff --exit-code ../shared/localization/strings-en.json \
+            || { echo "::error::shared/localization/strings-en.json is out of date: build, run Scripts/export-strings.py --configuration Release, translate, and commit"; exit 1; }
+
+      - name: Third-party notices are current
+        working-directory: mac
+        run: |
+          Scripts/make-notices.sh
+          git diff --exit-code THIRD_PARTY_NOTICES.md \
+            || { echo "::error::mac/THIRD_PARTY_NOTICES.md is out of date: run Scripts/make-notices.sh and commit"; exit 1; }
+
+      - name: Upload the build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            mac/.build/run-debug.log
+            mac/HearsayWhisper/.build/test.log
+          if-no-files-found: ignore

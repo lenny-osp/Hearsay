@@ -108,6 +108,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     lazy var windowOpener = MainWindowOpener(tabs: tabSelection)
     let whisperEngine = WhisperEngine()
     let relauncher = AppRelauncher()
+    lazy var updateService = UpdateService(settings: settings)
     lazy var recordingController = RecordingController(
         settings: settings, modelStore: modelStore, engine: whisperEngine
     )
@@ -165,6 +166,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             await AppRelaunch.waitForPreviousInstance()
             hotkeyManager.start()
         }
+        // GitHub release check, 10 s after launch and daily (PLAN.md 4.6).
+        updateService.startAutomaticChecks()
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(windowWillClose(_:)),

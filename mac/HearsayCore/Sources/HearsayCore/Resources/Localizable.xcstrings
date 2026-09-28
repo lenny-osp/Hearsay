@@ -989,6 +989,35 @@
         }
       }
     },
+    "Could not reach GitHub. Check your internet connection and try again." : {
+      "comment" : "Update check error",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub ist nicht erreichbar. Internetverbindung prüfen und erneut versuchen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido conectar con GitHub. Comprueba la conexión a Internet e inténtalo de nuevo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法连接到 GitHub。请检查互联网连接后重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法連線至 GitHub。請檢查網際網路連線後再試一次。"
+          }
+        }
+      }
+    },
     "Could not select %@ (CoreAudio error %d)." : {
       "comment" : "Recording error. %1$@ is the input device name, %2$d a CoreAudio error number.",
       "localizations" : {
@@ -1293,6 +1322,64 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "GitHub Copilot CLI 呼叫失敗。請檢查 Copilot 登入狀態與模型設定：%@"
+          }
+        }
+      }
+    },
+    "GitHub answered the update check with HTTP status %lld." : {
+      "comment" : "Update check error. %lld is an HTTP status code.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub hat die Update-Anfrage mit dem HTTP-Status %lld beantwortet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub respondió a la búsqueda de actualizaciones con el estado HTTP %lld."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub 响应更新检查的 HTTP 状态码为 %lld。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub 回應更新檢查的 HTTP 狀態碼為 %lld。"
+          }
+        }
+      }
+    },
+    "GitHub sent a release description Hearsay could not read." : {
+      "comment" : "Update check error",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub hat eine Versionsbeschreibung gesendet, die Hearsay nicht lesen kann."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub envió una descripción de versión que Hearsay no puede leer."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub 返回的版本信息 Hearsay 无法读取。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub 傳回的版本資訊 Hearsay 無法讀取。"
           }
         }
       }
@@ -1705,6 +1792,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "沒有可用的輸入裝置。"
+          }
+        }
+      }
+    },
+    "No releases have been published yet." : {
+      "comment" : "Update check result: the GitHub repository has no release",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es wurde noch keine Version veröffentlicht."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todavía no se ha publicado ninguna versión."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未发布任何版本。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未發佈任何版本。"
           }
         }
       }

@@ -263,6 +263,14 @@
   },
   {
     "catalog": "app",
+    "key": "Automatically check for updates",
+    "english": "Automatically check for updates",
+    "comment": "Settings > General > Software updates toggle",
+    "placeholders": [],
+    "translation": "Automatisch nach Updates suchen"
+  },
+  {
+    "catalog": "app",
     "key": "Available once transcription lands",
     "english": "Available once transcription lands",
     "comment": "UI text in UnfinishedRecordingSheet.swift.",
@@ -310,6 +318,30 @@
       "%@"
     ],
     "translation": "%@ prüfen"
+  },
+  {
+    "catalog": "app",
+    "key": "Check Now",
+    "english": "Check Now",
+    "comment": "Settings > General > Software updates button",
+    "placeholders": [],
+    "translation": "Jetzt suchen"
+  },
+  {
+    "catalog": "app",
+    "key": "Check for Updates…",
+    "english": "Check for Updates…",
+    "comment": "App menu command",
+    "placeholders": [],
+    "translation": "Nach Updates suchen …"
+  },
+  {
+    "catalog": "app",
+    "key": "Checks GitHub once a day for a new release. Nothing else is sent.",
+    "english": "Checks GitHub once a day for a new release. Nothing else is sent.",
+    "comment": "Settings > General caption under Automatically check for updates",
+    "placeholders": [],
+    "translation": "Fragt GitHub einmal am Tag nach einer neuen Version. Sonst wird nichts gesendet."
   },
   {
     "catalog": "app",
@@ -370,6 +402,14 @@
       "%@"
     ],
     "translation": "Verbunden. Antwort: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "Could not check for updates.",
+    "english": "Could not check for updates.",
+    "comment": "Update check failed alert title",
+    "placeholders": [],
+    "translation": "Die Suche nach Updates ist fehlgeschlagen."
   },
   {
     "catalog": "app",
@@ -633,7 +673,7 @@
     "catalog": "app",
     "key": "Download",
     "english": "Download",
-    "comment": "UI text in ModelRowView.swift.",
+    "comment": "Button: download. Also used on the Models tab for a model; here it opens the release page of a new version",
     "placeholders": [],
     "translation": "Laden"
   },
@@ -774,6 +814,16 @@
       "%d"
     ],
     "translation": "Globale Tastaturkurzbefehle sind nicht verfügbar (Fehler %d)."
+  },
+  {
+    "catalog": "app",
+    "key": "Hearsay %@ is available.",
+    "english": "Hearsay %@ is available.",
+    "comment": "Update check result. %@ is the new version.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Hearsay %@ ist verfügbar."
   },
   {
     "catalog": "app",
@@ -945,9 +995,19 @@
   },
   {
     "catalog": "app",
+    "key": "Last checked %@",
+    "english": "Last checked %@",
+    "comment": "Settings > General > Software updates. %@ is a date and time.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Zuletzt gesucht: %@"
+  },
+  {
+    "catalog": "app",
     "key": "Later",
     "english": "Later",
-    "comment": "Alert button: keep running; the language changes at the next launch",
+    "comment": "Alert button: keep running; the language changes at the next launch\nUpdate available alert button: do nothing now",
     "placeholders": [],
     "translation": "Später"
   },
@@ -1228,6 +1288,14 @@
     "comment": "History header when the output folder cannot be opened",
     "placeholders": [],
     "translation": "Kein Ausgabeordner"
+  },
+  {
+    "catalog": "app",
+    "key": "Not checked yet",
+    "english": "Not checked yet",
+    "comment": "Settings > General > Software updates: no check has succeeded",
+    "placeholders": [],
+    "translation": "Noch nicht gesucht"
   },
   {
     "catalog": "app",
@@ -1813,6 +1881,14 @@
   },
   {
     "catalog": "app",
+    "key": "Software updates",
+    "english": "Software updates",
+    "comment": "Settings > General section header",
+    "placeholders": [],
+    "translation": "Softwareupdates"
+  },
+  {
+    "catalog": "app",
     "key": "Some files could not be moved to the Trash:",
     "english": "Some files could not be moved to the Trash:",
     "comment": "History error, followed by one line per file",
@@ -2066,6 +2142,14 @@
     "comment": "Naming sheet explanation. Translate the words inside <timestamp>_<name> but keep the angle brackets and underscore.",
     "placeholders": [],
     "translation": "Transkript und Aufnahme werden in <Zeitstempel>_<Name> umbenannt."
+  },
+  {
+    "catalog": "app",
+    "key": "This build of Hearsay has no update repository set.",
+    "english": "This build of Hearsay has no update repository set.",
+    "comment": "Update check error: Info.plist has no HearsayUpdateRepository",
+    "placeholders": [],
+    "translation": "Für diese Version von Hearsay ist kein Update-Repository festgelegt."
   },
   {
     "catalog": "app",
@@ -2365,6 +2449,17 @@
   },
   {
     "catalog": "app",
+    "key": "Version %@ (%@)",
+    "english": "Version %1$@ (%2$@)",
+    "comment": "Settings > General > Software updates. %1$@ is the version, %2$@ the build number.",
+    "placeholders": [
+      "%@",
+      "%@"
+    ],
+    "translation": "Version %1$@ (%2$@)"
+  },
+  {
+    "catalog": "app",
     "key": "Waiting for your answer…",
     "english": "Waiting for your answer…",
     "comment": "UI text in NotesFlowView.swift.",
@@ -2404,6 +2499,26 @@
       "%@"
     ],
     "translation": "Schreiben der Aufnahme fehlgeschlagen: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "You have version %@. The download page opens in your browser.",
+    "english": "You have version %@. The download page opens in your browser.",
+    "comment": "Update available alert. %@ is the installed version.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Installiert ist Version %@. Die Downloadseite wird im Browser geöffnet."
+  },
+  {
+    "catalog": "app",
+    "key": "You're up to date (%@).",
+    "english": "You're up to date (%@).",
+    "comment": "Update check result. %@ is the installed version.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Hearsay ist auf dem neuesten Stand (%@)."
   },
   {
     "catalog": "app",
@@ -2792,6 +2907,14 @@
   },
   {
     "catalog": "core",
+    "key": "Could not reach GitHub. Check your internet connection and try again.",
+    "english": "Could not reach GitHub. Check your internet connection and try again.",
+    "comment": "Update check error",
+    "placeholders": [],
+    "translation": "GitHub ist nicht erreichbar. Internetverbindung prüfen und erneut versuchen."
+  },
+  {
+    "catalog": "core",
     "key": "Could not select %@ (CoreAudio error %d).",
     "english": "Could not select %1$@ (CoreAudio error %2$d).",
     "comment": "Recording error. %1$@ is the input device name, %2$d a CoreAudio error number.",
@@ -2885,6 +3008,24 @@
       "%@"
     ],
     "translation": "Aufruf der GitHub Copilot CLI fehlgeschlagen. Copilot-Anmeldestatus und Modellkonfiguration prüfen: %@"
+  },
+  {
+    "catalog": "core",
+    "key": "GitHub answered the update check with HTTP status %lld.",
+    "english": "GitHub answered the update check with HTTP status %lld.",
+    "comment": "Update check error. %lld is an HTTP status code.",
+    "placeholders": [
+      "%lld"
+    ],
+    "translation": "GitHub hat die Update-Anfrage mit dem HTTP-Status %lld beantwortet."
+  },
+  {
+    "catalog": "core",
+    "key": "GitHub sent a release description Hearsay could not read.",
+    "english": "GitHub sent a release description Hearsay could not read.",
+    "comment": "Update check error",
+    "placeholders": [],
+    "translation": "GitHub hat eine Versionsbeschreibung gesendet, die Hearsay nicht lesen kann."
   },
   {
     "catalog": "core",
@@ -3008,6 +3149,14 @@
     "comment": "Recording error",
     "placeholders": [],
     "translation": "Kein Eingabegerät verfügbar."
+  },
+  {
+    "catalog": "core",
+    "key": "No releases have been published yet.",
+    "english": "No releases have been published yet.",
+    "comment": "Update check result: the GitHub repository has no release",
+    "placeholders": [],
+    "translation": "Es wurde noch keine Version veröffentlicht."
   },
   {
     "catalog": "core",

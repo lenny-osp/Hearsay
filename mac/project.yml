@@ -47,8 +47,13 @@ targets:
         CFBundleDevelopmentRegion: en
         # Interface languages (Settings > General > Interface language).
         CFBundleLocalizations: [en, de, es, zh-Hant, zh-Hans]
-        CFBundleShortVersionString: "0.1.0"
-        CFBundleVersion: "1"
+        # Set from the build settings below; the release workflow overrides
+        # them (xcodebuild MARKETING_VERSION=0.2.0 CURRENT_PROJECT_VERSION=7).
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # "owner/name" of the GitHub repository the update check asks for
+        # its latest release (PLAN.md 4.6).
+        HearsayUpdateRepository: $(HEARSAY_UPDATE_REPOSITORY)
         LSApplicationCategoryType: public.app-category.productivity
         NSMicrophoneUsageDescription: Hearsay records meetings you start and transcribes them on this Mac.
         NSAudioCaptureUsageDescription: Hearsay captures the audio of your calls so both sides of a meeting are transcribed.
@@ -67,6 +72,14 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: tw.og1o.hearsay
         PRODUCT_NAME: Hearsay
+        # Version shown in About Hearsay and Settings > General. Defaults for
+        # local builds; .github/workflows/release.yml sets both from the tag
+        # and the run number.
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        # The one place the update repository is set (Info.plist
+        # HearsayUpdateRepository).
+        HEARSAY_UPDATE_REPOSITORY: lenny-osp/Hearsay
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ENABLE_HARDENED_RUNTIME: YES
         CODE_SIGN_STYLE: Manual

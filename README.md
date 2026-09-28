@@ -16,7 +16,18 @@ unless you confirm that step.
 
 ## Install
 
-A signed, notarized download comes later. For now, build from source:
+Releases are published on this repository's GitHub Releases page, built by
+GitHub Actions from a version tag (`.github/workflows/release.yml`):
+
+1. Download `Hearsay-<version>.dmg` (and `SHA256SUMS.txt` if you want to
+   check it with `shasum -a 256 -c SHA256SUMS.txt`).
+2. Open the DMG and drag Hearsay to Applications.
+3. The first launch: releases are not notarized yet (there is no Developer
+   ID signing), so macOS blocks the app once. On macOS 14, right-click
+   Hearsay in Applications and choose Open. On macOS 15 and later, open it
+   once, then click Open Anyway in System Settings > Privacy & Security.
+
+Or build from source:
 
 1. Install Xcode 27, launch it once to accept the license, and select it:
    `sudo xcode-select -s /Applications/Xcode.app`.
@@ -172,6 +183,14 @@ Transcript, Reveal in Finder, and:
 - **Crash recovery:** the recording is written to disk as it goes. After a
   crash, the next launch offers Transcribe, Keep, or Delete.
 
+## Updates
+
+Hearsay asks GitHub once a day whether a newer release exists and, if so,
+offers to open its download page. Nothing is installed automatically and
+nothing else is sent. Turn it off, or check now, in Settings > General >
+Software updates; the app menu also has **Check for Updates…**. The version
+is shown there and in About Hearsay.
+
 ## Interface language and help
 
 - Settings > General > Interface language: English (default), Deutsch,
@@ -211,6 +230,9 @@ Hearsay is the native macOS version of the `whisper-tools` Python CLI
   vectors (`shared/*-tests.json`, run by the `HearsayCore` tests), the icon
   source (`shared/assets/`), and the test audio (`shared/fixtures/`).
 - `mac/Scripts/make-notices.sh` regenerates `mac/THIRD_PARTY_NOTICES.md`.
+- CI (`.github/workflows/ci.yml`) builds and tests every pull request; a
+  pushed `v*` tag publishes a release (`release.yml`, which uses
+  `mac/Scripts/make-dmg.sh`). See `.github/workflows/README.md`.
 
 ## License
 

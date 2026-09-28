@@ -263,6 +263,14 @@
   },
   {
     "catalog": "app",
+    "key": "Automatically check for updates",
+    "english": "Automatically check for updates",
+    "comment": "Settings > General > Software updates toggle",
+    "placeholders": [],
+    "translation": "自动检查更新"
+  },
+  {
+    "catalog": "app",
     "key": "Available once transcription lands",
     "english": "Available once transcription lands",
     "comment": "UI text in UnfinishedRecordingSheet.swift.",
@@ -310,6 +318,30 @@
       "%@"
     ],
     "translation": "检查 %@"
+  },
+  {
+    "catalog": "app",
+    "key": "Check Now",
+    "english": "Check Now",
+    "comment": "Settings > General > Software updates button",
+    "placeholders": [],
+    "translation": "立即检查"
+  },
+  {
+    "catalog": "app",
+    "key": "Check for Updates…",
+    "english": "Check for Updates…",
+    "comment": "App menu command",
+    "placeholders": [],
+    "translation": "检查更新…"
+  },
+  {
+    "catalog": "app",
+    "key": "Checks GitHub once a day for a new release. Nothing else is sent.",
+    "english": "Checks GitHub once a day for a new release. Nothing else is sent.",
+    "comment": "Settings > General caption under Automatically check for updates",
+    "placeholders": [],
+    "translation": "每天向 GitHub 检查一次是否有新版本，不会发送其他任何数据。"
   },
   {
     "catalog": "app",
@@ -370,6 +402,14 @@
       "%@"
     ],
     "translation": "已连接。回复：%@"
+  },
+  {
+    "catalog": "app",
+    "key": "Could not check for updates.",
+    "english": "Could not check for updates.",
+    "comment": "Update check failed alert title",
+    "placeholders": [],
+    "translation": "无法检查更新。"
   },
   {
     "catalog": "app",
@@ -633,7 +673,7 @@
     "catalog": "app",
     "key": "Download",
     "english": "Download",
-    "comment": "UI text in ModelRowView.swift.",
+    "comment": "Button: download. Also used on the Models tab for a model; here it opens the release page of a new version",
     "placeholders": [],
     "translation": "下载"
   },
@@ -774,6 +814,16 @@
       "%d"
     ],
     "translation": "全局快捷键不可用（错误 %d）。"
+  },
+  {
+    "catalog": "app",
+    "key": "Hearsay %@ is available.",
+    "english": "Hearsay %@ is available.",
+    "comment": "Update check result. %@ is the new version.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Hearsay %@ 已推出。"
   },
   {
     "catalog": "app",
@@ -945,9 +995,19 @@
   },
   {
     "catalog": "app",
+    "key": "Last checked %@",
+    "english": "Last checked %@",
+    "comment": "Settings > General > Software updates. %@ is a date and time.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "上次检查：%@"
+  },
+  {
+    "catalog": "app",
     "key": "Later",
     "english": "Later",
-    "comment": "Alert button: keep running; the language changes at the next launch",
+    "comment": "Alert button: keep running; the language changes at the next launch\nUpdate available alert button: do nothing now",
     "placeholders": [],
     "translation": "稍后"
   },
@@ -1228,6 +1288,14 @@
     "comment": "History header when the output folder cannot be opened",
     "placeholders": [],
     "translation": "无输出文件夹"
+  },
+  {
+    "catalog": "app",
+    "key": "Not checked yet",
+    "english": "Not checked yet",
+    "comment": "Settings > General > Software updates: no check has succeeded",
+    "placeholders": [],
+    "translation": "尚未检查"
   },
   {
     "catalog": "app",
@@ -1813,6 +1881,14 @@
   },
   {
     "catalog": "app",
+    "key": "Software updates",
+    "english": "Software updates",
+    "comment": "Settings > General section header",
+    "placeholders": [],
+    "translation": "软件更新"
+  },
+  {
+    "catalog": "app",
     "key": "Some files could not be moved to the Trash:",
     "english": "Some files could not be moved to the Trash:",
     "comment": "History error, followed by one line per file",
@@ -2066,6 +2142,14 @@
     "comment": "Naming sheet explanation. Translate the words inside <timestamp>_<name> but keep the angle brackets and underscore.",
     "placeholders": [],
     "translation": "转录稿和录音将重命名为 <时间戳>_<名称>。"
+  },
+  {
+    "catalog": "app",
+    "key": "This build of Hearsay has no update repository set.",
+    "english": "This build of Hearsay has no update repository set.",
+    "comment": "Update check error: Info.plist has no HearsayUpdateRepository",
+    "placeholders": [],
+    "translation": "此版本的 Hearsay 未设置更新来源。"
   },
   {
     "catalog": "app",
@@ -2365,6 +2449,17 @@
   },
   {
     "catalog": "app",
+    "key": "Version %@ (%@)",
+    "english": "Version %1$@ (%2$@)",
+    "comment": "Settings > General > Software updates. %1$@ is the version, %2$@ the build number.",
+    "placeholders": [
+      "%@",
+      "%@"
+    ],
+    "translation": "版本 %1$@（%2$@）"
+  },
+  {
+    "catalog": "app",
     "key": "Waiting for your answer…",
     "english": "Waiting for your answer…",
     "comment": "UI text in NotesFlowView.swift.",
@@ -2404,6 +2499,26 @@
       "%@"
     ],
     "translation": "写入录音失败：%@"
+  },
+  {
+    "catalog": "app",
+    "key": "You have version %@. The download page opens in your browser.",
+    "english": "You have version %@. The download page opens in your browser.",
+    "comment": "Update available alert. %@ is the installed version.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "当前使用的是版本 %@。下载页面会在浏览器中打开。"
+  },
+  {
+    "catalog": "app",
+    "key": "You're up to date (%@).",
+    "english": "You're up to date (%@).",
+    "comment": "Update check result. %@ is the installed version.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Hearsay 已是最新版本（%@）。"
   },
   {
     "catalog": "app",
@@ -2792,6 +2907,14 @@
   },
   {
     "catalog": "core",
+    "key": "Could not reach GitHub. Check your internet connection and try again.",
+    "english": "Could not reach GitHub. Check your internet connection and try again.",
+    "comment": "Update check error",
+    "placeholders": [],
+    "translation": "无法连接到 GitHub。请检查互联网连接后重试。"
+  },
+  {
+    "catalog": "core",
     "key": "Could not select %@ (CoreAudio error %d).",
     "english": "Could not select %1$@ (CoreAudio error %2$d).",
     "comment": "Recording error. %1$@ is the input device name, %2$d a CoreAudio error number.",
@@ -2885,6 +3008,24 @@
       "%@"
     ],
     "translation": "GitHub Copilot CLI 调用失败。请检查 Copilot 登录状态和模型配置：%@"
+  },
+  {
+    "catalog": "core",
+    "key": "GitHub answered the update check with HTTP status %lld.",
+    "english": "GitHub answered the update check with HTTP status %lld.",
+    "comment": "Update check error. %lld is an HTTP status code.",
+    "placeholders": [
+      "%lld"
+    ],
+    "translation": "GitHub 响应更新检查的 HTTP 状态码为 %lld。"
+  },
+  {
+    "catalog": "core",
+    "key": "GitHub sent a release description Hearsay could not read.",
+    "english": "GitHub sent a release description Hearsay could not read.",
+    "comment": "Update check error",
+    "placeholders": [],
+    "translation": "GitHub 返回的版本信息 Hearsay 无法读取。"
   },
   {
     "catalog": "core",
@@ -3008,6 +3149,14 @@
     "comment": "Recording error",
     "placeholders": [],
     "translation": "没有可用的输入设备。"
+  },
+  {
+    "catalog": "core",
+    "key": "No releases have been published yet.",
+    "english": "No releases have been published yet.",
+    "comment": "Update check result: the GitHub repository has no release",
+    "placeholders": [],
+    "translation": "尚未发布任何版本。"
   },
   {
     "catalog": "core",

@@ -47,6 +47,26 @@ final class AppSettingsTests {
         #expect(AppSettings(defaults: defaults).keepRecording == false)
     }
 
+    @Test func automaticUpdateChecksDefaultOnAndRoundTrips() {
+        let defaults = scratch.make()
+        let settings = AppSettings(defaults: defaults)
+        #expect(settings.automaticUpdateChecks)
+        settings.automaticUpdateChecks = false
+        #expect(AppSettings(defaults: defaults).automaticUpdateChecks == false)
+    }
+
+    @Test func lastUpdateCheckRoundTripsAndClears() {
+        let defaults = scratch.make()
+        let settings = AppSettings(defaults: defaults)
+        #expect(settings.lastUpdateCheck == nil)
+        let date = Date(timeIntervalSince1970: 1_790_000_000)
+        settings.lastUpdateCheck = date
+        #expect(AppSettings(defaults: defaults).lastUpdateCheck == date)
+        settings.lastUpdateCheck = nil
+        #expect(defaults.object(forKey: AppSettings.Key.lastUpdateCheck) == nil)
+        #expect(AppSettings(defaults: defaults).lastUpdateCheck == nil)
+    }
+
     @Test func languageDefaultsForFreshInstall() {
         let defaults = scratch.make()
         let settings = AppSettings(defaults: defaults)

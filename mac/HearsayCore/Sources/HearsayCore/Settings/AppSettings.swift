@@ -50,6 +50,8 @@ public final class AppSettings {
         /// read only to migrate a stored "zh" into ZH-TW or ZH-CN.
         public static let chineseScript = "chineseScript"
         public static let interfaceLanguage = "interfaceLanguage"
+        public static let automaticUpdateChecks = "automaticUpdateChecks"
+        public static let lastUpdateCheck = "lastUpdateCheck"
     }
 
     @ObservationIgnored private let defaults: UserDefaults
@@ -147,6 +149,24 @@ public final class AppSettings {
         didSet { defaults.set(interfaceLanguage.rawValue, forKey: Key.interfaceLanguage) }
     }
 
+    /// "Automatically check for updates" (Settings > General > Software
+    /// updates, PLAN.md 4.6). Default on: at most once a day Hearsay asks
+    /// GitHub for the latest release.
+    public var automaticUpdateChecks: Bool {
+        didSet { defaults.set(automaticUpdateChecks, forKey: Key.automaticUpdateChecks) }
+    }
+
+    /// When the last update check succeeded, or nil when none has.
+    public var lastUpdateCheck: Date? {
+        didSet {
+            if let lastUpdateCheck {
+                defaults.set(lastUpdateCheck, forKey: Key.lastUpdateCheck)
+            } else {
+                defaults.removeObject(forKey: Key.lastUpdateCheck)
+            }
+        }
+    }
+
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         let rawMode = defaults.string(forKey: Key.windowMode) ?? ""
@@ -162,6 +182,8 @@ public final class AppSettings {
         self.keepRecording = defaults.object(forKey: Key.keepRecording) as? Bool ?? true
         self.interfaceLanguage = InterfaceLanguage(
             rawValue: defaults.string(forKey: Key.interfaceLanguage) ?? "") ?? .english
+        self.automaticUpdateChecks = defaults.object(forKey: Key.automaticUpdateChecks) as? Bool ?? true
+        self.lastUpdateCheck = defaults.object(forKey: Key.lastUpdateCheck) as? Date
     }
 
     /// The stored choice (a legacy "zh" migrated and persisted); otherwise

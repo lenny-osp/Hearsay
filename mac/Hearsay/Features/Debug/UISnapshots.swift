@@ -82,7 +82,7 @@ enum UISnapshots {
         let context = Context(
             settings: settings, modelStore: modelStore, aiStore: aiStore, controller: controller,
             engine: delegate.whisperEngine, hotkeys: hotkeys, tabs: tabs, opener: opener,
-            relauncher: delegate.relauncher
+            relauncher: delegate.relauncher, updates: delegate.updateService
         )
         let language = InterfaceLanguageLaunch.applied
         say("language \(language.code), bundle localization \(Bundle.main.preferredLocalizations.first ?? "none")")
@@ -243,6 +243,7 @@ enum UISnapshots {
         let tabs: MainTabSelection
         let opener: MainWindowOpener
         let relauncher: AppRelauncher
+        let updates: UpdateService
 
         func apply(to view: some View) -> some View {
             view
@@ -256,6 +257,7 @@ enum UISnapshots {
                 .environment(tabs)
                 .environment(opener)
                 .environment(relauncher)
+                .environment(updates)
         }
     }
 

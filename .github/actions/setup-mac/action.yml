@@ -1,0 +1,61 @@
+name: Set up the macOS build
+description: >-
+  Selects the newest stable Xcode on the runner, installs XcodeGen and (when
+  missing) the Metal Toolchain, and restores the SwiftPM checkouts. Shared by
+  ci.yml and release.yml. Never downloads speech models.
+inputs:
+  app:
+    description: "'true' (default) also prepares the app build: XcodeGen, Metal Toolchain, SwiftPM cache. 'false' only selects Xcode."
+    required: false
+    default: "true"
+runs:
+  using: composite
+  steps:
+    - name: Select the newest Xcode
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo "Installed:"; ls -d /Applications/Xcode*.app
+        # Stable releases only (Xcode_26.3.app, Xcode_16.app); betas and
+        # release candidates carry a suffix and are skipped.
+        latest=$(ls -d /Applications/Xcode_*.app \
+          | sed -E 's#^/Applications/Xcode_(.*)\.app$#\1#' \
+          | grep -E '^[0-9]+(\.[0-9]+)*$' \
+          | sort -t. -k1,1n -k2,2n -k3,3n | tail -n 1)
+        sudo xcode-select -s "/Applications/Xcode_${latest}.app"
+        xcodebuild -version
+        swift --version
+
+    - name: Install XcodeGen
+      if: inputs.app == 'true'
+      shell: bash
+      run: |
+        command -v xcodegen >/dev/null || brew install xcodegen
+        xcodegen --version
+
+    - name: Install the Metal Toolchain if needed
+      if: inputs.app == 'true'
+      shell: bash
+      run: |
+        # Xcode 26 and later ship the Metal compiler as a separate component;
+        # MLX compiles its kernels with it. `xcrun -f metal` can find a stub
+        # that only prints "missing Metal Toolchain", so run it too.
+        if xcrun -f metal >/dev/null 2>&1 && xcrun metal --version >/dev/null 2>&1; then
+          echo "Metal Toolchain present"
+        else
+          xcodebuild -downloadComponent MetalToolchain
+          xcrun metal --version
+        fi
+
+    - name: Restore SwiftPM checkouts
+      if: inputs.app == 'true'
+      uses: actions/cache@v4
+      with:
+        path: |
+          mac/.build/derived/SourcePackages/checkouts
+          mac/.build/derived/SourcePackages/repositories
+          mac/HearsayWhisper/.build/derived/SourcePackages/checkouts
+          mac/HearsayWhisper/.build/derived/SourcePackages/repositories
+        key: spm-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mac/**/Package.resolved', 'mac/**/Package.swift') }}
+        restore-keys: |
+          spm-${{ runner.os }}-${{ runner.arch }}-
