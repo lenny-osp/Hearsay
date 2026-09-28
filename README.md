@@ -11,7 +11,7 @@ unless you confirm that step.
 
 - A Mac with Apple Silicon (M1 or later).
 - macOS 14 Sonoma or later.
-- To build: Xcode 27 with the Metal Toolchain component, and XcodeGen.
+- To build: Xcode 26.6 or later with the Metal Toolchain component, and XcodeGen (CI builds with Xcode 26.6; the owner uses 27).
 - Disk space for one speech model (74 MB to 3.08 GB).
 
 ## Install
@@ -29,7 +29,7 @@ GitHub Actions from a version tag (`.github/workflows/release.yml`):
 
 Or build from source:
 
-1. Install Xcode 27, launch it once to accept the license, and select it:
+1. Install Xcode 26.6 or later, launch it once to accept the license, and select it:
    `sudo xcode-select -s /Applications/Xcode.app`.
 2. Install the Metal Toolchain (about 840 MB):
    `xcodebuild -downloadComponent MetalToolchain`.
