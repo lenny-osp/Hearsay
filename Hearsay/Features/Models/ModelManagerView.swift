@@ -1,3 +1,4 @@
+import AppKit
 import HearsayCore
 import SwiftUI
 
@@ -76,7 +77,10 @@ struct ModelManagerView: View {
             }
             Spacer()
             if FileManager.default.fileExists(atPath: store.rootURL.path) {
-                Button("Show in Finder") { openURL(store.rootURL) }
+                // SwiftUI openURL silently ignores folder URLs in ~/Library; ask Finder directly.
+                Button("Show in Finder") {
+                    NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: store.rootURL.path)
+                }
                     .controlSize(.small)
             }
         }
