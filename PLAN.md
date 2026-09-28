@@ -553,6 +553,15 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
 
 ## 17. Polish list (found during review, not yet scheduled)
 
+- Unit tests that use `UserDefaults(suiteName:)` leave a plist per test in
+  `~/Library/Preferences` (1,341 removed by hand on 2026-09-28). Tests must
+  call `removePersistentDomain(forName:)` and delete the file in teardown.
+- The old sandbox container `~/Library/Containers/tw.og1o.hearsay/` still
+  exists, so the `defaults` command reads its stale copy of the settings,
+  not the app's real `~/Library/Preferences/tw.og1o.hearsay.plist`. Use
+  `plutil -p` on the real file when checking settings, and consider asking
+  the owner to delete the container.
+
 - **To do (owner request 2026-09-28): write a Windows version plan**
   (`PLAN-WINDOWS.md`, beside this file; plan only, no code yet). Starting
   points agreed in discussion: native C# / .NET app (WinUI 3 or WPF) with a
