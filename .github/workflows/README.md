@@ -43,7 +43,14 @@ there is no Apple Developer account yet. The release notes then tell users
 how to open it the first time (macOS 14: right-click > Open; macOS 15 and
 later: System Settings > Privacy & Security > Open Anyway).
 
-The signing steps run only when the `MACOS_CERTIFICATE_P12` secret exists.
+The signing steps run only when the `MACOS_CERTIFICATE_P12` secret exists;
+notarization additionally needs `APPLE_ID`, `APPLE_TEAM_ID`, and
+`APPLE_APP_PASSWORD`. Today the secrets hold a **self-signed** certificate
+("Hearsay Code Signing (self-signed)", created 2026-09-28, valid to 2036,
+master copy in the owner's login keychain). It does not satisfy Gatekeeper,
+but it gives every build the same code-signing identity, so macOS keeps the
+Microphone and Screen & System Audio Recording permissions across updates.
+Replacing it with a Developer ID certificate needs no workflow change.
 Add these repository secrets (Settings > Secrets and variables > Actions):
 
 | Secret | What it is |

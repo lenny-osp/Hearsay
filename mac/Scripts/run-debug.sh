@@ -53,6 +53,16 @@ if ! grep -q "BUILD SUCCEEDED" .build/run-debug.log; then
   exit 1
 fi
 APP=.build/derived/Build/Products/$CONFIGURATION/Hearsay.app
+# Re-sign with a stable identity when one is in the keychain, so macOS keeps
+# the Microphone and Screen & System Audio Recording grants across builds.
+# An ad-hoc signature changes with every build and loses them. Override the
+# name with HEARSAY_SIGNING_IDENTITY; set it to "-" to keep ad-hoc signing.
+IDENTITY="${HEARSAY_SIGNING_IDENTITY:-Hearsay Code Signing (self-signed)}"
+if [[ $IDENTITY != "-" ]] && security find-identity -v -p codesigning 2>/dev/null | grep -q "\"$IDENTITY\""; then
+  codesign --force --deep --options runtime --timestamp=none \
+    --entitlements Hearsay/Hearsay.entitlements --sign "$IDENTITY" "$APP" \
+    && echo "Signed with: $IDENTITY" || echo "Signing with $IDENTITY failed; the build stays ad-hoc signed" >&2
+fi
 echo "Built $CONFIGURATION: $APP"
 [[ $OPEN == 1 ]] && open "$APP"
 exit 0

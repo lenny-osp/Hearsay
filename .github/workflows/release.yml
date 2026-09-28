@@ -28,9 +28,12 @@ jobs:
     timeout-minutes: 90
     env:
       CI: "1"
-      # Secrets cannot be tested in a step's `if:`; this is "true" only when
-      # the Developer ID certificate secret exists.
+      # Secrets cannot be tested in a step's `if:`. HAS_SIGNING is "true" when
+      # a code-signing certificate secret exists (today a self-signed one, so
+      # permissions survive updates); HAS_NOTARIZATION when the Apple ID
+      # secrets for notarization exist as well (needs a Developer ID cert).
       HAS_SIGNING: ${{ secrets.MACOS_CERTIFICATE_P12 != '' }}
+      HAS_NOTARIZATION: ${{ secrets.MACOS_CERTIFICATE_P12 != '' && secrets.APPLE_ID != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-mac
@@ -73,9 +76,9 @@ jobs:
           [[ -n $repository && $repository != *'$('* ]] \
             || { echo "::error::HearsayUpdateRepository is not set"; exit 1; }
 
-      # ---- Developer ID signing and notarization: skipped unless the ----
-      # ---- MACOS_CERTIFICATE_P12 secret exists (see README.md here). ----
-      - name: "Signing (optional): import the Developer ID certificate"
+      # ---- Signing: skipped unless the MACOS_CERTIFICATE_P12 secret exists; ----
+      # ---- notarization also needs the APPLE_* secrets (see README.md here). ----
+      - name: "Signing (optional): import the code-signing certificate"
         if: env.HAS_SIGNING == 'true'
         env:
           MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
@@ -100,16 +103,20 @@ jobs:
           MACOS_SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
         run: |
           identity="${MACOS_SIGNING_IDENTITY:-Developer ID Application}"
-          codesign --force --deep --options runtime --timestamp \
+          # Apple's timestamp service is only meaningful for a notarized build.
+          timestamp="--timestamp=none"; [[ $HAS_NOTARIZATION == true ]] && timestamp="--timestamp"
+          codesign --force --deep --options runtime "$timestamp" \
             --entitlements mac/Hearsay/Hearsay.entitlements --sign "$identity" "$APP"
+          codesign -dv --verbose=2 "$APP" 2>&1 | grep -E '^Authority|designated' || true
+          codesign -d -r- "$APP" 2>&1 | grep designated || true
           codesign --verify --deep --strict --verbose=2 "$APP"
           echo "SIGNING_IDENTITY=$identity" >> "$GITHUB_ENV"
 
       - name: Make the DMG
         run: mac/Scripts/make-dmg.sh "$APP" "$VERSION" "$DMG"
 
-      - name: "Signing (optional): sign, notarize, and staple the DMG"
-        if: env.HAS_SIGNING == 'true'
+      - name: "Notarization (optional): sign, notarize, and staple the DMG"
+        if: env.HAS_NOTARIZATION == 'true'
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -136,10 +143,14 @@ jobs:
             echo "Download \`Hearsay-$VERSION.dmg\`, open it, and drag Hearsay to Applications."
             echo "Requires a Mac with Apple Silicon and macOS 14 or later."
             echo
-            if [[ $HAS_SIGNING == true ]]; then
+            if [[ $HAS_NOTARIZATION == true ]]; then
               echo "This build is signed with Developer ID and notarized by Apple."
             else
-              echo "**This build is not notarized** (ad-hoc signed). macOS blocks it the first time:"
+              if [[ $HAS_SIGNING == true ]]; then
+                echo "**This build is not notarized** (signed with Hearsay's own certificate, so macOS keeps your permissions across updates). macOS blocks it the first time:"
+              else
+                echo "**This build is not notarized** (ad-hoc signed). macOS blocks it the first time:"
+              fi
               echo
               echo "- macOS 14: right-click Hearsay in Applications, choose Open, then Open again."
               echo "- macOS 15 and later: open Hearsay once, then go to System Settings > Privacy & Security and click Open Anyway."
