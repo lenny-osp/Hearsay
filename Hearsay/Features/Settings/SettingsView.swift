@@ -32,8 +32,12 @@ private struct GeneralSettingsView: View {
         Form {
             LaunchAtLoginSection()
             Section("Transcription") {
+                PreferredLanguagePicker()
+                Text("Used when Auto can't tell the language.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 ChineseScriptPicker()
-                Text("Applies to ZH transcripts. English is never changed.")
+                Text("Applies to Chinese transcripts. Other languages are never changed.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -104,6 +108,22 @@ private struct LaunchAtLoginSection: View {
     private func openLoginItems() {
         guard let url = Self.loginItemsURL else { return }
         NSWorkspace.shared.open(url)
+    }
+}
+
+/// "Preferred language" (Settings > General): what Auto falls back to when
+/// detection is unsure. The only control that writes
+/// `AppSettings.preferredLanguage`.
+private struct PreferredLanguagePicker: View {
+    @Environment(AppSettings.self) private var settings
+
+    var body: some View {
+        @Bindable var settings = settings
+        Picker("Preferred language", selection: $settings.preferredLanguage) {
+            ForEach(TranscriptLanguage.allCases, id: \.self) { language in
+                Text(language.displayName).tag(language)
+            }
+        }
     }
 }
 

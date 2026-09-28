@@ -22,6 +22,11 @@ struct ConfirmSendSheet: View {
                     Text(store.configuration.model.isEmpty ? "(none set)" : store.configuration.model)
                 }
                 GridRow {
+                    Text("Notes language:").foregroundStyle(.secondary)
+                    Text(model.languageLine)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                GridRow {
                     Text("Transcript:").foregroundStyle(.secondary)
                     Text("\(model.transcriptCharacterCount.formatted()) characters")
                 }

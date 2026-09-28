@@ -22,6 +22,8 @@ final class FileViewModel {
     enum Phase: Equatable {
         case idle
         case loading(source: URL)
+        /// Auto: detecting the language before transcribing.
+        case detecting(source: URL)
         case transcribing(source: URL, progress: Double)
         case finished(srt: URL, source: URL)
         case failed(message: String)
@@ -34,12 +36,24 @@ final class FileViewModel {
     private(set) var notesRequest: URL?
     /// Short note shown in the idle state, e.g. after Cancel.
     private(set) var note: String?
+    /// The language of the last file and how it was chosen (PLAN.md
+    /// section 1, "Languages").
+    private(set) var tracker: SessionLanguageTracker?
+    /// The suggestion or fallback banner of the last file.
+    private(set) var languageNotice: LanguageNotice?
+    /// Why the last "Transcribe again" failed.
+    private(set) var rerunError: String?
+    /// The last detection result, for the debug path.
+    private(set) var lastDetection: DetectionResult?
 
     @ObservationIgnored private let settings: AppSettings
     @ObservationIgnored private let modelStore: ModelStore
     @ObservationIgnored private let engine: WhisperEngine
     @ObservationIgnored private var job = 0
     @ObservationIgnored private var runTask: Task<Void, Never>?
+    /// The decoded samples and model of the last file, held while a
+    /// language notice offers a re-run.
+    @ObservationIgnored private var rerunInput: (samples: [Float], location: WhisperModelLocation)?
 
     init(settings: AppSettings, modelStore: ModelStore, engine: WhisperEngine) {
         self.settings = settings
@@ -48,16 +62,27 @@ final class FileViewModel {
     }
 
     /// Shared with the Record tab.
-    var languageCode: String {
-        get { settings.defaultLanguageCode }
-        set { settings.defaultLanguageCode = newValue }
+    var languageChoice: LanguageChoice {
+        get { settings.languageChoice }
+        set { settings.languageChoice = newValue }
     }
+
+    /// The resolved language of the last file: what its SRT, the Chinese
+    /// conversion, and the notes flow use.
+    var sessionLanguage: TranscriptLanguage? { tracker?.language }
 
     var isBusy: Bool {
         switch phase {
-        case .loading, .transcribing: true
+        case .loading, .detecting, .transcribing: true
         case .idle, .finished, .failed: false
         }
+    }
+
+    /// The language notice's buttons apply: the file is finished and its
+    /// samples are still held.
+    var canRerun: Bool {
+        if case .finished = phase, rerunInput != nil { return true }
+        return false
     }
 
     var errorMessage: String? {
@@ -88,16 +113,37 @@ final class FileViewModel {
         }
     }
 
+    /// "Dismiss" on the suggestion banner.
+    func dismissLanguageNotice() {
+        languageNotice = nil
+        rerunInput = nil
+    }
+
+    /// A language notice button: transcribes the last file again in
+    /// `language` and rewrites the same SRT. Never changes `languageChoice`
+    /// or `preferredLanguage`.
+    func transcribeAgain(in language: TranscriptLanguage) {
+        guard canRerun, !isBusy else { return }
+        runTask = Task { await rerun(in: language) }
+    }
+
     /// Runs the whole flow and returns the SRT, or nil after a failure
     /// (the message is in `phase`). `location` overrides the active model
-    /// (debug entry point only).
+    /// and `choice` the Language picker (debug entry point only).
     @discardableResult
-    func run(source: URL, location override: WhisperModelLocation? = nil) async -> URL? {
+    func run(
+        source: URL, location override: WhisperModelLocation? = nil, choice: LanguageChoice? = nil
+    ) async -> URL? {
         job += 1
         let id = job
         needsModel = false
         notesRequest = nil
         note = nil
+        languageNotice = nil
+        rerunError = nil
+        rerunInput = nil
+        lastDetection = nil
+        tracker = nil
 
         let location: WhisperModelLocation
         if let override {
@@ -124,23 +170,49 @@ final class FileViewModel {
         }
         defer { folder.stopAccessing() }
 
+        var tracker = SessionLanguageTracker(
+            choice: choice ?? languageChoice, preferred: settings.preferredLanguage
+        )
         do {
             let samples = try await Task.detached(priority: .userInitiated) {
                 try AudioFileLoader.loadMono16k(url: source)
             }.value
             try Task.checkCancellation()
+            if tracker.isUndecided {
+                // Auto: detect first; unsure or no speech falls back to the
+                // preferred language.
+                phase = .detecting(source: source)
+                let detection = try? await engine.detectLanguage(samples: samples, location: location)
+                try Task.checkCancellation()
+                lastDetection = detection
+                tracker.finish(detection: detection?.decisionInput)
+            }
+            guard let language = tracker.language else { throw CancellationError() }
+            self.tracker = tracker
             phase = .transcribing(source: source, progress: 0)
             let result = try await engine.transcribe(
                 samples: samples, location: location,
-                options: TranscriptionOptions.app(languageCode: languageCode),
+                options: TranscriptionOptions.app(language: language),
                 progress: { [weak self] value in
                     Task { @MainActor in self?.updateProgress(value, job: id) }
                 }
             )
-            let script = ChineseScript.app(languageCode: languageCode, settings: settings)
+            let script = ChineseScript.app(language: language, settings: settings)
             let srt = try Self.writeSRT(result.cues(script: script), for: source, in: folder.url)
             phase = .finished(srt: srt, source: source)
             notesRequest = srt
+            if !tracker.isSettled {
+                // Fixed language: one background check for a mismatch.
+                let detection = try? await engine.detectLanguage(samples: samples, location: location)
+                guard id == job else { return srt }
+                lastDetection = detection
+                tracker.finish(detection: detection?.decisionInput)
+                self.tracker = tracker
+            }
+            languageNotice = LanguageNotice(decision: tracker.decision)
+            if languageNotice != nil {
+                rerunInput = (samples, location)
+            }
             return srt
         } catch where error.isTranscriptionCancelled {
             phase = .idle
@@ -149,6 +221,48 @@ final class FileViewModel {
         } catch {
             phase = .failed(message: "Could not transcribe \(source.lastPathComponent): "
                 + RecordingController.describe(error))
+            return nil
+        }
+    }
+
+    /// One full pass over the held samples in `language`, written over the
+    /// same SRT. On failure or Cancel the previous SRT stays.
+    @discardableResult
+    func rerun(in language: TranscriptLanguage) async -> URL? {
+        guard case .finished(let srt, let source) = phase, let input = rerunInput, var tracker else { return nil }
+        job += 1
+        let id = job
+        rerunError = nil
+        let folder = try? TranscriptOutput.resolveFolder(settings: settings)
+        defer { folder?.stopAccessing() }
+        phase = .transcribing(source: source, progress: 0)
+        do {
+            let result = try await engine.transcribe(
+                samples: input.samples, location: input.location,
+                options: TranscriptionOptions.app(language: language),
+                progress: { [weak self] value in
+                    Task { @MainActor in self?.updateProgress(value, job: id) }
+                }
+            )
+            guard FileManager.default.fileExists(atPath: srt.path) else {
+                phase = .finished(srt: srt, source: source)
+                rerunError = "Could not transcribe again: \(srt.lastPathComponent) was moved or renamed."
+                return nil
+            }
+            let script = ChineseScript.app(language: language, settings: settings)
+            try TranscriptOutput.writeSRT(result.cues(script: script), to: srt)
+            tracker.choose(language)
+            self.tracker = tracker
+            languageNotice = nil
+            rerunInput = nil
+            phase = .finished(srt: srt, source: source)
+            notesRequest = srt
+            return srt
+        } catch {
+            phase = .finished(srt: srt, source: source)
+            if !error.isTranscriptionCancelled {
+                rerunError = "Could not transcribe again: \(RecordingController.describe(error))"
+            }
             return nil
         }
     }
@@ -181,12 +295,15 @@ final class FileViewModel {
     /// and `HEARSAY_MODEL_DIR=<dir>` (one folder holding both the model and
     /// the tokenizer files), transcribes that file with that folder,
     /// bypassing `ModelStore`, writes the SRT into the output folder, prints
-    /// its path to stdout (timings to stderr), and quits with status 0, or 1
-    /// on failure. `HEARSAY_LANGUAGE` (en / zh) is optional. The app is not
+    /// its path and the language decision to stdout (timings to stderr), and
+    /// quits with status 0, or 1 on failure. `HEARSAY_LANGUAGE` (auto, en,
+    /// zh, de, es) is optional and overrides the Language picker for this
+    /// run only. `settings` is the throwaway copy from `DebugDefaults`, so
+    /// nothing the run does reaches the user's settings. The app is not
     /// sandboxed, so both paths can be anywhere the user can read,
     /// relative to the working directory or absolute. Example:
     ///
-    ///     HEARSAY_TRANSCRIBE_FILE=Fixtures/en-30s.wav \
+    ///     HEARSAY_TRANSCRIBE_FILE=Fixtures/en-30s.wav HEARSAY_LANGUAGE=auto \
     ///     HEARSAY_MODEL_DIR=Spike/models/mlx-community_whisper-large-v3-turbo \
     ///     .build/derived/Build/Products/Debug/Hearsay.app/Contents/MacOS/Hearsay
     ///
@@ -199,20 +316,34 @@ final class FileViewModel {
               let directory = environment["HEARSAY_MODEL_DIR"], !directory.isEmpty
         else { return false }
         let model = FileViewModel(settings: settings, modelStore: modelStore, engine: engine)
-        if let language = environment["HEARSAY_LANGUAGE"], ["en", "zh"].contains(language) {
-            model.languageCode = language
-        }
+        let choice = environment["HEARSAY_LANGUAGE"].flatMap(LanguageChoice.init(storageValue:))
         let modelURL = URL(fileURLWithPath: directory, isDirectory: true)
         let source = URL(fileURLWithPath: file)
         Task { @MainActor in
             let start = Date()
             let srt = await model.run(
                 source: source,
-                location: WhisperModelLocation(modelDirectory: modelURL, tokenizerDirectory: modelURL)
+                location: WhisperModelLocation(modelDirectory: modelURL, tokenizerDirectory: modelURL),
+                choice: choice
             )
             let elapsed = Date().timeIntervalSince(start)
+            DebugDefaults.removeSuite()
             if let srt {
-                FileHandle.standardOutput.write(Data((srt.path + "\n").utf8))
+                var lines = [srt.path]
+                lines.append("choice \((choice ?? model.languageChoice).storageValue), preferred "
+                    + settings.preferredLanguage.code)
+                if let detection = model.lastDetection {
+                    lines.append(detection.debugSummary)
+                } else {
+                    lines.append("detection did not run or failed")
+                }
+                if let decision = model.tracker?.decision {
+                    lines.append("decision: " + decision.debugSummary)
+                }
+                if let notice = model.languageNotice {
+                    lines.append("notice: " + notice.message)
+                }
+                FileHandle.standardOutput.write(Data((lines.joined(separator: "\n") + "\n").utf8))
                 FileHandle.standardError.write(Data(String(
                     format: "hearsay debug: load + decode + transcribe %.2f s\n", elapsed
                 ).utf8))

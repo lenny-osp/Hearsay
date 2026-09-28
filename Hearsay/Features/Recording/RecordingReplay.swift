@@ -14,7 +14,9 @@ import os
 /// the totals to stderr, deletes everything it wrote, and quits with
 /// status 0 (1 when the final pass failed).
 ///
-/// `HEARSAY_LANGUAGE` (en / zh) is optional. `HEARSAY_REPLAY_SYSTEM=silence`
+/// `HEARSAY_LANGUAGE` (auto, en, zh, de, es; default en) is optional. Every
+/// language detection and the session's final language decision are
+/// printed to stdout. `HEARSAY_REPLAY_SYSTEM=silence`
 /// adds a second, silent source in place of system audio. Settings live in
 /// a throwaway defaults suite and every file goes to a temporary folder, so
 /// the user's settings, spool, and output folder are never touched
@@ -33,7 +35,8 @@ enum RecordingReplay {
         guard let file = environment["HEARSAY_REPLAY_FILE"], !file.isEmpty,
               let directory = environment["HEARSAY_MODEL_DIR"], !directory.isEmpty
         else { return false }
-        let language = environment["HEARSAY_LANGUAGE"].flatMap { ["en", "zh"].contains($0) ? $0 : nil } ?? "en"
+        let language = environment["HEARSAY_LANGUAGE"].flatMap(LanguageChoice.init(storageValue:))
+            ?? .fixed(.english)
         let silentSystem = environment["HEARSAY_REPLAY_SYSTEM"] == "silence"
         let modelURL = URL(fileURLWithPath: directory, isDirectory: true)
         Task { @MainActor in
@@ -44,6 +47,7 @@ enum RecordingReplay {
                 silentSystem: silentSystem,
                 engine: engine
             )
+            DebugDefaults.removeSuite()
             exit(status)
         }
         return true
@@ -60,7 +64,8 @@ enum RecordingReplay {
     }
 
     private static func run(
-        file: URL, location: WhisperModelLocation, language: String, silentSystem: Bool, engine: WhisperEngine
+        file: URL, location: WhisperModelLocation, language: LanguageChoice, silentSystem: Bool,
+        engine: WhisperEngine
     ) async -> Int32 {
         let samples: [Float]
         do {
@@ -89,7 +94,12 @@ enum RecordingReplay {
             say("cannot prepare \(output.path): \(error)")
             return 1
         }
-        settings.defaultLanguageCode = language
+        settings.languageChoice = language
+        if let preferred = UserDefaults.standard.string(forKey: AppSettings.Key.preferredLanguage)
+            .flatMap(TranscriptLanguage.init(rawValue:)) {
+            // Read only: the user's preferred language, copied into the suite.
+            settings.preferredLanguage = preferred
+        }
         settings.captureSystemAudio = silentSystem
         settings.keepRecording = false
 
@@ -128,6 +138,12 @@ enum RecordingReplay {
                 jobs[index]?.cues = cues
                 jobs[index]?.error = error
                 say(String(format: "%7.2f  job %d finished, %d cues%@", now, index, cues, error.map { ", error: \($0)" } ?? ""))
+            case let .detection(seconds, result, decision):
+                let line = String(format: "%7.2f  detection over %.1f s: ", now, seconds)
+                    + (result?.debugSummary ?? "failed")
+                    + (decision.map { "; settled: " + $0.debugSummary } ?? "; not settled")
+                say(line)
+                print(line)
             }
         }
 
@@ -149,8 +165,9 @@ enum RecordingReplay {
             say("window number \(shown.windowNumber)")
         }
         defer { window?.close() }
-        say(String(format: "replaying %@ (%.2f s), language %@, system audio %@",
-                   file.lastPathComponent, Double(samples.count) / 16_000, language, silentSystem ? "silence" : "off"))
+        say(String(format: "replaying %@ (%.2f s), language %@, preferred %@, system audio %@",
+                   file.lastPathComponent, Double(samples.count) / 16_000, language.storageValue,
+                   settings.preferredLanguage.code, silentSystem ? "silence" : "off"))
         clock.reset()
         controller.start()
         let snapshots = ProcessInfo.processInfo.environment["HEARSAY_REPLAY_SNAPSHOTS"]
@@ -197,6 +214,10 @@ enum RecordingReplay {
                    jobs.count, duringRecording, waitingAtStop, latencies.max() ?? 0,
                    controller.liveSegments.count, doneAt - stopAt))
 
+        print("decision: " + (controller.sessionDecision?.debugSummary ?? "none"))
+        if let notice = controller.languageNotice {
+            print("notice: " + notice.message)
+        }
         var failed = false
         switch controller.phase {
         case .finished(let srt, _):

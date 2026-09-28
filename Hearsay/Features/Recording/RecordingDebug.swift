@@ -28,6 +28,7 @@ enum RecordingDebug {
         else { return false }
         Task { @MainActor in
             let status = await record(seconds: seconds, deviceQuery: query)
+            DebugDefaults.removeSuite()
             exit(status)
         }
         return true

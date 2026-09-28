@@ -64,7 +64,8 @@ extension View {
 /// before quitting while a recording is active.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    let settings = AppSettings()
+    /// A throwaway copy when a debug entry point runs (see `DebugDefaults`).
+    let settings = AppSettings(defaults: DebugDefaults.defaults)
     let aiProviderStore = AIProviderStore()
     lazy var modelStore = ModelStore(settings: settings)
     let windowOpener = MainWindowOpener()
@@ -214,5 +215,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// status item windows, and other panels.
     private func isUserWindow(_ window: NSWindow) -> Bool {
         !(window is NSPanel) && window.styleMask.contains(.titled) && window.canBecomeMain
+    }
+}
+
+/// Debug entry points (`HEARSAY_TRANSCRIBE_FILE`, `HEARSAY_REPLAY_FILE`,
+/// `HEARSAY_RECORD_SECONDS`) run on a throwaway defaults suite, so they never
+/// write the user's settings, not even the one-time language migration in
+/// `AppSettings.init`. The copy starts with the user's values for the keys
+/// that shape a transcription, read without writing anything back.
+@MainActor
+enum DebugDefaults {
+    static let debugVariables = ["HEARSAY_TRANSCRIBE_FILE", "HEARSAY_REPLAY_FILE", "HEARSAY_RECORD_SECONDS"]
+    static let copiedKeys = [
+        AppSettings.Key.outputFolderBookmark,
+        AppSettings.Key.defaultLanguageCode,
+        AppSettings.Key.languageChoice,
+        AppSettings.Key.preferredLanguage,
+        AppSettings.Key.activeModelRepo,
+        AppSettings.Key.chineseScript,
+    ]
+
+    /// The suite name when a debug entry point was requested.
+    private static var suiteName: String?
+
+    /// `.standard` for a normal launch, a fresh suite for a debug run.
+    @MainActor
+    static var defaults: UserDefaults {
+        let environment = ProcessInfo.processInfo.environment
+        guard debugVariables.contains(where: { !(environment[$0] ?? "").isEmpty }) else { return .standard }
+        let name = suiteName ?? "tw.og1o.hearsay.debug-\(UUID().uuidString)"
+        guard let suite = UserDefaults(suiteName: name) else { return .standard }
+        if suiteName == nil {
+            suiteName = name
+            for key in copiedKeys {
+                if let value = UserDefaults.standard.object(forKey: key) {
+                    suite.set(value, forKey: key)
+                }
+            }
+        }
+        return suite
+    }
+
+    /// Removes the throwaway suite (call before a debug run exits).
+    @MainActor
+    static func removeSuite() {
+        guard let suiteName else { return }
+        UserDefaults.standard.removePersistentDomain(forName: suiteName)
     }
 }

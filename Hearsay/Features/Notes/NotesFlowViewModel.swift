@@ -40,6 +40,9 @@ final class NotesFlowViewModel {
     private(set) var retainedAudio: [URL] = []
     /// Template chosen in the confirm sheet for this run.
     var templateID: UUID
+    /// The confirm sheet's "Notes language" line: the language's name, or
+    /// the caller's explanation when the language was assumed.
+    private(set) var languageLine = ""
 
     let store: AIProviderStore
     @ObservationIgnored private let pipeline: NotesPipeline
@@ -68,10 +71,14 @@ final class NotesFlowViewModel {
 
     /// Starts the flow for a finished SRT. `timestamp` overrides the one in
     /// the SRT filename, as Python's `timestamp=` argument does.
-    func run(srtURL: URL, languageCode: String, timestamp: String? = nil) {
+    /// `languageNote` replaces the language's name in the confirm sheet.
+    func run(srtURL: URL, languageCode: String, languageNote: String? = nil, timestamp: String? = nil) {
         guard !isRunning else { return }
         self.srtURL = srtURL
         self.languageCode = languageCode
+        languageLine = languageNote
+            ?? TranscriptLanguage(rawValue: languageCode)?.displayName
+            ?? languageCode
         self.timestamp = timestamp
         notes = nil
         retainedAudio = []

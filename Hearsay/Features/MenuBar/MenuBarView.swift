@@ -26,7 +26,11 @@ struct MenuBarView: View {
                         .font(.caption)
                         .foregroundStyle(.orange)
                 }
-                if let line = recording.latestLiveLine {
+                if recording.isDetectingLanguage {
+                    Label("Detecting language…", systemImage: "globe")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else if let line = recording.latestLiveLine {
                     Text(line)
                         .font(.caption)
                         .foregroundStyle(.secondary)

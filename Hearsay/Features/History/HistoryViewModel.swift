@@ -126,11 +126,17 @@ final class HistoryViewModel {
 
     var isGeneratingNotes: Bool { notesModel?.isRunning == true }
 
-    func generateNotes(_ entry: HistoryEntry, store: AIProviderStore, languageCode: String) {
+    /// An older SRT has no stored language: the notes use the fixed
+    /// language choice, or the preferred language when the choice is Auto,
+    /// and the confirm sheet says so (`StoredTranscriptLanguage`).
+    func generateNotes(_ entry: HistoryEntry, store: AIProviderStore, settings: AppSettings) {
         guard Self.canGenerateNotes(entry), let srt = entry.srt, !isGeneratingNotes else { return }
+        let assumed = StoredTranscriptLanguage.assumed(
+            choice: settings.languageChoice, preferred: settings.preferredLanguage
+        )
         let model = NotesFlowViewModel(store: store)
         notesModel = model
-        model.run(srtURL: srt, languageCode: languageCode)
+        model.run(srtURL: srt, languageCode: assumed.language.code, languageNote: assumed.note)
         observeNotesCompletion()
     }
 

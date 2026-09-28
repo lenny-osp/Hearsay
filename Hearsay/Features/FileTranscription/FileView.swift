@@ -21,25 +21,27 @@ struct FileView: View {
     var body: some View {
         Form {
             Section {
-                Picker("Language", selection: $model.languageCode) {
-                    ForEach(RecordingController.languages, id: \.code) { language in
-                        Text(language.label).tag(language.code)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .disabled(model.isBusy)
-
-                // Same row and shared setting as the Record tab, only for ZH.
-                if model.languageCode == "zh" {
-                    ChineseScriptPicker()
-                        .pickerStyle(.segmented)
-                        .disabled(model.isBusy)
-                }
+                // Same picker and shared setting as the Record tab.
+                LanguageChoicePicker(isDisabled: model.isBusy)
 
                 dropZone
             }
 
             status
+
+            if let notice = model.languageNotice {
+                Section {
+                    LanguageNoticeView(
+                        notice: notice,
+                        isEnabled: model.canRerun,
+                        onRerun: { language in
+                            notes.reset()
+                            model.transcribeAgain(in: language)
+                        },
+                        onDismiss: { model.dismissLanguageNotice() }
+                    )
+                }
+            }
 
             if let notesModel = notes.notes {
                 Section("Meeting notes") {
@@ -102,6 +104,15 @@ struct FileView: View {
                     Button("Cancel") { model.cancel() }
                 }
             }
+        case .detecting(let source):
+            Section {
+                HStack(spacing: 10) {
+                    ProgressView().controlSize(.small)
+                    Text("Detecting the language of \(source.lastPathComponent)…")
+                    Spacer()
+                    Button("Cancel") { model.cancel() }
+                }
+            }
         case .transcribing(let source, let progress):
             Section {
                 VStack(alignment: .leading, spacing: 6) {
@@ -125,6 +136,14 @@ struct FileView: View {
                     .textSelection(.enabled)
                     .lineLimit(2)
                     .truncationMode(.middle)
+                if let language = model.sessionLanguage {
+                    LabeledContent("Language") { Text(language.displayName) }
+                }
+                if let rerunError = model.rerunError {
+                    Label(rerunError, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .textSelection(.enabled)
+                }
                 Button("Reveal in Finder", systemImage: "folder") { model.reveal() }
             }
         case .failed(let message):
@@ -145,8 +164,8 @@ struct FileView: View {
     }
 
     private func takeNotesRequest() {
-        guard let srt = model.takeNotesRequest() else { return }
-        notes.start(srtURL: srt, languageCode: model.languageCode, store: aiStore, settings: settings)
+        guard let srt = model.takeNotesRequest(), let language = model.sessionLanguage else { return }
+        notes.start(srtURL: srt, language: language, store: aiStore, settings: settings)
     }
 
     private static func isAccepted(_ url: URL) -> Bool {

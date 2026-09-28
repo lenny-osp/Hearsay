@@ -51,14 +51,18 @@ final class NotesHandoff {
     @ObservationIgnored private var folder: ResolvedOutputFolder?
 
     /// Starts the flow: the confirm sheet appears unless "Ask before
-    /// sending" is off, in which case generation starts at once.
-    func start(srtURL: URL, languageCode: String, store: AIProviderStore, settings: AppSettings) {
-        if notes?.isRunning == true { return }
+    /// sending" is off, in which case generation starts at once. The notes
+    /// are written in `language`, the session's resolved language. A flow
+    /// still waiting at the confirm sheet is replaced (the transcript was
+    /// just rewritten in another language); one that is further along is
+    /// left alone.
+    func start(srtURL: URL, language: TranscriptLanguage, store: AIProviderStore, settings: AppSettings) {
+        if let notes, notes.isRunning, notes.phase != .confirming { return }
         releaseFolder()
         folder = try? TranscriptOutput.resolveFolder(settings: settings)
         let model = NotesFlowViewModel(store: store)
         notes = model
-        model.run(srtURL: srtURL, languageCode: languageCode)
+        model.run(srtURL: srtURL, languageCode: language.code)
     }
 
     /// Clears a finished flow.

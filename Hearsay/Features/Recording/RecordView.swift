@@ -30,20 +30,8 @@ struct RecordView: View {
                 Toggle("Also capture system audio", isOn: $model.captureSystemAudio)
                     .disabled(model.isSessionActive)
 
-                Picker("Language", selection: $model.languageCode) {
-                    ForEach(RecordingController.languages, id: \.code) { language in
-                        Text(language.label).tag(language.code)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .disabled(model.isSessionActive)
-
-                // Its own row below the language picker, only for ZH.
-                if model.languageCode == "zh" {
-                    ChineseScriptPicker()
-                        .pickerStyle(.segmented)
-                        .disabled(model.isSessionActive)
-                }
+                // The script row follows on its own row for ZH and Auto.
+                LanguageChoicePicker(isDisabled: model.isSessionActive)
             }
 
             Section {
@@ -85,6 +73,17 @@ struct RecordView: View {
             if model.isCapturing || model.phase == .stopping || !model.liveSegments.isEmpty
                 || model.liveNotice != nil {
                 liveTranscript
+            }
+
+            if let notice = model.languageNotice {
+                Section {
+                    LanguageNoticeView(
+                        notice: notice,
+                        isEnabled: model.canChangeSessionLanguage,
+                        onRerun: { model.transcribeAgain(in: $0) },
+                        onDismiss: { model.dismissLanguageNotice() }
+                    )
+                }
             }
 
             if let progress = model.transcriptionProgress {
@@ -135,6 +134,14 @@ struct RecordView: View {
                     if let wav = model.finishedRecording {
                         LabeledContent("Recording") { pathText(wav) }
                     }
+                    if let language = model.sessionLanguage, model.finishedTranscript != nil {
+                        LabeledContent("Language") { Text(language.displayName) }
+                    }
+                    if let rerunError = model.rerunError {
+                        Label(rerunError, systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                            .textSelection(.enabled)
+                    }
                     Button("Reveal in Finder", systemImage: "folder") {
                         model.revealInFinder()
                     }
@@ -167,8 +174,8 @@ struct RecordView: View {
 
     /// PLAN.md 4.3 step 1: the finished SRT goes straight to the notes flow.
     private func takeNotesRequest() {
-        guard let srt = model.takeNotesRequest() else { return }
-        notes.start(srtURL: srt, languageCode: model.sessionLanguageCode, store: aiStore, settings: settings)
+        guard let srt = model.takeNotesRequest(), let language = model.sessionLanguage else { return }
+        notes.start(srtURL: srt, language: language, store: aiStore, settings: settings)
     }
 
     /// Read-only live preview, newest line kept in view.
@@ -201,8 +208,13 @@ struct RecordView: View {
                 .frame(height: 200)
                 .overlay {
                     if cues.isEmpty {
-                        Text(model.isLivePreviewEnabled ? "The first lines appear after about 10 to 30 s." : "")
-                            .foregroundStyle(.secondary)
+                        if model.isDetectingLanguage {
+                            Label("Detecting language…", systemImage: "globe")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text(model.isLivePreviewEnabled ? "The first lines appear after about 10 to 30 s." : "")
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
                 .onChange(of: model.liveSegments.count) {
@@ -215,7 +227,10 @@ struct RecordView: View {
             HStack {
                 Text("Live preview")
                 Spacer()
-                if model.isLiveLagging {
+                if model.isDetectingLanguage {
+                    Label("Detecting language…", systemImage: "globe")
+                        .foregroundStyle(.secondary)
+                } else if model.isLiveLagging {
                     Label("\(model.liveChunksWaiting) chunks waiting", systemImage: "hourglass")
                         .foregroundStyle(.orange)
                         .help("The preview lags behind the recording but stays complete.")

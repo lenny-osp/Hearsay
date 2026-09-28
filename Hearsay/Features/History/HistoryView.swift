@@ -111,7 +111,7 @@ struct HistoryView: View {
         case .openSRT: model.open(entry.srt)
         case .reveal: model.reveal(entry)
         case .generateNotes:
-            model.generateNotes(entry, store: store, languageCode: settings.defaultLanguageCode)
+            model.generateNotes(entry, store: store, settings: settings)
         case .delete: model.pendingDelete = entry
         }
     }
