@@ -46,10 +46,15 @@ public final class Transcriber {
 
     /// Transcribe 16 kHz mono float samples in [-1, 1].
     /// `progress` receives the fraction of content frames done, 0...1.
+    /// `shouldCancel` (and `Task.isCancelled`, when called from a task) is
+    /// checked once per 30 s window before it is decoded; when either fires
+    /// the call throws `TranscriptionError.cancelled(partial:)` with the
+    /// segments decoded so far. Without it the call never cancels.
     public func transcribe(
         samples: [Float],
         options: TranscriptionOptions,
-        progress: (@Sendable (Double) -> Void)? = nil
+        progress: (@Sendable (Double) -> Void)? = nil,
+        shouldCancel: (@Sendable () -> Bool)? = nil
     ) throws -> Transcription {
         guard !options.temperatures.isEmpty else { throw TranscriptionError.noTemperatures }
         let nFrames = WhisperAudioConfig.nFrames
@@ -87,6 +92,9 @@ public final class Transcriber {
         // has no effect, as in the Python CLI whisper-tools runs.
 
         while seek < contentFrames {
+            if shouldCancel?() == true || Task.isCancelled {
+                throw TranscriptionError.cancelled(partial: allSegments)
+            }
             let timeOffset = Double(seek * hop) / Double(sampleRate)
             let segmentSize = min(nFrames, contentFrames - seek)
             let melWindow = padOrTrimFrames(mel[seek..<(seek + segmentSize)], length: nFrames)

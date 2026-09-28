@@ -109,6 +109,8 @@ public enum TranscriptionError: Error, Equatable, CustomStringConvertible {
     case unsupportedLanguage(String)
     case missingSpecialToken(String)
     case noTemperatures
+    /// Cancelled between windows; `partial` holds the segments decoded before.
+    case cancelled(partial: [TranscriptSegment])
 
     public var description: String {
         switch self {
@@ -116,6 +118,7 @@ public enum TranscriptionError: Error, Equatable, CustomStringConvertible {
         case .unsupportedLanguage(let language): return "Unsupported language: \(language)"
         case .missingSpecialToken(let name): return "The tokenizer has no \(name) token."
         case .noTemperatures: return "TranscriptionOptions.temperatures is empty."
+        case .cancelled(let partial): return "Transcription cancelled after \(partial.count) segments."
         }
     }
 }

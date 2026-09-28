@@ -56,6 +56,38 @@ struct IntegrationTests {
         #expect(computed.count == 82)
     }
 
+    @Test(.enabled(if: modelDirectory != nil))
+    func cancelBeforeSecondWindowKeepsFirstWindowSegments() async throws {
+        let transcriber = try await Self.loadTranscriber()
+        let clip = try Self.readWav(Self.fixtures.appendingPathComponent("en-30s.wav"))
+        let samples = clip + clip + clip  // 57 s: at least two windows
+        let calls = CallCounter()
+        do {
+            _ = try transcriber.transcribe(
+                samples: samples,
+                options: TranscriptionOptions(language: "en", temperatures: [0]),
+                shouldCancel: { calls.next() >= 2 }  // false for window 1, true for window 2
+            )
+            Issue.record("expected cancellation")
+        } catch let TranscriptionError.cancelled(partial) {
+            #expect(calls.count == 2)
+            #expect(!partial.isEmpty)
+            #expect(partial.allSatisfy { $0.seek == 0 })  // all from the first window
+            #expect(partial.first?.start == 0)
+        }
+    }
+
+    @Test(.enabled(if: modelDirectory != nil))
+    func noCancelClosureNeverCancels() async throws {
+        let transcriber = try await Self.loadTranscriber()
+        let clip = try Self.readWav(Self.fixtures.appendingPathComponent("en-30s.wav"))
+        let result = try transcriber.transcribe(
+            samples: clip + clip, options: TranscriptionOptions(language: "en", temperatures: [0]),
+            shouldCancel: { false }
+        )
+        #expect(result.segments.contains { $0.seek > 0 })
+    }
+
     func compare(fixture: String, options: TranscriptionOptions, lowercase: Bool) async throws {
         let transcriber = try await Self.loadTranscriber()
         let samples = try Self.readWav(Self.fixtures.appendingPathComponent("\(fixture).wav"))
@@ -133,5 +165,25 @@ struct IntegrationTests {
             offset += 8 + size + (size & 1)
         }
         return samples
+    }
+}
+
+/// Thread-safe call counter for the `@Sendable` cancel closure.
+final class CallCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = 0
+
+    /// Increment and return the new count.
+    func next() -> Int {
+        lock.lock()
+        defer { lock.unlock() }
+        value += 1
+        return value
+    }
+
+    var count: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return value
     }
 }
