@@ -2483,7 +2483,33 @@
       }
     },
     "Hearsay Help" : {
-      "comment" : "Help menu item and the title of the help window"
+      "comment" : "Help menu item and the title of the help window",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay-Hilfe"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ayuda de Hearsay"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 帮助"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 說明"
+          }
+        }
+      }
     },
     "Hearsay could not restart." : {
       "comment" : "Alert when the automatic restart after a language change failed",

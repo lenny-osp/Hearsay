@@ -1,7 +1,6 @@
-<!-- TRANSLATE: copy of English -->
 <!DOCTYPE html>
 <!--
-  Hearsay Help, English. Translators: change the text only.
+  Hearsay Help, Simplified Chinese (zh-Hans). Translators: change the text only.
   - Set <html lang="..."> to the file's language (de, es, zh-Hant, zh-Hans).
   - Keep every id, href, class, <kbd>, <code>, and the whole <style> block.
   - Text inside <span class="ui"> is a label the app shows. Use the exact
@@ -9,11 +8,11 @@
   - macOS locations (System Settings > ...) use Apple's wording in your
     language; see Localization/GLOSSARY.md.
 -->
-<html lang="en">
+<html lang="zh-Hans-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Hearsay Help</title>
+<title>Hearsay 帮助</title>
 <style>
   :root {
     color-scheme: light dark;
@@ -86,118 +85,118 @@
 </head>
 <body>
 
-<h1>Hearsay Help</h1>
-<p class="lead">Record meetings and turn them into transcripts and notes on your Mac.</p>
+<h1>Hearsay 帮助</h1>
+<p class="lead">在 Mac 上录制会议，并将其转换为转录稿和笔记。</p>
 
 <nav>
 <ol>
-  <li><a href="#getting-started">Getting started</a></li>
-  <li><a href="#recording">Recording</a></li>
-  <li><a href="#file-mode">Transcribing a file</a></li>
-  <li><a href="#meeting-notes">Meeting notes</a></li>
-  <li><a href="#history">History</a></li>
-  <li><a href="#menu-bar">Menu bar and shortcuts</a></li>
-  <li><a href="#settings">Settings and more</a></li>
-  <li><a href="#troubleshooting">Troubleshooting</a></li>
-  <li><a href="#about">About</a></li>
+  <li><a href="#getting-started">入门</a></li>
+  <li><a href="#recording">录音</a></li>
+  <li><a href="#file-mode">转录文件</a></li>
+  <li><a href="#meeting-notes">会议笔记</a></li>
+  <li><a href="#history">历史记录</a></li>
+  <li><a href="#menu-bar">菜单栏和快捷键</a></li>
+  <li><a href="#settings">设置及其他</a></li>
+  <li><a href="#troubleshooting">故障排除</a></li>
+  <li><a href="#about">关于</a></li>
 </ol>
 </nav>
 
-<h2 id="getting-started">Getting started</h2>
-<p>Hearsay records your microphone and the sound of your calls and transcribes them on your Mac. Nothing leaves your Mac unless you send a transcript to an AI provider for meeting notes. You need a Mac with Apple Silicon and macOS 14 or later.</p>
+<h2 id="getting-started">入门</h2>
+<p>Hearsay 会录制你的麦克风和通话声音，并在 Mac 上完成转录。除非你将转录稿发送给 AI 提供方以生成会议笔记，否则任何内容都不会离开你的 Mac。需要配备 Apple 芯片且运行 macOS 14 或更高版本的 Mac。</p>
 <ol>
-  <li>Choose where files are saved in <a href="hearsay://open/settings-output"><span class="ui">Settings</span> &gt; <span class="ui">Output</span></a>. The default is the Hearsay folder in your Documents folder.</li>
-  <li>Open the <a href="hearsay://open/models"><span class="ui">Models</span> tab</a> and click <span class="ui">Download</span> next to a model. whisper-large-v3-turbo (1.61 GB) is recommended; whisper-large-v3-turbo-4bit (463 MB) is the smallest good option. If the model is not the <span class="ui">Active model</span>, click <span class="ui">Use</span>.</li>
-  <li>Press <span class="ui">Start</span> on the <a href="hearsay://open/record"><span class="ui">Record</span> tab</a>. When macOS asks, allow access to the microphone and to Screen &amp; System Audio Recording (Hearsay uses only the audio). You can change both later in System Settings &gt; Privacy &amp; Security.</li>
-  <li>If system audio stays silent after you allow it, quit and reopen Hearsay.</li>
+  <li>在<a href="hearsay://open/settings-output"><span class="ui">设置</span> &gt; <span class="ui">输出</span></a>中选择文件的保存位置。默认位置是“文稿”文件夹中的 Hearsay 文件夹。</li>
+  <li>打开<a href="hearsay://open/models"><span class="ui">模型</span>标签页</a>，点按模型旁边的<span class="ui">下载</span>。推荐使用 whisper-large-v3-turbo（1.61 GB）；whisper-large-v3-turbo-4bit（463 MB）是体积最小的可靠选择。如果该模型不是<span class="ui">当前模型</span>，请点按<span class="ui">使用</span>。</li>
+  <li>点按<span class="ui">开始</span>（位于<a href="hearsay://open/record"><span class="ui">录音</span>标签页</a>）。macOS 询问时，请允许访问麦克风以及录屏与系统录音（Hearsay 只使用音频）。之后可以在系统设置 &gt; 隐私与安全性中更改这两项。</li>
+  <li>如果允许后仍然录不到系统声音，请退出并重新打开 Hearsay。</li>
 </ol>
 
-<h2 id="recording">Recording</h2>
-<p>Use the <a href="hearsay://open/record"><span class="ui">Record</span> tab</a> to record a meeting and get a transcript.</p>
+<h2 id="recording">录音</h2>
+<p>使用<a href="hearsay://open/record"><span class="ui">录音</span>标签页</a>录制会议并获取转录稿。</p>
 <ol>
-  <li>Choose the <span class="ui">Microphone</span>. Leave <span class="ui">Also capture system audio</span> on to include the other side of a call.</li>
-  <li>Choose the <span class="ui">Language</span>: <span class="ui">Auto</span> detects it, or pick EN, DE, or ES. ZH-TW writes Chinese in Traditional characters, ZH-CN in Simplified characters.</li>
-  <li>Press <span class="ui">Start</span>. The meters show whether the microphone and system audio are picking up sound, and a warning appears after 5 seconds of silence. <span class="ui">Pause</span> leaves that time out of the transcript.</li>
-  <li>New text appears in the <span class="ui">Live preview</span> about every 30 seconds.</li>
-  <li>Press <span class="ui">Stop</span>. Hearsay transcribes the whole recording once more for the final transcript. To skip this, click <span class="ui">Use live preview instead</span>.</li>
+  <li>选择<span class="ui">麦克风</span>。保持打开<span class="ui">同时录制系统声音</span>，即可录入通话另一方的声音。</li>
+  <li>选择<span class="ui">语言</span>：<span class="ui">自动</span>会自动检测语言，也可以选择 EN、DE 或 ES。ZH-TW 以繁体字输出中文，ZH-CN 以简体字输出中文。</li>
+  <li>点按<span class="ui">开始</span>。电平表显示麦克风和系统声音是否收到声音；静音 5 秒后会出现警告。<span class="ui">暂停</span>期间的内容不会计入转录稿。</li>
+  <li>新文字大约每 30 秒出现在<span class="ui">实时预览</span>中。</li>
+  <li>点按<span class="ui">停止</span>。Hearsay 会再次转录整段录音，生成最终转录稿。如要跳过此步骤，请点按<span class="ui">改用实时预览</span>。</li>
 </ol>
-<p>The transcript (SRT) and the recording (WAV) are saved in the output folder, named by the start time, for example <code>2026-09-28_14-05-00.srt</code>.</p>
+<p>转录稿（SRT）和录音（WAV）保存在输出文件夹中，以开始时间命名，例如 <code>2026-09-28_14-05-00.srt</code>。</p>
 <ul>
-  <li><span class="ui">Auto</span> listens to up to the first 90 seconds of speech. If it can’t tell the language, it uses your preferred language and says so, with a button to transcribe again in another language. If you chose a language but the meeting sounds like another one, a banner offers <span class="ui">Transcribe again</span>.</li>
-  <li>Set the <span class="ui">Preferred language</span> in <a href="hearsay://open/settings-general"><span class="ui">Settings</span> &gt; <span class="ui">General</span></a>. When <span class="ui">Auto</span> hears Chinese, it writes Simplified characters if 简体中文 is your preferred language, otherwise Traditional characters.</li>
+  <li><span class="ui">自动</span>最多听取开头 90 秒的语音。如果无法判断语言，它会使用你的首选语言并给出提示，同时提供一个按钮，用于以其他语言重新转录。如果你选择了某种语言，但会议听起来是另一种语言，横幅会提供<span class="ui">重新转录</span>。</li>
+  <li><span class="ui">首选语言</span>可在<a href="hearsay://open/settings-general"><span class="ui">设置</span> &gt; <span class="ui">通用</span></a>中设置。<span class="ui">自动</span>识别到中文时，如果首选语言是简体中文，则以简体字输出，否则以繁体字输出。</li>
 </ul>
 
-<h2 id="file-mode">Transcribing a file</h2>
-<p>Use the <a href="hearsay://open/file"><span class="ui">File</span> tab</a> to transcribe an audio or video file you already have.</p>
+<h2 id="file-mode">转录文件</h2>
+<p>使用<a href="hearsay://open/file"><span class="ui">文件</span>标签页</a>转录已有的音频或视频文件。</p>
 <ol>
-  <li>Drop the file on the <span class="ui">File</span> tab, or click <span class="ui">Choose…</span>. Hearsay reads wav, m4a, mp3, aac, aiff, caf, and the audio of mp4 and mov files.</li>
-  <li>Choose the <span class="ui">Language</span>, as on the <span class="ui">Record</span> tab.</li>
-  <li>To stop, click <span class="ui">Cancel</span>. Nothing is saved.</li>
+  <li>将文件拖到<span class="ui">文件</span>标签页，或点按<span class="ui">选取…</span>。Hearsay 可读取 wav、m4a、mp3、aac、aiff、caf，以及 mp4 和 mov 文件中的音频。</li>
+  <li>选择<span class="ui">语言</span>，方法与<span class="ui">录音</span>标签页相同。</li>
+  <li>如要停止，请点按<span class="ui">取消</span>。不会保存任何内容。</li>
 </ol>
-<p>The SRT is saved in the output folder, named by the time in the file’s name or, if there is none, the file’s date. The original file is never changed.</p>
+<p>SRT 保存在输出文件夹中，以文件名中的时间命名；如果文件名中没有时间，则以文件的日期命名。原始文件不会被更改。</p>
 
-<h2 id="meeting-notes">Meeting notes</h2>
-<p>Hearsay can send a transcript to an AI provider and save the meeting notes it writes. Sending shares the whole transcript with that provider.</p>
+<h2 id="meeting-notes">会议笔记</h2>
+<p>Hearsay 可以将转录稿发送给 AI 提供方，并保存其生成的会议笔记。发送时会将整份转录稿共享给该提供方。</p>
 <ol>
-  <li>In <a href="hearsay://open/settings-ai"><span class="ui">Settings</span> &gt; <span class="ui">AI</span></a>, choose a provider under <span class="ui">Preset:</span>
+  <li>在<a href="hearsay://open/settings-ai"><span class="ui">设置</span> &gt; <span class="ui">AI</span></a>中，从<span class="ui">预设：</span>选择提供方。
     <ul>
-      <li>GitHub Copilot CLI, Claude Code CLI, Codex CLI, and Antigravity CLI use the program installed on your Mac and the login you have in it. Requests count against that subscription’s limits. Its Check button (for example <span class="ui">Check Claude Code</span>) shows whether the program is found and logged in.</li>
-      <li>Ollama / LM Studio runs on your Mac.</li>
-      <li><span class="ui">Custom</span> works with any OpenAI-compatible service. Enter its URL, model, and token.</li>
+      <li>GitHub Copilot CLI、Claude Code CLI、Codex CLI 和 Antigravity CLI 使用 Mac 上安装的程序及其中已登录的账户。请求会计入该订阅的用量限制。其检查按钮（例如<span class="ui">检查 Claude Code</span>）会显示是否找到该程序以及是否已登录。</li>
+      <li>Ollama / LM Studio 在你的 Mac 上运行。</li>
+      <li><span class="ui">自定义</span>适用于任何兼容 OpenAI 的服务。请输入其 URL、模型和令牌。</li>
     </ul>
   </li>
-  <li>Click <span class="ui">Test connection</span>. Under <span class="ui">Prompt templates</span>, you can add your own instructions for the notes.</li>
-  <li>After a transcript is saved, Hearsay asks <span class="ui">Send transcript for meeting notes?</span> Choose the <span class="ui">Template:</span> and the <span class="ui">Notes language:</span>, then click <span class="ui">Send</span>. <span class="ui">Keep local</span> sends nothing.</li>
-  <li>Edit the suggested meeting name if you like, then click <span class="ui">Save</span>.</li>
+  <li>点按<span class="ui">测试连接</span>。在<span class="ui">提示词模板</span>下，可以为笔记添加你自己的指示。</li>
+  <li>保存转录稿后，Hearsay 会询问<span class="ui">要发送转录稿以生成会议笔记吗？</span>选择<span class="ui">模板：</span>和<span class="ui">笔记语言：</span>，然后点按<span class="ui">发送</span>。<span class="ui">保留在本地</span>则不发送任何内容。</li>
+  <li>可以根据需要编辑建议的会议名称，然后点按<span class="ui">保存</span>。</li>
 </ol>
 <table>
-  <tr><th>File</th><th>Contains</th></tr>
-  <tr><td><code>&lt;timestamp&gt;_&lt;name&gt;.srt</code></td><td>the transcript with timings</td></tr>
-  <tr><td><code>&lt;timestamp&gt;_&lt;name&gt;.md</code></td><td>the meeting notes</td></tr>
-  <tr><td><code>&lt;timestamp&gt;_&lt;name&gt;_transcript.md</code></td><td>a structured transcript</td></tr>
-  <tr><td><code>&lt;timestamp&gt;_&lt;name&gt;.wav</code></td><td>the recording</td></tr>
+  <tr><th>文件</th><th>内容</th></tr>
+  <tr><td><code>&lt;timestamp&gt;_&lt;name&gt;.srt</code></td><td>带时间码的转录稿</td></tr>
+  <tr><td><code>&lt;timestamp&gt;_&lt;name&gt;.md</code></td><td>会议笔记</td></tr>
+  <tr><td><code>&lt;timestamp&gt;_&lt;name&gt;_transcript.md</code></td><td>结构化转录稿</td></tr>
+  <tr><td><code>&lt;timestamp&gt;_&lt;name&gt;.wav</code></td><td>录音</td></tr>
 </table>
 
-<h2 id="history">History</h2>
-<p>The <a href="hearsay://open/history"><span class="ui">History</span> tab</a> lists the meetings in your output folder. Use the buttons on a row, or Control-click it.</p>
+<h2 id="history">历史记录</h2>
+<p><a href="hearsay://open/history"><span class="ui">历史记录</span>标签页</a>列出输出文件夹中的会议。可以使用某一行上的按钮，或按住 Control 键点按该行。</p>
 <ul>
-  <li><span class="ui">Open SRT</span>, <span class="ui">Open Notes</span>, and <span class="ui">Open Transcript</span> open a file; <span class="ui">Reveal in Finder</span> shows it in Finder.</li>
-  <li><span class="ui">Generate Notes…</span> creates notes for a saved transcript. <span class="ui">Regenerate Notes…</span> replaces them; the old notes go to the Trash when the new ones are saved.</li>
-  <li><span class="ui">Move to Trash…</span> moves all of a meeting’s files to the Trash.</li>
+  <li><span class="ui">打开 SRT</span>、<span class="ui">打开笔记</span>和<span class="ui">打开转录稿</span>用于打开文件；<span class="ui">在访达中显示</span>会在访达中显示文件。</li>
+  <li><span class="ui">生成笔记…</span>为已保存的转录稿生成笔记。<span class="ui">重新生成笔记…</span>会替换现有笔记；新笔记保存后，旧笔记会移到废纸篓。</li>
+  <li><span class="ui">移到废纸篓…</span>会将某个会议的所有文件移到废纸篓。</li>
 </ul>
 
-<h2 id="menu-bar">Menu bar and shortcuts</h2>
-<p>You can control Hearsay without its window. Recording continues when the window is closed.</p>
+<h2 id="menu-bar">菜单栏和快捷键</h2>
+<p>无需打开窗口也可以控制 Hearsay。关闭窗口后录音会继续进行。</p>
 <ul>
-  <li>Choose where Hearsay appears with <span class="ui">Show Hearsay in:</span> in <a href="hearsay://open/settings-window"><span class="ui">Settings</span> &gt; <span class="ui">Window</span></a>: <span class="ui">Menu bar and Dock</span>, <span class="ui">Menu bar only</span>, or <span class="ui">Dock only</span>.</li>
-  <li>Click the menu bar icon to see the status and to start, pause, or stop a recording. The icon turns red while recording.</li>
-  <li>Press <kbd>⌃⌥⌘R</kbd> to start or stop and <kbd>⌃⌥⌘P</kbd> to pause or resume, in any app. To change them, go to <a href="hearsay://open/settings-general"><span class="ui">Settings</span> &gt; <span class="ui">General</span></a> &gt; <span class="ui">Shortcuts</span>, click a shortcut, and press a new one.</li>
-  <li>Press <kbd>⌘,</kbd> to open <span class="ui">Settings</span> and <kbd>⌘?</kbd> to open this help.</li>
+  <li>通过<span class="ui">Hearsay 显示位置：</span>选择 Hearsay 的显示位置（在<a href="hearsay://open/settings-window"><span class="ui">设置</span> &gt; <span class="ui">窗口</span></a>中）：<span class="ui">菜单栏和程序坞</span>、<span class="ui">仅菜单栏</span>或<span class="ui">仅程序坞</span>。</li>
+  <li>点按菜单栏图标可查看状态，并开始、暂停或停止录音。录音时图标会变成红色。</li>
+  <li>在任何应用中，按下 <kbd>⌃⌥⌘R</kbd> 可开始或停止录音，按下 <kbd>⌃⌥⌘P</kbd> 可暂停或继续。如要更改，请前往<a href="hearsay://open/settings-general"><span class="ui">设置</span> &gt; <span class="ui">通用</span></a> &gt; <span class="ui">快捷键</span>，点按一个快捷键，然后按下新的组合键。</li>
+  <li>按下 <kbd>⌘,</kbd> 打开<span class="ui">设置</span>，按下 <kbd>⌘?</kbd> 打开本帮助。</li>
 </ul>
 
-<h2 id="settings">Settings and more</h2>
+<h2 id="settings">设置及其他</h2>
 <ul>
-  <li><strong><span class="ui">Interface language</span>:</strong> choose it in <a href="hearsay://open/settings-general"><span class="ui">Settings</span> &gt; <span class="ui">General</span></a>. Hearsay needs to restart; click <span class="ui">Restart Now</span>.</li>
-  <li><strong>Startup:</strong> turn on <span class="ui">Launch Hearsay at login</span> in the same place.</li>
-  <li><strong>Recordings:</strong> to delete the WAV after a successful transcription, turn off <span class="ui">Keep the recording (WAV) after a successful transcription</span> in <a href="hearsay://open/settings-output"><span class="ui">Settings</span> &gt; <span class="ui">Output</span></a>.</li>
-  <li><strong>Unfinished recordings:</strong> if Hearsay or your Mac stops during a recording, the next launch asks what to do with it. <span class="ui">Transcribe</span> creates the transcript, <span class="ui">Keep</span> moves the WAV to the output folder, and <span class="ui">Delete</span> removes it.</li>
+  <li><strong><span class="ui">界面语言</span>：</strong>在<a href="hearsay://open/settings-general"><span class="ui">设置</span> &gt; <span class="ui">通用</span></a>中选择。Hearsay 需要重新启动；请点按<span class="ui">立即重新启动</span>。</li>
+  <li><strong>启动：</strong>在同一位置打开<span class="ui">登录时打开 Hearsay</span>。</li>
+  <li><strong>录音：</strong>如要在转录成功后删除 WAV，请关闭<span class="ui">转录成功后保留录音（WAV）</span>（位于<a href="hearsay://open/settings-output"><span class="ui">设置</span> &gt; <span class="ui">输出</span></a>）。</li>
+  <li><strong>未完成的录音：</strong>如果 Hearsay 或 Mac 在录音过程中停止运行，下次启动时会询问如何处理该录音。<span class="ui">转录</span>会生成转录稿，<span class="ui">保留</span>会将 WAV 移到输出文件夹，<span class="ui">删除</span>则会将其删除。</li>
 </ul>
 
-<h2 id="troubleshooting">Troubleshooting</h2>
+<h2 id="troubleshooting">故障排除</h2>
 <ul>
-  <li><span class="problem">No model installed</span> — Open the <a href="hearsay://open/models"><span class="ui">Models</span> tab</a>, download a model, and click <span class="ui">Use</span>.</li>
-  <li><span class="problem">No microphone access</span> — Turn on Hearsay in System Settings &gt; Privacy &amp; Security &gt; Microphone.</li>
-  <li><span class="problem"><span class="ui">System audio off: permission denied</span></span> — Turn on Hearsay in System Settings &gt; Privacy &amp; Security &gt; Screen &amp; System Audio Recording, then start a new recording.</li>
-  <li><span class="problem">System audio silent after you allowed it</span> — Quit and reopen Hearsay.</li>
-  <li><span class="problem">“No audio from” a device</span> — Check that the device is connected and not muted, or choose another <span class="ui">Microphone</span>.</li>
-  <li><span class="problem">Poor sound from AirPods or another Bluetooth headset</span> — While recording, macOS switches them to a low-quality call mode. In a noisy room, use the Mac’s built-in microphone.</li>
-  <li><span class="problem">An AI program is not found</span> — Install it, or enter its path in <a href="hearsay://open/settings-ai"><span class="ui">Settings</span> &gt; <span class="ui">AI</span></a>.</li>
-  <li><span class="problem">An AI program is not logged in</span> — In Terminal, run <code>copilot</code>, <code>claude</code>, <code>codex login</code>, or <code>agy</code> once, then click its Check button in <span class="ui">Settings</span> &gt; <span class="ui">AI</span>.</li>
-  <li><span class="problem">Can’t find your files</span> — The folder is shown in <a href="hearsay://open/settings-output"><span class="ui">Settings</span> &gt; <span class="ui">Output</span></a>. In the <span class="ui">History</span> tab, click <span class="ui">Reveal in Finder</span>.</li>
+  <li><span class="problem">未安装模型</span> — 打开<a href="hearsay://open/models"><span class="ui">模型</span>标签页</a>，下载一个模型，然后点按<span class="ui">使用</span>。</li>
+  <li><span class="problem">没有麦克风访问权限</span> — 在系统设置 &gt; 隐私与安全性 &gt; 麦克风中打开 Hearsay。</li>
+  <li><span class="problem"><span class="ui">系统声音已关闭：权限被拒绝</span></span> — 在系统设置 &gt; 隐私与安全性 &gt; 录屏与系统录音中打开 Hearsay，然后开始新的录音。</li>
+  <li><span class="problem">允许后仍然录不到系统声音</span> — 退出并重新打开 Hearsay。</li>
+  <li><span class="problem">某个设备“没有音频”</span> — 检查设备是否已连接且未静音，或选择其他<span class="ui">麦克风</span>。</li>
+  <li><span class="problem">AirPods 或其他蓝牙耳机的音质较差</span> — 录音时，macOS 会将其切换到低音质的通话模式。在嘈杂的房间里，请使用 Mac 的内建麦克风。</li>
+  <li><span class="problem">找不到 AI 程序</span> — 安装该程序，或在<a href="hearsay://open/settings-ai"><span class="ui">设置</span> &gt; <span class="ui">AI</span></a>中输入其路径。</li>
+  <li><span class="problem">AI 程序未登录</span> — 在终端中运行一次 <code>copilot</code>、<code>claude</code>、<code>codex login</code> 或 <code>agy</code>，然后在<span class="ui">设置</span> &gt; <span class="ui">AI</span>中点按其检查按钮。</li>
+  <li><span class="problem">找不到文件</span> — 文件夹显示在<a href="hearsay://open/settings-output"><span class="ui">设置</span> &gt; <span class="ui">输出</span></a>中。在<span class="ui">历史记录</span>标签页中，点按<span class="ui">在访达中显示</span>。</li>
 </ul>
 
-<h2 id="about">About</h2>
-<p>Hearsay is made by Chihling Wang and released under the MIT License. It includes open-source software; to see the licenses, click <span class="ui">Show Licenses…</span> in <a href="hearsay://open/settings-general"><span class="ui">Settings</span> &gt; <span class="ui">General</span></a> &gt; <span class="ui">Acknowledgements</span>.</p>
+<h2 id="about">关于</h2>
+<p>Hearsay 由 Chihling Wang 开发，依据 MIT 许可证发布。它包含开源软件；如要查看许可证，请点按<span class="ui">显示许可证…</span>（位于<a href="hearsay://open/settings-general"><span class="ui">设置</span> &gt; <span class="ui">通用</span></a> &gt; <span class="ui">致谢</span>）。</p>
 
 </body>
 </html>
