@@ -2,21 +2,123 @@
   "sourceLanguage" : "en",
   "strings" : {
     "%@ (detected from the text)" : {
-      "comment" : "Confirm sheet, after 'Transcript language:'. %@ is a language name in its own language."
+      "comment" : "Confirm sheet, after 'Transcript language:'. %@ is a language name in its own language.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (aus dem Text erkannt)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (detectado en el texto)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@（根据文本检测）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@（根據文字偵測）"
+          }
+        }
+      }
     },
     "%@ (your language choice; this transcript's language was not recorded)" : {
-      "comment" : "Confirm sheet, after 'Transcript language:'. %@ is a language name in its own language."
+      "comment" : "Confirm sheet, after 'Transcript language:'. %@ is a language name in its own language.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (gewählte Sprache; die Sprache dieses Transkripts wurde nicht gespeichert)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (tu elección de idioma; no se ha registrado el idioma de esta transcripción)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@（你的语言选择；未记录此转录稿的语言）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@（你的語言選擇；未記錄此逐字稿的語言）"
+          }
+        }
+      }
     },
     "%@ (your preferred language; this transcript's language was not recorded)" : {
-      "comment" : "Confirm sheet, after 'Transcript language:'. %@ is a language name in its own language."
+      "comment" : "Confirm sheet, after 'Transcript language:'. %@ is a language name in its own language.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (bevorzugte Sprache; die Sprache dieses Transkripts wurde nicht gespeichert)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (tu idioma preferido; no se ha registrado el idioma de esta transcripción)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@（你的首选语言；未记录此转录稿的语言）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@（你的偏好語言；未記錄此逐字稿的語言）"
+          }
+        }
+      }
     },
     "%@ call failed (exit code %d). Check the model and reasoning effort in Settings > AI." : {
       "comment" : "Meeting notes error. %1$@ is a CLI name, %2$d the exit code.",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufruf von %1$@ fehlgeschlagen (Exit-Code %2$d). Modell und Denkaufwand unter Einstellungen > KI prüfen."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ call failed (exit code %2$d). Check the model and reasoning effort in Settings > AI."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error en la llamada a %1$@ (código de salida %2$d). Comprueba el modelo y el esfuerzo de razonamiento en Ajustes > IA."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 调用失败（退出代码 %2$d）。请在“设置 > AI”中检查模型和推理强度。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 呼叫失敗（結束代碼 %2$d）。請在「設定 > AI」中檢查模型與推理強度。"
           }
         }
       }
@@ -24,10 +126,34 @@
     "%@ could not be started: %@" : {
       "comment" : "Meeting notes error. %1$@ is a CLI name, %2$@ a technical detail.",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ konnte nicht gestartet werden: %2$@"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ could not be started: %2$@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido iniciar %1$@: %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法启动 %1$@：%2$@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法啟動 %1$@：%2$@"
           }
         }
       }
@@ -35,10 +161,34 @@
     "%@ did not answer within %lld minutes and was stopped." : {
       "comment" : "Meeting notes error. %1$@ is a CLI name, %2$lld a number of minutes.",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ hat nicht innerhalb von %2$lld Minuten geantwortet und wurde gestoppt."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ did not answer within %2$lld minutes and was stopped."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ no ha respondido en %2$lld minutos y se ha detenido."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 在 %2$lld 分钟内没有响应，已被停止。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 未在 %2$lld 分鐘內回應，已被停止。"
           }
         }
       }
@@ -46,24 +196,98 @@
     "%@ is %lld bytes but the server announced %lld. The file was discarded; try again." : {
       "comment" : "Model download error. %1$@ is a file name, %2$lld and %3$lld are byte counts.",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ ist %2$lld Byte groß, der Server hat aber %3$lld angekündigt. Die Datei wurde verworfen. Bitte erneut versuchen."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ is %2$lld bytes but the server announced %3$lld. The file was discarded; try again."
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ ocupa %2$lld bytes, pero el servidor anunció %3$lld. Se ha descartado el archivo; inténtalo de nuevo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 为 %2$lld 字节，但服务器声明为 %3$lld 字节。该文件已丢弃，请重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 為 %2$lld 位元組，但伺服器宣告為 %3$lld。檔案已捨棄，請再試一次。"
+          }
         }
       }
     },
     "%@ is not available for recording. Reconnect it or choose another input." : {
-      "comment" : "Recording error. %@ is the input device name."
+      "comment" : "Recording error. %@ is the input device name.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ist für die Aufnahme nicht verfügbar. Gerät erneut verbinden oder einen anderen Eingang wählen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ no está disponible para grabar. Vuelve a conectarlo o elige otra entrada."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 无法用于录音。请重新连接或选择其他输入设备。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 無法用於錄音。請重新連接，或選擇其他輸入裝置。"
+          }
+        }
+      }
     },
     "%@ is not logged in. Run `%@` once in Terminal to log in with your ChatGPT account." : {
       "comment" : "Meeting notes error. %1$@ is a CLI name, %2$@ a shell command.",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ ist nicht angemeldet. Zum Anmelden mit dem ChatGPT-Konto einmal `%2$@` im Terminal ausführen."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ is not logged in. Run `%2$@` once in Terminal to log in with your ChatGPT account."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ no ha iniciado sesión. Ejecuta `%2$@` una vez en Terminal para iniciar sesión con tu cuenta de ChatGPT."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 未登录。请在终端中运行一次 `%2$@`，使用你的 ChatGPT 账户登录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 尚未登入。請在「終端機」中執行一次 `%2$@`，以你的 ChatGPT 帳號登入。"
           }
         }
       }
@@ -71,10 +295,34 @@
     "%@ is not logged in. Run `%@` once in Terminal to log in with your Claude subscription." : {
       "comment" : "Meeting notes error. %1$@ is a CLI name, %2$@ a shell command.",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ ist nicht angemeldet. Zum Anmelden mit dem Claude-Abonnement einmal `%2$@` im Terminal ausführen."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ is not logged in. Run `%2$@` once in Terminal to log in with your Claude subscription."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ no ha iniciado sesión. Ejecuta `%2$@` una vez en Terminal para iniciar sesión con tu suscripción a Claude."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 未登录。请在终端中运行一次 `%2$@`，使用你的 Claude 订阅登录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 尚未登入。請在「終端機」中執行一次 `%2$@`，以你的 Claude 訂閱登入。"
           }
         }
       }
@@ -82,10 +330,34 @@
     "%@ is not logged in. Run `%@` once in Terminal to log in with your Google account." : {
       "comment" : "Meeting notes error. %1$@ is a CLI name, %2$@ a shell command.",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ ist nicht angemeldet. Zum Anmelden mit dem Google-Konto einmal `%2$@` im Terminal ausführen."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ is not logged in. Run `%2$@` once in Terminal to log in with your Google account."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ no ha iniciado sesión. Ejecuta `%2$@` una vez en Terminal para iniciar sesión con tu cuenta de Google."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 未登录。请在终端中运行一次 `%2$@`，使用你的 Google 账户登录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 尚未登入。請在「終端機」中執行一次 `%2$@`，以你的 Google 帳號登入。"
           }
         }
       }
@@ -93,10 +365,34 @@
     "%@ is not logged in. Run `%@` once in Terminal to log in." : {
       "comment" : "Meeting notes error. %1$@ is a CLI name, %2$@ a shell command.",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ ist nicht angemeldet. Zum Anmelden einmal `%2$@` im Terminal ausführen."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ is not logged in. Run `%2$@` once in Terminal to log in."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ no ha iniciado sesión. Ejecuta `%2$@` una vez en Terminal para iniciar sesión."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 未登录。请在终端中运行一次 `%2$@` 以登录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 尚未登入。請在「終端機」中執行一次 `%2$@` 以登入。"
           }
         }
       }
@@ -104,86 +400,626 @@
     "%@ not found. Install it with `%@` or set the path in Settings > AI." : {
       "comment" : "Meeting notes error. %1$@ is a CLI name (for example Codex CLI), %2$@ a shell command. Keep the backticks.",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ nicht gefunden. Mit `%2$@` installieren oder den Pfad unter Einstellungen > KI festlegen."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ not found. Install it with `%2$@` or set the path in Settings > AI."
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se encuentra %1$@. Instálalo con `%2$@` o define la ruta en Ajustes > IA."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "找不到 %1$@。请使用 `%2$@` 安装，或在“设置 > AI”中设置路径。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "找不到 %1$@。請使用 `%2$@` 安裝，或在「設定 > AI」中設定路徑。"
+          }
         }
       }
     },
     "%@ returned empty output." : {
-      "comment" : "Meeting notes error. %@ is a CLI name."
+      "comment" : "Meeting notes error. %@ is a CLI name.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ hat eine leere Ausgabe geliefert."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ha devuelto una salida vacía."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 返回了空输出。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 傳回了空白輸出。"
+          }
+        }
+      }
     },
     "(%@ plan)" : {
-      "comment" : "CLI check result suffix. %@ is the subscription name (for example max)."
+      "comment" : "CLI check result suffix. %@ is the subscription name (for example max).",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(%@-Tarif)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(plan %@)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "（%@ 方案）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "（%@ 方案）"
+          }
+        }
+      }
     },
     "(none set)" : {
-      "comment" : "Confirm sheet 'Model:' when empty"
+      "comment" : "Confirm sheet 'Model:' when empty",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(nicht festgelegt)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(ninguno)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "（未设置）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "（未設定）"
+          }
+        }
+      }
     },
     "AI output did not contain a usable filename." : {
-      "comment" : "Meeting notes error"
+      "comment" : "Meeting notes error",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die KI-Ausgabe enthielt keinen verwendbaren Dateinamen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La salida de la IA no contenía un nombre de archivo válido."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 输出中没有可用的文件名。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 輸出中沒有可用的檔名。"
+          }
+        }
+      }
     },
     "AI output did not contain a usable structured transcript." : {
-      "comment" : "Meeting notes error"
+      "comment" : "Meeting notes error",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die KI-Ausgabe enthielt kein verwendbares strukturiertes Transkript."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La salida de la IA no contenía una transcripción estructurada válida."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 输出中没有可用的结构化转录稿。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 輸出中沒有可用的結構化逐字稿。"
+          }
+        }
+      }
     },
     "AI output did not contain usable Markdown notes." : {
-      "comment" : "Meeting notes error"
+      "comment" : "Meeting notes error",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die KI-Ausgabe enthielt keine verwendbaren Markdown-Notizen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La salida de la IA no contenía notas en Markdown válidas."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 输出中没有可用的 Markdown 笔记。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 輸出中沒有可用的 Markdown 筆記。"
+          }
+        }
+      }
     },
     "AI output is not valid JSON: %@" : {
-      "comment" : "Meeting notes error. %@ is a technical detail in English."
+      "comment" : "Meeting notes error. %@ is a technical detail in English.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die KI-Ausgabe ist kein gültiges JSON: %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La salida de la IA no es JSON válido: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 输出不是有效的 JSON：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 輸出不是有效的 JSON：%@"
+          }
+        }
+      }
     },
     "AI output must be a JSON object." : {
-      "comment" : "Meeting notes error"
+      "comment" : "Meeting notes error",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die KI-Ausgabe muss ein JSON-Objekt sein."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La salida de la IA debe ser un objeto JSON."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 输出必须是 JSON 对象。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 輸出必須是 JSON 物件。"
+          }
+        }
+      }
     },
     "API HTTP Error %lld: %@" : {
       "comment" : "Meeting notes error. %1$lld is an HTTP status code, %2$@ the server's message.",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API-HTTP-Fehler %1$lld: %2$@"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "API HTTP Error %1$lld: %2$@"
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error HTTP de la API %1$lld: %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API HTTP 错误 %1$lld：%2$@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API HTTP 錯誤 %1$lld：%2$@"
+          }
         }
       }
     },
     "API HTTP Error %lld: The response body is empty." : {
-      "comment" : "Meeting notes error. %lld is an HTTP status code."
+      "comment" : "Meeting notes error. %lld is an HTTP status code.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API-HTTP-Fehler %lld: Der Antworttext ist leer."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error HTTP de la API %lld: el cuerpo de la respuesta está vacío."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API HTTP 错误 %lld：响应正文为空。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API HTTP 錯誤 %lld：回應內容為空白。"
+          }
+        }
+      }
     },
     "API call failed: A network connection or HTTP client error occurred. %@" : {
-      "comment" : "Meeting notes error. %@ is the system error message."
+      "comment" : "Meeting notes error. %@ is the system error message.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API-Aufruf fehlgeschlagen: Ein Netzwerkverbindungs- oder HTTP-Client-Fehler ist aufgetreten. %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error en la llamada a la API: se ha producido un error de conexión de red o del cliente HTTP. %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API 调用失败：发生网络连接或 HTTP 客户端错误。%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API 呼叫失敗：發生網路連線或 HTTP 用戶端錯誤。%@"
+          }
+        }
+      }
     },
     "All files keep their original names." : {
-      "comment" : "Follows a rename error: nothing was changed."
+      "comment" : "Follows a rename error: nothing was changed.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Dateien behalten ihre ursprünglichen Namen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todos los archivos mantienen sus nombres originales."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有文件均保留原始名称。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有檔案都保留原始名稱。"
+          }
+        }
+      }
     },
     "Audio capture failed: %@" : {
-      "comment" : "Recording error. %@ is a technical detail in English."
+      "comment" : "Recording error. %@ is a technical detail in English.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audioaufnahme fehlgeschlagen: %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error en la captura de audio: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音频捕获失败：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音訊擷取失敗：%@"
+          }
+        }
+      }
     },
     "Audio conversion failed: %@" : {
-      "comment" : "Audio error. %@ is a technical detail in English."
+      "comment" : "Audio error. %@ is a technical detail in English.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audiokonvertierung fehlgeschlagen: %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error en la conversión de audio: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音频转换失败：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音訊轉換失敗：%@"
+          }
+        }
+      }
     },
     "Auto" : {
-      "comment" : "Language picker segment: detect the spoken language automatically. Keep it short."
+      "comment" : "Language picker segment: detect the spoken language automatically. Keep it short.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatisch"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automático"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動"
+          }
+        }
+      }
     },
     "CLI default" : {
-      "comment" : "Confirm sheet 'Model:' when empty: the command-line tool picks its own model"
+      "comment" : "Confirm sheet 'Model:' when empty: the command-line tool picks its own model",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CLI-Standard"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Predeterminado de la CLI"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CLI 默认值"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CLI 預設值"
+          }
+        }
+      }
     },
     "Cannot reach %@. Check the base URL in Settings > AI and your network connection." : {
-      "comment" : "Meeting notes error. %@ is a host name."
+      "comment" : "Meeting notes error. %@ is a host name.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ist nicht erreichbar. Basis-URL unter Einstellungen > KI und Netzwerkverbindung prüfen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se puede conectar con %@. Comprueba la URL base en Ajustes > IA y tu conexión de red."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法访问 %@。请检查“设置 > AI”中的基础 URL 和网络连接。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法連線至 %@。請檢查「設定 > AI」中的基本 URL 以及你的網路連線。"
+          }
+        }
+      }
     },
     "Claude Code CLI (Claude subscription)" : {
-      "comment" : "Provider preset name. Keep 'Claude Code CLI' and 'Claude' untranslated."
+      "comment" : "Provider preset name. Keep 'Claude Code CLI' and 'Claude' untranslated.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claude Code CLI (Claude-Abonnement)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claude Code CLI (suscripción a Claude)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claude Code CLI（Claude 订阅）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claude Code CLI（Claude 訂閱）"
+          }
+        }
+      }
     },
     "Codex CLI (ChatGPT subscription)" : {
-      "comment" : "Provider preset name. Keep 'Codex CLI' and 'ChatGPT' untranslated."
+      "comment" : "Provider preset name. Keep 'Codex CLI' and 'ChatGPT' untranslated.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codex CLI (ChatGPT-Abonnement)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codex CLI (suscripción a ChatGPT)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codex CLI（ChatGPT 订阅）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codex CLI（ChatGPT 訂閱）"
+          }
+        }
+      }
     },
     "Could not select %@ (CoreAudio error %d)." : {
       "comment" : "Recording error. %1$@ is the input device name, %2$d a CoreAudio error number.",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ konnte nicht ausgewählt werden (CoreAudio-Fehler %2$d)."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "Could not select %1$@ (CoreAudio error %2$d)."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido seleccionar %1$@ (error de CoreAudio %2$d)."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法选择 %1$@（CoreAudio 错误 %2$d）。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法選取 %1$@（CoreAudio 錯誤 %2$d）。"
           }
         }
       }
@@ -191,192 +1027,1508 @@
     "Could not set up the %@ project in %@: %@" : {
       "comment" : "Meeting notes error. %1$@ is a project name (keep it), %2$@ a folder path, %3$@ the system error message.",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Projekt %1$@ konnte in %2$@ nicht eingerichtet werden: %3$@"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "Could not set up the %1$@ project in %2$@: %3$@"
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido configurar el proyecto %1$@ en %2$@: %3$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法在 %2$@ 中设置 %1$@ 项目：%3$@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法在 %2$@ 中設定 %1$@ 專案：%3$@"
+          }
         }
       }
     },
     "Couldn't tell the language, so this was transcribed in %@ (your preferred language)." : {
-      "comment" : "Language banner. %@ is a language name in its own language (English, 中文, Deutsch, Español)."
+      "comment" : "Language banner. %@ is a language name in its own language (English, 中文, Deutsch, Español).",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Sprache war nicht erkennbar, daher wurde auf %@ transkribiert (bevorzugte Sprache)."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido reconocer el idioma, así que se ha transcrito en %@ (tu idioma preferido)."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法判断语言，因此以 %@（你的首选语言）转录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法判斷語言，因此以 %@（你的偏好語言）轉錄。"
+          }
+        }
+      }
     },
     "Custom" : {
-      "comment" : "Provider preset name: any OpenAI-compatible endpoint the user enters"
+      "comment" : "Provider preset name: any OpenAI-compatible endpoint the user enters",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Benutzerdefiniert"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Personalizado"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自定义"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自訂"
+          }
+        }
+      }
     },
     "Dock only" : {
-      "comment" : "Settings > Window: show Hearsay only in the Dock"
+      "comment" : "Settings > Window: show Hearsay only in the Dock",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur Dock"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo en el Dock"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅程序坞"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "僅 Dock"
+          }
+        }
+      }
     },
     "Downloading %@ failed with HTTP status %lld." : {
       "comment" : "Model download error. %1$@ is a file name, %2$lld an HTTP status code.",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laden von %1$@ fehlgeschlagen (HTTP-Status %2$lld)."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "Downloading %1$@ failed with HTTP status %2$lld."
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La descarga de %1$@ ha fallado con el estado HTTP %2$lld."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载 %1$@ 失败，HTTP 状态码为 %2$lld。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下載 %1$@ 失敗，HTTP 狀態碼 %2$lld。"
+          }
         }
       }
     },
     "Error: The SRT contains no transcript content to summarize." : {
-      "comment" : "Meeting notes error"
+      "comment" : "Meeting notes error",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fehler: Die SRT-Datei enthält keinen Transkriptinhalt zum Zusammenfassen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error: El SRT no contiene ninguna transcripción que resumir."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "错误：SRT 中没有可总结的转录内容。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "錯誤：SRT 中沒有可摘要的逐字稿內容。"
+          }
+        }
+      }
     },
     "General meeting" : {
-      "comment" : "Name of the built-in prompt template (Settings > AI, confirm sheet)"
+      "comment" : "Name of the built-in prompt template (Settings > AI, confirm sheet)",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allgemeine Besprechung"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reunión general"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通用会议"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一般會議"
+          }
+        }
+      }
     },
     "GitHub Copilot CLI call failed (exit code %d). Check the Copilot login status and model configuration." : {
-      "comment" : "Meeting notes error. %d is the exit code."
+      "comment" : "Meeting notes error. %d is the exit code.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufruf der GitHub Copilot CLI fehlgeschlagen (Exit-Code %d). Copilot-Anmeldestatus und Modellkonfiguration prüfen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error en la llamada a GitHub Copilot CLI (código de salida %d). Comprueba el estado de inicio de sesión de Copilot y la configuración del modelo."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub Copilot CLI 调用失败（退出代码 %d）。请检查 Copilot 登录状态和模型配置。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub Copilot CLI 呼叫失敗（結束代碼 %d）。請檢查 Copilot 登入狀態與模型設定。"
+          }
+        }
+      }
     },
     "GitHub Copilot CLI call failed. Check the Copilot login status and model configuration: %@" : {
-      "comment" : "Meeting notes error. %@ is a technical detail."
+      "comment" : "Meeting notes error. %@ is a technical detail.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufruf der GitHub Copilot CLI fehlgeschlagen. Copilot-Anmeldestatus und Modellkonfiguration prüfen: %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error en la llamada a GitHub Copilot CLI. Comprueba el estado de inicio de sesión de Copilot y la configuración del modelo: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub Copilot CLI 调用失败。请检查 Copilot 登录状态和模型配置：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GitHub Copilot CLI 呼叫失敗。請檢查 Copilot 登入狀態與模型設定：%@"
+          }
+        }
+      }
     },
     "Hearsay has no microphone access. Allow it in System Settings > Privacy & Security > Microphone." : {
-      "comment" : "Recording error. Use the macOS wording for the System Settings path."
+      "comment" : "Recording error. Use the macOS wording for the System Settings path.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay hat keinen Zugriff auf das Mikrofon. Unter Systemeinstellungen > Datenschutz & Sicherheit > Mikrofon erlauben."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay no tiene acceso al micrófono. Permítelo en Ajustes del Sistema > Privacidad y seguridad > Micrófono."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 没有麦克风访问权限。请在“系统设置 > 隐私与安全性 > 麦克风”中允许。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 沒有麥克風取用權限。請在「系統設定 > 隱私權與安全性 > 麥克風」中允許。"
+          }
+        }
+      }
     },
     "Hearsay has no system audio access. Allow it in System Settings > Privacy & Security > Screen & System Audio Recording, then start a new recording." : {
-      "comment" : "Recording error. Use the macOS wording for the System Settings path."
+      "comment" : "Recording error. Use the macOS wording for the System Settings path.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay hat keinen Zugriff auf Systemaudio. Unter Systemeinstellungen > Datenschutz & Sicherheit > Bildschirm- & Systemaudioaufnahme erlauben und dann eine neue Aufnahme starten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay no tiene acceso al audio del sistema. Permítelo en Ajustes del Sistema > Privacidad y seguridad > Grabación de pantalla y audio del sistema y, a continuación, inicia una nueva grabación."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 没有系统声音访问权限。请在“系统设置 > 隐私与安全性 > 录屏与系统录音”中允许，然后开始新的录音。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 沒有系統聲音取用權限。請在「系統設定 > 隱私權與安全性 > 螢幕與系統錄音」中允許，然後開始新的錄音。"
+          }
+        }
+      }
     },
     "Key %u" : {
-      "comment" : "Shortcut display for a key with no printed name. The placeholder is the numeric key code."
+      "comment" : "Shortcut display for a key with no printed name. The placeholder is the numeric key code.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taste %u"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tecla %u"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按键 %u"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按鍵 %u"
+          }
+        }
+      }
     },
     "Keychain error: %@" : {
-      "comment" : "Token error. %@ is the message macOS gives for the Keychain error."
+      "comment" : "Token error. %@ is the message macOS gives for the Keychain error.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schlüsselbundfehler: %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error del llavero: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "钥匙串错误：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鑰匙圈錯誤：%@"
+          }
+        }
+      }
     },
     "Logged in" : {
-      "comment" : "CLI check result"
+      "comment" : "CLI check result",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Angemeldet"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sesión iniciada"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已登录"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已登入"
+          }
+        }
+      }
     },
     "Logged in via %@" : {
-      "comment" : "CLI check result. %@ is the login method reported by Claude Code."
+      "comment" : "CLI check result. %@ is the login method reported by Claude Code.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Angemeldet über %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sesión iniciada mediante %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已通过 %@ 登录"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已透過 %@ 登入"
+          }
+        }
+      }
     },
     "Logged in; %lld models available" : {
-      "comment" : "CLI check result. %lld is the number of models (never 1)."
+      "comment" : "CLI check result. %lld is the number of models (never 1).",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Angemeldet; %lld Modelle verfügbar"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sesión iniciada; %lld modelos disponibles"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已登录；有 %lld 个模型可用"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已登入；有 %lld 個可用模型"
+          }
+        }
+      }
     },
     "Logged in; 1 model available" : {
-      "comment" : "CLI check result"
+      "comment" : "CLI check result",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Angemeldet; 1 Modell verfügbar"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sesión iniciada; 1 modelo disponible"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已登录；有 1 个模型可用"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已登入；有 1 個可用模型"
+          }
+        }
+      }
     },
     "Menu bar and Dock" : {
-      "comment" : "Settings > Window: show Hearsay in the menu bar and the Dock"
+      "comment" : "Settings > Window: show Hearsay in the menu bar and the Dock",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menüleiste und Dock"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Barra de menús y Dock"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "菜单栏和程序坞"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選單列與 Dock"
+          }
+        }
+      }
     },
     "Menu bar only" : {
-      "comment" : "Settings > Window: show Hearsay only in the menu bar"
+      "comment" : "Settings > Window: show Hearsay only in the menu bar",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur Menüleiste"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo en la barra de menús"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅菜单栏"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "僅選單列"
+          }
+        }
+      }
     },
     "No API token is set for this provider. Add one in Settings > AI." : {
-      "comment" : "Meeting notes error. 'Settings > AI' names the Settings tab and section."
+      "comment" : "Meeting notes error. 'Settings > AI' names the Settings tab and section.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für diesen Anbieter ist kein API-Token festgelegt. Unter Einstellungen > KI eines hinzufügen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay ningún token de API configurado para este proveedor. Añade uno en Ajustes > IA."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此提供方未设置 API 令牌。请在“设置 > AI”中添加。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此提供者尚未設定 API 權杖。請在「設定 > AI」中加入。"
+          }
+        }
+      }
     },
     "No audio from %@. Nothing arrived within %lld seconds, so the recording was stopped. Check that the device is connected and not muted, or choose another input." : {
       "comment" : "Recording error. %1$@ is the input device name, %2$lld a number of seconds.",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein Audio von %1$@. Innerhalb von %2$lld Sekunden kam nichts an, daher wurde die Aufnahme gestoppt. Prüfen, ob das Gerät verbunden und nicht stummgeschaltet ist, oder einen anderen Eingang wählen."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "No audio from %1$@. Nothing arrived within %2$lld seconds, so the recording was stopped. Check that the device is connected and not muted, or choose another input."
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No llega audio de %1$@. No ha llegado nada en %2$lld segundos, así que se ha detenido la grabación. Comprueba que el dispositivo esté conectado y no silenciado, o elige otra entrada."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 没有音频。%2$lld 秒内未收到任何声音，因此录音已停止。请检查设备是否已连接且未静音，或选择其他输入设备。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 沒有音訊。%2$lld 秒內未收到任何聲音，因此已停止錄音。請確認裝置已連接且未靜音，或選擇其他輸入裝置。"
+          }
         }
       }
     },
     "No display is available to capture system audio from." : {
-      "comment" : "Recording error"
+      "comment" : "Recording error",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein Display verfügbar, von dem Systemaudio aufgenommen werden kann."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay ninguna pantalla disponible para capturar el audio del sistema."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有可用于捕获系统声音的显示器。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沒有可用來擷取系統聲音的顯示器。"
+          }
+        }
+      }
     },
     "No input device is available." : {
-      "comment" : "Recording error"
+      "comment" : "Recording error",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein Eingabegerät verfügbar."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay ningún dispositivo de entrada disponible."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有可用的输入设备。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沒有可用的輸入裝置。"
+          }
+        }
+      }
     },
     "No token" : {
-      "comment" : "Settings > AI > Token header picker: send no token"
+      "comment" : "Settings > AI > Token header picker: send no token",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein Token"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin token"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无令牌"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不使用權杖"
+          }
+        }
+      }
     },
     "Not a readable WAV file: %@" : {
-      "comment" : "Audio error. %@ is a file path."
+      "comment" : "Audio error. %@ is a file path.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine lesbare WAV-Datei: %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No es un archivo WAV legible: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不是可读取的 WAV 文件：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不是可讀取的 WAV 檔案：%@"
+          }
+        }
+      }
     },
     "Not logged in. %@" : {
-      "comment" : "CLI check result. %@ is the 'Run … once in Terminal to log in.' hint."
+      "comment" : "CLI check result. %@ is the 'Run … once in Terminal to log in.' hint.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht angemeldet. %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sesión no iniciada. %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未登录。%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未登入。%@"
+          }
+        }
+      }
     },
     "Notes will be written in %@." : {
-      "comment" : "Confirm sheet caption. %@ is a language name in its own language."
+      "comment" : "Confirm sheet caption. %@ is a language name in its own language.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Notizen werden auf %@ verfasst."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las notas se escribirán en %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "笔记将以 %@ 撰写。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "筆記將以 %@ 撰寫。"
+          }
+        }
+      }
     },
     "Parsing Error: %@" : {
-      "comment" : "Meeting notes error. %@ is the reason, one of the 'AI output ...' messages."
+      "comment" : "Meeting notes error. %@ is the reason, one of the 'AI output ...' messages.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Analysefehler: %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error de análisis: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解析错误：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解析錯誤：%@"
+          }
+        }
+      }
     },
     "Parsing Error: API response did not contain usable message content." : {
-      "comment" : "Meeting notes error"
+      "comment" : "Meeting notes error",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Analysefehler: Die API-Antwort enthielt keinen verwendbaren Nachrichteninhalt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error de análisis: la respuesta de la API no contenía contenido de mensaje válido."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解析错误：API 响应中没有可用的消息内容。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解析錯誤：API 回應中沒有可用的訊息內容。"
+          }
+        }
+      }
     },
     "Parsing Error: The API response is not valid JSON: %@" : {
-      "comment" : "Meeting notes error. %@ is the start of the server's reply."
+      "comment" : "Meeting notes error. %@ is the start of the server's reply.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Analysefehler: Die API-Antwort ist kein gültiges JSON: %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error de análisis: la respuesta de la API no es JSON válido: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解析错误：API 响应不是有效的 JSON：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解析錯誤：API 回應不是有效的 JSON：%@"
+          }
+        }
+      }
     },
     "Run `%@` once in Terminal to log in." : {
-      "comment" : "CLI check hint. %@ is a shell command; keep the backticks."
+      "comment" : "CLI check hint. %@ is a shell command; keep the backticks.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zum Anmelden einmal `%@` im Terminal ausführen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ejecuta `%@` una vez en Terminal para iniciar sesión."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请在终端中运行一次 `%@` 以登录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請在「終端機」中執行一次 `%@` 以登入。"
+          }
+        }
+      }
     },
     "Run `copilot` once in Terminal to log in." : {
-      "comment" : "Meeting notes error hint. Keep `copilot` and the backticks."
+      "comment" : "Meeting notes error hint. Keep `copilot` and the backticks.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zum Anmelden einmal `copilot` im Terminal ausführen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ejecuta `copilot` una vez en Terminal para iniciar sesión."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请在终端中运行一次 `copilot` 以登录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請在「終端機」中執行一次 `copilot` 以登入。"
+          }
+        }
+      }
     },
     "Space" : {
-      "comment" : "Shortcut display: the space bar"
+      "comment" : "Shortcut display: the space bar",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leertaste"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Espacio"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空格"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空白鍵"
+          }
+        }
+      }
     },
     "System audio capture could not start: %@" : {
-      "comment" : "Recording error. %@ is a technical detail from macOS."
+      "comment" : "Recording error. %@ is a technical detail from macOS.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Systemaudioaufnahme konnte nicht gestartet werden: %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido iniciar la captura del audio del sistema: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系统声音捕获无法启动：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法開始擷取系統聲音：%@"
+          }
+        }
+      }
     },
     "System audio capture stopped: %@" : {
-      "comment" : "Recording error. %@ is a technical detail from macOS."
+      "comment" : "Recording error. %@ is a technical detail from macOS.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Systemaudioaufnahme wurde beendet: %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se ha detenido la captura del audio del sistema: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系统声音捕获已停止：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系統聲音擷取已停止：%@"
+          }
+        }
+      }
     },
     "The %@ preset does not use a command-line tool." : {
-      "comment" : "Meeting notes error. %@ is a provider preset name."
+      "comment" : "Meeting notes error. %@ is a provider preset name.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Voreinstellung %@ verwendet kein Befehlszeilenprogramm."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El preajuste %@ no usa ninguna herramienta de línea de comandos."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 预设不使用命令行工具。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」預設集不使用命令列工具。"
+          }
+        }
+      }
     },
     "The API URL is not a valid http or https address. Check it in Settings > AI." : {
-      "comment" : "Meeting notes error"
+      "comment" : "Meeting notes error",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die API-URL ist keine gültige http- oder https-Adresse. Unter Einstellungen > KI prüfen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La URL de la API no es una dirección http o https válida. Compruébala en Ajustes > IA."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API URL 不是有效的 http 或 https 地址。请在“设置 > AI”中检查。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API URL 不是有效的 http 或 https 位址。請在「設定 > AI」中檢查。"
+          }
+        }
+      }
     },
     "The WAV file is already closed." : {
-      "comment" : "Audio error"
+      "comment" : "Audio error",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die WAV-Datei ist bereits geschlossen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El archivo WAV ya está cerrado."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WAV 文件已关闭。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WAV 檔案已關閉。"
+          }
+        }
+      }
     },
     "The built-in model list could not be read: %@" : {
-      "comment" : "Models tab error. %@ is the system error message."
+      "comment" : "Models tab error. %@ is the system error message.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die integrierte Modellliste konnte nicht gelesen werden: %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido leer la lista de modelos integrada: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法读取内置模型列表：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法讀取內建模型列表：%@"
+          }
+        }
+      }
     },
     "The current notes are unchanged." : {
-      "comment" : "Follows a Trash error: the old notes are still in place."
+      "comment" : "Follows a Trash error: the old notes are still in place.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die aktuellen Notizen bleiben unverändert."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las notas actuales no cambian."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前笔记保持不变。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目前的筆記維持不變。"
+          }
+        }
+      }
     },
     "The input device changed or was disconnected, so recording stopped." : {
-      "comment" : "Recording error"
+      "comment" : "Recording error",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Eingabegerät wurde gewechselt oder getrennt, daher wurde die Aufnahme gestoppt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El dispositivo de entrada ha cambiado o se ha desconectado, así que se ha detenido la grabación."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入设备已更改或断开连接，因此录音已停止。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "輸入裝置已變更或中斷連線，因此已停止錄音。"
+          }
+        }
+      }
     },
     "The login status check did not answer." : {
-      "comment" : "CLI check result"
+      "comment" : "CLI check result",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Prüfung des Anmeldestatus hat nicht geantwortet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La comprobación del estado de inicio de sesión no ha respondido."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录状态检查没有响应。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登入狀態檢查沒有回應。"
+          }
+        }
+      }
     },
     "The meeting name contains no usable characters. Use English letters or digits." : {
-      "comment" : "Naming error. File names use English letters and digits only."
+      "comment" : "Naming error. File names use English letters and digits only.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Besprechungsname enthält keine verwendbaren Zeichen. Englische Buchstaben oder Ziffern verwenden."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El nombre de la reunión no contiene caracteres válidos. Usa letras o dígitos del alfabeto inglés."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会议名称中没有可用字符。请使用英文字母或数字。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "會議名稱中沒有可用的字元。請使用英文字母或數字。"
+          }
+        }
+      }
     },
     "The server did not return an HTTP response." : {
-      "comment" : "Meeting notes error detail, shown after 'API call failed: …'"
+      "comment" : "Meeting notes error detail, shown after 'API call failed: …'",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Server hat keine HTTP-Antwort zurückgegeben."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El servidor no ha devuelto una respuesta HTTP."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "服务器没有返回 HTTP 响应。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "伺服器沒有傳回 HTTP 回應。"
+          }
+        }
+      }
     },
     "The server refused to resume %@." : {
-      "comment" : "Model download error. %@ is a file name."
+      "comment" : "Model download error. %@ is a file name.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Server hat das Fortsetzen von %@ abgelehnt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El servidor ha rechazado reanudar %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "服务器拒绝继续下载 %@。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "伺服器拒絕繼續下載 %@。"
+          }
+        }
+      }
     },
     "The server sent an unexpected response for %@." : {
-      "comment" : "Model download error. %@ is a file name."
+      "comment" : "Model download error. %@ is a file name.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Server hat eine unerwartete Antwort für %@ gesendet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El servidor ha enviado una respuesta inesperada para %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "服务器为 %@ 发送了意外响应。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "伺服器對 %@ 傳回了非預期的回應。"
+          }
+        }
+      }
     },
     "The transcript, recording and any earlier notes keep their original names." : {
-      "comment" : "Follows a write error: nothing was renamed."
+      "comment" : "Follows a write error: nothing was renamed.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkript, Aufnahme und frühere Notizen behalten ihre ursprünglichen Namen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La transcripción, la grabación y las notas anteriores mantienen sus nombres originales."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "转录稿、录音及任何早先的笔记均保留原始名称。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "逐字稿、錄音及先前的筆記都保留原始名稱。"
+          }
+        }
+      }
     },
     "These files could not be restored: %@." : {
-      "comment" : "Follows a file error. %@ is a comma-separated list of file paths."
+      "comment" : "Follows a file error. %@ is a comma-separated list of file paths.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Dateien konnten nicht wiederhergestellt werden: %@."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se han podido restaurar estos archivos: %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以下文件无法恢复：%@。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法還原這些檔案：%@。"
+          }
+        }
+      }
     },
     "This sounds like %@. Transcribe again in %@?" : {
       "comment" : "Language banner. Both %@ are the same language name in its own language (English, 中文, Deutsch, Español).",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das klingt nach %1$@. Erneut auf %2$@ transkribieren?"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "This sounds like %1$@. Transcribe again in %2$@?"
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esto suena a %1$@. ¿Volver a transcribir en %2$@?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这听起来像是 %1$@。要以 %2$@ 重新转录吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這聽起來像是 %1$@。要以 %2$@ 重新轉錄嗎？"
+          }
         }
       }
     },
     "Transcript language: %@" : {
-      "comment" : "Confirm sheet caption. %@ is a language name, possibly followed by an explanation in parentheses."
+      "comment" : "Confirm sheet caption. %@ is a language name, possibly followed by an explanation in parentheses.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkriptsprache: %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Idioma de la transcripción: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "转录稿语言：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "逐字稿語言：%@"
+          }
+        }
+      }
     },
     "Unable to move the current notes (%@) to the Trash: %@." : {
       "comment" : "Regenerate notes error. %1$@ is a file path, %2$@ the system error message.",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die aktuellen Notizen (%1$@) konnten nicht in den Papierkorb gelegt werden: %2$@."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "Unable to move the current notes (%1$@) to the Trash: %2$@."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se han podido trasladar las notas actuales (%1$@) a la Papelera: %2$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法将当前笔记（%1$@）移到废纸篓：%2$@。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法將目前的筆記（%1$@）丟到垃圾桶：%2$@。"
           }
         }
       }
@@ -384,10 +2536,34 @@
     "Unable to rename %@ to %@: %@." : {
       "comment" : "Naming error. %1$@ is a file path, %2$@ a file name, %3$@ the system error message.",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ konnte nicht in %2$@ umbenannt werden: %3$@."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "Unable to rename %1$@ to %2$@: %3$@."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido renombrar %1$@ como %2$@: %3$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法将 %1$@ 重命名为 %2$@：%3$@。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法將 %1$@ 重新命名為 %2$@：%3$@。"
           }
         }
       }
@@ -395,24 +2571,98 @@
     "Unable to write meeting notes (%@): %@." : {
       "comment" : "Naming error. %1$@ is a file path, %2$@ the system error message.",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Besprechungsnotizen konnten nicht geschrieben werden (%1$@): %2$@."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "Unable to write meeting notes (%1$@): %2$@."
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se han podido escribir las notas de la reunión (%1$@): %2$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法写入会议笔记（%1$@）：%2$@。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法寫入會議筆記（%1$@）：%2$@。"
+          }
         }
       }
     },
     "Unsupported audio format: %@" : {
-      "comment" : "Audio error. %@ is a technical detail in English."
+      "comment" : "Audio error. %@ is a technical detail in English.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht unterstütztes Audioformat: %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Formato de audio no compatible: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不支持的音频格式：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不支援的音訊格式：%@"
+          }
+        }
+      }
     },
     "`agy models` failed (exit code %d). %@" : {
       "comment" : "CLI check result. %1$d is the exit code, %2$@ the log-in hint. Keep `agy models`.",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "`agy models` fehlgeschlagen (Exit-Code %1$d). %2$@"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "`agy models` failed (exit code %1$d). %2$@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "`agy models` ha fallado (código de salida %1$d). %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "`agy models` 失败（退出代码 %1$d）。%2$@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "`agy models` 執行失敗（結束代碼 %1$d）。%2$@"
           }
         }
       }

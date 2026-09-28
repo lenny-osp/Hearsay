@@ -17,6 +17,9 @@ for arg in "$@"; do
 done
 mkdir -p .build
 xcodegen generate -q
+# Xcode does not re-copy a resource bundle whose inner folders changed (for
+# example new .lproj translations), so drop the embedded copies first.
+rm -rf ".build/derived/Build/Products/$CONFIGURATION/Hearsay.app/Contents/Resources/"*.bundle
 xcodebuild -project Hearsay.xcodeproj -scheme Hearsay \
   -destination 'platform=macOS,arch=arm64' -configuration "$CONFIGURATION" \
   -derivedDataPath .build/derived \

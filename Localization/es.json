@@ -1,0 +1,3370 @@
+[
+  {
+    "catalog": "app",
+    "key": "%@ CLI path:",
+    "english": "%@ CLI path:",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Ruta de %@ CLI:"
+  },
+  {
+    "catalog": "app",
+    "key": "%@ It stays at %@.",
+    "english": "%1$@ It stays at %2$@.",
+    "comment": "Recovery error. %1$@ is the system error message, %2$@ a file path.",
+    "placeholders": [
+      "%@",
+      "%@"
+    ],
+    "translation": "%1$@ Se mantiene en %2$@."
+  },
+  {
+    "catalog": "app",
+    "key": "%@ at %@",
+    "english": "%1$@ at %2$@",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [
+      "%@",
+      "%@"
+    ],
+    "translation": "%1$@ en %2$@"
+  },
+  {
+    "catalog": "app",
+    "key": "%@ characters",
+    "english": "%@ characters",
+    "comment": "UI text in ConfirmSendSheet.swift.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "%@ caracteres"
+  },
+  {
+    "catalog": "app",
+    "key": "%@ is already used by another app or shortcut.",
+    "english": "%@ is already used by another app or shortcut.",
+    "comment": "Settings > General error. %@ is a shortcut such as ⌃⌥⌘R.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "%@ ya lo usa otra app u otro atajo."
+  },
+  {
+    "catalog": "app",
+    "key": "%@ is replaced by the notes language. The filename and JSON rules and the transcript are always appended.",
+    "english": "%@ is replaced by the notes language. The filename and JSON rules and the transcript are always appended.",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "%@ se sustituye por el idioma de las notas. Las reglas del nombre de archivo y del JSON y la transcripción se añaden siempre."
+  },
+  {
+    "catalog": "app",
+    "key": "%@ level",
+    "english": "%@ level",
+    "comment": "Accessibility label. %@ is Mic or System.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Nivel de %@"
+  },
+  {
+    "catalog": "app",
+    "key": "%@ of %@",
+    "english": "%1$@ of %2$@",
+    "comment": "UI text in ModelRowView.swift.",
+    "placeholders": [
+      "%@",
+      "%@"
+    ],
+    "translation": "%1$@ de %2$@"
+  },
+  {
+    "catalog": "app",
+    "key": "%@ on disk",
+    "english": "%@ on disk",
+    "comment": "UI text in ModelManagerView.swift.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "%@ en disco"
+  },
+  {
+    "catalog": "app",
+    "key": "%@ saved",
+    "english": "%@ saved",
+    "comment": "Accessibility label of a History badge. %@ is SRT, Notes, Transcript, or Audio.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Guardado: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "%@, in use",
+    "english": "%@, in use",
+    "comment": "Models tab: the active model. %@ is a size such as 1.6 GB.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "%@, en uso"
+  },
+  {
+    "catalog": "app",
+    "key": "%@, installed",
+    "english": "%@, installed",
+    "comment": "Models tab: a downloaded model. %@ is a size such as 1.6 GB.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "%@, instalado"
+  },
+  {
+    "catalog": "app",
+    "key": "%lld chunks waiting",
+    "english": "%lld chunks waiting",
+    "comment": "UI text in RecordView.swift.",
+    "placeholders": [
+      "%lld"
+    ],
+    "translation": "%lld fragmentos en espera"
+  },
+  {
+    "catalog": "app",
+    "key": "%lld more after this one.",
+    "english": "%lld more after this one.",
+    "comment": "UI text in UnfinishedRecordingSheet.swift.",
+    "placeholders": [
+      "%lld"
+    ],
+    "translation": "Quedan %lld más después de esta."
+  },
+  {
+    "catalog": "app",
+    "key": "%lld%%",
+    "english": "%lld%%",
+    "comment": "UI text in MenuBarView.swift.",
+    "placeholders": [
+      "%lld"
+    ],
+    "translation": "%lld%%"
+  },
+  {
+    "catalog": "app",
+    "key": "(%@ is missing from the app bundle.)",
+    "english": "(%@ is missing from the app bundle.)",
+    "comment": "Licenses sheet, in place of a missing file. %@ is a file name.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "(Falta %@ en el paquete de la app.)"
+  },
+  {
+    "catalog": "app",
+    "key": "A recording from %@ was not finished (%@). What do you want to do?",
+    "english": "A recording from %1$@ was not finished (%2$@). What do you want to do?",
+    "comment": "UI text in UnfinishedRecordingSheet.swift.",
+    "placeholders": [
+      "%@",
+      "%@"
+    ],
+    "translation": "Una grabación de %1$@ no se terminó (%2$@). ¿Qué quieres hacer?"
+  },
+  {
+    "catalog": "app",
+    "key": "AI",
+    "english": "AI",
+    "comment": "Settings section (segmented picker): meeting-notes provider",
+    "placeholders": [],
+    "translation": "IA"
+  },
+  {
+    "catalog": "app",
+    "key": "API token:",
+    "english": "API token:",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [],
+    "translation": "Token de API:"
+  },
+  {
+    "catalog": "app",
+    "key": "Acknowledgements",
+    "english": "Acknowledgements",
+    "comment": "UI text in AcknowledgementsView.swift.",
+    "placeholders": [],
+    "translation": "Agradecimientos"
+  },
+  {
+    "catalog": "app",
+    "key": "Active model",
+    "english": "Active model",
+    "comment": "UI text in ModelRowView.swift.",
+    "placeholders": [],
+    "translation": "Modelo activo"
+  },
+  {
+    "catalog": "app",
+    "key": "Add",
+    "english": "Add",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [],
+    "translation": "Añadir"
+  },
+  {
+    "catalog": "app",
+    "key": "Also capture system audio",
+    "english": "Also capture system audio",
+    "comment": "UI text in RecordView.swift.",
+    "placeholders": [],
+    "translation": "Capturar también el audio del sistema"
+  },
+  {
+    "catalog": "app",
+    "key": "Always ask before sending",
+    "english": "Always ask before sending",
+    "comment": "UI text in ConfirmSendSheet.swift.",
+    "placeholders": [],
+    "translation": "Preguntar siempre antes de enviar"
+  },
+  {
+    "catalog": "app",
+    "key": "Applies to Chinese transcripts. Other languages are never changed.",
+    "english": "Applies to Chinese transcripts. Other languages are never changed.",
+    "comment": "UI text in SettingsView.swift.",
+    "placeholders": [],
+    "translation": "Se aplica a las transcripciones en chino. Los demás idiomas nunca se modifican."
+  },
+  {
+    "catalog": "app",
+    "key": "Approve in System Settings > General > Login Items",
+    "english": "Approve in System Settings > General > Login Items",
+    "comment": "UI text in SettingsView.swift.",
+    "placeholders": [],
+    "translation": "Apruébalo en Ajustes del Sistema > General > Ítems de inicio"
+  },
+  {
+    "catalog": "app",
+    "key": "Ask before sending a transcript",
+    "english": "Ask before sending a transcript",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [],
+    "translation": "Preguntar antes de enviar una transcripción"
+  },
+  {
+    "catalog": "app",
+    "key": "Audio",
+    "english": "Audio",
+    "comment": "History badge: the meeting has a recording",
+    "placeholders": [],
+    "translation": "Audio"
+  },
+  {
+    "catalog": "app",
+    "key": "Auto detects English, Chinese, German, or Spanish from the first speech",
+    "english": "Auto detects English, Chinese, German, or Spanish from the first speech",
+    "comment": "UI text in LanguageViews.swift.",
+    "placeholders": [],
+    "translation": "Automático detecta inglés, chino, alemán o español con las primeras palabras"
+  },
+  {
+    "catalog": "app",
+    "key": "Available once transcription lands",
+    "english": "Available once transcription lands",
+    "comment": "UI text in UnfinishedRecordingSheet.swift.",
+    "placeholders": [],
+    "translation": "Disponible cuando termine la transcripción"
+  },
+  {
+    "catalog": "app",
+    "key": "CLI default",
+    "english": "CLI default",
+    "comment": "Placeholder: the command-line tool picks its own value",
+    "placeholders": [],
+    "translation": "Predeterminado de la CLI"
+  },
+  {
+    "catalog": "app",
+    "key": "Cancel",
+    "english": "Cancel",
+    "comment": "Alert button",
+    "placeholders": [],
+    "translation": "Cancelar"
+  },
+  {
+    "catalog": "app",
+    "key": "Cancelled",
+    "english": "Cancelled",
+    "comment": "File tab: the transcription was cancelled",
+    "placeholders": [],
+    "translation": "Cancelado"
+  },
+  {
+    "catalog": "app",
+    "key": "Changes apply immediately.",
+    "english": "Changes apply immediately.",
+    "comment": "UI text in SettingsView.swift.",
+    "placeholders": [],
+    "translation": "Los cambios se aplican de inmediato."
+  },
+  {
+    "catalog": "app",
+    "key": "Characters of the Chinese transcript",
+    "english": "Characters of the Chinese transcript",
+    "comment": "Tooltip of the Chinese output picker",
+    "placeholders": [],
+    "translation": "Escritura de la transcripción en chino"
+  },
+  {
+    "catalog": "app",
+    "key": "Check %@",
+    "english": "Check %@",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Comprobar %@"
+  },
+  {
+    "catalog": "app",
+    "key": "Chinese output",
+    "english": "Chinese output",
+    "comment": "Picker label: write Chinese transcripts in Traditional or Simplified characters",
+    "placeholders": [],
+    "translation": "Escritura china"
+  },
+  {
+    "catalog": "app",
+    "key": "Choose",
+    "english": "Choose",
+    "comment": "Open panel button: use the selected folder",
+    "placeholders": [],
+    "translation": "Elegir"
+  },
+  {
+    "catalog": "app",
+    "key": "Choose another…",
+    "english": "Choose another…",
+    "comment": "UI text in OnboardingModelSheet.swift.",
+    "placeholders": [],
+    "translation": "Elegir otro…"
+  },
+  {
+    "catalog": "app",
+    "key": "Choose where Hearsay saves transcripts and notes.",
+    "english": "Choose where Hearsay saves transcripts and notes.",
+    "comment": "Open panel message for the output folder",
+    "placeholders": [],
+    "translation": "Elige dónde guarda Hearsay las transcripciones y las notas."
+  },
+  {
+    "catalog": "app",
+    "key": "Choose…",
+    "english": "Choose…",
+    "comment": "UI text in FileView.swift, SettingsView.swift.",
+    "placeholders": [],
+    "translation": "Elegir…"
+  },
+  {
+    "catalog": "app",
+    "key": "Click, then press a new shortcut.",
+    "english": "Click, then press a new shortcut.",
+    "comment": "Shortcut recorder tooltip",
+    "placeholders": [],
+    "translation": "Haz clic y pulsa un nuevo atajo."
+  },
+  {
+    "catalog": "app",
+    "key": "Closing the recording failed: %@",
+    "english": "Closing the recording failed: %@",
+    "comment": "Recording error. %@ is the system error message.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Error al cerrar la grabación: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "Connected. Reply: %@",
+    "english": "Connected. Reply: %@",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Conectado. Respuesta: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "Could not create the output folder: %@",
+    "english": "Could not create the output folder: %@",
+    "comment": "Settings > Output error. %@ is the system error message.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "No se ha podido crear la carpeta de salida: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "Could not create the recording file: %@",
+    "english": "Could not create the recording file: %@",
+    "comment": "Recording error. %@ is the system error message.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "No se ha podido crear el archivo de grabación: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "Could not delete the model",
+    "english": "Could not delete the model",
+    "comment": "UI text in ModelRowView.swift.",
+    "placeholders": [],
+    "translation": "No se ha podido eliminar el modelo"
+  },
+  {
+    "catalog": "app",
+    "key": "Could not delete the recording: %@",
+    "english": "Could not delete the recording: %@",
+    "comment": "Recovery sheet error. %@ is the system error message.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "No se ha podido eliminar la grabación: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "Could not keep the recording: %@ It stays at %@.",
+    "english": "Could not keep the recording: %1$@ It stays at %2$@.",
+    "comment": "Recovery sheet error. %1$@ is the system error message, %2$@ a file path.",
+    "placeholders": [
+      "%@",
+      "%@"
+    ],
+    "translation": "No se ha podido conservar la grabación: %1$@ Se mantiene en %2$@."
+  },
+  {
+    "catalog": "app",
+    "key": "Could not move the recording to the output folder: %@",
+    "english": "Could not move the recording to the output folder: %@",
+    "comment": "Recording error. %@ is the system error message.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "No se ha podido mover la grabación a la carpeta de salida: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "Could not move the recording to the output folder: %@ It is kept at %@.",
+    "english": "Could not move the recording to the output folder: %1$@ It is kept at %2$@.",
+    "comment": "Record tab notice. %1$@ is the system error message, %2$@ a file path.",
+    "placeholders": [
+      "%@",
+      "%@"
+    ],
+    "translation": "No se ha podido mover la grabación a la carpeta de salida: %1$@ Se conserva en %2$@."
+  },
+  {
+    "catalog": "app",
+    "key": "Could not open the output folder: %@",
+    "english": "Could not open the output folder: %@",
+    "comment": "Error. %@ is the system error message.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "No se ha podido abrir la carpeta de salida: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "Could not read %@: %@",
+    "english": "Could not read %1$@: %2$@",
+    "comment": "History error. %1$@ is a folder path, %2$@ the system error message.",
+    "placeholders": [
+      "%@",
+      "%@"
+    ],
+    "translation": "No se ha podido leer %1$@: %2$@"
+  },
+  {
+    "catalog": "app",
+    "key": "Could not remember that folder: %@",
+    "english": "Could not remember that folder: %@",
+    "comment": "Settings > Output error. %@ is the system error message.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "No se ha podido recordar esa carpeta: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "Could not remove the token: %@",
+    "english": "Could not remove the token: %@",
+    "comment": "Settings > AI error. %@ is the reason.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "No se ha podido eliminar el token: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "Could not repair the recording: %@",
+    "english": "Could not repair the recording: %@",
+    "comment": "Recovery sheet error. %@ is the system error message.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "No se ha podido reparar la grabación: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "Could not save the token: %@",
+    "english": "Could not save the token: %@",
+    "comment": "Settings > AI error. %@ is the reason.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "No se ha podido guardar el token: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "Could not transcribe %@: %@",
+    "english": "Could not transcribe %1$@: %2$@",
+    "comment": "File tab error. %1$@ is a file name, %2$@ the reason.",
+    "placeholders": [
+      "%@",
+      "%@"
+    ],
+    "translation": "No se ha podido transcribir %1$@: %2$@"
+  },
+  {
+    "catalog": "app",
+    "key": "Could not transcribe again: %@",
+    "english": "Could not transcribe again: %@",
+    "comment": "Error. %@ is the reason.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "No se ha podido volver a transcribir: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "Could not transcribe again: %@ was moved or renamed.",
+    "english": "Could not transcribe again: %@ was moved or renamed.",
+    "comment": "Error. %@ is a file name.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "No se ha podido volver a transcribir: %@ se ha movido o renombrado."
+  },
+  {
+    "catalog": "app",
+    "key": "Could not transcribe again: the recording was not kept.",
+    "english": "Could not transcribe again: the recording was not kept.",
+    "comment": "Error",
+    "placeholders": [],
+    "translation": "No se ha podido volver a transcribir: la grabación no se ha conservado."
+  },
+  {
+    "catalog": "app",
+    "key": "Could not transcribe the recording",
+    "english": "Could not transcribe the recording",
+    "comment": "UI text in MainView.swift.",
+    "placeholders": [],
+    "translation": "No se ha podido transcribir la grabación"
+  },
+  {
+    "catalog": "app",
+    "key": "Could not turn off launch at login: %@",
+    "english": "Could not turn off launch at login: %@",
+    "comment": "Settings > General error. %@ is the system error message.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "No se ha podido desactivar la apertura al iniciar sesión: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "Could not turn on launch at login: %@",
+    "english": "Could not turn on launch at login: %@",
+    "comment": "Settings > General error. %@ is the system error message.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "No se ha podido activar la apertura al iniciar sesión: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "Could not write the transcript: %@",
+    "english": "Could not write the transcript: %@",
+    "comment": "Transcription error. %@ is the system error message.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "No se ha podido escribir la transcripción: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "Default",
+    "english": "Default",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [],
+    "translation": "Predeterminada"
+  },
+  {
+    "catalog": "app",
+    "key": "Delete",
+    "english": "Delete",
+    "comment": "UI text in AISettingsTab.swift, ModelRowView.swift, UnfinishedRecordingSheet.swift.",
+    "placeholders": [],
+    "translation": "Eliminar"
+  },
+  {
+    "catalog": "app",
+    "key": "Detecting language…",
+    "english": "Detecting language…",
+    "comment": "UI text in MenuBarView.swift, RecordView.swift.",
+    "placeholders": [],
+    "translation": "Detectando idioma…"
+  },
+  {
+    "catalog": "app",
+    "key": "Detecting the language of %@…",
+    "english": "Detecting the language of %@…",
+    "comment": "UI text in FileView.swift.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Detectando el idioma de %@…"
+  },
+  {
+    "catalog": "app",
+    "key": "Dismiss",
+    "english": "Dismiss",
+    "comment": "UI text in LanguageViews.swift.",
+    "placeholders": [],
+    "translation": "Descartar"
+  },
+  {
+    "catalog": "app",
+    "key": "Done",
+    "english": "Done",
+    "comment": "UI text in AcknowledgementsView.swift, HistoryView.swift.",
+    "placeholders": [],
+    "translation": "OK"
+  },
+  {
+    "catalog": "app",
+    "key": "Download",
+    "english": "Download",
+    "comment": "UI text in ModelRowView.swift.",
+    "placeholders": [],
+    "translation": "Descargar"
+  },
+  {
+    "catalog": "app",
+    "key": "Download a speech model",
+    "english": "Download a speech model",
+    "comment": "UI text in OnboardingModelSheet.swift.",
+    "placeholders": [],
+    "translation": "Descargar un modelo de voz"
+  },
+  {
+    "catalog": "app",
+    "key": "Download recommended model (%@)",
+    "english": "Download recommended model (%@)",
+    "comment": "UI text in OnboardingModelSheet.swift.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Descargar el modelo recomendado (%@)"
+  },
+  {
+    "catalog": "app",
+    "key": "Drop an audio or video file here",
+    "english": "Drop an audio or video file here",
+    "comment": "UI text in FileView.swift.",
+    "placeholders": [],
+    "translation": "Suelta aquí un archivo de audio o vídeo"
+  },
+  {
+    "catalog": "app",
+    "key": "Edit",
+    "english": "Edit",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [],
+    "translation": "Editar"
+  },
+  {
+    "catalog": "app",
+    "key": "Endpoint URL:",
+    "english": "Endpoint URL:",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [],
+    "translation": "URL del endpoint:"
+  },
+  {
+    "catalog": "app",
+    "key": "Enter an English meeting name using letters or digits.",
+    "english": "Enter an English meeting name using letters or digits.",
+    "comment": "UI text in NamingSheet.swift.",
+    "placeholders": [],
+    "translation": "Escribe un nombre de reunión en inglés con letras o dígitos."
+  },
+  {
+    "catalog": "app",
+    "key": "Error: SRT file not found or unreadable (%@): %@",
+    "english": "Error: SRT file not found or unreadable (%1$@): %2$@",
+    "comment": "Meeting notes error. %1$@ is a file path, %2$@ the system error message.",
+    "placeholders": [
+      "%@",
+      "%@"
+    ],
+    "translation": "Error: No se encuentra el archivo SRT o no se puede leer (%1$@): %2$@"
+  },
+  {
+    "catalog": "app",
+    "key": "Extra headers:",
+    "english": "Extra headers:",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [],
+    "translation": "Cabeceras adicionales:"
+  },
+  {
+    "catalog": "app",
+    "key": "File",
+    "english": "File",
+    "comment": "Main window tab",
+    "placeholders": [],
+    "translation": "Archivo"
+  },
+  {
+    "catalog": "app",
+    "key": "File name:",
+    "english": "File name:",
+    "comment": "UI text in NamingSheet.swift.",
+    "placeholders": [],
+    "translation": "Nombre de archivo:"
+  },
+  {
+    "catalog": "app",
+    "key": "File:",
+    "english": "File:",
+    "comment": "UI text in ConfirmSendSheet.swift.",
+    "placeholders": [],
+    "translation": "Archivo:"
+  },
+  {
+    "catalog": "app",
+    "key": "Finalizing…",
+    "english": "Finalizing…",
+    "comment": "UI text in RecordView.swift.",
+    "placeholders": [],
+    "translation": "Finalizando…"
+  },
+  {
+    "catalog": "app",
+    "key": "General",
+    "english": "General",
+    "comment": "Settings section (segmented picker)",
+    "placeholders": [],
+    "translation": "General"
+  },
+  {
+    "catalog": "app",
+    "key": "Generate Notes…",
+    "english": "Generate Notes…",
+    "comment": "History: make meeting notes from the SRT",
+    "placeholders": [],
+    "translation": "Generar notas…"
+  },
+  {
+    "catalog": "app",
+    "key": "Generating meeting notes via %@ (%@)…",
+    "english": "Generating meeting notes via %1$@ (%2$@)…",
+    "comment": "UI text in NotesFlowView.swift.",
+    "placeholders": [
+      "%@",
+      "%@"
+    ],
+    "translation": "Generando las notas de la reunión con %1$@ (%2$@)…"
+  },
+  {
+    "catalog": "app",
+    "key": "Global shortcuts are unavailable (error %d).",
+    "english": "Global shortcuts are unavailable (error %d).",
+    "comment": "Settings > General error. %d is a system error number.",
+    "placeholders": [
+      "%d"
+    ],
+    "translation": "Los atajos globales no están disponibles (error %d)."
+  },
+  {
+    "catalog": "app",
+    "key": "Hearsay could not restart.",
+    "english": "Hearsay could not restart.",
+    "comment": "Alert when the automatic restart after a language change failed",
+    "placeholders": [],
+    "translation": "Hearsay no se ha podido reiniciar."
+  },
+  {
+    "catalog": "app",
+    "key": "Hearsay is MIT licensed and includes open-source software.",
+    "english": "Hearsay is MIT licensed and includes open-source software.",
+    "comment": "UI text in AcknowledgementsView.swift.",
+    "placeholders": [],
+    "translation": "Hearsay tiene licencia MIT e incluye software de código abierto."
+  },
+  {
+    "catalog": "app",
+    "key": "Hearsay needs to restart to change the language.",
+    "english": "Hearsay needs to restart to change the language.",
+    "comment": "Alert after changing the interface language",
+    "placeholders": [],
+    "translation": "Hearsay debe reiniciarse para cambiar el idioma."
+  },
+  {
+    "catalog": "app",
+    "key": "Hearsay transcribes on this Mac with a Whisper model that you download once. Nothing is sent anywhere while transcribing. The recommended model gives the best balance of accuracy and speed; smaller ones download faster but make more mistakes.",
+    "english": "Hearsay transcribes on this Mac with a Whisper model that you download once. Nothing is sent anywhere while transcribing. The recommended model gives the best balance of accuracy and speed; smaller ones download faster but make more mistakes.",
+    "comment": "UI text in OnboardingModelSheet.swift.",
+    "placeholders": [],
+    "translation": "Hearsay transcribe en este Mac con un modelo Whisper que descargas una sola vez. Durante la transcripción no se envía nada a ningún sitio. El modelo recomendado ofrece el mejor equilibrio entre precisión y velocidad; los más pequeños se descargan antes, pero cometen más errores."
+  },
+  {
+    "catalog": "app",
+    "key": "Hearsay, paused",
+    "english": "Hearsay, paused",
+    "comment": "UI text in MenuBarView.swift.",
+    "placeholders": [],
+    "translation": "Hearsay, en pausa"
+  },
+  {
+    "catalog": "app",
+    "key": "Hearsay, recording",
+    "english": "Hearsay, recording",
+    "comment": "UI text in MenuBarView.swift.",
+    "placeholders": [],
+    "translation": "Hearsay, grabando"
+  },
+  {
+    "catalog": "app",
+    "key": "Hearsay, transcribing",
+    "english": "Hearsay, transcribing",
+    "comment": "UI text in MenuBarView.swift.",
+    "placeholders": [],
+    "translation": "Hearsay, transcribiendo"
+  },
+  {
+    "catalog": "app",
+    "key": "History",
+    "english": "History",
+    "comment": "Main window tab",
+    "placeholders": [],
+    "translation": "Historial"
+  },
+  {
+    "catalog": "app",
+    "key": "Idle",
+    "english": "Idle",
+    "comment": "Menu bar panel state: not recording",
+    "placeholders": [],
+    "translation": "Inactivo"
+  },
+  {
+    "catalog": "app",
+    "key": "Include ⌃, ⌥, or ⌘.",
+    "english": "Include ⌃, ⌥, or ⌘.",
+    "comment": "Shortcut recorder hint. Keep the symbols.",
+    "placeholders": [],
+    "translation": "Incluye ⌃, ⌥ o ⌘."
+  },
+  {
+    "catalog": "app",
+    "key": "Input level",
+    "english": "Input level",
+    "comment": "UI text in MenuBarView.swift, RecordView.swift.",
+    "placeholders": [],
+    "translation": "Nivel de entrada"
+  },
+  {
+    "catalog": "app",
+    "key": "Instructions",
+    "english": "Instructions",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [],
+    "translation": "Instrucciones"
+  },
+  {
+    "catalog": "app",
+    "key": "Interface",
+    "english": "Interface",
+    "comment": "Settings > General section header: the app's own language",
+    "placeholders": [],
+    "translation": "Interfaz"
+  },
+  {
+    "catalog": "app",
+    "key": "Interface language",
+    "english": "Interface language",
+    "comment": "Settings > General: the language of Hearsay's own menus and windows",
+    "placeholders": [],
+    "translation": "Idioma de la interfaz"
+  },
+  {
+    "catalog": "app",
+    "key": "Keep",
+    "english": "Keep",
+    "comment": "UI text in UnfinishedRecordingSheet.swift.",
+    "placeholders": [],
+    "translation": "Conservar"
+  },
+  {
+    "catalog": "app",
+    "key": "Keep Timestamp Names",
+    "english": "Keep Timestamp Names",
+    "comment": "UI text in NotesFlowView.swift.",
+    "placeholders": [],
+    "translation": "Mantener nombres con fecha"
+  },
+  {
+    "catalog": "app",
+    "key": "Keep local",
+    "english": "Keep local",
+    "comment": "UI text in ConfirmSendSheet.swift.",
+    "placeholders": [],
+    "translation": "Mantener en local"
+  },
+  {
+    "catalog": "app",
+    "key": "Keep the recording (WAV) after a successful transcription",
+    "english": "Keep the recording (WAV) after a successful transcription",
+    "comment": "UI text in SettingsView.swift.",
+    "placeholders": [],
+    "translation": "Conservar la grabación (WAV) tras una transcripción correcta"
+  },
+  {
+    "catalog": "app",
+    "key": "Keeping the timestamp file names.",
+    "english": "Keeping the timestamp file names.",
+    "comment": "Follows a rename error",
+    "placeholders": [],
+    "translation": "Se mantienen los nombres de archivo con fecha y hora."
+  },
+  {
+    "catalog": "app",
+    "key": "Language",
+    "english": "Language",
+    "comment": "UI text in FileView.swift, LanguageViews.swift, RecordView.swift.",
+    "placeholders": [],
+    "translation": "Idioma"
+  },
+  {
+    "catalog": "app",
+    "key": "Later",
+    "english": "Later",
+    "comment": "Alert button: keep running; the language changes at the next launch",
+    "placeholders": [],
+    "translation": "Más tarde"
+  },
+  {
+    "catalog": "app",
+    "key": "Launch Hearsay at login",
+    "english": "Launch Hearsay at login",
+    "comment": "UI text in SettingsView.swift.",
+    "placeholders": [],
+    "translation": "Abrir Hearsay al iniciar sesión"
+  },
+  {
+    "catalog": "app",
+    "key": "Live preview",
+    "english": "Live preview",
+    "comment": "UI text in RecordView.swift.",
+    "placeholders": [],
+    "translation": "Vista previa en directo"
+  },
+  {
+    "catalog": "app",
+    "key": "Live preview missed a chunk: %@",
+    "english": "Live preview missed a chunk: %@",
+    "comment": "Record tab notice. %@ is the reason.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Falta un fragmento en la vista previa en directo: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "Live preview off: %@",
+    "english": "Live preview off: %@",
+    "comment": "Record tab notice. %@ is the reason.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Vista previa en directo desactivada: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "Meeting name",
+    "english": "Meeting name",
+    "comment": "Naming sheet title",
+    "placeholders": [],
+    "translation": "Nombre de la reunión"
+  },
+  {
+    "catalog": "app",
+    "key": "Meeting name (in English)",
+    "english": "Meeting name (in English)",
+    "comment": "UI text in NamingSheet.swift.",
+    "placeholders": [],
+    "translation": "Nombre de la reunión (en inglés)"
+  },
+  {
+    "catalog": "app",
+    "key": "Meeting notes",
+    "english": "Meeting notes",
+    "comment": "UI text in FileView.swift, RecordView.swift.",
+    "placeholders": [],
+    "translation": "Notas de la reunión"
+  },
+  {
+    "catalog": "app",
+    "key": "Meeting notes generated successfully!",
+    "english": "Meeting notes generated successfully!",
+    "comment": "Meeting notes result",
+    "placeholders": [],
+    "translation": "¡Las notas de la reunión se han generado correctamente!"
+  },
+  {
+    "catalog": "app",
+    "key": "Meeting notes were not saved",
+    "english": "Meeting notes were not saved",
+    "comment": "UI text in NotesFlowView.swift.",
+    "placeholders": [],
+    "translation": "No se han guardado las notas de la reunión"
+  },
+  {
+    "catalog": "app",
+    "key": "Meeting-note generation was cancelled; no meeting notes were generated.",
+    "english": "Meeting-note generation was cancelled; no meeting notes were generated.",
+    "comment": "Meeting notes result",
+    "placeholders": [],
+    "translation": "Se ha cancelado la generación de notas; no se ha generado ninguna nota de la reunión."
+  },
+  {
+    "catalog": "app",
+    "key": "Menus and windows. A change applies after Hearsay restarts.",
+    "english": "Menus and windows. A change applies after Hearsay restarts.",
+    "comment": "Settings > General caption under Interface language",
+    "placeholders": [],
+    "translation": "Menús y ventanas. El cambio se aplica al reiniciar Hearsay."
+  },
+  {
+    "catalog": "app",
+    "key": "Mic",
+    "english": "Mic",
+    "comment": "Record tab: microphone level meter (tooltip)",
+    "placeholders": [],
+    "translation": "Micrófono"
+  },
+  {
+    "catalog": "app",
+    "key": "Microphone",
+    "english": "Microphone",
+    "comment": "UI text in RecordView.swift.",
+    "placeholders": [],
+    "translation": "Micrófono"
+  },
+  {
+    "catalog": "app",
+    "key": "Model:",
+    "english": "Model:",
+    "comment": "UI text in AISettingsTab.swift, ConfirmSendSheet.swift.",
+    "placeholders": [],
+    "translation": "Modelo:"
+  },
+  {
+    "catalog": "app",
+    "key": "Models",
+    "english": "Models",
+    "comment": "Main window tab",
+    "placeholders": [],
+    "translation": "Modelos"
+  },
+  {
+    "catalog": "app",
+    "key": "Models are stored in",
+    "english": "Models are stored in",
+    "comment": "UI text in ModelManagerView.swift.",
+    "placeholders": [],
+    "translation": "Los modelos se guardan en"
+  },
+  {
+    "catalog": "app",
+    "key": "Move this meeting to the Trash?",
+    "english": "Move this meeting to the Trash?",
+    "comment": "UI text in HistoryView.swift.",
+    "placeholders": [],
+    "translation": "¿Trasladar esta reunión a la Papelera?"
+  },
+  {
+    "catalog": "app",
+    "key": "Move to Trash",
+    "english": "Move to Trash",
+    "comment": "UI text in HistoryView.swift.",
+    "placeholders": [],
+    "translation": "Trasladar a la Papelera"
+  },
+  {
+    "catalog": "app",
+    "key": "Move to Trash…",
+    "english": "Move to Trash…",
+    "comment": "Button: move the meeting's files to the Trash",
+    "placeholders": [],
+    "translation": "Trasladar a la Papelera…"
+  },
+  {
+    "catalog": "app",
+    "key": "Name It…",
+    "english": "Name It…",
+    "comment": "UI text in NotesFlowView.swift.",
+    "placeholders": [],
+    "translation": "Poner nombre…"
+  },
+  {
+    "catalog": "app",
+    "key": "Name this meeting",
+    "english": "Name this meeting",
+    "comment": "Naming sheet title",
+    "placeholders": [],
+    "translation": "Poner nombre a la reunión"
+  },
+  {
+    "catalog": "app",
+    "key": "Name this meeting yourself?",
+    "english": "Name this meeting yourself?",
+    "comment": "UI text in NotesFlowView.swift.",
+    "placeholders": [],
+    "translation": "¿Poner nombre a la reunión manualmente?"
+  },
+  {
+    "catalog": "app",
+    "key": "Name:",
+    "english": "Name:",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [],
+    "translation": "Nombre:"
+  },
+  {
+    "catalog": "app",
+    "key": "Name: value, one per line",
+    "english": "Name: value, one per line",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [],
+    "translation": "Nombre: valor, uno por línea"
+  },
+  {
+    "catalog": "app",
+    "key": "New template",
+    "english": "New template",
+    "comment": "Default name of a new prompt template",
+    "placeholders": [],
+    "translation": "Nueva plantilla"
+  },
+  {
+    "catalog": "app",
+    "key": "No app is available to open %@.",
+    "english": "No app is available to open %@.",
+    "comment": "History error. %@ is a file name.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "No hay ninguna app disponible para abrir %@."
+  },
+  {
+    "catalog": "app",
+    "key": "No input device",
+    "english": "No input device",
+    "comment": "UI text in RecordView.swift.",
+    "placeholders": [],
+    "translation": "Ningún dispositivo de entrada"
+  },
+  {
+    "catalog": "app",
+    "key": "No meeting name selected; the SRT has been retained.",
+    "english": "No meeting name selected; the SRT has been retained.",
+    "comment": "Meeting notes result",
+    "placeholders": [],
+    "translation": "No se ha elegido ningún nombre de reunión; se ha conservado el SRT."
+  },
+  {
+    "catalog": "app",
+    "key": "No meeting name selected; the current notes are unchanged.",
+    "english": "No meeting name selected; the current notes are unchanged.",
+    "comment": "Meeting notes result",
+    "placeholders": [],
+    "translation": "No se ha elegido ningún nombre de reunión; las notas actuales no cambian."
+  },
+  {
+    "catalog": "app",
+    "key": "No meeting notes were generated.",
+    "english": "No meeting notes were generated.",
+    "comment": "Follows a meeting notes error",
+    "placeholders": [],
+    "translation": "No se ha generado ninguna nota de la reunión."
+  },
+  {
+    "catalog": "app",
+    "key": "No meeting notes were generated. You can rename the SRT and its recording, or keep the timestamp names.",
+    "english": "No meeting notes were generated. You can rename the SRT and its recording, or keep the timestamp names.",
+    "comment": "UI text in NotesFlowView.swift.",
+    "placeholders": [],
+    "translation": "No se ha generado ninguna nota de la reunión. Puedes renombrar el SRT y su grabación, o mantener los nombres con fecha y hora."
+  },
+  {
+    "catalog": "app",
+    "key": "No meetings yet",
+    "english": "No meetings yet",
+    "comment": "UI text in HistoryView.swift.",
+    "placeholders": [],
+    "translation": "Aún no hay reuniones"
+  },
+  {
+    "catalog": "app",
+    "key": "No model installed. Choose a model in Models.",
+    "english": "No model installed. Choose a model in Models.",
+    "comment": "Transcription error. 'Models' is the name of the Models tab.",
+    "placeholders": [],
+    "translation": "No hay ningún modelo instalado. Elige un modelo en Modelos."
+  },
+  {
+    "catalog": "app",
+    "key": "No output folder",
+    "english": "No output folder",
+    "comment": "History header when the output folder cannot be opened",
+    "placeholders": [],
+    "translation": "Sin carpeta de salida"
+  },
+  {
+    "catalog": "app",
+    "key": "Not set",
+    "english": "Not set",
+    "comment": "Settings > AI token status: no token stored",
+    "placeholders": [],
+    "translation": "Sin configurar"
+  },
+  {
+    "catalog": "app",
+    "key": "Notes",
+    "english": "Notes",
+    "comment": "History badge: the meeting has meeting notes",
+    "placeholders": [],
+    "translation": "Notas"
+  },
+  {
+    "catalog": "app",
+    "key": "Notes language:",
+    "english": "Notes language:",
+    "comment": "UI text in ConfirmSendSheet.swift.",
+    "placeholders": [],
+    "translation": "Idioma de las notas:"
+  },
+  {
+    "catalog": "app",
+    "key": "Nothing was recorded, so no file was kept.",
+    "english": "Nothing was recorded, so no file was kept.",
+    "comment": "Recording error",
+    "placeholders": [],
+    "translation": "No se ha grabado nada, así que no se ha conservado ningún archivo."
+  },
+  {
+    "catalog": "app",
+    "key": "Nothing was sent; the current notes are unchanged.",
+    "english": "Nothing was sent; the current notes are unchanged.",
+    "comment": "Meeting notes result",
+    "placeholders": [],
+    "translation": "No se ha enviado nada; las notas actuales no cambian."
+  },
+  {
+    "catalog": "app",
+    "key": "OK",
+    "english": "OK",
+    "comment": "UI text in MainView.swift, ModelRowView.swift.",
+    "placeholders": [],
+    "translation": "Aceptar"
+  },
+  {
+    "catalog": "app",
+    "key": "Open Hearsay",
+    "english": "Open Hearsay",
+    "comment": "Menu bar panel: bring up the main window",
+    "placeholders": [],
+    "translation": "Abrir Hearsay"
+  },
+  {
+    "catalog": "app",
+    "key": "Open Login Items",
+    "english": "Open Login Items",
+    "comment": "UI text in SettingsView.swift.",
+    "placeholders": [],
+    "translation": "Abrir Ítems de inicio"
+  },
+  {
+    "catalog": "app",
+    "key": "Open Models",
+    "english": "Open Models",
+    "comment": "UI text in FileView.swift, RecordView.swift.",
+    "placeholders": [],
+    "translation": "Abrir Modelos"
+  },
+  {
+    "catalog": "app",
+    "key": "Open Notes",
+    "english": "Open Notes",
+    "comment": "UI text in HistoryView.swift.",
+    "placeholders": [],
+    "translation": "Abrir notas"
+  },
+  {
+    "catalog": "app",
+    "key": "Open SRT",
+    "english": "Open SRT",
+    "comment": "History row button (tooltip)",
+    "placeholders": [],
+    "translation": "Abrir SRT"
+  },
+  {
+    "catalog": "app",
+    "key": "Open System Settings",
+    "english": "Open System Settings",
+    "comment": "UI text in RecordView.swift.",
+    "placeholders": [],
+    "translation": "Abrir Ajustes del Sistema"
+  },
+  {
+    "catalog": "app",
+    "key": "Open Transcript",
+    "english": "Open Transcript",
+    "comment": "UI text in HistoryView.swift.",
+    "placeholders": [],
+    "translation": "Abrir transcripción"
+  },
+  {
+    "catalog": "app",
+    "key": "Open notes",
+    "english": "Open notes",
+    "comment": "History row button (tooltip)",
+    "placeholders": [],
+    "translation": "Abrir notas"
+  },
+  {
+    "catalog": "app",
+    "key": "Open transcript",
+    "english": "Open transcript",
+    "comment": "History row button (tooltip): the structured Markdown transcript",
+    "placeholders": [],
+    "translation": "Abrir transcripción"
+  },
+  {
+    "catalog": "app",
+    "key": "Output",
+    "english": "Output",
+    "comment": "Settings section (segmented picker)",
+    "placeholders": [],
+    "translation": "Salida"
+  },
+  {
+    "catalog": "app",
+    "key": "Output folder:",
+    "english": "Output folder:",
+    "comment": "UI text in SettingsView.swift.",
+    "placeholders": [],
+    "translation": "Carpeta de salida:"
+  },
+  {
+    "catalog": "app",
+    "key": "Pause",
+    "english": "Pause",
+    "comment": "Button: pause the recording",
+    "placeholders": [],
+    "translation": "Pausar"
+  },
+  {
+    "catalog": "app",
+    "key": "Pause / Resume (%@)",
+    "english": "Pause / Resume (%@)",
+    "comment": "UI text in MenuBarView.swift.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Pausar / Reanudar (%@)"
+  },
+  {
+    "catalog": "app",
+    "key": "Pause / Resume:",
+    "english": "Pause / Resume:",
+    "comment": "UI text in HotkeyRecorderView.swift.",
+    "placeholders": [],
+    "translation": "Pausar / Reanudar:"
+  },
+  {
+    "catalog": "app",
+    "key": "Paused",
+    "english": "Paused",
+    "comment": "UI text in RecordView.swift.",
+    "placeholders": [],
+    "translation": "En pausa"
+  },
+  {
+    "catalog": "app",
+    "key": "Paused %@",
+    "english": "Paused %@",
+    "comment": "Menu bar panel state. %@ is the elapsed time, for example 00:12:34.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "En pausa %@"
+  },
+  {
+    "catalog": "app",
+    "key": "Preferred language",
+    "english": "Preferred language",
+    "comment": "UI text in SettingsView.swift.",
+    "placeholders": [],
+    "translation": "Idioma preferido"
+  },
+  {
+    "catalog": "app",
+    "key": "Preset:",
+    "english": "Preset:",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [],
+    "translation": "Preajuste:"
+  },
+  {
+    "catalog": "app",
+    "key": "Press a combination with ⌃, ⌥, or ⌘. Escape cancels.",
+    "english": "Press a combination with ⌃, ⌥, or ⌘. Escape cancels.",
+    "comment": "Shortcut recorder tooltip. Keep the symbols.",
+    "placeholders": [],
+    "translation": "Pulsa una combinación con ⌃, ⌥ o ⌘. Esc para cancelar."
+  },
+  {
+    "catalog": "app",
+    "key": "Prompt template",
+    "english": "Prompt template",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [],
+    "translation": "Plantilla de instrucciones"
+  },
+  {
+    "catalog": "app",
+    "key": "Prompt templates",
+    "english": "Prompt templates",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [],
+    "translation": "Plantillas de instrucciones"
+  },
+  {
+    "catalog": "app",
+    "key": "Provider",
+    "english": "Provider",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [],
+    "translation": "Proveedor"
+  },
+  {
+    "catalog": "app",
+    "key": "Provider:",
+    "english": "Provider:",
+    "comment": "UI text in ConfirmSendSheet.swift.",
+    "placeholders": [],
+    "translation": "Proveedor:"
+  },
+  {
+    "catalog": "app",
+    "key": "Quit Hearsay",
+    "english": "Quit Hearsay",
+    "comment": "Menu bar panel",
+    "placeholders": [],
+    "translation": "Salir de Hearsay"
+  },
+  {
+    "catalog": "app",
+    "key": "Quit Hearsay and open it again to use the new language.",
+    "english": "Quit Hearsay and open it again to use the new language.",
+    "comment": "Alert when the automatic restart after a language change failed",
+    "placeholders": [],
+    "translation": "Sal de Hearsay y vuelve a abrirlo para usar el nuevo idioma."
+  },
+  {
+    "catalog": "app",
+    "key": "Reading %@…",
+    "english": "Reading %@…",
+    "comment": "UI text in FileView.swift.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Leyendo %@…"
+  },
+  {
+    "catalog": "app",
+    "key": "Ready",
+    "english": "Ready",
+    "comment": "UI text in RecordView.swift.",
+    "placeholders": [],
+    "translation": "Listo"
+  },
+  {
+    "catalog": "app",
+    "key": "Reasoning effort:",
+    "english": "Reasoning effort:",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [],
+    "translation": "Esfuerzo de razonamiento:"
+  },
+  {
+    "catalog": "app",
+    "key": "Recommended",
+    "english": "Recommended",
+    "comment": "UI text in ModelRowView.swift.",
+    "placeholders": [],
+    "translation": "Recomendado"
+  },
+  {
+    "catalog": "app",
+    "key": "Record",
+    "english": "Record",
+    "comment": "Main window tab",
+    "placeholders": [],
+    "translation": "Grabar"
+  },
+  {
+    "catalog": "app",
+    "key": "Recording",
+    "english": "Recording",
+    "comment": "Menu bar icon while recording",
+    "placeholders": [],
+    "translation": "Grabando"
+  },
+  {
+    "catalog": "app",
+    "key": "Recording %@",
+    "english": "Recording %@",
+    "comment": "Menu bar panel state. %@ is the elapsed time, for example 00:12:34.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Grabando %@"
+  },
+  {
+    "catalog": "app",
+    "key": "Recording kept: %@",
+    "english": "Recording kept: %@",
+    "comment": "UI text in NotesFlowView.swift.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Grabación conservada: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "Recordings, transcripts and meeting notes saved in the output folder appear here.",
+    "english": "Recordings, transcripts and meeting notes saved in the output folder appear here.",
+    "comment": "UI text in HistoryView.swift.",
+    "placeholders": [],
+    "translation": "Aquí aparecen las grabaciones, transcripciones y notas de reuniones guardadas en la carpeta de salida."
+  },
+  {
+    "catalog": "app",
+    "key": "Refresh",
+    "english": "Refresh",
+    "comment": "UI text in HistoryView.swift.",
+    "placeholders": [],
+    "translation": "Actualizar"
+  },
+  {
+    "catalog": "app",
+    "key": "Regenerate Notes…",
+    "english": "Regenerate Notes…",
+    "comment": "History: make new meeting notes, replacing the current ones",
+    "placeholders": [],
+    "translation": "Regenerar notas…"
+  },
+  {
+    "catalog": "app",
+    "key": "Remove",
+    "english": "Remove",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [],
+    "translation": "Quitar"
+  },
+  {
+    "catalog": "app",
+    "key": "Reset",
+    "english": "Reset",
+    "comment": "UI text in HotkeyRecorderView.swift.",
+    "placeholders": [],
+    "translation": "Restablecer"
+  },
+  {
+    "catalog": "app",
+    "key": "Restart Now",
+    "english": "Restart Now",
+    "comment": "Alert button: quit and reopen Hearsay now",
+    "placeholders": [],
+    "translation": "Reiniciar ahora"
+  },
+  {
+    "catalog": "app",
+    "key": "Resume",
+    "english": "Resume",
+    "comment": "Button: resume the paused recording",
+    "placeholders": [],
+    "translation": "Reanudar"
+  },
+  {
+    "catalog": "app",
+    "key": "Retry",
+    "english": "Retry",
+    "comment": "UI text in ModelRowView.swift.",
+    "placeholders": [],
+    "translation": "Reintentar"
+  },
+  {
+    "catalog": "app",
+    "key": "Reveal in Finder",
+    "english": "Reveal in Finder",
+    "comment": "Button",
+    "placeholders": [],
+    "translation": "Mostrar en el Finder"
+  },
+  {
+    "catalog": "app",
+    "key": "Save",
+    "english": "Save",
+    "comment": "UI text in AISettingsTab.swift, NamingSheet.swift.",
+    "placeholders": [],
+    "translation": "Guardar"
+  },
+  {
+    "catalog": "app",
+    "key": "Saved",
+    "english": "Saved",
+    "comment": "Status word, also used for a finished recording on the Record tab and as a section header there; here: an API token is stored in the Keychain (Settings > AI)",
+    "placeholders": [],
+    "translation": "Guardado"
+  },
+  {
+    "catalog": "app",
+    "key": "Saved %@",
+    "english": "Saved %@",
+    "comment": "Menu bar panel caption. %@ is a file name.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Se ha guardado %@"
+  },
+  {
+    "catalog": "app",
+    "key": "Saving moves the current notes to the Trash.",
+    "english": "Saving moves the current notes to the Trash.",
+    "comment": "UI text in NamingSheet.swift.",
+    "placeholders": [],
+    "translation": "Al guardar, las notas actuales se trasladan a la Papelera."
+  },
+  {
+    "catalog": "app",
+    "key": "Saving the live preview…",
+    "english": "Saving the live preview…",
+    "comment": "UI text in RecordView.swift.",
+    "placeholders": [],
+    "translation": "Guardando la vista previa en directo…"
+  },
+  {
+    "catalog": "app",
+    "key": "Saving…",
+    "english": "Saving…",
+    "comment": "Recording state: the recording is being saved",
+    "placeholders": [],
+    "translation": "Guardando…"
+  },
+  {
+    "catalog": "app",
+    "key": "Send",
+    "english": "Send",
+    "comment": "UI text in ConfirmSendSheet.swift.",
+    "placeholders": [],
+    "translation": "Enviar"
+  },
+  {
+    "catalog": "app",
+    "key": "Send transcript for meeting notes?",
+    "english": "Send transcript for meeting notes?",
+    "comment": "UI text in ConfirmSendSheet.swift.",
+    "placeholders": [],
+    "translation": "¿Enviar la transcripción para generar notas?"
+  },
+  {
+    "catalog": "app",
+    "key": "Sending",
+    "english": "Sending",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [],
+    "translation": "Envío"
+  },
+  {
+    "catalog": "app",
+    "key": "Set as Default",
+    "english": "Set as Default",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [],
+    "translation": "Usar por omisión"
+  },
+  {
+    "catalog": "app",
+    "key": "Settings",
+    "english": "Settings",
+    "comment": "Main window tab",
+    "placeholders": [],
+    "translation": "Ajustes"
+  },
+  {
+    "catalog": "app",
+    "key": "Settings section",
+    "english": "Settings section",
+    "comment": "Accessibility label of the Settings section picker",
+    "placeholders": [],
+    "translation": "Sección de Ajustes"
+  },
+  {
+    "catalog": "app",
+    "key": "Settings…",
+    "english": "Settings…",
+    "comment": "App menu command that opens the Settings tab (⌘,)",
+    "placeholders": [],
+    "translation": "Ajustes…"
+  },
+  {
+    "catalog": "app",
+    "key": "Shortcut",
+    "english": "Shortcut",
+    "comment": "Accessibility label of the shortcut recorder",
+    "placeholders": [],
+    "translation": "Atajo de teclado"
+  },
+  {
+    "catalog": "app",
+    "key": "Shortcuts",
+    "english": "Shortcuts",
+    "comment": "UI text in HotkeyRecorderView.swift.",
+    "placeholders": [],
+    "translation": "Atajos de teclado"
+  },
+  {
+    "catalog": "app",
+    "key": "Show Hearsay in:",
+    "english": "Show Hearsay in:",
+    "comment": "UI text in SettingsView.swift.",
+    "placeholders": [],
+    "translation": "Mostrar Hearsay en:"
+  },
+  {
+    "catalog": "app",
+    "key": "Show Licenses…",
+    "english": "Show Licenses…",
+    "comment": "UI text in AcknowledgementsView.swift.",
+    "placeholders": [],
+    "translation": "Mostrar licencias…"
+  },
+  {
+    "catalog": "app",
+    "key": "Show in Finder",
+    "english": "Show in Finder",
+    "comment": "UI text in ModelManagerView.swift.",
+    "placeholders": [],
+    "translation": "Mostrar en el Finder"
+  },
+  {
+    "catalog": "app",
+    "key": "Silent for %llds — check the input device",
+    "english": "Silent for %llds — check the input device",
+    "comment": "Silence warning while recording. %lld is a number of seconds.",
+    "placeholders": [
+      "%lld"
+    ],
+    "translation": "Sin sonido durante %lld s — comprueba el dispositivo de entrada"
+  },
+  {
+    "catalog": "app",
+    "key": "Skip the full pass and save the live preview as the transcript",
+    "english": "Skip the full pass and save the live preview as the transcript",
+    "comment": "UI text in RecordView.swift.",
+    "placeholders": [],
+    "translation": "Omitir la pasada completa y guardar la vista previa como transcripción"
+  },
+  {
+    "catalog": "app",
+    "key": "Skipped AI processing; kept the timestamp file names.",
+    "english": "Skipped AI processing; kept the timestamp file names.",
+    "comment": "Meeting notes result",
+    "placeholders": [],
+    "translation": "Se ha omitido el procesamiento con IA; se han mantenido los nombres de archivo con fecha y hora."
+  },
+  {
+    "catalog": "app",
+    "key": "Skipped AI processing; no meeting notes were generated.",
+    "english": "Skipped AI processing; no meeting notes were generated.",
+    "comment": "Meeting notes result",
+    "placeholders": [],
+    "translation": "Se ha omitido el procesamiento con IA; no se ha generado ninguna nota de la reunión."
+  },
+  {
+    "catalog": "app",
+    "key": "Skipped AI processing; renamed the transcript and recording.",
+    "english": "Skipped AI processing; renamed the transcript and recording.",
+    "comment": "Meeting notes result",
+    "placeholders": [],
+    "translation": "Se ha omitido el procesamiento con IA; se han renombrado la transcripción y la grabación."
+  },
+  {
+    "catalog": "app",
+    "key": "Some files could not be moved to the Trash:",
+    "english": "Some files could not be moved to the Trash:",
+    "comment": "History error, followed by one line per file",
+    "placeholders": [],
+    "translation": "Algunos archivos no se han podido trasladar a la Papelera:"
+  },
+  {
+    "catalog": "app",
+    "key": "Start",
+    "english": "Start",
+    "comment": "UI text in MenuBarView.swift, RecordView.swift.",
+    "placeholders": [],
+    "translation": "Iniciar"
+  },
+  {
+    "catalog": "app",
+    "key": "Start (%@)",
+    "english": "Start (%@)",
+    "comment": "UI text in MenuBarView.swift.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Iniciar (%@)"
+  },
+  {
+    "catalog": "app",
+    "key": "Start / Stop recording:",
+    "english": "Start / Stop recording:",
+    "comment": "UI text in HotkeyRecorderView.swift.",
+    "placeholders": [],
+    "translation": "Iniciar / Detener grabación:"
+  },
+  {
+    "catalog": "app",
+    "key": "Starting…",
+    "english": "Starting…",
+    "comment": "Recording state",
+    "placeholders": [],
+    "translation": "Iniciando…"
+  },
+  {
+    "catalog": "app",
+    "key": "Startup",
+    "english": "Startup",
+    "comment": "UI text in SettingsView.swift.",
+    "placeholders": [],
+    "translation": "Inicio"
+  },
+  {
+    "catalog": "app",
+    "key": "Status:",
+    "english": "Status:",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [],
+    "translation": "Estado:"
+  },
+  {
+    "catalog": "app",
+    "key": "Stop",
+    "english": "Stop",
+    "comment": "UI text in MenuBarView.swift, RecordView.swift.",
+    "placeholders": [],
+    "translation": "Detener"
+  },
+  {
+    "catalog": "app",
+    "key": "Stop & Quit",
+    "english": "Stop & Quit",
+    "comment": "Alert button: stop the recording, then quit",
+    "placeholders": [],
+    "translation": "Detener y salir"
+  },
+  {
+    "catalog": "app",
+    "key": "Stop (%@)",
+    "english": "Stop (%@)",
+    "comment": "UI text in MenuBarView.swift.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Detener (%@)"
+  },
+  {
+    "catalog": "app",
+    "key": "Stop at the next 30 s window; nothing is saved",
+    "english": "Stop at the next 30 s window; nothing is saved",
+    "comment": "Tooltip of Cancel while a file is transcribed",
+    "placeholders": [],
+    "translation": "Se detiene en la siguiente ventana de 30 s; no se guarda nada"
+  },
+  {
+    "catalog": "app",
+    "key": "Stop recording and quit?",
+    "english": "Stop recording and quit?",
+    "comment": "Alert when quitting (or restarting) while a recording is active",
+    "placeholders": [],
+    "translation": "¿Detener la grabación y salir?"
+  },
+  {
+    "catalog": "app",
+    "key": "System",
+    "english": "System",
+    "comment": "Record tab: system audio level meter (tooltip)",
+    "placeholders": [],
+    "translation": "Sistema"
+  },
+  {
+    "catalog": "app",
+    "key": "System audio off: %@",
+    "english": "System audio off: %@",
+    "comment": "Record tab notice. %@ is the reason.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Audio del sistema desactivado: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "System audio off: permission denied",
+    "english": "System audio off: permission denied",
+    "comment": "Record tab notice: no Screen & System Audio Recording permission",
+    "placeholders": [],
+    "translation": "Audio del sistema desactivado: permiso denegado"
+  },
+  {
+    "catalog": "app",
+    "key": "Temperature:",
+    "english": "Temperature:",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [],
+    "translation": "Temperatura:"
+  },
+  {
+    "catalog": "app",
+    "key": "Template:",
+    "english": "Template:",
+    "comment": "UI text in ConfirmSendSheet.swift.",
+    "placeholders": [],
+    "translation": "Plantilla:"
+  },
+  {
+    "catalog": "app",
+    "key": "Test connection",
+    "english": "Test connection",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [],
+    "translation": "Probar conexión"
+  },
+  {
+    "catalog": "app",
+    "key": "The AI suggested this name. Edit it or press Return to accept it.",
+    "english": "The AI suggested this name. Edit it or press Return to accept it.",
+    "comment": "Naming sheet explanation",
+    "placeholders": [],
+    "translation": "La IA ha sugerido este nombre. Edítalo o pulsa Retorno para aceptarlo."
+  },
+  {
+    "catalog": "app",
+    "key": "The SRT is kept at %@",
+    "english": "The SRT is kept at %@",
+    "comment": "UI text in NotesFlowView.swift.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "El SRT se conserva en %@"
+  },
+  {
+    "catalog": "app",
+    "key": "The current notes will be moved to the Trash when the new ones are saved.",
+    "english": "The current notes will be moved to the Trash when the new ones are saved.",
+    "comment": "UI text in ConfirmSendSheet.swift.",
+    "placeholders": [],
+    "translation": "Las notas actuales se trasladarán a la Papelera cuando se guarden las nuevas."
+  },
+  {
+    "catalog": "app",
+    "key": "The first lines appear after about 10 to 30 s.",
+    "english": "The first lines appear after about 10 to 30 s.",
+    "comment": "Live preview placeholder while no line has arrived yet",
+    "placeholders": [],
+    "translation": "Las primeras líneas aparecen tras unos 10 a 30 s."
+  },
+  {
+    "catalog": "app",
+    "key": "The live preview could not be saved: %@",
+    "english": "The live preview could not be saved: %@",
+    "comment": "After a failed transcription. %@ is the system error message.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "No se ha podido guardar la vista previa en directo: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "The live preview was saved as %@.",
+    "english": "The live preview was saved as %@.",
+    "comment": "After a failed transcription. %@ is a file path.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "La vista previa en directo se ha guardado como %@."
+  },
+  {
+    "catalog": "app",
+    "key": "The model %@ is not fully downloaded. Finish the download in Models.",
+    "english": "The model %@ is not fully downloaded. Finish the download in Models.",
+    "comment": "Transcription error. %@ is a model name; 'Models' is the Models tab.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "El modelo %@ no se ha descargado por completo. Termina la descarga en Modelos."
+  },
+  {
+    "catalog": "app",
+    "key": "The preview lags behind the recording but stays complete.",
+    "english": "The preview lags behind the recording but stays complete.",
+    "comment": "UI text in RecordView.swift.",
+    "placeholders": [],
+    "translation": "La vista previa va por detrás de la grabación, pero estará completa."
+  },
+  {
+    "catalog": "app",
+    "key": "The recording is kept at %@.",
+    "english": "The recording is kept at %@.",
+    "comment": "After a failed transcription. %@ is a file path.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "La grabación se conserva en %@."
+  },
+  {
+    "catalog": "app",
+    "key": "The recording is missing.",
+    "english": "The recording is missing.",
+    "comment": "Transcription error",
+    "placeholders": [],
+    "translation": "Falta la grabación."
+  },
+  {
+    "catalog": "app",
+    "key": "The recording is saved before Hearsay quits.",
+    "english": "The recording is saved before Hearsay quits.",
+    "comment": "Alert when quitting while a recording is active",
+    "placeholders": [],
+    "translation": "La grabación se guarda antes de que Hearsay se cierre."
+  },
+  {
+    "catalog": "app",
+    "key": "The transcript and recording are renamed to <timestamp>_<name>.",
+    "english": "The transcript and recording are renamed to <timestamp>_<name>.",
+    "comment": "Naming sheet explanation. Translate the words inside <timestamp>_<name> but keep the angle brackets and underscore.",
+    "placeholders": [],
+    "translation": "La transcripción y la grabación se renombran como <fecha-hora>_<nombre>."
+  },
+  {
+    "catalog": "app",
+    "key": "This is the meeting's current name. Edit it or press Return to keep it.",
+    "english": "This is the meeting's current name. Edit it or press Return to keep it.",
+    "comment": "Naming sheet explanation when regenerating notes",
+    "placeholders": [],
+    "translation": "Este es el nombre actual de la reunión. Edítalo o pulsa Retorno para mantenerlo."
+  },
+  {
+    "catalog": "app",
+    "key": "This is the meeting's current name. Edit it, keep it, or use the AI's suggestion.",
+    "english": "This is the meeting's current name. Edit it, keep it, or use the AI's suggestion.",
+    "comment": "Naming sheet explanation when regenerating notes",
+    "placeholders": [],
+    "translation": "Este es el nombre actual de la reunión. Edítalo, mantenlo o usa la sugerencia de la IA."
+  },
+  {
+    "catalog": "app",
+    "key": "This provider needs no token.",
+    "english": "This provider needs no token.",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [],
+    "translation": "Este proveedor no necesita token."
+  },
+  {
+    "catalog": "app",
+    "key": "This sends the whole transcript to %@. Nothing leaves this Mac otherwise.",
+    "english": "This sends the whole transcript to %@. Nothing leaves this Mac otherwise.",
+    "comment": "UI text in ConfirmSendSheet.swift.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Se enviará la transcripción completa a %@. Por lo demás, nada sale de este Mac."
+  },
+  {
+    "catalog": "app",
+    "key": "Token",
+    "english": "Token",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [],
+    "translation": "Token"
+  },
+  {
+    "catalog": "app",
+    "key": "Token header:",
+    "english": "Token header:",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [],
+    "translation": "Cabecera del token:"
+  },
+  {
+    "catalog": "app",
+    "key": "Transcribe",
+    "english": "Transcribe",
+    "comment": "UI text in UnfinishedRecordingSheet.swift.",
+    "placeholders": [],
+    "translation": "Transcribir"
+  },
+  {
+    "catalog": "app",
+    "key": "Transcribe again",
+    "english": "Transcribe again",
+    "comment": "UI text in LanguageViews.swift.",
+    "placeholders": [],
+    "translation": "Volver a transcribir"
+  },
+  {
+    "catalog": "app",
+    "key": "Transcribe this file",
+    "english": "Transcribe this file",
+    "comment": "UI text in RecordView.swift.",
+    "placeholders": [],
+    "translation": "Transcribir este archivo"
+  },
+  {
+    "catalog": "app",
+    "key": "Transcribe this recording again in %@",
+    "english": "Transcribe this recording again in %@",
+    "comment": "Tooltip. %@ is a language name in its own language.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Volver a transcribir esta grabación en %@"
+  },
+  {
+    "catalog": "app",
+    "key": "Transcribe this recording again in %@. Your language choice stays as it is.",
+    "english": "Transcribe this recording again in %@. Your language choice stays as it is.",
+    "comment": "Tooltip. %@ is a language name in its own language (English, 中文, Deutsch, Español).",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Volver a transcribir esta grabación en %@. Tu elección de idioma no cambia."
+  },
+  {
+    "catalog": "app",
+    "key": "Transcribing",
+    "english": "Transcribing",
+    "comment": "UI text in RecordView.swift.",
+    "placeholders": [],
+    "translation": "Transcribiendo"
+  },
+  {
+    "catalog": "app",
+    "key": "Transcribing %@…",
+    "english": "Transcribing %@…",
+    "comment": "UI text in FileView.swift.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Transcribiendo %@…"
+  },
+  {
+    "catalog": "app",
+    "key": "Transcribing… %lld%%",
+    "english": "Transcribing… %lld%%",
+    "comment": "Menu bar panel state. %lld is a percentage; keep the % sign after it.",
+    "placeholders": [
+      "%lld"
+    ],
+    "translation": "Transcribiendo… %lld%%"
+  },
+  {
+    "catalog": "app",
+    "key": "Transcript",
+    "english": "Transcript",
+    "comment": "History badge: the meeting has a structured transcript",
+    "placeholders": [],
+    "translation": "Transcripción"
+  },
+  {
+    "catalog": "app",
+    "key": "Transcript kept: %@",
+    "english": "Transcript kept: %@",
+    "comment": "UI text in NotesFlowView.swift.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Transcripción conservada: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "Transcript:",
+    "english": "Transcript:",
+    "comment": "UI text in ConfirmSendSheet.swift.",
+    "placeholders": [],
+    "translation": "Transcripción:"
+  },
+  {
+    "catalog": "app",
+    "key": "Transcription",
+    "english": "Transcription",
+    "comment": "UI text in SettingsView.swift.",
+    "placeholders": [],
+    "translation": "Transcripción"
+  },
+  {
+    "catalog": "app",
+    "key": "Transcription failed: %@",
+    "english": "Transcription failed: %@",
+    "comment": "Transcription error. %@ is the reason.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Error de transcripción: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "Transcription failed: the language could not be decided.",
+    "english": "Transcription failed: the language could not be decided.",
+    "comment": "Transcription error",
+    "placeholders": [],
+    "translation": "Error de transcripción: no se ha podido determinar el idioma."
+  },
+  {
+    "catalog": "app",
+    "key": "Transcription progress",
+    "english": "Transcription progress",
+    "comment": "UI text in MenuBarView.swift.",
+    "placeholders": [],
+    "translation": "Progreso de la transcripción"
+  },
+  {
+    "catalog": "app",
+    "key": "Transcription was cancelled because Hearsay quit.",
+    "english": "Transcription was cancelled because Hearsay quit.",
+    "comment": "Recording error",
+    "placeholders": [],
+    "translation": "Se ha cancelado la transcripción porque Hearsay se ha cerrado."
+  },
+  {
+    "catalog": "app",
+    "key": "Try Again",
+    "english": "Try Again",
+    "comment": "UI text in RecordView.swift.",
+    "placeholders": [],
+    "translation": "Reintentar"
+  },
+  {
+    "catalog": "app",
+    "key": "Type shortcut…",
+    "english": "Type shortcut…",
+    "comment": "Shortcut recorder while waiting for a key combination",
+    "placeholders": [],
+    "translation": "Escribe el atajo…"
+  },
+  {
+    "catalog": "app",
+    "key": "Unfinished recording",
+    "english": "Unfinished recording",
+    "comment": "UI text in UnfinishedRecordingSheet.swift.",
+    "placeholders": [],
+    "translation": "Grabación sin terminar"
+  },
+  {
+    "catalog": "app",
+    "key": "Untitled",
+    "english": "Untitled",
+    "comment": "History: a meeting that has no name yet",
+    "placeholders": [],
+    "translation": "Sin título"
+  },
+  {
+    "catalog": "app",
+    "key": "Use",
+    "english": "Use",
+    "comment": "UI text in ModelRowView.swift.",
+    "placeholders": [],
+    "translation": "Usar"
+  },
+  {
+    "catalog": "app",
+    "key": "Use Default",
+    "english": "Use Default",
+    "comment": "UI text in SettingsView.swift.",
+    "placeholders": [],
+    "translation": "Usar predeterminada"
+  },
+  {
+    "catalog": "app",
+    "key": "Use live preview instead",
+    "english": "Use live preview instead",
+    "comment": "UI text in RecordView.swift.",
+    "placeholders": [],
+    "translation": "Usar la vista previa en su lugar"
+  },
+  {
+    "catalog": "app",
+    "key": "Use suggested name: %@",
+    "english": "Use suggested name: %@",
+    "comment": "UI text in NamingSheet.swift.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Usar el nombre sugerido: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "Used when Auto can't tell the language.",
+    "english": "Used when Auto can't tell the language.",
+    "comment": "UI text in SettingsView.swift.",
+    "placeholders": [],
+    "translation": "Se usa cuando Automático no reconoce el idioma."
+  },
+  {
+    "catalog": "app",
+    "key": "Used when Auto detects Chinese",
+    "english": "Used when Auto detects Chinese",
+    "comment": "Tooltip of the Chinese output picker",
+    "placeholders": [],
+    "translation": "Se usa cuando Automático detecta chino"
+  },
+  {
+    "catalog": "app",
+    "key": "Uses Claude Code installed on this Mac and your Claude subscription login; requests count against its usage limits. Run `claude` once in Terminal to log in. Model: an alias (sonnet, opus) or a full id. Effort: low, medium, high, xhigh, or max (none and minimal become low).",
+    "english": "Uses Claude Code installed on this Mac and your Claude subscription login; requests count against its usage limits. Run `claude` once in Terminal to log in. Model: an alias (sonnet, opus) or a full id. Effort: low, medium, high, xhigh, or max (none and minimal become low).",
+    "comment": "Settings > AI caption. Keep commands in backticks, model aliases, effort values (low, medium, high, xhigh, max, none, minimal, auto), and product names untranslated.",
+    "placeholders": [],
+    "translation": "Usa Claude Code instalado en este Mac y el inicio de sesión de tu suscripción a Claude; las solicitudes cuentan para sus límites de uso. Ejecuta `claude` una vez en Terminal para iniciar sesión. Modelo: un alias (sonnet, opus) o un id completo. Esfuerzo: low, medium, high, xhigh o max (none y minimal pasan a low)."
+  },
+  {
+    "catalog": "app",
+    "key": "Uses Codex installed on this Mac and your ChatGPT login; requests count against your plan's usage limits. Run `codex login` once in Terminal to log in. Effort: none, minimal, low, medium, high, xhigh, or max. An empty model uses Codex's default.",
+    "english": "Uses Codex installed on this Mac and your ChatGPT login; requests count against your plan's usage limits. Run `codex login` once in Terminal to log in. Effort: none, minimal, low, medium, high, xhigh, or max. An empty model uses Codex's default.",
+    "comment": "Settings > AI caption. Keep commands in backticks, model aliases, effort values (low, medium, high, xhigh, max, none, minimal, auto), and product names untranslated.",
+    "placeholders": [],
+    "translation": "Usa Codex instalado en este Mac y tu inicio de sesión de ChatGPT; las solicitudes cuentan para los límites de uso de tu plan. Ejecuta `codex login` una vez en Terminal para iniciar sesión. Esfuerzo: none, minimal, low, medium, high, xhigh o max. Si el modelo está vacío, se usa el predeterminado de Codex."
+  },
+  {
+    "catalog": "app",
+    "key": "Uses the Antigravity CLI installed on this Mac and the Google account it is logged in with; requests count against that account's limits. Run `agy` once in Terminal to log in; `agy models` lists the model ids. Effort: low, medium, high, or max, only for a model id without its own level (a model ending in -high, -medium, or -low ignores it). Runs use agy's hearsay-notes project, whose deny rules leave the model no tools except web search, and each run's conversation is deleted from agy's history afterwards.",
+    "english": "Uses the Antigravity CLI installed on this Mac and the Google account it is logged in with; requests count against that account's limits. Run `agy` once in Terminal to log in; `agy models` lists the model ids. Effort: low, medium, high, or max, only for a model id without its own level (a model ending in -high, -medium, or -low ignores it). Runs use agy's hearsay-notes project, whose deny rules leave the model no tools except web search, and each run's conversation is deleted from agy's history afterwards.",
+    "comment": "Settings > AI caption. Keep commands in backticks, model aliases, effort values (low, medium, high, xhigh, max, none, minimal, auto), and product names untranslated.",
+    "placeholders": [],
+    "translation": "Usa la Antigravity CLI instalada en este Mac y la cuenta de Google con la que ha iniciado sesión; las solicitudes cuentan para los límites de esa cuenta. Ejecuta `agy` una vez en Terminal para iniciar sesión; `agy models` muestra los id de modelo. Esfuerzo: low, medium, high o max, solo para un id de modelo sin nivel propio (un modelo que termina en -high, -medium o -low lo ignora). Las ejecuciones usan el proyecto hearsay-notes de agy, cuyas reglas de denegación no dejan al modelo ninguna herramienta salvo la búsqueda web, y la conversación de cada ejecución se elimina después del historial de agy."
+  },
+  {
+    "catalog": "app",
+    "key": "Uses the Copilot CLI installed on this Mac and its own login. Run `copilot` once in Terminal to log in. \"auto\" lets Copilot pick the model.",
+    "english": "Uses the Copilot CLI installed on this Mac and its own login. Run `copilot` once in Terminal to log in. \"auto\" lets Copilot pick the model.",
+    "comment": "Settings > AI caption. Keep commands in backticks, model aliases, effort values (low, medium, high, xhigh, max, none, minimal, auto), and product names untranslated.",
+    "placeholders": [],
+    "translation": "Usa la Copilot CLI instalada en este Mac y su propio inicio de sesión. Ejecuta `copilot` una vez en Terminal para iniciar sesión. \"auto\" deja que Copilot elija el modelo."
+  },
+  {
+    "catalog": "app",
+    "key": "Waiting for your answer…",
+    "english": "Waiting for your answer…",
+    "comment": "UI text in NotesFlowView.swift.",
+    "placeholders": [],
+    "translation": "Esperando tu respuesta…"
+  },
+  {
+    "catalog": "app",
+    "key": "When off, the WAV is deleted once its SRT is written. A failed transcription always keeps it.",
+    "english": "When off, the WAV is deleted once its SRT is written. A failed transcription always keeps it.",
+    "comment": "UI text in SettingsView.swift.",
+    "placeholders": [],
+    "translation": "Si está desactivado, el WAV se elimina en cuanto se escribe su SRT. Si la transcripción falla, siempre se conserva."
+  },
+  {
+    "catalog": "app",
+    "key": "Window",
+    "english": "Window",
+    "comment": "Settings section (segmented picker)",
+    "placeholders": [],
+    "translation": "Ventana"
+  },
+  {
+    "catalog": "app",
+    "key": "Work in any app, even with the window closed.",
+    "english": "Work in any app, even with the window closed.",
+    "comment": "UI text in HotkeyRecorderView.swift.",
+    "placeholders": [],
+    "translation": "Funcionan en cualquier app, incluso con la ventana cerrada."
+  },
+  {
+    "catalog": "app",
+    "key": "Writing the recording failed: %@",
+    "english": "Writing the recording failed: %@",
+    "comment": "Recording error. %@ is the system error message.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Error al escribir la grabación: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "an unknown time",
+    "english": "an unknown time",
+    "comment": "Used in 'A recording from %@ was not finished'",
+    "placeholders": [],
+    "translation": "fecha desconocida"
+  },
+  {
+    "catalog": "app",
+    "key": "built-in",
+    "english": "built-in",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [],
+    "translation": "integrada"
+  },
+  {
+    "catalog": "app",
+    "key": "not found; enter the path to %@",
+    "english": "not found; enter the path to %@",
+    "comment": "Placeholder of the CLI path field. %@ is the program name (copilot, claude, codex, agy).",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "no encontrado; introduce la ruta a %@"
+  },
+  {
+    "catalog": "app",
+    "key": "omitted when empty",
+    "english": "omitted when empty",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [],
+    "translation": "se omite si está vacío"
+  },
+  {
+    "catalog": "app",
+    "key": "paste and press Return",
+    "english": "paste and press Return",
+    "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": [],
+    "translation": "pega y pulsa Retorno"
+  },
+  {
+    "catalog": "app",
+    "key": "the input device",
+    "english": "the input device",
+    "comment": "Used in recording errors when the device has no name",
+    "placeholders": [],
+    "translation": "el dispositivo de entrada"
+  },
+  {
+    "catalog": "app",
+    "key": "the recording",
+    "english": "the recording",
+    "comment": "Used in 'Saved %@' when there is no file name",
+    "placeholders": [],
+    "translation": "la grabación"
+  },
+  {
+    "catalog": "app",
+    "key": "unknown length",
+    "english": "unknown length",
+    "comment": "Used in '… was not finished (%@)' when the length is unknown",
+    "placeholders": [],
+    "translation": "duración desconocida"
+  },
+  {
+    "catalog": "app",
+    "key": "wav, m4a, mp3, aac, aiff, caf, or the audio track of mp4 / mov",
+    "english": "wav, m4a, mp3, aac, aiff, caf, or the audio track of mp4 / mov",
+    "comment": "File tab: accepted file types. Keep the file extensions as they are.",
+    "placeholders": [],
+    "translation": "wav, m4a, mp3, aac, aiff, caf o la pista de audio de mp4 / mov"
+  },
+  {
+    "catalog": "core",
+    "key": "%@ (detected from the text)",
+    "english": "%@ (detected from the text)",
+    "comment": "Confirm sheet, after 'Transcript language:'. %@ is a language name in its own language.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "%@ (detectado en el texto)"
+  },
+  {
+    "catalog": "core",
+    "key": "%@ (your language choice; this transcript's language was not recorded)",
+    "english": "%@ (your language choice; this transcript's language was not recorded)",
+    "comment": "Confirm sheet, after 'Transcript language:'. %@ is a language name in its own language.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "%@ (tu elección de idioma; no se ha registrado el idioma de esta transcripción)"
+  },
+  {
+    "catalog": "core",
+    "key": "%@ (your preferred language; this transcript's language was not recorded)",
+    "english": "%@ (your preferred language; this transcript's language was not recorded)",
+    "comment": "Confirm sheet, after 'Transcript language:'. %@ is a language name in its own language.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "%@ (tu idioma preferido; no se ha registrado el idioma de esta transcripción)"
+  },
+  {
+    "catalog": "core",
+    "key": "%@ call failed (exit code %d). Check the model and reasoning effort in Settings > AI.",
+    "english": "%1$@ call failed (exit code %2$d). Check the model and reasoning effort in Settings > AI.",
+    "comment": "Meeting notes error. %1$@ is a CLI name, %2$d the exit code.",
+    "placeholders": [
+      "%@",
+      "%d"
+    ],
+    "translation": "Error en la llamada a %1$@ (código de salida %2$d). Comprueba el modelo y el esfuerzo de razonamiento en Ajustes > IA."
+  },
+  {
+    "catalog": "core",
+    "key": "%@ could not be started: %@",
+    "english": "%1$@ could not be started: %2$@",
+    "comment": "Meeting notes error. %1$@ is a CLI name, %2$@ a technical detail.",
+    "placeholders": [
+      "%@",
+      "%@"
+    ],
+    "translation": "No se ha podido iniciar %1$@: %2$@"
+  },
+  {
+    "catalog": "core",
+    "key": "%@ did not answer within %lld minutes and was stopped.",
+    "english": "%1$@ did not answer within %2$lld minutes and was stopped.",
+    "comment": "Meeting notes error. %1$@ is a CLI name, %2$lld a number of minutes.",
+    "placeholders": [
+      "%@",
+      "%lld"
+    ],
+    "translation": "%1$@ no ha respondido en %2$lld minutos y se ha detenido."
+  },
+  {
+    "catalog": "core",
+    "key": "%@ is %lld bytes but the server announced %lld. The file was discarded; try again.",
+    "english": "%1$@ is %2$lld bytes but the server announced %3$lld. The file was discarded; try again.",
+    "comment": "Model download error. %1$@ is a file name, %2$lld and %3$lld are byte counts.",
+    "placeholders": [
+      "%@",
+      "%lld",
+      "%lld"
+    ],
+    "translation": "%1$@ ocupa %2$lld bytes, pero el servidor anunció %3$lld. Se ha descartado el archivo; inténtalo de nuevo."
+  },
+  {
+    "catalog": "core",
+    "key": "%@ is not available for recording. Reconnect it or choose another input.",
+    "english": "%@ is not available for recording. Reconnect it or choose another input.",
+    "comment": "Recording error. %@ is the input device name.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "%@ no está disponible para grabar. Vuelve a conectarlo o elige otra entrada."
+  },
+  {
+    "catalog": "core",
+    "key": "%@ is not logged in. Run `%@` once in Terminal to log in with your ChatGPT account.",
+    "english": "%1$@ is not logged in. Run `%2$@` once in Terminal to log in with your ChatGPT account.",
+    "comment": "Meeting notes error. %1$@ is a CLI name, %2$@ a shell command.",
+    "placeholders": [
+      "%@",
+      "%@"
+    ],
+    "translation": "%1$@ no ha iniciado sesión. Ejecuta `%2$@` una vez en Terminal para iniciar sesión con tu cuenta de ChatGPT."
+  },
+  {
+    "catalog": "core",
+    "key": "%@ is not logged in. Run `%@` once in Terminal to log in with your Claude subscription.",
+    "english": "%1$@ is not logged in. Run `%2$@` once in Terminal to log in with your Claude subscription.",
+    "comment": "Meeting notes error. %1$@ is a CLI name, %2$@ a shell command.",
+    "placeholders": [
+      "%@",
+      "%@"
+    ],
+    "translation": "%1$@ no ha iniciado sesión. Ejecuta `%2$@` una vez en Terminal para iniciar sesión con tu suscripción a Claude."
+  },
+  {
+    "catalog": "core",
+    "key": "%@ is not logged in. Run `%@` once in Terminal to log in with your Google account.",
+    "english": "%1$@ is not logged in. Run `%2$@` once in Terminal to log in with your Google account.",
+    "comment": "Meeting notes error. %1$@ is a CLI name, %2$@ a shell command.",
+    "placeholders": [
+      "%@",
+      "%@"
+    ],
+    "translation": "%1$@ no ha iniciado sesión. Ejecuta `%2$@` una vez en Terminal para iniciar sesión con tu cuenta de Google."
+  },
+  {
+    "catalog": "core",
+    "key": "%@ is not logged in. Run `%@` once in Terminal to log in.",
+    "english": "%1$@ is not logged in. Run `%2$@` once in Terminal to log in.",
+    "comment": "Meeting notes error. %1$@ is a CLI name, %2$@ a shell command.",
+    "placeholders": [
+      "%@",
+      "%@"
+    ],
+    "translation": "%1$@ no ha iniciado sesión. Ejecuta `%2$@` una vez en Terminal para iniciar sesión."
+  },
+  {
+    "catalog": "core",
+    "key": "%@ not found. Install it with `%@` or set the path in Settings > AI.",
+    "english": "%1$@ not found. Install it with `%2$@` or set the path in Settings > AI.",
+    "comment": "Meeting notes error. %1$@ is a CLI name (for example Codex CLI), %2$@ a shell command. Keep the backticks.",
+    "placeholders": [
+      "%@",
+      "%@"
+    ],
+    "translation": "No se encuentra %1$@. Instálalo con `%2$@` o define la ruta en Ajustes > IA."
+  },
+  {
+    "catalog": "core",
+    "key": "%@ returned empty output.",
+    "english": "%@ returned empty output.",
+    "comment": "Meeting notes error. %@ is a CLI name.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "%@ ha devuelto una salida vacía."
+  },
+  {
+    "catalog": "core",
+    "key": "(%@ plan)",
+    "english": "(%@ plan)",
+    "comment": "CLI check result suffix. %@ is the subscription name (for example max).",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "(plan %@)"
+  },
+  {
+    "catalog": "core",
+    "key": "(none set)",
+    "english": "(none set)",
+    "comment": "Confirm sheet 'Model:' when empty",
+    "placeholders": [],
+    "translation": "(ninguno)"
+  },
+  {
+    "catalog": "core",
+    "key": "AI output did not contain a usable filename.",
+    "english": "AI output did not contain a usable filename.",
+    "comment": "Meeting notes error",
+    "placeholders": [],
+    "translation": "La salida de la IA no contenía un nombre de archivo válido."
+  },
+  {
+    "catalog": "core",
+    "key": "AI output did not contain a usable structured transcript.",
+    "english": "AI output did not contain a usable structured transcript.",
+    "comment": "Meeting notes error",
+    "placeholders": [],
+    "translation": "La salida de la IA no contenía una transcripción estructurada válida."
+  },
+  {
+    "catalog": "core",
+    "key": "AI output did not contain usable Markdown notes.",
+    "english": "AI output did not contain usable Markdown notes.",
+    "comment": "Meeting notes error",
+    "placeholders": [],
+    "translation": "La salida de la IA no contenía notas en Markdown válidas."
+  },
+  {
+    "catalog": "core",
+    "key": "AI output is not valid JSON: %@",
+    "english": "AI output is not valid JSON: %@",
+    "comment": "Meeting notes error. %@ is a technical detail in English.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "La salida de la IA no es JSON válido: %@"
+  },
+  {
+    "catalog": "core",
+    "key": "AI output must be a JSON object.",
+    "english": "AI output must be a JSON object.",
+    "comment": "Meeting notes error",
+    "placeholders": [],
+    "translation": "La salida de la IA debe ser un objeto JSON."
+  },
+  {
+    "catalog": "core",
+    "key": "API HTTP Error %lld: %@",
+    "english": "API HTTP Error %1$lld: %2$@",
+    "comment": "Meeting notes error. %1$lld is an HTTP status code, %2$@ the server's message.",
+    "placeholders": [
+      "%lld",
+      "%@"
+    ],
+    "translation": "Error HTTP de la API %1$lld: %2$@"
+  },
+  {
+    "catalog": "core",
+    "key": "API HTTP Error %lld: The response body is empty.",
+    "english": "API HTTP Error %lld: The response body is empty.",
+    "comment": "Meeting notes error. %lld is an HTTP status code.",
+    "placeholders": [
+      "%lld"
+    ],
+    "translation": "Error HTTP de la API %lld: el cuerpo de la respuesta está vacío."
+  },
+  {
+    "catalog": "core",
+    "key": "API call failed: A network connection or HTTP client error occurred. %@",
+    "english": "API call failed: A network connection or HTTP client error occurred. %@",
+    "comment": "Meeting notes error. %@ is the system error message.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Error en la llamada a la API: se ha producido un error de conexión de red o del cliente HTTP. %@"
+  },
+  {
+    "catalog": "core",
+    "key": "All files keep their original names.",
+    "english": "All files keep their original names.",
+    "comment": "Follows a rename error: nothing was changed.",
+    "placeholders": [],
+    "translation": "Todos los archivos mantienen sus nombres originales."
+  },
+  {
+    "catalog": "core",
+    "key": "Audio capture failed: %@",
+    "english": "Audio capture failed: %@",
+    "comment": "Recording error. %@ is a technical detail in English.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Error en la captura de audio: %@"
+  },
+  {
+    "catalog": "core",
+    "key": "Audio conversion failed: %@",
+    "english": "Audio conversion failed: %@",
+    "comment": "Audio error. %@ is a technical detail in English.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Error en la conversión de audio: %@"
+  },
+  {
+    "catalog": "core",
+    "key": "Auto",
+    "english": "Auto",
+    "comment": "Language picker segment: detect the spoken language automatically. Keep it short.",
+    "placeholders": [],
+    "translation": "Automático"
+  },
+  {
+    "catalog": "core",
+    "key": "CLI default",
+    "english": "CLI default",
+    "comment": "Confirm sheet 'Model:' when empty: the command-line tool picks its own model",
+    "placeholders": [],
+    "translation": "Predeterminado de la CLI"
+  },
+  {
+    "catalog": "core",
+    "key": "Cannot reach %@. Check the base URL in Settings > AI and your network connection.",
+    "english": "Cannot reach %@. Check the base URL in Settings > AI and your network connection.",
+    "comment": "Meeting notes error. %@ is a host name.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "No se puede conectar con %@. Comprueba la URL base en Ajustes > IA y tu conexión de red."
+  },
+  {
+    "catalog": "core",
+    "key": "Claude Code CLI (Claude subscription)",
+    "english": "Claude Code CLI (Claude subscription)",
+    "comment": "Provider preset name. Keep 'Claude Code CLI' and 'Claude' untranslated.",
+    "placeholders": [],
+    "translation": "Claude Code CLI (suscripción a Claude)"
+  },
+  {
+    "catalog": "core",
+    "key": "Codex CLI (ChatGPT subscription)",
+    "english": "Codex CLI (ChatGPT subscription)",
+    "comment": "Provider preset name. Keep 'Codex CLI' and 'ChatGPT' untranslated.",
+    "placeholders": [],
+    "translation": "Codex CLI (suscripción a ChatGPT)"
+  },
+  {
+    "catalog": "core",
+    "key": "Could not select %@ (CoreAudio error %d).",
+    "english": "Could not select %1$@ (CoreAudio error %2$d).",
+    "comment": "Recording error. %1$@ is the input device name, %2$d a CoreAudio error number.",
+    "placeholders": [
+      "%@",
+      "%d"
+    ],
+    "translation": "No se ha podido seleccionar %1$@ (error de CoreAudio %2$d)."
+  },
+  {
+    "catalog": "core",
+    "key": "Could not set up the %@ project in %@: %@",
+    "english": "Could not set up the %1$@ project in %2$@: %3$@",
+    "comment": "Meeting notes error. %1$@ is a project name (keep it), %2$@ a folder path, %3$@ the system error message.",
+    "placeholders": [
+      "%@",
+      "%@",
+      "%@"
+    ],
+    "translation": "No se ha podido configurar el proyecto %1$@ en %2$@: %3$@"
+  },
+  {
+    "catalog": "core",
+    "key": "Couldn't tell the language, so this was transcribed in %@ (your preferred language).",
+    "english": "Couldn't tell the language, so this was transcribed in %@ (your preferred language).",
+    "comment": "Language banner. %@ is a language name in its own language (English, 中文, Deutsch, Español).",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "No se ha podido reconocer el idioma, así que se ha transcrito en %@ (tu idioma preferido)."
+  },
+  {
+    "catalog": "core",
+    "key": "Custom",
+    "english": "Custom",
+    "comment": "Provider preset name: any OpenAI-compatible endpoint the user enters",
+    "placeholders": [],
+    "translation": "Personalizado"
+  },
+  {
+    "catalog": "core",
+    "key": "Dock only",
+    "english": "Dock only",
+    "comment": "Settings > Window: show Hearsay only in the Dock",
+    "placeholders": [],
+    "translation": "Solo en el Dock"
+  },
+  {
+    "catalog": "core",
+    "key": "Downloading %@ failed with HTTP status %lld.",
+    "english": "Downloading %1$@ failed with HTTP status %2$lld.",
+    "comment": "Model download error. %1$@ is a file name, %2$lld an HTTP status code.",
+    "placeholders": [
+      "%@",
+      "%lld"
+    ],
+    "translation": "La descarga de %1$@ ha fallado con el estado HTTP %2$lld."
+  },
+  {
+    "catalog": "core",
+    "key": "Error: The SRT contains no transcript content to summarize.",
+    "english": "Error: The SRT contains no transcript content to summarize.",
+    "comment": "Meeting notes error",
+    "placeholders": [],
+    "translation": "Error: El SRT no contiene ninguna transcripción que resumir."
+  },
+  {
+    "catalog": "core",
+    "key": "General meeting",
+    "english": "General meeting",
+    "comment": "Name of the built-in prompt template (Settings > AI, confirm sheet)",
+    "placeholders": [],
+    "translation": "Reunión general"
+  },
+  {
+    "catalog": "core",
+    "key": "GitHub Copilot CLI call failed (exit code %d). Check the Copilot login status and model configuration.",
+    "english": "GitHub Copilot CLI call failed (exit code %d). Check the Copilot login status and model configuration.",
+    "comment": "Meeting notes error. %d is the exit code.",
+    "placeholders": [
+      "%d"
+    ],
+    "translation": "Error en la llamada a GitHub Copilot CLI (código de salida %d). Comprueba el estado de inicio de sesión de Copilot y la configuración del modelo."
+  },
+  {
+    "catalog": "core",
+    "key": "GitHub Copilot CLI call failed. Check the Copilot login status and model configuration: %@",
+    "english": "GitHub Copilot CLI call failed. Check the Copilot login status and model configuration: %@",
+    "comment": "Meeting notes error. %@ is a technical detail.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Error en la llamada a GitHub Copilot CLI. Comprueba el estado de inicio de sesión de Copilot y la configuración del modelo: %@"
+  },
+  {
+    "catalog": "core",
+    "key": "Hearsay has no microphone access. Allow it in System Settings > Privacy & Security > Microphone.",
+    "english": "Hearsay has no microphone access. Allow it in System Settings > Privacy & Security > Microphone.",
+    "comment": "Recording error. Use the macOS wording for the System Settings path.",
+    "placeholders": [],
+    "translation": "Hearsay no tiene acceso al micrófono. Permítelo en Ajustes del Sistema > Privacidad y seguridad > Micrófono."
+  },
+  {
+    "catalog": "core",
+    "key": "Hearsay has no system audio access. Allow it in System Settings > Privacy & Security > Screen & System Audio Recording, then start a new recording.",
+    "english": "Hearsay has no system audio access. Allow it in System Settings > Privacy & Security > Screen & System Audio Recording, then start a new recording.",
+    "comment": "Recording error. Use the macOS wording for the System Settings path.",
+    "placeholders": [],
+    "translation": "Hearsay no tiene acceso al audio del sistema. Permítelo en Ajustes del Sistema > Privacidad y seguridad > Grabación de pantalla y audio del sistema y, a continuación, inicia una nueva grabación."
+  },
+  {
+    "catalog": "core",
+    "key": "Key %u",
+    "english": "Key %u",
+    "comment": "Shortcut display for a key with no printed name. The placeholder is the numeric key code.",
+    "placeholders": [
+      "%u"
+    ],
+    "translation": "Tecla %u"
+  },
+  {
+    "catalog": "core",
+    "key": "Keychain error: %@",
+    "english": "Keychain error: %@",
+    "comment": "Token error. %@ is the message macOS gives for the Keychain error.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Error del llavero: %@"
+  },
+  {
+    "catalog": "core",
+    "key": "Logged in",
+    "english": "Logged in",
+    "comment": "CLI check result",
+    "placeholders": [],
+    "translation": "Sesión iniciada"
+  },
+  {
+    "catalog": "core",
+    "key": "Logged in via %@",
+    "english": "Logged in via %@",
+    "comment": "CLI check result. %@ is the login method reported by Claude Code.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Sesión iniciada mediante %@"
+  },
+  {
+    "catalog": "core",
+    "key": "Logged in; %lld models available",
+    "english": "Logged in; %lld models available",
+    "comment": "CLI check result. %lld is the number of models (never 1).",
+    "placeholders": [
+      "%lld"
+    ],
+    "translation": "Sesión iniciada; %lld modelos disponibles"
+  },
+  {
+    "catalog": "core",
+    "key": "Logged in; 1 model available",
+    "english": "Logged in; 1 model available",
+    "comment": "CLI check result",
+    "placeholders": [],
+    "translation": "Sesión iniciada; 1 modelo disponible"
+  },
+  {
+    "catalog": "core",
+    "key": "Menu bar and Dock",
+    "english": "Menu bar and Dock",
+    "comment": "Settings > Window: show Hearsay in the menu bar and the Dock",
+    "placeholders": [],
+    "translation": "Barra de menús y Dock"
+  },
+  {
+    "catalog": "core",
+    "key": "Menu bar only",
+    "english": "Menu bar only",
+    "comment": "Settings > Window: show Hearsay only in the menu bar",
+    "placeholders": [],
+    "translation": "Solo en la barra de menús"
+  },
+  {
+    "catalog": "core",
+    "key": "No API token is set for this provider. Add one in Settings > AI.",
+    "english": "No API token is set for this provider. Add one in Settings > AI.",
+    "comment": "Meeting notes error. 'Settings > AI' names the Settings tab and section.",
+    "placeholders": [],
+    "translation": "No hay ningún token de API configurado para este proveedor. Añade uno en Ajustes > IA."
+  },
+  {
+    "catalog": "core",
+    "key": "No audio from %@. Nothing arrived within %lld seconds, so the recording was stopped. Check that the device is connected and not muted, or choose another input.",
+    "english": "No audio from %1$@. Nothing arrived within %2$lld seconds, so the recording was stopped. Check that the device is connected and not muted, or choose another input.",
+    "comment": "Recording error. %1$@ is the input device name, %2$lld a number of seconds.",
+    "placeholders": [
+      "%@",
+      "%lld"
+    ],
+    "translation": "No llega audio de %1$@. No ha llegado nada en %2$lld segundos, así que se ha detenido la grabación. Comprueba que el dispositivo esté conectado y no silenciado, o elige otra entrada."
+  },
+  {
+    "catalog": "core",
+    "key": "No display is available to capture system audio from.",
+    "english": "No display is available to capture system audio from.",
+    "comment": "Recording error",
+    "placeholders": [],
+    "translation": "No hay ninguna pantalla disponible para capturar el audio del sistema."
+  },
+  {
+    "catalog": "core",
+    "key": "No input device is available.",
+    "english": "No input device is available.",
+    "comment": "Recording error",
+    "placeholders": [],
+    "translation": "No hay ningún dispositivo de entrada disponible."
+  },
+  {
+    "catalog": "core",
+    "key": "No token",
+    "english": "No token",
+    "comment": "Settings > AI > Token header picker: send no token",
+    "placeholders": [],
+    "translation": "Sin token"
+  },
+  {
+    "catalog": "core",
+    "key": "Not a readable WAV file: %@",
+    "english": "Not a readable WAV file: %@",
+    "comment": "Audio error. %@ is a file path.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "No es un archivo WAV legible: %@"
+  },
+  {
+    "catalog": "core",
+    "key": "Not logged in. %@",
+    "english": "Not logged in. %@",
+    "comment": "CLI check result. %@ is the 'Run … once in Terminal to log in.' hint.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Sesión no iniciada. %@"
+  },
+  {
+    "catalog": "core",
+    "key": "Notes will be written in %@.",
+    "english": "Notes will be written in %@.",
+    "comment": "Confirm sheet caption. %@ is a language name in its own language.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Las notas se escribirán en %@."
+  },
+  {
+    "catalog": "core",
+    "key": "Parsing Error: %@",
+    "english": "Parsing Error: %@",
+    "comment": "Meeting notes error. %@ is the reason, one of the 'AI output ...' messages.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Error de análisis: %@"
+  },
+  {
+    "catalog": "core",
+    "key": "Parsing Error: API response did not contain usable message content.",
+    "english": "Parsing Error: API response did not contain usable message content.",
+    "comment": "Meeting notes error",
+    "placeholders": [],
+    "translation": "Error de análisis: la respuesta de la API no contenía contenido de mensaje válido."
+  },
+  {
+    "catalog": "core",
+    "key": "Parsing Error: The API response is not valid JSON: %@",
+    "english": "Parsing Error: The API response is not valid JSON: %@",
+    "comment": "Meeting notes error. %@ is the start of the server's reply.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Error de análisis: la respuesta de la API no es JSON válido: %@"
+  },
+  {
+    "catalog": "core",
+    "key": "Run `%@` once in Terminal to log in.",
+    "english": "Run `%@` once in Terminal to log in.",
+    "comment": "CLI check hint. %@ is a shell command; keep the backticks.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Ejecuta `%@` una vez en Terminal para iniciar sesión."
+  },
+  {
+    "catalog": "core",
+    "key": "Run `copilot` once in Terminal to log in.",
+    "english": "Run `copilot` once in Terminal to log in.",
+    "comment": "Meeting notes error hint. Keep `copilot` and the backticks.",
+    "placeholders": [],
+    "translation": "Ejecuta `copilot` una vez en Terminal para iniciar sesión."
+  },
+  {
+    "catalog": "core",
+    "key": "Space",
+    "english": "Space",
+    "comment": "Shortcut display: the space bar",
+    "placeholders": [],
+    "translation": "Espacio"
+  },
+  {
+    "catalog": "core",
+    "key": "System audio capture could not start: %@",
+    "english": "System audio capture could not start: %@",
+    "comment": "Recording error. %@ is a technical detail from macOS.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "No se ha podido iniciar la captura del audio del sistema: %@"
+  },
+  {
+    "catalog": "core",
+    "key": "System audio capture stopped: %@",
+    "english": "System audio capture stopped: %@",
+    "comment": "Recording error. %@ is a technical detail from macOS.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Se ha detenido la captura del audio del sistema: %@"
+  },
+  {
+    "catalog": "core",
+    "key": "The %@ preset does not use a command-line tool.",
+    "english": "The %@ preset does not use a command-line tool.",
+    "comment": "Meeting notes error. %@ is a provider preset name.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "El preajuste %@ no usa ninguna herramienta de línea de comandos."
+  },
+  {
+    "catalog": "core",
+    "key": "The API URL is not a valid http or https address. Check it in Settings > AI.",
+    "english": "The API URL is not a valid http or https address. Check it in Settings > AI.",
+    "comment": "Meeting notes error",
+    "placeholders": [],
+    "translation": "La URL de la API no es una dirección http o https válida. Compruébala en Ajustes > IA."
+  },
+  {
+    "catalog": "core",
+    "key": "The WAV file is already closed.",
+    "english": "The WAV file is already closed.",
+    "comment": "Audio error",
+    "placeholders": [],
+    "translation": "El archivo WAV ya está cerrado."
+  },
+  {
+    "catalog": "core",
+    "key": "The built-in model list could not be read: %@",
+    "english": "The built-in model list could not be read: %@",
+    "comment": "Models tab error. %@ is the system error message.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "No se ha podido leer la lista de modelos integrada: %@"
+  },
+  {
+    "catalog": "core",
+    "key": "The current notes are unchanged.",
+    "english": "The current notes are unchanged.",
+    "comment": "Follows a Trash error: the old notes are still in place.",
+    "placeholders": [],
+    "translation": "Las notas actuales no cambian."
+  },
+  {
+    "catalog": "core",
+    "key": "The input device changed or was disconnected, so recording stopped.",
+    "english": "The input device changed or was disconnected, so recording stopped.",
+    "comment": "Recording error",
+    "placeholders": [],
+    "translation": "El dispositivo de entrada ha cambiado o se ha desconectado, así que se ha detenido la grabación."
+  },
+  {
+    "catalog": "core",
+    "key": "The login status check did not answer.",
+    "english": "The login status check did not answer.",
+    "comment": "CLI check result",
+    "placeholders": [],
+    "translation": "La comprobación del estado de inicio de sesión no ha respondido."
+  },
+  {
+    "catalog": "core",
+    "key": "The meeting name contains no usable characters. Use English letters or digits.",
+    "english": "The meeting name contains no usable characters. Use English letters or digits.",
+    "comment": "Naming error. File names use English letters and digits only.",
+    "placeholders": [],
+    "translation": "El nombre de la reunión no contiene caracteres válidos. Usa letras o dígitos del alfabeto inglés."
+  },
+  {
+    "catalog": "core",
+    "key": "The server did not return an HTTP response.",
+    "english": "The server did not return an HTTP response.",
+    "comment": "Meeting notes error detail, shown after 'API call failed: …'",
+    "placeholders": [],
+    "translation": "El servidor no ha devuelto una respuesta HTTP."
+  },
+  {
+    "catalog": "core",
+    "key": "The server refused to resume %@.",
+    "english": "The server refused to resume %@.",
+    "comment": "Model download error. %@ is a file name.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "El servidor ha rechazado reanudar %@."
+  },
+  {
+    "catalog": "core",
+    "key": "The server sent an unexpected response for %@.",
+    "english": "The server sent an unexpected response for %@.",
+    "comment": "Model download error. %@ is a file name.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "El servidor ha enviado una respuesta inesperada para %@."
+  },
+  {
+    "catalog": "core",
+    "key": "The transcript, recording and any earlier notes keep their original names.",
+    "english": "The transcript, recording and any earlier notes keep their original names.",
+    "comment": "Follows a write error: nothing was renamed.",
+    "placeholders": [],
+    "translation": "La transcripción, la grabación y las notas anteriores mantienen sus nombres originales."
+  },
+  {
+    "catalog": "core",
+    "key": "These files could not be restored: %@.",
+    "english": "These files could not be restored: %@.",
+    "comment": "Follows a file error. %@ is a comma-separated list of file paths.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "No se han podido restaurar estos archivos: %@."
+  },
+  {
+    "catalog": "core",
+    "key": "This sounds like %@. Transcribe again in %@?",
+    "english": "This sounds like %1$@. Transcribe again in %2$@?",
+    "comment": "Language banner. Both %@ are the same language name in its own language (English, 中文, Deutsch, Español).",
+    "placeholders": [
+      "%@",
+      "%@"
+    ],
+    "translation": "Esto suena a %1$@. ¿Volver a transcribir en %2$@?"
+  },
+  {
+    "catalog": "core",
+    "key": "Transcript language: %@",
+    "english": "Transcript language: %@",
+    "comment": "Confirm sheet caption. %@ is a language name, possibly followed by an explanation in parentheses.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Idioma de la transcripción: %@"
+  },
+  {
+    "catalog": "core",
+    "key": "Unable to move the current notes (%@) to the Trash: %@.",
+    "english": "Unable to move the current notes (%1$@) to the Trash: %2$@.",
+    "comment": "Regenerate notes error. %1$@ is a file path, %2$@ the system error message.",
+    "placeholders": [
+      "%@",
+      "%@"
+    ],
+    "translation": "No se han podido trasladar las notas actuales (%1$@) a la Papelera: %2$@."
+  },
+  {
+    "catalog": "core",
+    "key": "Unable to rename %@ to %@: %@.",
+    "english": "Unable to rename %1$@ to %2$@: %3$@.",
+    "comment": "Naming error. %1$@ is a file path, %2$@ a file name, %3$@ the system error message.",
+    "placeholders": [
+      "%@",
+      "%@",
+      "%@"
+    ],
+    "translation": "No se ha podido renombrar %1$@ como %2$@: %3$@."
+  },
+  {
+    "catalog": "core",
+    "key": "Unable to write meeting notes (%@): %@.",
+    "english": "Unable to write meeting notes (%1$@): %2$@.",
+    "comment": "Naming error. %1$@ is a file path, %2$@ the system error message.",
+    "placeholders": [
+      "%@",
+      "%@"
+    ],
+    "translation": "No se han podido escribir las notas de la reunión (%1$@): %2$@."
+  },
+  {
+    "catalog": "core",
+    "key": "Unsupported audio format: %@",
+    "english": "Unsupported audio format: %@",
+    "comment": "Audio error. %@ is a technical detail in English.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Formato de audio no compatible: %@"
+  },
+  {
+    "catalog": "core",
+    "key": "`agy models` failed (exit code %d). %@",
+    "english": "`agy models` failed (exit code %1$d). %2$@",
+    "comment": "CLI check result. %1$d is the exit code, %2$@ the log-in hint. Keep `agy models`.",
+    "placeholders": [
+      "%d",
+      "%@"
+    ],
+    "translation": "`agy models` ha fallado (código de salida %1$d). %2$@"
+  },
+  {
+    "catalog": "infoplist",
+    "key": "CFBundleDisplayName",
+    "english": "Hearsay",
+    "comment": "Bundle display name. Product name: keep \"Hearsay\" untranslated. Do not translate: repeat the English exactly.",
+    "placeholders": [],
+    "translation": "Hearsay"
+  },
+  {
+    "catalog": "infoplist",
+    "key": "NSAudioCaptureUsageDescription",
+    "english": "Hearsay captures the audio of your calls so both sides of a meeting are transcribed.",
+    "comment": "Privacy - Audio Capture Usage Description. macOS shows it when Hearsay first asks to capture system audio (the other side of a call).",
+    "placeholders": [],
+    "translation": "Hearsay captura el audio de tus llamadas para que se transcriban ambas partes de una reunión."
+  },
+  {
+    "catalog": "infoplist",
+    "key": "NSMicrophoneUsageDescription",
+    "english": "Hearsay records meetings you start and transcribes them on this Mac.",
+    "comment": "Privacy - Microphone Usage Description. macOS shows it when Hearsay first asks for the microphone.",
+    "placeholders": [],
+    "translation": "Hearsay graba las reuniones que inicias y las transcribe en este Mac."
+  },
+  {
+    "catalog": "credits",
+    "key": "Credits.rtf",
+    "english": "© 2026 Chihling Wang. MIT License.\nIncludes open-source software; see Settings > General > Acknowledgements.",
+    "comment": "Credits shown in the About Hearsay window (en.lproj/Credits.rtf). Plain text; line breaks are kept. 'Settings > General > Acknowledgements' names the Settings tab, its General section, and the Acknowledgements section: use the translated names of those labels.",
+    "placeholders": [],
+    "translation": "© 2026 Chihling Wang. Licencia MIT.\nIncluye software de código abierto; consulta Ajustes > General > Agradecimientos."
+  }
+]

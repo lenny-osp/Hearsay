@@ -18,10 +18,34 @@
       "comment" : "Privacy - Audio Capture Usage Description. macOS shows it when Hearsay first asks to capture system audio (the other side of a call).",
       "extractionState" : "extracted_with_value",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay nimmt den Ton von Anrufen auf, damit beide Seiten einer Besprechung transkribiert werden."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "Hearsay captures the audio of your calls so both sides of a meeting are transcribed."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay captura el audio de tus llamadas para que se transcriban ambas partes de una reunión."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 会捕获通话音频，以便转录会议双方的声音。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 會擷取通話的音訊，以便轉錄會議雙方的內容。"
           }
         }
       }
@@ -30,10 +54,34 @@
       "comment" : "Privacy - Microphone Usage Description. macOS shows it when Hearsay first asks for the microphone.",
       "extractionState" : "extracted_with_value",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay nimmt gestartete Besprechungen auf und transkribiert sie auf diesem Mac."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "Hearsay records meetings you start and transcribes them on this Mac."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay graba las reuniones que inicias y las transcribe en este Mac."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 会录制你开始的会议，并在这台 Mac 上进行转录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 會錄製你開始的會議，並在這台 Mac 上轉錄。"
           }
         }
       }
