@@ -432,13 +432,13 @@ weekends counted as half days.
 | Phase | Deliverable | Estimate |
 |---|---|---|
 | 0. Spike | Done 2026-09-28, section 15. | done |
-| 1. Skeleton | Project layout from section 3, `HearsayCore` package with tests running, `AppState`, Settings window, window-mode switching working, menu bar item with static content. | 2 to 3 days |
-| 2. Models | Catalog, downloader with resume and progress, model manager UI, first-launch onboarding, loading into `WhisperEngine`. | 3 to 4 days |
-| 3. Audio | Device list, mic recorder, system audio recorder, mixer, level meters, spooled WAV writer, keep/delete setting, pause/resume, global hotkeys, crash recovery, silence warning, permission flows, menu bar live state. | 8 to 10 days |
+| 1. Skeleton | Done 2026-09-28. XcodeGen project, HearsayCore package, Settings window, window modes verified at launch. | done |
+| 2. Models | Done 2026-09-28 except loading into the engine (Phase 4b). Real download and resume verified against Hugging Face. | done |
+| 3. Audio | Done 2026-09-28 in code; needs the first hands-on run with microphone and screen-capture permissions (see section 16). | done, unverified live |
 | 4a. Decoder | Vendor the Whisper module, replace the decode loop with the timestamped port of `mlx_whisper` (section 6), tests against the Python SRT of `Fixtures/en-30s.wav`. | 5 to 7 days |
 | 4b. Transcription | SRT writer, live chunk preview, final full pass, File mode with drag and drop, failure path to File mode, timestamp rules. | 4 to 5 days |
-| 5. Notes | Prompt port, prompt templates, client, presets, Keychain, confirm sheet with template picker, naming sheet, `OutputWriter` with all collision and rollback rules, manual-naming path. Port every relevant Python test. | 5 to 6 days |
-| 6. Ship | History view, error copy review, app icon, Sparkle + appcast, signing, notarization, DMG script, README, update both quick-start guides to mention Hearsay. | 5 to 6 days |
+| 5. Notes | Done 2026-09-28 in code; runs from History > Generate notes. Not yet tried against a live provider. | done, unverified live |
+| 6. Ship | History view, hotkeys, quit-while-recording, and crash recovery done 2026-09-28. Remaining: launch at login, app icon, Sparkle + appcast, signing, notarization, DMG script, README, quick-start guides. | 3 to 4 days |
 
 Total: about 8 to 9 weeks of calendar time.
 
@@ -532,3 +532,34 @@ cd .. && Spike/.build/derived/Build/Products/Release/hearsay-spike \
 ```
 
 `Spike/models/` is git-ignored; re-download with the URLs in section 5.
+
+## 16. Hands-on checklist for the owner (after Phase 4b)
+
+Things no agent could verify because they need permissions or a person:
+
+1. First Start: grant Microphone, then Screen & System Audio Recording;
+   relaunch if system audio stays off after granting.
+2. Record 60 s with a call playing; confirm both small meters move and the
+   WAV in the output folder contains both sides.
+3. Close the main window while recording; the menu bar item keeps counting.
+4. Press ⌃⌥⌘P and ⌃⌥⌘R with the app in the background.
+5. Quit while recording; expect the "Stop recording and quit?" alert.
+6. Switch all three window modes in Settings > Window while running.
+7. Settings > AI: enter a token, "Test connection", then History >
+   Generate notes on a real SRT.
+8. Kill the app (`kill -9`) mid-recording, relaunch, expect the recovery
+   sheet.
+9. A 60 minute recording with mic plus system audio, then listen for
+   drift near the end.
+
+## 17. Polish list (found during review, not yet scheduled)
+
+- `MicrophoneRecorder` stops on any `AVAudioEngineConfigurationChange`;
+  plugging in headphones would end a meeting. Try to restart the engine
+  on the same device first.
+- Cancelling the naming sheet after notes came back discards the notes
+  (Python parity). Better: save under the AI-suggested name.
+- `RecordingController` should expose its active spool URL so the recovery
+  scan can exclude it instead of using the launch date.
+- Shortcut labels assume a US keyboard layout.
+- `NSAlert` for quit is modal; a SwiftUI confirmation would fit better.
