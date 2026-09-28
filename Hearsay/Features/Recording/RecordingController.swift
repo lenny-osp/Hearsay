@@ -1,6 +1,7 @@
 import AppKit
 import AVFoundation
 import HearsayCore
+import HearsayWhisper
 import Observation
 
 /// Owns the one recording session the app can run at a time (PLAN.md 4.1,
@@ -16,6 +17,25 @@ import Observation
 ///
 /// Elapsed time is derived from the number of samples written, so paused
 /// time never counts and the display matches the WAV exactly.
+///
+/// Transcription (PLAN.md 4.1 steps 4 to 7): while recording, `LiveChunker`
+/// cuts the mixed stream into chunks that `WhisperEngine` transcribes in
+/// order for the live preview. After Stop the WAV is closed and one full
+/// pass over the in-memory samples produces `<timestamp>.srt` in the output
+/// folder; the WAV is then moved beside it (or deleted when "Keep the
+/// recording" is off). If the pass fails, the WAV is always kept, the live
+/// preview is saved as the SRT when there is one, and the recording can be
+/// retried here or sent to the File tab. Without an installed model the
+/// recording still works; the live preview is skipped and the WAV is kept.
+///
+/// Phase transitions:
+/// idle/finished/failed -> starting -> recording <-> paused -> stopping
+/// -> transcribing(progress) -> finished(srt:wav:) or failed(message:).
+/// `starting` can also end in idle (stop while starting) or failed; a
+/// capture problem goes from stopping straight to failed with the WAV kept;
+/// a recording with no samples goes from stopping to finished(srt: nil);
+/// "Use live preview instead" ends transcribing in finished at once;
+/// `retryTranscription()` goes from failed to transcribing again.
 @MainActor
 @Observable
 final class RecordingController {
@@ -25,10 +45,14 @@ final class RecordingController {
         case recording
         case paused
         case stopping
-        /// The last recording was saved at `url` without problems.
-        case finished(url: URL)
-        /// The last recording or the last start attempt had a problem. Any
-        /// audio that was captured is still at `finishedRecording`.
+        /// The WAV is closed and the final pass (or a retry) is running.
+        case transcribing(progress: Double)
+        /// The transcript was written to `srt`; the recording is at `wav`,
+        /// or nil when "Keep the recording" is off.
+        case finished(srt: URL?, wav: URL?)
+        /// The last recording, its transcription, or the last start attempt
+        /// had a problem. Any audio that was captured is still at
+        /// `finishedRecording`.
         case failed(message: String)
     }
 
@@ -55,8 +79,36 @@ final class RecordingController {
     private(set) var silenceWarning: String?
     /// Where the last recording ended up, also after a failure.
     private(set) var finishedRecording: URL?
+    /// The SRT of the last recording: the final transcript, or the live
+    /// preview saved after a failed final pass.
+    private(set) var finishedTranscript: URL?
+
+    // Live preview
+    /// Cues of the live preview, in recording time, in order.
+    private(set) var liveSegments: [CoreSegment] = []
+    /// Live chunks queued or being transcribed.
+    private(set) var liveChunksWaiting = 0
+    /// The newest non-empty live line, for the menu bar.
+    private(set) var latestLiveLine: String?
+    /// Why the live preview is off or incomplete, shown under it.
+    private(set) var liveNotice: String?
+    /// The current session transcribes live chunks.
+    private(set) var isLivePreviewEnabled = false
+    /// "Use live preview instead" was chosen for the current final pass.
+    private(set) var isUsingLivePreview = false
+    /// The last failure was the missing model; the view links to Models.
+    private(set) var needsModel = false
+    /// A recording the File tab should pick up ("Transcribe this file").
+    /// The File tab clears it once taken.
+    var transcribeFileRequest: URL?
+    /// A finished SRT waiting for the notes flow; see `takeNotesRequest()`.
+    private(set) var notesRequest: URL?
+    /// Language of the last recording, for the notes flow.
+    private(set) var sessionLanguageCode = "en"
 
     @ObservationIgnored private let settings: AppSettings
+    @ObservationIgnored private let modelStore: ModelStore
+    @ObservationIgnored private let engine: WhisperEngine
     @ObservationIgnored private let spool: RecordingSpool
     @ObservationIgnored private var recorder: MicrophoneRecorder?
     @ObservationIgnored private var systemRecorder: SystemAudioRecorder?
@@ -70,8 +122,37 @@ final class RecordingController {
     @ObservationIgnored private var deviceObservation: AudioDeviceListObservation?
     @ObservationIgnored private var engineObservation: NotificationToken?
 
-    init(settings: AppSettings, spool: RecordingSpool = RecordingSpool()) {
+    // Transcription state
+    /// Every mixed sample of the current recording, for the final pass.
+    @ObservationIgnored private var recordedSamples: [Float] = []
+    @ObservationIgnored private var chunker = LiveChunker()
+    /// Samples already measured and handed to `chunker`.
+    @ObservationIgnored private var chunkedSamples = 0
+    @ObservationIgnored private var liveContinuation: AsyncStream<LiveJob>.Continuation?
+    @ObservationIgnored private var liveTask: Task<Void, Never>?
+    @ObservationIgnored private var transcriptionTask: Task<Void, Never>?
+    /// The closed WAV still in the spool while the final pass runs.
+    @ObservationIgnored private var pendingSpoolWAV: URL?
+    /// The kept WAV of a failed transcription, for `retryTranscription()`.
+    @ObservationIgnored private var retryableRecording: URL?
+    /// Bumped on every start; late results of an older session are ignored.
+    @ObservationIgnored private var session = 0
+
+    private struct LiveJob: Sendable {
+        var samples: [Float]
+        /// Offset of the chunk in the recording, in seconds.
+        var start: TimeInterval
+    }
+
+    init(
+        settings: AppSettings,
+        modelStore: ModelStore,
+        engine: WhisperEngine,
+        spool: RecordingSpool = RecordingSpool()
+    ) {
         self.settings = settings
+        self.modelStore = modelStore
+        self.engine = engine
         self.spool = spool
     }
 
@@ -94,8 +175,40 @@ final class RecordingController {
     var isSessionActive: Bool {
         switch phase {
         case .starting, .recording, .paused, .stopping: true
-        case .idle, .finished, .failed: false
+        case .idle, .transcribing, .finished, .failed: false
         }
+    }
+
+    /// The final pass or a retry is running.
+    var isTranscribing: Bool {
+        if case .transcribing = phase { return true }
+        return false
+    }
+
+    var transcriptionProgress: Double? {
+        if case .transcribing(let progress) = phase { return progress }
+        return nil
+    }
+
+    /// Start is allowed: nothing is recording or transcribing.
+    var canStart: Bool {
+        !isSessionActive && !isTranscribing
+    }
+
+    /// The live preview has fallen more than one chunk behind.
+    var isLiveLagging: Bool {
+        liveChunksWaiting > 1
+    }
+
+    /// "Use live preview instead" applies to the running pass.
+    var canUseLivePreview: Bool {
+        isTranscribing && isLivePreviewEnabled && pendingSpoolWAV != nil && !isUsingLivePreview
+    }
+
+    /// A failed transcription can be retried from the kept WAV.
+    var canRetryTranscription: Bool {
+        if case .failed = phase, retryableRecording != nil { return true }
+        return false
     }
 
     /// Audio is being captured or is paused; Stop applies.
@@ -140,9 +253,16 @@ final class RecordingController {
     /// Starts a new recording unless one is already active. Returns at once;
     /// `phase` moves through `.starting` to `.recording` or `.failed`.
     func start() {
-        guard !isSessionActive else { return }
+        guard canStart else { return }
         phase = .starting
         finishedRecording = nil
+        finishedTranscript = nil
+        retryableRecording = nil
+        transcribeFileRequest = nil
+        notesRequest = nil
+        needsModel = false
+        session += 1
+        resetLivePreview()
         stopRequestedWhileStarting = false
         startTask = Task { [weak self] in
             await self?.performStart()
@@ -210,8 +330,45 @@ final class RecordingController {
     }
 
     func revealInFinder() {
-        guard let finishedRecording else { return }
-        NSWorkspace.shared.activateFileViewerSelecting([finishedRecording])
+        let files = [finishedTranscript, finishedRecording].compactMap { $0 }
+        guard !files.isEmpty else { return }
+        NSWorkspace.shared.activateFileViewerSelecting(files)
+    }
+
+    /// "Use live preview instead": skips the final pass and writes the live
+    /// segments as the SRT. The engine may still finish the abandoned pass
+    /// in the background; its result is discarded.
+    func useLivePreviewInstead() {
+        guard canUseLivePreview else { return }
+        isUsingLivePreview = true
+        let id = session
+        Task { [weak self] in
+            await self?.liveTask?.value
+            guard let self, self.session == id, self.isTranscribing else { return }
+            self.completeTranscription(with: self.liveSegments)
+        }
+    }
+
+    /// Runs the full pass again on the kept WAV of a failed transcription.
+    func retryTranscription() {
+        guard canRetryTranscription, let recording = retryableRecording else { return }
+        phase = .transcribing(progress: 0)
+        isUsingLivePreview = false
+        let id = session
+        transcriptionTask = Task { [weak self] in
+            await self?.runRetry(recording: recording, session: id)
+        }
+    }
+
+    /// Hands the kept WAV to the File tab ("Transcribe this file").
+    func requestTranscribeFile() {
+        transcribeFileRequest = retryableRecording ?? finishedRecording
+    }
+
+    /// The finished SRT waiting for the notes flow, once.
+    func takeNotesRequest() -> URL? {
+        defer { notesRequest = nil }
+        return notesRequest
     }
 
     func openScreenCaptureSettings() {
@@ -273,6 +430,9 @@ final class RecordingController {
         micLevelFraction = 0
         systemLevelFraction = systemRecorder == nil ? nil : 0
         silenceWarning = nil
+        recordedSamples = []
+        sessionLanguageCode = settings.defaultLanguageCode
+        startLivePreview()
         phase = .recording
 
         let mixed = AudioMixer.mix(
@@ -323,6 +483,10 @@ final class RecordingController {
             return
         }
         sampleCount += chunk.mixed.count
+        recordedSamples.append(contentsOf: chunk.mixed)
+        if liveContinuation != nil {
+            feedChunker(final: false)
+        }
         let time = Double(sampleCount) / Double(WavWriter.sampleRate)
         let level = LevelMeter.rmsDB(floatSamples: chunk.mixed)
         guard meter.observe(rmsDB: level, at: time) else { return }
@@ -368,16 +532,13 @@ final class RecordingController {
             problems.append("Writing the recording failed: \(writeError.localizedDescription)")
         }
 
-        var saved: URL?
+        var closed: URL?
         if let writer {
-            let spoolURL = writer.url
+            closed = writer.url
             do {
                 try writer.close()
-                saved = try finalize(spoolURL)
             } catch {
-                saved = spoolURL
-                problems.append("Could not move the recording to the output folder: "
-                    + "\(error.localizedDescription) It is kept at \(spoolURL.path).")
+                problems.append("Closing the recording failed: \(error.localizedDescription)")
             }
         }
 
@@ -389,24 +550,316 @@ final class RecordingController {
         micLevelFraction = 0
         systemLevelFraction = nil
         silenceWarning = nil
-        finishedRecording = saved
+
+        // The live preview gets the tail, then its queue closes.
+        if liveContinuation != nil {
+            feedChunker(final: true)
+        }
+        liveContinuation?.finish()
+        liveContinuation = nil
+
+        guard let closed else {
+            phase = problems.isEmpty ? .idle : .failed(message: problems.joined(separator: "\n"))
+            return
+        }
         if !problems.isEmpty {
-            phase = .failed(message: problems.joined(separator: "\n"))
-        } else if let saved {
-            phase = .finished(url: saved)
-        } else {
-            phase = .idle
+            // Capture failed: keep what exists and let the user transcribe it.
+            pendingSpoolWAV = closed
+            failTranscription(problems.joined(separator: "\n"))
+            return
+        }
+        if sampleCount == 0 {
+            // Nothing was captured: keep the empty WAV as before, no transcript.
+            let folder = try? TranscriptOutput.resolveFolder(settings: settings)
+            defer { folder?.stopAccessing() }
+            let kept = folder.flatMap { try? spool.finalize(closed, keep: true, outputFolder: $0.url) } ?? closed
+            finishedRecording = kept
+            phase = .finished(srt: nil, wav: kept)
+            return
+        }
+        pendingSpoolWAV = closed
+        phase = .transcribing(progress: 0)
+        isUsingLivePreview = false
+        let id = session
+        transcriptionTask = Task { [weak self] in
+            await self?.runFinalPass(session: id)
         }
     }
 
-    /// No transcription exists yet in this phase, so the WAV is always kept.
-    private func finalize(_ spoolURL: URL) throws -> URL? {
-        let folder = try OutputLocation.resolve(bookmark: settings.outputFolderBookmark)
-        defer { folder.stopAccessing() }
-        if let refreshed = folder.refreshedBookmark {
-            settings.outputFolderBookmark = refreshed
+    // MARK: - Live preview
+
+    private func resetLivePreview() {
+        liveContinuation?.finish()
+        liveContinuation = nil
+        liveTask = nil
+        liveSegments = []
+        liveChunksWaiting = 0
+        latestLiveLine = nil
+        liveNotice = nil
+        isLivePreviewEnabled = false
+        isUsingLivePreview = false
+        chunker = LiveChunker()
+        chunkedSamples = 0
+    }
+
+    /// Opens the live queue when a model is ready; otherwise the recording
+    /// goes on without a preview.
+    private func startLivePreview() {
+        resetLivePreview()
+        let location: WhisperModelLocation
+        do {
+            location = try WhisperModelLocation.active(in: modelStore)
+        } catch {
+            liveNotice = "Live preview off: \(Self.describe(error))"
+            return
         }
-        return try spool.finalize(spoolURL, keep: true, outputFolder: folder.url)
+        isLivePreviewEnabled = true
+        let (stream, continuation) = AsyncStream.makeStream(of: LiveJob.self, bufferingPolicy: .unbounded)
+        liveContinuation = continuation
+        let engine = engine
+        let options = TranscriptionOptions.app(languageCode: sessionLanguageCode)
+        let id = session
+        // One consumer, so chunks are transcribed strictly in order.
+        liveTask = Task { [weak self] in
+            for await job in stream {
+                let outcome: Result<[CoreSegment], Error>
+                do {
+                    let result = try await engine.transcribe(
+                        samples: job.samples, location: location, options: options, progress: { _ in }
+                    )
+                    outcome = .success(result.cues(offset: job.start))
+                } catch {
+                    outcome = .failure(error)
+                }
+                self?.liveChunkDone(outcome, session: id)
+            }
+        }
+    }
+
+    /// Measures the new samples in 0.1 s windows and queues every chunk
+    /// the chunker closes. `final` also measures a short last window and
+    /// flushes the open chunk.
+    private func feedChunker(final: Bool) {
+        let window = LiveChunker.windowSamples
+        while recordedSamples.count - chunkedSamples >= window
+            || (final && recordedSamples.count > chunkedSamples) {
+            let end = min(chunkedSamples + window, recordedSamples.count)
+            let level = LevelMeter.rmsDB(floatSamples: Array(recordedSamples[chunkedSamples..<end]))
+            chunkedSamples = end
+            for range in chunker.observe(totalSamples: end, rmsDB: level) {
+                enqueueLive(range)
+            }
+        }
+        if final, let tail = chunker.flush() {
+            enqueueLive(tail)
+        }
+    }
+
+    private func enqueueLive(_ range: Range<Int>) {
+        guard let liveContinuation, range.upperBound <= recordedSamples.count else { return }
+        liveChunksWaiting += 1
+        liveContinuation.yield(LiveJob(
+            samples: Array(recordedSamples[range]),
+            start: Double(range.lowerBound) / Double(LiveChunker.sampleRate)
+        ))
+    }
+
+    private func liveChunkDone(_ outcome: Result<[CoreSegment], Error>, session id: Int) {
+        guard session == id else { return }
+        liveChunksWaiting = max(0, liveChunksWaiting - 1)
+        switch outcome {
+        case .success(let cues):
+            liveSegments.append(contentsOf: cues)
+            if let line = cues.last(where: { !$0.text.isEmpty })?.text {
+                latestLiveLine = line
+            }
+        case .failure(let error):
+            liveNotice = "Live preview missed a chunk: \(Self.describe(error))"
+        }
+    }
+
+    // MARK: - Final pass
+
+    private func runFinalPass(session id: Int) async {
+        let location: WhisperModelLocation
+        do {
+            location = try WhisperModelLocation.active(in: modelStore)
+        } catch {
+            await liveTask?.value
+            guard session == id else { return }
+            failTranscription(Self.describe(error), missingModel: true)
+            return
+        }
+        // Finish the live preview first so "Use live preview instead" always
+        // has every chunk.
+        await liveTask?.value
+        guard session == id, isTranscribing, !isUsingLivePreview else { return }
+
+        let samples = recordedSamples
+        let options = TranscriptionOptions.app(languageCode: sessionLanguageCode)
+        do {
+            let result = try await engine.transcribe(
+                samples: samples, location: location, options: options,
+                progress: progressHandler(session: id)
+            )
+            guard session == id, isTranscribing, !isUsingLivePreview else { return }
+            completeTranscription(with: result.cues())
+        } catch {
+            guard session == id, isTranscribing, !isUsingLivePreview else { return }
+            failTranscription("Transcription failed: \(Self.describe(error))")
+        }
+    }
+
+    private func runRetry(recording: URL, session id: Int) async {
+        let location: WhisperModelLocation
+        do {
+            location = try WhisperModelLocation.active(in: modelStore)
+        } catch {
+            guard session == id else { return }
+            failTranscription(Self.describe(error), missingModel: true)
+            return
+        }
+        let folder = try? TranscriptOutput.resolveFolder(settings: settings)
+        defer { folder?.stopAccessing() }
+        do {
+            var samples = recordedSamples
+            if samples.isEmpty {
+                samples = try await Task.detached(priority: .userInitiated) {
+                    try AudioFileLoader.loadMono16k(url: recording)
+                }.value
+            }
+            let result = try await engine.transcribe(
+                samples: samples, location: location,
+                options: TranscriptionOptions.app(languageCode: sessionLanguageCode),
+                progress: progressHandler(session: id)
+            )
+            guard session == id, isTranscribing else { return }
+            completeTranscription(with: result.cues())
+        } catch {
+            guard session == id, isTranscribing else { return }
+            failTranscription("Transcription failed: \(Self.describe(error))")
+        }
+    }
+
+    private func progressHandler(session id: Int) -> @Sendable (Double) -> Void {
+        { [weak self] value in
+            Task { @MainActor in
+                guard let self, self.session == id, self.isTranscribing else { return }
+                self.phase = .transcribing(progress: min(max(value, 0), 1))
+            }
+        }
+    }
+
+    /// Writes `<stem>.srt` into the output folder beside the recording and
+    /// then keeps or deletes the WAV as the setting says. After a failed
+    /// pass the WAV is already in the output folder and its SRT (possibly
+    /// the saved live preview) is replaced.
+    private func completeTranscription(with cues: [CoreSegment]) {
+        let folder: ResolvedOutputFolder
+        do {
+            folder = try TranscriptOutput.resolveFolder(settings: settings)
+        } catch {
+            failTranscription("Could not open the output folder: \(error.localizedDescription)")
+            return
+        }
+        defer { folder.stopAccessing() }
+        let fileManager = FileManager.default
+
+        // The WAV is either still in the spool (after a recording) or already
+        // in the output folder (after a failed pass).
+        let source = pendingSpoolWAV ?? retryableRecording
+        guard let source else {
+            failTranscription("The recording is missing.")
+            return
+        }
+        let inSpool = pendingSpoolWAV != nil
+        let base = source.deletingPathExtension().lastPathComponent
+        let directory = inSpool ? folder.url : source.deletingLastPathComponent()
+        let stem = inSpool
+            ? TranscriptOutput.freeStem(base: base, directory: directory, suffixes: [".srt", ".wav"])
+            : base
+        let srt = directory.appendingPathComponent(stem + ".srt")
+        do {
+            try TranscriptOutput.writeSRT(cues, to: srt)
+        } catch {
+            failTranscription("Could not write the transcript: \(error.localizedDescription)")
+            return
+        }
+
+        var wav: URL?
+        if settings.keepRecording {
+            if inSpool {
+                let destination = directory.appendingPathComponent(stem + ".wav")
+                do {
+                    try fileManager.moveItem(at: source, to: destination)
+                    wav = destination
+                } catch {
+                    wav = source
+                    liveNotice = "Could not move the recording to the output folder: "
+                        + "\(error.localizedDescription) It is kept at \(source.path)."
+                }
+            } else {
+                wav = source
+            }
+        } else {
+            try? fileManager.removeItem(at: source)
+        }
+
+        pendingSpoolWAV = nil
+        retryableRecording = nil
+        recordedSamples = []
+        needsModel = false
+        finishedTranscript = srt
+        finishedRecording = wav
+        phase = .finished(srt: srt, wav: wav)
+        notesRequest = srt
+    }
+
+    /// Keeps the WAV (moved to the output folder when it is still in the
+    /// spool), saves the live preview as its SRT when there is one, and
+    /// reports `message` with the WAV path.
+    private func failTranscription(_ message: String, missingModel: Bool = false) {
+        var lines = [message]
+        var wav = pendingSpoolWAV ?? retryableRecording
+        let folder = try? TranscriptOutput.resolveFolder(settings: settings)
+        defer { folder?.stopAccessing() }
+
+        if let spoolWAV = pendingSpoolWAV {
+            if let folder {
+                do {
+                    wav = try spool.finalize(spoolWAV, keep: true, outputFolder: folder.url)
+                } catch {
+                    wav = spoolWAV
+                    lines.append("Could not move the recording to the output folder: \(error.localizedDescription)")
+                }
+            }
+            pendingSpoolWAV = nil
+        }
+
+        if let wav, !liveSegments.isEmpty, finishedTranscript == nil {
+            let srt = wav.deletingPathExtension().appendingPathExtension("srt")
+            do {
+                try TranscriptOutput.writeSRT(liveSegments, to: srt)
+                finishedTranscript = srt
+                lines.append("The live preview was saved as \(srt.path).")
+            } catch {
+                lines.append("The live preview could not be saved: \(error.localizedDescription)")
+            }
+        }
+        if let wav {
+            lines.append("The recording is kept at \(wav.path).")
+        }
+        retryableRecording = wav
+        finishedRecording = wav
+        needsModel = missingModel
+        phase = .failed(message: lines.joined(separator: "\n"))
+    }
+
+    static func describe(_ error: Error) -> String {
+        if let localized = error as? LocalizedError, let text = localized.errorDescription {
+            return text
+        }
+        return String(describing: error)
     }
 }
 

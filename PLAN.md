@@ -436,7 +436,7 @@ weekends counted as half days.
 | 2. Models | Done 2026-09-28 except loading into the engine (Phase 4b). Real download and resume verified against Hugging Face. | done |
 | 3. Audio | Done 2026-09-28 in code; needs the first hands-on run with microphone and screen-capture permissions (see section 16). | done, unverified live |
 | 4a. Decoder | Done 2026-09-28. Byte-identical SRT to Python on both fixtures; 38 tests. Run tests with `TEST_RUNNER_HEARSAY_MODEL_DIR=<model dir>`. | done |
-| 4b. Transcription | SRT writer, live chunk preview, final full pass, File mode with drag and drop, failure path to File mode, timestamp rules. | 4 to 5 days |
+| 4b. Transcription | Done 2026-09-28 in code. File mode verified byte-identical to Python through the sandboxed app (debug launch path, see `FileViewModel.swift`). Live preview and the Record-tab final pass need a live run. | done, unverified live |
 | 5. Notes | Done 2026-09-28 in code; runs from History > Generate notes. Not yet tried against a live provider. | done, unverified live |
 | 6. Ship | History view, hotkeys, quit-while-recording, and crash recovery done 2026-09-28. Remaining: launch at login, app icon, Sparkle + appcast, signing, notarization, DMG script, README, quick-start guides. | 3 to 4 days |
 
@@ -551,6 +551,12 @@ Things no agent could verify because they need permissions or a person:
    sheet.
 9. A 60 minute recording with mic plus system audio, then listen for
    drift near the end.
+10. Watch the live preview fill in during a recording, and check the
+    final SRT after Stop replaces it with sentence-level cues.
+11. Press "Use live preview instead" during the final pass; the SRT
+    should be written at once.
+12. Drop an m4a on the File tab; the SRT lands in the output folder and
+    the confirm-send sheet appears.
 
 ## 17. Polish list (found during review, not yet scheduled)
 
@@ -563,3 +569,12 @@ Things no agent could verify because they need permissions or a person:
   scan can exclude it instead of using the launch date.
 - Shortcut labels assume a US keyboard layout.
 - `NSAlert` for quit is modal; a SwiftUI confirmation would fit better.
+- `Transcriber.transcribe` has no cancellation point, so "Use live preview
+  instead" writes the SRT at once but the engine stays busy until the final
+  pass ends. Add a per-window cancellation check.
+- The final pass waits for the live-preview queue to drain; a lagging
+  preview delays it by its backlog.
+- Quitting while transcribing does not prompt; the WAV is recovered on the
+  next launch through the recovery sheet.
+- Debug launch path (`HEARSAY_TRANSCRIBE_FILE`) needs files inside the app
+  container because of the sandbox; document or drop before release.

@@ -48,6 +48,15 @@ struct AppSettingsTests {
         #expect(AppSettings(defaults: defaults).outputFolderBookmark == nil)
     }
 
+    @Test func keepRecordingDefaultsOnAndRoundTrips() {
+        let (defaults, suite) = Self.freshDefaults()
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let settings = AppSettings(defaults: defaults)
+        #expect(settings.keepRecording)
+        settings.keepRecording = false
+        #expect(AppSettings(defaults: defaults).keepRecording == false)
+    }
+
     @Test func hotkeysDefaultToControlOptionCommand() {
         let (defaults, suite) = Self.freshDefaults()
         defer { defaults.removePersistentDomain(forName: suite) }

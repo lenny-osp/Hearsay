@@ -36,6 +36,7 @@ public final class AppSettings {
         public static let captureSystemAudio = "captureSystemAudio"
         public static let startStopHotkey = "startStopHotkey"
         public static let pauseHotkey = "pauseHotkey"
+        public static let keepRecording = "keepRecording"
     }
 
     @ObservationIgnored private let defaults: UserDefaults
@@ -89,6 +90,13 @@ public final class AppSettings {
         didSet { Self.store(pauseHotkey, forKey: Key.pauseHotkey, in: defaults) }
     }
 
+    /// Keep the recording (WAV) in the output folder after a successful
+    /// transcription (PLAN.md section 8). Default on, like the Python tool.
+    /// Off deletes it; a failed transcription always keeps it.
+    public var keepRecording: Bool {
+        didSet { defaults.set(keepRecording, forKey: Key.keepRecording) }
+    }
+
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         let rawMode = defaults.string(forKey: Key.windowMode) ?? ""
@@ -100,6 +108,7 @@ public final class AppSettings {
         self.startStopHotkey = Self.loadHotkey(forKey: Key.startStopHotkey, from: defaults)
             ?? .defaultStartStop
         self.pauseHotkey = Self.loadHotkey(forKey: Key.pauseHotkey, from: defaults) ?? .defaultPause
+        self.keepRecording = defaults.object(forKey: Key.keepRecording) as? Bool ?? true
     }
 
     private static func loadHotkey(forKey key: String, from defaults: UserDefaults) -> HotkeyBinding? {

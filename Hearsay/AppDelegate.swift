@@ -68,7 +68,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let aiProviderStore = AIProviderStore()
     lazy var modelStore = ModelStore(settings: settings)
     let windowOpener = MainWindowOpener()
-    lazy var recordingController = RecordingController(settings: settings)
+    let whisperEngine = WhisperEngine()
+    lazy var recordingController = RecordingController(
+        settings: settings, modelStore: modelStore, engine: whisperEngine
+    )
     lazy var hotkeyManager = HotkeyManager(settings: settings) { [weak self] action in
         guard let recording = self?.recordingController else { return }
         switch action {
@@ -81,6 +84,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var isStoppingForQuit = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Debug only: HEARSAY_TRANSCRIBE_FILE + HEARSAY_MODEL_DIR transcribe
+        // one file, print the SRT path, and quit (see FileViewModel).
+        if FileViewModel.runDebugTranscriptionIfRequested(
+            settings: settings, modelStore: modelStore, engine: whisperEngine
+        ) {
+            return
+        }
         applyWindowMode(settings.windowMode)
         observeWindowMode()
         recordingController.activate()

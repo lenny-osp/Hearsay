@@ -17,6 +17,7 @@ struct HearsayApp: App {
                 .environment(appDelegate.modelStore)
                 .environment(appDelegate.aiProviderStore)
                 .environment(appDelegate.recordingController)
+                .environment(\.whisperEngine, appDelegate.whisperEngine)
                 .registeringMainWindowOpener(appDelegate.windowOpener)
         }
         .defaultSize(width: 720, height: 480)
@@ -27,6 +28,7 @@ struct HearsayApp: App {
                 .environment(appDelegate.modelStore)
                 .environment(appDelegate.aiProviderStore)
                 .environment(appDelegate.recordingController)
+                .environment(\.whisperEngine, appDelegate.whisperEngine)
                 .environment(appDelegate.hotkeyManager)
                 .registeringMainWindowOpener(appDelegate.windowOpener)
         }
@@ -37,6 +39,7 @@ struct HearsayApp: App {
                 .environment(appDelegate.modelStore)
                 .environment(appDelegate.aiProviderStore)
                 .environment(appDelegate.recordingController)
+                .environment(\.whisperEngine, appDelegate.whisperEngine)
                 .environment(appDelegate.windowOpener)
                 .registeringMainWindowOpener(appDelegate.windowOpener)
         } label: {

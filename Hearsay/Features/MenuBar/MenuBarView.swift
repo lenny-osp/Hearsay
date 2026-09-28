@@ -26,6 +26,20 @@ struct MenuBarView: View {
                         .font(.caption)
                         .foregroundStyle(.orange)
                 }
+                if let line = recording.latestLiveLine {
+                    Text(line)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.head)
+                        .help(line)
+                }
+            }
+
+            if let progress = recording.transcriptionProgress {
+                ProgressView(value: progress)
+                    .progressViewStyle(.linear)
+                    .accessibilityLabel("Transcription progress")
             }
 
             if let caption = lastResultCaption {
@@ -79,13 +93,15 @@ struct MenuBarView: View {
         case .recording: return "Recording \(elapsed)"
         case .paused: return "Paused \(elapsed)"
         case .stopping: return "Saving…"
+        case .transcribing(let progress):
+            return "Transcribing… \(Int((progress * 100).rounded()))%"
         }
     }
 
     private var stateColor: Color {
         switch recording.phase {
         case .recording: .red
-        case .paused, .starting, .stopping: .orange
+        case .paused, .starting, .stopping, .transcribing: .orange
         case .idle, .finished, .failed: .secondary
         }
     }
@@ -93,9 +109,10 @@ struct MenuBarView: View {
     /// What happened to the last recording, below the state line.
     private var lastResultCaption: AnyView? {
         switch recording.phase {
-        case .finished(let url):
+        case .finished(let srt, let wav):
+            let name = (srt ?? wav)?.lastPathComponent ?? "the recording"
             return AnyView(
-                Text("Saved \(url.lastPathComponent)")
+                Text("Saved \(name)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -143,7 +160,7 @@ struct MenuBarView: View {
                     Label("Start", systemImage: "record.circle")
                         .frame(maxWidth: .infinity)
                 }
-                .disabled(recording.phase == .starting)
+                .disabled(!recording.canStart)
                 .help("Start (\(settings.startStopHotkey.displayString))")
             }
         }
@@ -178,6 +195,13 @@ struct MenuBarLabel: View {
         case .paused:
             Image(systemName: "pause.circle")
                 .accessibilityLabel("Hearsay, paused")
+        case .transcribing(let progress):
+            HStack(spacing: 4) {
+                Image(systemName: "text.bubble")
+                Text("\(Int((progress * 100).rounded()))%")
+                    .monospacedDigit()
+            }
+            .accessibilityLabel("Hearsay, transcribing")
         default:
             Image(systemName: "waveform")
                 .accessibilityLabel("Hearsay")

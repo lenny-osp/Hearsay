@@ -61,6 +61,7 @@ private struct OutputSettingsView: View {
     @State private var errorMessage: String?
 
     var body: some View {
+        @Bindable var settings = settings
         Form {
             LabeledContent("Output folder:") {
                 Text(folderPath)
@@ -80,6 +81,11 @@ private struct OutputSettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.red)
             }
+            Toggle("Keep the recording (WAV) after a successful transcription",
+                   isOn: $settings.keepRecording)
+            Text("When off, the WAV is deleted once its SRT is written. A failed transcription always keeps it.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
         .padding()
         .onAppear(perform: refresh)
