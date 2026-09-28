@@ -1,0 +1,490 @@
+import Foundation
+import Testing
+@testable import HearsayCore
+
+// Ports of the naming and output-file tests in whisper-tools
+// tests/test_run_whisper.py.
+
+private struct TemporaryDirectory {
+    let url: URL
+
+    init() throws {
+        url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("NamingTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+    }
+
+    func remove() {
+        try? FileManager.default.removeItem(at: url)
+    }
+
+    func file(_ name: String) -> URL {
+        url.appendingPathComponent(name)
+    }
+
+    func write(_ name: String, _ text: String) throws -> URL {
+        let target = file(name)
+        try Data(text.utf8).write(to: target)
+        return target
+    }
+
+    func listing() throws -> [String] {
+        try FileManager.default.contentsOfDirectory(atPath: url.path).sorted()
+    }
+
+    func read(_ name: String) throws -> String {
+        try String(contentsOf: file(name), encoding: .utf8)
+    }
+
+    /// Mirrors `_recording()` in the Python test suite.
+    func recording(stem: String = "2026-09-03_14-05-06") throws -> (srt: URL, wav: URL) {
+        let srt = try write("\(stem).srt", "1\n00:00:01,000 --> 00:00:02,000\nDiscuss launch\n")
+        let wav = file("\(stem).wav")
+        try Data("RIFF".utf8).write(to: wav)
+        return (srt, wav)
+    }
+}
+
+private struct SimulatedFailure: Error, LocalizedError {
+    let message: String
+    var errorDescription: String? { message }
+}
+
+private func exists(_ url: URL) -> Bool {
+    FileManager.default.fileExists(atPath: url.path)
+}
+
+// MARK: - FilenameSanitizer
+
+@Suite struct FilenameSanitizerTests {
+    // test_meeting_names_are_lowercase_ascii_and_filename_safe
+    @Test(arguments: [
+        (" Biweekly Cross Country Resource Management ", "biweekly-cross-country-resource-management"),
+        ("Planning / Budget: Q4? <2026> | * Review\\Draft", "planning-budget-q4-2026-review-draft"),
+        ("Café__ＲＥＶＩＥＷ\t會議 😀.MD", "cafe-review"),
+        ("../../Launch---Plan.srt", "launch-plan"),
+        ("會議😀 /:*?", nil),
+        ("   ", nil),
+        (String(repeating: "a", count: 100), String(repeating: "a", count: 80)),
+    ] as [(String, String?)])
+    func meetingNamesAreLowercaseAsciiAndFilenameSafe(value: String, expected: String?) {
+        #expect(FilenameSanitizer.sanitize(value) == expected)
+    }
+
+    // sanitize assertion in test_ai_result_parsing_and_filename_sanitizing
+    @Test func stripsMarkdownExtensionAndSlash() {
+        #expect(FilenameSanitizer.sanitize(" Launch / Plan.md ") == "launch-plan")
+    }
+
+    // Expected values produced by running whisper-tools sanitize_ai_filename.
+    @Test(arguments: [
+        ("Straße Ölfeld", "stra-e-olfeld"),
+        ("Ｑ４ ﬁnal", "q4-final"),
+        ("İstanbul—Plan", "istanbul-plan"),
+        ("x.Srt  ", "x"),
+        ("notes.md.md", "notes-md"),
+        ("-a-.txt", "a-txt"),
+        ("日本 Meeting 2", "meeting-2"),
+        ("ǅemal", "dzemal"),
+    ] as [(String, String?)])
+    func matchesPythonOnExtraInputs(value: String, expected: String?) {
+        #expect(FilenameSanitizer.sanitize(value) == expected)
+    }
+
+    @Test func capDoesNotLeaveTrailingHyphen() {
+        let value = String(repeating: "a", count: 79) + " b"
+        #expect(FilenameSanitizer.sanitize(value) == String(repeating: "a", count: 79))
+    }
+}
+
+// MARK: - MeetingNameInserter
+
+@Suite struct MeetingNameInserterTests {
+    // test_meeting_name_is_first_content_under_first_heading
+    @Test(arguments: [
+        "# Structured Transcript\n\nDiscuss launch\n\n## Decisions\nShip it.\n",
+        "# Structured Transcript\n\n**Meeting Name:** old-name\n\nDiscuss launch\n\n## Decisions\nShip it.\n",
+    ])
+    func meetingNameIsFirstContentUnderFirstHeading(original: String) {
+        let result = MeetingNameInserter.insert(
+            into: original, meetingName: "launch-plan", fallbackHeading: "Structured Transcript"
+        )
+        #expect(result == "# Structured Transcript\n\n**Meeting Name:** launch-plan\n\nDiscuss launch\n\n## Decisions\nShip it.\n")
+    }
+
+    @Test func fallbackHeadingIsAddedWithoutHeading() {
+        let result = MeetingNameInserter.insert(
+            into: "Discuss launch", meetingName: "launch-plan", fallbackHeading: "Structured Transcript"
+        )
+        #expect(result == "# Structured Transcript\n\n**Meeting Name:** launch-plan\n\nDiscuss launch")
+    }
+
+    @Test func onlyTheFirstSectionLosesItsMeetingName() {
+        let original = "# Notes\n**meeting name:** old\n## Later\n**Meeting Name:** keep\n"
+        let result = MeetingNameInserter.insert(into: original, meetingName: "new", fallbackHeading: "Meeting Notes")
+        #expect(result == "# Notes\n\n**Meeting Name:** new\n\n## Later\n**Meeting Name:** keep\n")
+    }
+
+    // Expected values produced by running whisper-tools insert_meeting_name.
+    @Test(arguments: [
+        ("  ## Agenda\r\nItem\r\n", "  ## Agenda\n\n**Meeting Name:** n\n\nItem\r\n"),
+        ("Intro\n#NoSpace\n# Real\n.**Meeting Name:** x\nBody", "Intro\n#NoSpace\n# Real\n\n**Meeting Name:** n\n\nBody"),
+        ("\n\n  text  ", "# F\n\n**Meeting Name:** n\n\ntext  "),
+    ])
+    func matchesPythonOnExtraInputs(original: String, expected: String) {
+        #expect(MeetingNameInserter.insert(into: original, meetingName: "n", fallbackHeading: "F") == expected)
+    }
+
+    @Test func headingOnlyDocumentEndsAfterName() {
+        let result = MeetingNameInserter.insert(into: "# Notes\n", meetingName: "x", fallbackHeading: "Meeting Notes")
+        #expect(result == "# Notes\n\n**Meeting Name:** x\n")
+    }
+}
+
+// MARK: - Timestamps
+
+@Suite struct TimestampsTests {
+    // test_source_file_timestamp_prefers_timestamp_in_filename
+    @Test func sourceFileTimestampPrefersTimestampInFilename() {
+        #expect(
+            Timestamps.sourceFileTimestamp(url: URL(fileURLWithPath: "/recordings/2025-04-03_14-05-06_customer-call.wav"))
+                == "2025-04-03_14-05-06"
+        )
+        #expect(
+            Timestamps.sourceFileTimestamp(url: URL(fileURLWithPath: "/recordings/customer-call-2025-04-03-14-05-06.wav"))
+                == "2025-04-03_14-05-06"
+        )
+    }
+
+    @Test func parseRejectsImpossibleDatesAndAdjacentDigits() {
+        #expect(Timestamps.parse(fromFilename: "20250403T140506.wav") == "2025-04-03_14-05-06")
+        #expect(Timestamps.parse(fromFilename: "2025-02-30_14-05-06.wav") == nil)
+        #expect(Timestamps.parse(fromFilename: "2025-04-03_24-05-06.wav") == nil)
+        #expect(Timestamps.parse(fromFilename: "12025-04-03_14-05-06.wav") == nil)
+        #expect(Timestamps.parse(fromFilename: "meeting.wav") == nil)
+    }
+
+    @Test func sourceFileTimestampFallsBackToBirthTime() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        let file = try directory.write("customer-call.wav", "RIFF")
+        var components = DateComponents()
+        (components.year, components.month, components.day) = (2024, 1, 2)
+        (components.hour, components.minute, components.second) = (3, 4, 5)
+        let date = try #require(Calendar(identifier: .gregorian).date(from: components))
+        try FileManager.default.setAttributes([.creationDate: date], ofItemAtPath: file.path)
+        #expect(Timestamps.sourceFileTimestamp(url: file) == "2024-01-02_03-04-05")
+    }
+
+    @Test func missingFileWithoutEmbeddedTimestampHasNone() {
+        #expect(Timestamps.sourceFileTimestamp(url: URL(fileURLWithPath: "/nonexistent-\(UUID().uuidString)/call.wav")) == nil)
+    }
+
+    @Test func formatUsesPosixPattern() {
+        let date = Date(timeIntervalSince1970: 0)
+        #expect(Timestamps.string(from: date, timeZone: TimeZone(identifier: "UTC") ?? .current) == "1970-01-01_00-00-00")
+    }
+}
+
+// MARK: - OutputWriter.saveNamed
+
+@Suite struct SaveNamedOutputsTests {
+    @Test func savesAllThreeOutputsWithMeetingNameInserted() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        let srt = try directory.write("2026-09-03_14-05-06.srt", "1\n")
+
+        let result = try OutputWriter.saveNamed(
+            srtURL: srt, meetingName: "Launch Plan!", markdown: "# Notes\n\nBody\n",
+            transcriptMarkdown: "Speaker: hi", timestamp: nil
+        )
+        #expect(result.srt.lastPathComponent == "2026-09-03_14-05-06_launch-plan.srt")
+        #expect(result.markdown.lastPathComponent == "2026-09-03_14-05-06_launch-plan.md")
+        #expect(result.transcript.lastPathComponent == "2026-09-03_14-05-06_launch-plan_transcript.md")
+        #expect(try directory.listing() == [
+            "2026-09-03_14-05-06_launch-plan.md",
+            "2026-09-03_14-05-06_launch-plan.srt",
+            "2026-09-03_14-05-06_launch-plan_transcript.md",
+        ])
+        #expect(try directory.read("2026-09-03_14-05-06_launch-plan.md") == "# Notes\n\n**Meeting Name:** launch-plan\n\nBody\n")
+        #expect(
+            try directory.read("2026-09-03_14-05-06_launch-plan_transcript.md")
+                == "# Structured Transcript\n\n**Meeting Name:** launch-plan\n\nSpeaker: hi"
+        )
+    }
+
+    @Test func givenTimestampWinsAndCollisionOnAnyNameAddsSuffix() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        let srt = try directory.write("2026-09-03_14-05-06.srt", "1\n")
+        _ = try directory.write("2020-01-01_00-00-00_launch_transcript.md", "taken")
+
+        let result = try OutputWriter.saveNamed(
+            srtURL: srt, meetingName: "launch", markdown: "# N", transcriptMarkdown: "# T",
+            timestamp: "2020-01-01_00-00-00"
+        )
+        #expect(result.srt.lastPathComponent == "2020-01-01_00-00-00_launch-2.srt")
+        #expect(try directory.read("2020-01-01_00-00-00_launch_transcript.md") == "taken")
+    }
+
+    @Test func unusableNameThrowsAndTouchesNothing() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        let srt = try directory.write("meeting.srt", "1\n")
+        #expect(throws: OutputWriterError.unusableMeetingName) {
+            try OutputWriter.saveNamed(srtURL: srt, meetingName: "會議 ?", markdown: "# N",
+                                       transcriptMarkdown: "# T", timestamp: nil)
+        }
+        #expect(try directory.listing() == ["meeting.srt"])
+    }
+
+    // Output-file safety from test_api_http_json_and_empty_content_failures_are_atomic:
+    // a failed write leaves no partial Markdown, restores the SRT, and leaves
+    // unrelated existing Markdown untouched.
+    @Test func writeFailureRemovesPartialMarkdownAndRestoresSRT() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        let srt = try directory.write("meeting.srt", "1\n00:00:01,000 --> 00:00:02,000\nText\n")
+        _ = try directory.write("meeting_summary.md", "old")
+
+        let failingWriter: OutputWriter.TextWriter = { text, destination in
+            if destination.lastPathComponent.hasSuffix("_transcript.md") {
+                throw SimulatedFailure(message: "disk full")
+            }
+            try OutputWriter.writeAtomically(text, to: destination)
+        }
+        do {
+            _ = try OutputWriter.saveNamed(
+                srtURL: srt, meetingName: "launch", markdown: "# N", transcriptMarkdown: "# T",
+                timestamp: "2026-09-03_14-05-06", move: OutputWriter.defaultMove, writeText: failingWriter
+            )
+            Issue.record("saveNamed should have thrown")
+        } catch let error as OutputWriterError {
+            guard case let .writeFailed(url, reason, unrestored) = error else {
+                Issue.record("unexpected error \(error)")
+                return
+            }
+            #expect(url.lastPathComponent == "2026-09-03_14-05-06_launch_transcript.md")
+            #expect(reason == "disk full")
+            #expect(unrestored.isEmpty)
+            #expect(error.localizedDescription.contains("disk full"))
+        }
+        #expect(try directory.listing() == ["meeting.srt", "meeting_summary.md"])
+        #expect(try directory.read("meeting_summary.md") == "old")
+    }
+
+    // Deliberate departure from Python (PLAN.md 4.3 step 7): the retained WAV
+    // follows the SRT's new name.
+    @Test func saveNamedRenamesASiblingWavTogetherWithTheSRT() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        let (srt, wav) = try directory.recording()
+
+        let result = try OutputWriter.saveNamed(
+            srtURL: srt, meetingName: "Launch Plan", markdown: "# N", transcriptMarkdown: "# T", timestamp: nil
+        )
+        #expect(result.srt.lastPathComponent == "2026-09-03_14-05-06_launch-plan.srt")
+        #expect(result.companions.map(\.lastPathComponent) == ["2026-09-03_14-05-06_launch-plan.wav"])
+        #expect(!exists(srt))
+        #expect(!exists(wav))
+        #expect(try directory.listing() == [
+            "2026-09-03_14-05-06_launch-plan.md",
+            "2026-09-03_14-05-06_launch-plan.srt",
+            "2026-09-03_14-05-06_launch-plan.wav",
+            "2026-09-03_14-05-06_launch-plan_transcript.md",
+        ])
+        #expect(try directory.read("2026-09-03_14-05-06_launch-plan.wav") == "RIFF")
+    }
+
+    @Test func saveNamedWithoutWavHasNoCompanions() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        let srt = try directory.write("2026-09-03_14-05-06.srt", "1\n")
+
+        let result = try OutputWriter.saveNamed(
+            srtURL: srt, meetingName: "launch", markdown: "# N", transcriptMarkdown: "# T", timestamp: nil
+        )
+        #expect(result.companions.isEmpty)
+        #expect(try directory.listing() == [
+            "2026-09-03_14-05-06_launch.md",
+            "2026-09-03_14-05-06_launch.srt",
+            "2026-09-03_14-05-06_launch_transcript.md",
+        ])
+    }
+
+    @Test func failingTranscriptWriteRestoresBothSRTAndWav() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        let (srt, wav) = try directory.recording()
+
+        let failingWriter: OutputWriter.TextWriter = { text, destination in
+            if destination.lastPathComponent.hasSuffix("_transcript.md") {
+                throw SimulatedFailure(message: "disk full")
+            }
+            try OutputWriter.writeAtomically(text, to: destination)
+        }
+        #expect(throws: OutputWriterError.writeFailed(
+            url: directory.file("2026-09-03_14-05-06_launch_transcript.md").standardizedFileURL,
+            reason: "disk full",
+            unrestored: []
+        )) {
+            try OutputWriter.saveNamed(
+                srtURL: srt, meetingName: "launch", markdown: "# N", transcriptMarkdown: "# T",
+                timestamp: nil, move: OutputWriter.defaultMove, writeText: failingWriter
+            )
+        }
+        #expect(exists(srt))
+        #expect(exists(wav))
+        #expect(try directory.listing() == ["2026-09-03_14-05-06.srt", "2026-09-03_14-05-06.wav"])
+    }
+
+    @Test func failingWavRenameRollsBackTheSRTAndWritesNothing() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        let (srt, wav) = try directory.recording()
+
+        let failingMove: OutputWriter.Mover = { source, destination in
+            if source.pathExtension == "wav" {
+                throw SimulatedFailure(message: "device is busy")
+            }
+            try OutputWriter.defaultMove(source, destination)
+        }
+        #expect(throws: OutputWriterError.self) {
+            try OutputWriter.saveNamed(
+                srtURL: srt, meetingName: "launch", markdown: "# N", transcriptMarkdown: "# T",
+                timestamp: nil, move: failingMove, writeText: OutputWriter.writeAtomically
+            )
+        }
+        #expect(exists(srt))
+        #expect(exists(wav))
+        #expect(try directory.listing() == ["2026-09-03_14-05-06.srt", "2026-09-03_14-05-06.wav"])
+    }
+
+    @Test func collisionOnTheWavNameAloneBumpsTheSuffixForAllFiles() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        let (srt, _) = try directory.recording()
+        _ = try directory.write("2026-09-03_14-05-06_launch.wav", "taken")
+
+        let result = try OutputWriter.saveNamed(
+            srtURL: srt, meetingName: "launch", markdown: "# N", transcriptMarkdown: "# T", timestamp: nil
+        )
+        #expect(result.srt.lastPathComponent == "2026-09-03_14-05-06_launch-2.srt")
+        #expect(result.markdown.lastPathComponent == "2026-09-03_14-05-06_launch-2.md")
+        #expect(result.transcript.lastPathComponent == "2026-09-03_14-05-06_launch-2_transcript.md")
+        #expect(result.companions.map(\.lastPathComponent) == ["2026-09-03_14-05-06_launch-2.wav"])
+        #expect(try directory.read("2026-09-03_14-05-06_launch.wav") == "taken")
+    }
+
+    @Test func atomicWriteLeavesNoTemporaryFiles() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        try OutputWriter.writeAtomically("hello", to: directory.file("notes.md"))
+        #expect(try directory.listing() == ["notes.md"])
+        #expect(try directory.read("notes.md") == "hello")
+    }
+}
+
+// MARK: - OutputWriter.renameRetained
+
+@Suite struct RenameRetainedTests {
+    // test_renaming_moves_the_srt_and_the_retained_wav_together
+    @Test func renamingMovesTheSRTAndTheRetainedWavTogether() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        let (srt, wav) = try directory.recording()
+
+        let renamed = try OutputWriter.renameRetained(
+            srtURL: srt, meetingName: "Launch Plan!", timestamp: "2026-09-03_14-05-06"
+        )
+        #expect(renamed.map(\.lastPathComponent) == [
+            "2026-09-03_14-05-06_launch-plan.srt",
+            "2026-09-03_14-05-06_launch-plan.wav",
+        ])
+        #expect(!exists(srt))
+        #expect(!exists(wav))
+        #expect(try directory.listing() == [
+            "2026-09-03_14-05-06_launch-plan.srt",
+            "2026-09-03_14-05-06_launch-plan.wav",
+        ])
+    }
+
+    // test_renaming_reuses_the_srt_timestamp_and_avoids_collisions
+    @Test func renamingReusesTheSRTTimestampAndAvoidsCollisions() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        let (srt, _) = try directory.recording(stem: "2026-09-03-14-05-06")
+        for ext in [".srt", ".wav"] {
+            _ = try directory.write("2026-09-03_14-05-06_launch\(ext)", "")
+        }
+
+        let renamed = try OutputWriter.renameRetained(srtURL: srt, meetingName: "launch", timestamp: nil)
+        #expect(renamed.map(\.lastPathComponent) == [
+            "2026-09-03_14-05-06_launch-2.srt",
+            "2026-09-03_14-05-06_launch-2.wav",
+        ])
+    }
+
+    // test_renaming_rolls_back_when_a_companion_cannot_be_renamed
+    @Test func renamingRollsBackWhenACompanionCannotBeRenamed() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        let (srt, wav) = try directory.recording()
+
+        let failingMove: OutputWriter.Mover = { source, destination in
+            if source.pathExtension == "wav" {
+                throw SimulatedFailure(message: "device is busy")
+            }
+            try OutputWriter.defaultMove(source, destination)
+        }
+        do {
+            _ = try OutputWriter.renameRetained(
+                srtURL: srt, meetingName: "launch", timestamp: "2026-09-03_14-05-06", move: failingMove
+            )
+            Issue.record("renameRetained should have thrown")
+        } catch let error as OutputWriterError {
+            guard case let .renameFailed(source, _, reason, unrestored) = error else {
+                Issue.record("unexpected error \(error)")
+                return
+            }
+            #expect(source.lastPathComponent == wav.lastPathComponent)
+            #expect(reason == "device is busy")
+            #expect(unrestored.isEmpty)
+            #expect(error.localizedDescription.contains("device is busy"))
+        }
+        #expect(exists(srt))
+        #expect(exists(wav))
+        #expect(try directory.listing() == ["2026-09-03_14-05-06.srt", "2026-09-03_14-05-06.wav"])
+    }
+
+    // Same rollback, driven by a real filesystem failure: the WAV carries the
+    // immutable flag, so its rename fails after the SRT was already moved.
+    @Test func renamingRollsBackOnARealFilesystemFailure() throws {
+        let directory = try TemporaryDirectory()
+        defer {
+            if let wav = try? directory.listing().first(where: { $0.hasSuffix(".wav") }) {
+                try? FileManager.default.setAttributes([.immutable: false], ofItemAtPath: directory.file(wav).path)
+            }
+            directory.remove()
+        }
+        let (srt, wav) = try directory.recording()
+        try FileManager.default.setAttributes([.immutable: true], ofItemAtPath: wav.path)
+
+        #expect(throws: OutputWriterError.self) {
+            try OutputWriter.renameRetained(srtURL: srt, meetingName: "launch", timestamp: "2026-09-03_14-05-06")
+        }
+        #expect(exists(srt))
+        #expect(exists(wav))
+        #expect(try directory.listing() == ["2026-09-03_14-05-06.srt", "2026-09-03_14-05-06.wav"])
+    }
+
+    @Test func srtWithoutCompanionRenamesAlone() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        let srt = try directory.write("2026-09-03_14-05-06.srt", "1\n")
+        try FileManager.default.createDirectory(at: directory.file("2026-09-03_14-05-06.wav"), withIntermediateDirectories: false)
+
+        let renamed = try OutputWriter.renameRetained(srtURL: srt, meetingName: "launch", timestamp: nil)
+        #expect(renamed.map(\.lastPathComponent) == ["2026-09-03_14-05-06_launch.srt"])
+    }
+}
