@@ -552,6 +552,12 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
 
 ## 17. Polish list (found during review, not yet scheduled)
 
+- **To do (owner request 2026-09-28): "Reduce background noise" switch** on
+  the Record tab. Routes only the mic through Apple voice processing so
+  Control Center > Mic Mode > Voice Isolation becomes available. Warn in the
+  UI that it also suppresses other people in the room; system audio is not
+  affected. About half a day.
+
 - `RecordingController.activate()` still observes `AVAudioEngineConfigurationChange`; harmless, remove.
 - `SystemAudioRecorder` has its own copy of the sample-buffer converter; share `PCMSampleBufferConverter`.
 - Cancelling the naming sheet after notes came back discards the notes
