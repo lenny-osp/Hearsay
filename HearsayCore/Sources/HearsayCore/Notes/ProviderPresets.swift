@@ -121,7 +121,7 @@ public struct ProviderPreset: Identifiable, Sendable, Codable, Equatable {
     /// is part of the model id, so `--effort` is only sent for model ids
     /// without an effort suffix (`CLIArguments.antigravityEffort`).
     public static let antigravityCLI = ProviderPreset(
-        id: "antigravityCLI", name: "Antigravity CLI (agy)",
+        id: "antigravityCLI", name: "Antigravity CLI",
         baseURL: "",
         defaultModel: "gemini-3.8-flash-high", auth: .none, supportsReasoningEffort: true,
         defaultEffort: "high",

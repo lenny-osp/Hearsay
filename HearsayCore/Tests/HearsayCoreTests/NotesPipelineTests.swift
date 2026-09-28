@@ -382,7 +382,7 @@ final class AIProviderStoreTests {
         #expect(ProviderPreset.all.map(\.id) == ["copilotCLI", "claudeCodeCLI", "codexCLI", "antigravityCLI", "ollama", "custom"])
         #expect(ProviderPreset.all.map(\.name) == [
             "GitHub Copilot CLI", "Claude Code CLI (Claude subscription)", "Codex CLI (ChatGPT subscription)",
-            "Antigravity CLI (agy)", "Ollama / LM Studio", "Custom",
+            "Antigravity CLI", "Ollama / LM Studio", "Custom",
         ])
         #expect(ProviderPreset.all.map(\.kind) == [.copilotCLI, .claudeCodeCLI, .codexCLI, .antigravityCLI, .http, .http])
         for retired in ["githubModels", "openai", "anthropic", "azureOpenAI"] {

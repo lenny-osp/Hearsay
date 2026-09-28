@@ -98,7 +98,7 @@ otherwise its modification time.
 
 1. **Set up a provider** in Settings > AI. Pick a preset: GitHub Copilot
    CLI, Claude Code CLI (Claude subscription), Codex CLI (ChatGPT
-   subscription), Antigravity CLI (agy), Ollama / LM Studio, or Custom for
+   subscription), Antigravity CLI, Ollama / LM Studio, or Custom for
    any other OpenAI-compatible `/chat/completions` endpoint. "Test connection" sends
    a one-line prompt.
    - **The four CLI presets** run a program installed on your Mac and use

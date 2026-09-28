@@ -66,7 +66,7 @@ struct AntigravityCLITests {
     @Test func presetShape() {
         let preset = ProviderPreset.antigravityCLI
         #expect(preset.id == "antigravityCLI")
-        #expect(preset.name == "Antigravity CLI (agy)")
+        #expect(preset.name == "Antigravity CLI")
         #expect(preset.kind == .antigravityCLI)
         #expect(preset.kind.cliTool == .antigravity)
         #expect(preset.defaultModel == "gemini-3.8-flash-high")
