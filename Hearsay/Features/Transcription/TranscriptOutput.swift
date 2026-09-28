@@ -52,7 +52,8 @@ final class NotesHandoff {
 
     /// Starts the flow: the confirm sheet appears unless "Ask before
     /// sending" is off, in which case generation starts at once. The notes
-    /// are written in `language`, the session's resolved language. A flow
+    /// default to `language`, the session's resolved language; the confirm
+    /// sheet can pick another for this run. A flow
     /// still waiting at the confirm sheet is replaced (the transcript was
     /// just rewritten in another language); one that is further along is
     /// left alone.
@@ -62,7 +63,7 @@ final class NotesHandoff {
         folder = try? TranscriptOutput.resolveFolder(settings: settings)
         let model = NotesFlowViewModel(store: store)
         notes = model
-        model.run(srtURL: srtURL, languageCode: language.code)
+        model.run(srtURL: srtURL, language: language)
     }
 
     /// Clears a finished flow.

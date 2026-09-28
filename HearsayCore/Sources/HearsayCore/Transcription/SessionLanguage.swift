@@ -181,3 +181,34 @@ public enum StoredTranscriptLanguage {
         }
     }
 }
+
+extension StoredTranscriptLanguage {
+    /// The default notes language for an SRT with no stored language: the
+    /// language detected from its text when `TranscriptTextLanguage` is
+    /// confident, otherwise `assumed(choice:preferred:)`. The note names the
+    /// language and where it came from, for the confirm sheet's caption.
+    public static func resolve(
+        srtText: String, choice: LanguageChoice, preferred: TranscriptLanguage
+    ) -> (language: TranscriptLanguage, note: String) {
+        if let (language, probability) = TranscriptTextLanguage.detect(srtText: srtText),
+           probability >= TranscriptTextLanguage.confidenceThreshold {
+            return (language, "\(language.displayName) (detected from the text)")
+        }
+        return assumed(choice: choice, preferred: preferred)
+    }
+}
+
+/// The confirm sheet's lines under the "Notes language" picker.
+public enum NotesLanguageCaption {
+    /// "Transcript language: 中文", or with the caller's note, e.g.
+    /// "Transcript language: Deutsch (detected from the text)".
+    public static func transcriptLine(_ language: TranscriptLanguage, note: String? = nil) -> String {
+        "Transcript language: \(note ?? language.displayName)"
+    }
+
+    /// "Notes will be written in Deutsch." when the choice differs from the
+    /// transcript language; nil otherwise.
+    public static func notesLine(transcript: TranscriptLanguage, notes: TranscriptLanguage) -> String? {
+        notes == transcript ? nil : "Notes will be written in \(notes.displayName)."
+    }
+}

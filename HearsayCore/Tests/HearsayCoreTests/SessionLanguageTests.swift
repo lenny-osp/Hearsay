@@ -159,3 +159,46 @@ struct LanguageNoticeTests {
         #expect(auto.note == "Deutsch (your preferred language; this transcript's language was not recorded)")
     }
 }
+
+struct StoredTranscriptLanguageResolveTests {
+    static let germanSRT = """
+        1
+        00:00:00,000 --> 00:00:04,000
+        Wir fangen mit dem Budget an und besprechen dann den Bericht.
+
+        2
+        00:00:04,000 --> 00:00:08,000
+        Der Bericht muss bis Freitag fertig sein.
+
+        """
+
+    @Test func confidentDetectionWins() {
+        let resolved = StoredTranscriptLanguage.resolve(
+            srtText: Self.germanSRT, choice: .fixed(.english), preferred: .english)
+        #expect(resolved.language == .german)
+        #expect(resolved.note == "Deutsch (detected from the text)")
+    }
+
+    @Test func unsureFallsBackToAssumed() {
+        let srt = "1\n00:00:00,000 --> 00:00:01,000\nOK 好\n"
+        let resolved = StoredTranscriptLanguage.resolve(srtText: srt, choice: .auto, preferred: .spanish)
+        #expect(resolved.language == .spanish)
+        #expect(resolved.note == "Español (your preferred language; this transcript's language was not recorded)")
+        let empty = StoredTranscriptLanguage.resolve(srtText: "", choice: .fixed(.chinese), preferred: .english)
+        #expect(empty.language == .chinese)
+    }
+}
+
+struct NotesLanguageCaptionTests {
+    @Test func transcriptLine() {
+        #expect(NotesLanguageCaption.transcriptLine(.chinese) == "Transcript language: 中文")
+        #expect(NotesLanguageCaption.transcriptLine(.german, note: "Deutsch (detected from the text)")
+            == "Transcript language: Deutsch (detected from the text)")
+    }
+
+    @Test func notesLineOnlyWhenDifferent() {
+        #expect(NotesLanguageCaption.notesLine(transcript: .english, notes: .english) == nil)
+        #expect(NotesLanguageCaption.notesLine(transcript: .chinese, notes: .german)
+            == "Notes will be written in Deutsch.")
+    }
+}

@@ -40,14 +40,18 @@ final class NotesFlowViewModel {
     private(set) var retainedAudio: [URL] = []
     /// Template chosen in the confirm sheet for this run.
     var templateID: UUID
-    /// The confirm sheet's "Notes language" line: the language's name, or
-    /// the caller's explanation when the language was assumed.
-    private(set) var languageLine = ""
+    /// The transcript's language: the default notes language.
+    private(set) var transcriptLanguage: TranscriptLanguage = .english
+    /// The caller's explanation of where `transcriptLanguage` came from
+    /// (History: detected from the text, or assumed), or nil when known.
+    private(set) var transcriptLanguageNote: String?
+    /// The language the notes and structured transcript are written in,
+    /// chosen in the confirm sheet for this run only (not stored).
+    var notesLanguage: TranscriptLanguage = .english
 
     let store: AIProviderStore
     @ObservationIgnored private let pipeline: NotesPipeline
     @ObservationIgnored private var srtText = ""
-    @ObservationIgnored private var languageCode = "en"
     @ObservationIgnored private var timestamp: String?
     @ObservationIgnored private var notes: NotesResponse?
     @ObservationIgnored private var generation: Task<Void, Never>?
@@ -67,18 +71,29 @@ final class NotesFlowViewModel {
 
     var providerName: String { store.configuration.preset.name }
 
+    /// "Transcript language: …" under the confirm sheet's picker.
+    var transcriptLanguageCaption: String {
+        NotesLanguageCaption.transcriptLine(transcriptLanguage, note: transcriptLanguageNote)
+    }
+
+    /// "Notes will be written in …." when the choice differs, else nil.
+    var notesLanguageCaption: String? {
+        NotesLanguageCaption.notesLine(transcript: transcriptLanguage, notes: notesLanguage)
+    }
+
     // MARK: - Entry point
 
     /// Starts the flow for a finished SRT. `timestamp` overrides the one in
     /// the SRT filename, as Python's `timestamp=` argument does.
-    /// `languageNote` replaces the language's name in the confirm sheet.
-    func run(srtURL: URL, languageCode: String, languageNote: String? = nil, timestamp: String? = nil) {
+    /// `language` is the transcript's language and the default notes
+    /// language; `languageNote` replaces its name in the confirm sheet's
+    /// caption (e.g. "Deutsch (detected from the text)").
+    func run(srtURL: URL, language: TranscriptLanguage, languageNote: String? = nil, timestamp: String? = nil) {
         guard !isRunning else { return }
         self.srtURL = srtURL
-        self.languageCode = languageCode
-        languageLine = languageNote
-            ?? TranscriptLanguage(rawValue: languageCode)?.displayName
-            ?? languageCode
+        transcriptLanguage = language
+        transcriptLanguageNote = languageNote
+        notesLanguage = language
         self.timestamp = timestamp
         notes = nil
         retainedAudio = []
@@ -111,7 +126,7 @@ final class NotesFlowViewModel {
         let configuration = store.configuration
         let token = configuration.auth.needsToken ? store.currentToken : nil
         let text = srtText
-        let language = languageCode
+        let language = notesLanguage.code
         let pipeline = pipeline
         generation = Task { [weak self] in
             do {

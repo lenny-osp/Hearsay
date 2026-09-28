@@ -126,17 +126,20 @@ final class HistoryViewModel {
 
     var isGeneratingNotes: Bool { notesModel?.isRunning == true }
 
-    /// An older SRT has no stored language: the notes use the fixed
-    /// language choice, or the preferred language when the choice is Auto,
-    /// and the confirm sheet says so (`StoredTranscriptLanguage`).
+    /// An older SRT has no stored language: the default notes language is
+    /// detected from the SRT text, or, when detection is unsure, the fixed
+    /// language choice or the preferred language for Auto. The confirm
+    /// sheet says which (`StoredTranscriptLanguage.resolve`). An unreadable
+    /// file skips detection; the notes flow then reports the read error.
     func generateNotes(_ entry: HistoryEntry, store: AIProviderStore, settings: AppSettings) {
         guard Self.canGenerateNotes(entry), let srt = entry.srt, !isGeneratingNotes else { return }
-        let assumed = StoredTranscriptLanguage.assumed(
-            choice: settings.languageChoice, preferred: settings.preferredLanguage
+        let srtText = (try? String(contentsOf: srt, encoding: .utf8)) ?? ""
+        let resolved = StoredTranscriptLanguage.resolve(
+            srtText: srtText, choice: settings.languageChoice, preferred: settings.preferredLanguage
         )
         let model = NotesFlowViewModel(store: store)
         notesModel = model
-        model.run(srtURL: srt, languageCode: assumed.language.code, languageNote: assumed.note)
+        model.run(srtURL: srt, language: resolved.language, languageNote: resolved.note)
         observeNotesCompletion()
     }
 

@@ -22,11 +22,6 @@ struct ConfirmSendSheet: View {
                     Text(store.configuration.model.isEmpty ? "(none set)" : store.configuration.model)
                 }
                 GridRow {
-                    Text("Notes language:").foregroundStyle(.secondary)
-                    Text(model.languageLine)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                GridRow {
                     Text("Transcript:").foregroundStyle(.secondary)
                     Text("\(model.transcriptCharacterCount.formatted()) characters")
                 }
@@ -43,6 +38,25 @@ struct ConfirmSendSheet: View {
             Picker("Template:", selection: $model.templateID) {
                 ForEach(store.templates) { template in
                     Text(template.name).tag(template.id)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                // This run only; the choice is not stored in Settings.
+                Picker("Notes language:", selection: $model.notesLanguage) {
+                    ForEach(TranscriptLanguage.allCases, id: \.self) { language in
+                        Text(language.displayName).tag(language)
+                    }
+                }
+                Text(model.transcriptLanguageCaption)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if let notesCaption = model.notesLanguageCaption {
+                    Text(notesCaption)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
 
