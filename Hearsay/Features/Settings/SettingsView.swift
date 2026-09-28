@@ -24,8 +24,10 @@ struct SettingsView: View {
     }
 
     @State private var pane: Pane
+    @Environment(MainTabSelection.self) private var tabs: MainTabSelection?
 
-    /// `initialPane` is for the UI snapshots; the app always opens on General.
+    /// `initialPane` is for the UI snapshots; the app always opens on General
+    /// (or on the section a help link asks for).
     init(initialPane: Pane = .general) {
         _pane = State(initialValue: initialPane)
     }
@@ -52,6 +54,15 @@ struct SettingsView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .onAppear(perform: takeRequestedPane)
+        .onChange(of: tabs?.settingsPane) { takeRequestedPane() }
+    }
+
+    /// A help link asked for a section.
+    private func takeRequestedPane() {
+        guard let tabs, let requested = tabs.settingsPane else { return }
+        pane = requested
+        tabs.settingsPane = nil
     }
 }
 

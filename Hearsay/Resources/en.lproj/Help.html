@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<!--
+  Hearsay Help, English. Translators: change the text only.
+  - Set <html lang="..."> to the file's language (de, es, zh-Hant, zh-Hans).
+  - Keep every id, href, class, <kbd>, <code>, and the whole <style> block.
+  - Text inside <span class="ui"> is a label the app shows. Use the exact
+    translated label from the app's string catalogs, not a new translation.
+  - macOS locations (System Settings > ...) use Apple's wording in your
+    language; see Localization/GLOSSARY.md.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hearsay Help</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --text: rgba(0, 0, 0, 0.85);
+    --secondary: rgba(0, 0, 0, 0.55);
+    --background: #ffffff;
+    --rule: rgba(0, 0, 0, 0.1);
+    --panel: rgba(0, 0, 0, 0.04);
+    --link: #0068da;
+    --kbd-border: rgba(0, 0, 0, 0.2);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --text: rgba(255, 255, 255, 0.85);
+      --secondary: rgba(255, 255, 255, 0.55);
+      --background: #1e1e1e;
+      --rule: rgba(255, 255, 255, 0.12);
+      --panel: rgba(255, 255, 255, 0.06);
+      --link: #419cff;
+      --kbd-border: rgba(255, 255, 255, 0.25);
+    }
+  }
+  html { background: var(--background); }
+  body {
+    margin: 0 auto;
+    padding: 24px 28px 48px;
+    max-width: 680px;
+    font: 14px/1.6 -apple-system, system-ui, sans-serif;
+    color: var(--text);
+    background: var(--background);
+    -webkit-text-size-adjust: 100%;
+  }
+  h1 { font-size: 22px; line-height: 1.3; margin: 0 0 4px; }
+  h2 {
+    font-size: 17px; line-height: 1.3; margin: 32px 0 8px;
+    padding-top: 16px; border-top: 1px solid var(--rule);
+  }
+  h3 { font-size: 14px; margin: 16px 0 4px; }
+  p, ul, ol { margin: 0 0 10px; }
+  ul, ol { padding-left: 22px; }
+  li { margin: 3px 0; }
+  li > ul { margin: 4px 0 0; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .lead { color: var(--secondary); margin-bottom: 16px; }
+  nav {
+    background: var(--panel); border-radius: 8px;
+    padding: 10px 16px; margin: 16px 0 8px;
+  }
+  nav ol { margin: 0; columns: 2; column-gap: 24px; }
+  nav li { margin: 2px 0; break-inside: avoid; }
+  .ui { font-weight: 600; }
+  kbd {
+    font: 12px/1 -apple-system, system-ui, sans-serif;
+    display: inline-block; padding: 3px 6px; min-width: 12px; text-align: center;
+    border: 1px solid var(--kbd-border); border-bottom-width: 2px; border-radius: 5px;
+    background: var(--panel);
+  }
+  code {
+    font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: var(--panel); padding: 1px 4px; border-radius: 4px;
+  }
+  table { border-collapse: collapse; margin: 6px 0 12px; width: 100%; }
+  th, td { text-align: left; vertical-align: top; padding: 5px 10px 5px 0; border-bottom: 1px solid var(--rule); }
+  th { font-weight: 600; }
+  td:first-child { white-space: nowrap; width: 1%; padding-right: 20px; }
+  .note { color: var(--secondary); }
+  .problem { font-weight: 600; }
+</style>
+</head>
+<body>
+
+<h1>Hearsay Help</h1>
+<p class="lead">Record meetings and turn them into transcripts and notes on your Mac.</p>
+
+<nav>
+<ol>
+  <li><a href="#getting-started">Getting started</a></li>
+  <li><a href="#recording">Recording</a></li>
+  <li><a href="#file-mode">Transcribing a file</a></li>
+  <li><a href="#meeting-notes">Meeting notes</a></li>
+  <li><a href="#history">History</a></li>
+  <li><a href="#menu-bar">Menu bar and shortcuts</a></li>
+  <li><a href="#settings">Settings and more</a></li>
+  <li><a href="#troubleshooting">Troubleshooting</a></li>
+  <li><a href="#about">About</a></li>
+</ol>
+</nav>
+
+<h2 id="getting-started">Getting started</h2>
+<p>Hearsay records your microphone and the sound of your calls and transcribes them on your Mac. Nothing leaves your Mac unless you send a transcript to an AI provider for meeting notes. You need a Mac with Apple Silicon and macOS 14 or later.</p>
+<ol>
+  <li>Choose where files are saved in <a href="hearsay://open/settings-output"><span class="ui">Settings</span> &gt; <span class="ui">Output</span></a>. The default is the Hearsay folder in your Documents folder.</li>
+  <li>Open the <a href="hearsay://open/models"><span class="ui">Models</span> tab</a> and click <span class="ui">Download</span> next to a model. whisper-large-v3-turbo (1.61 GB) is recommended; whisper-large-v3-turbo-4bit (463 MB) is the smallest good option. If the model is not the <span class="ui">Active model</span>, click <span class="ui">Use</span>.</li>
+  <li>Press <span class="ui">Start</span> on the <a href="hearsay://open/record"><span class="ui">Record</span> tab</a>. When macOS asks, allow access to the microphone and to Screen &amp; System Audio Recording (Hearsay uses only the audio). You can change both later in System Settings &gt; Privacy &amp; Security.</li>
+  <li>If system audio stays silent after you allow it, quit and reopen Hearsay.</li>
+</ol>
+
+<h2 id="recording">Recording</h2>
+<p>Use the <a href="hearsay://open/record"><span class="ui">Record</span> tab</a> to record a meeting and get a transcript.</p>
+<ol>
+  <li>Choose the <span class="ui">Microphone</span>. Leave <span class="ui">Also capture system audio</span> on to include the other side of a call.</li>
+  <li>Choose the <span class="ui">Language</span>: <span class="ui">Auto</span> detects it, or pick EN, DE, or ES. ZH-TW writes Chinese in Traditional characters, ZH-CN in Simplified characters.</li>
+  <li>Press <span class="ui">Start</span>. The meters show whether the microphone and system audio are picking up sound, and a warning appears after 5 seconds of silence. <span class="ui">Pause</span> leaves that time out of the transcript.</li>
+  <li>New text appears in the <span class="ui">Live preview</span> about every 30 seconds.</li>
+  <li>Press <span class="ui">Stop</span>. Hearsay transcribes the whole recording once more for the final transcript. To skip this, click <span class="ui">Use live preview instead</span>.</li>
+</ol>
+<p>The transcript (SRT) and the recording (WAV) are saved in the output folder, named by the start time, for example <code>2026-09-28_14-05-00.srt</code>.</p>
+<ul>
+  <li><span class="ui">Auto</span> listens to up to the first 90 seconds of speech. If it can’t tell the language, it uses your preferred language and says so, with a button to transcribe again in another language. If you chose a language but the meeting sounds like another one, a banner offers <span class="ui">Transcribe again</span>.</li>
+  <li>Set the <span class="ui">Preferred language</span> in <a href="hearsay://open/settings-general"><span class="ui">Settings</span> &gt; <span class="ui">General</span></a>. When <span class="ui">Auto</span> hears Chinese, it writes Simplified characters if 简体中文 is your preferred language, otherwise Traditional characters.</li>
+</ul>
+
+<h2 id="file-mode">Transcribing a file</h2>
+<p>Use the <a href="hearsay://open/file"><span class="ui">File</span> tab</a> to transcribe an audio or video file you already have.</p>
+<ol>
+  <li>Drop the file on the <span class="ui">File</span> tab, or click <span class="ui">Choose…</span>. Hearsay reads wav, m4a, mp3, aac, aiff, caf, and the audio of mp4 and mov files.</li>
+  <li>Choose the <span class="ui">Language</span>, as on the <span class="ui">Record</span> tab.</li>
+  <li>To stop, click <span class="ui">Cancel</span>. Nothing is saved.</li>
+</ol>
+<p>The SRT is saved in the output folder, named by the time in the file’s name or, if there is none, the file’s date. The original file is never changed.</p>
+
+<h2 id="meeting-notes">Meeting notes</h2>
+<p>Hearsay can send a transcript to an AI provider and save the meeting notes it writes. Sending shares the whole transcript with that provider.</p>
+<ol>
+  <li>In <a href="hearsay://open/settings-ai"><span class="ui">Settings</span> &gt; <span class="ui">AI</span></a>, choose a provider under <span class="ui">Preset:</span>
+    <ul>
+      <li>GitHub Copilot CLI, Claude Code CLI, Codex CLI, and Antigravity CLI use the program installed on your Mac and the login you have in it. Requests count against that subscription’s limits. Its Check button (for example <span class="ui">Check Claude Code</span>) shows whether the program is found and logged in.</li>
+      <li>Ollama / LM Studio runs on your Mac.</li>
+      <li><span class="ui">Custom</span> works with any OpenAI-compatible service. Enter its URL, model, and token.</li>
+    </ul>
+  </li>
+  <li>Click <span class="ui">Test connection</span>. Under <span class="ui">Prompt templates</span>, you can add your own instructions for the notes.</li>
+  <li>After a transcript is saved, Hearsay asks <span class="ui">Send transcript for meeting notes?</span> Choose the <span class="ui">Template:</span> and the <span class="ui">Notes language:</span>, then click <span class="ui">Send</span>. <span class="ui">Keep local</span> sends nothing.</li>
+  <li>Edit the suggested meeting name if you like, then click <span class="ui">Save</span>.</li>
+</ol>
+<table>
+  <tr><th>File</th><th>Contains</th></tr>
+  <tr><td><code>&lt;timestamp&gt;_&lt;name&gt;.srt</code></td><td>the transcript with timings</td></tr>
+  <tr><td><code>&lt;timestamp&gt;_&lt;name&gt;.md</code></td><td>the meeting notes</td></tr>
+  <tr><td><code>&lt;timestamp&gt;_&lt;name&gt;_transcript.md</code></td><td>a structured transcript</td></tr>
+  <tr><td><code>&lt;timestamp&gt;_&lt;name&gt;.wav</code></td><td>the recording</td></tr>
+</table>
+
+<h2 id="history">History</h2>
+<p>The <a href="hearsay://open/history"><span class="ui">History</span> tab</a> lists the meetings in your output folder. Use the buttons on a row, or Control-click it.</p>
+<ul>
+  <li><span class="ui">Open SRT</span>, <span class="ui">Open Notes</span>, and <span class="ui">Open Transcript</span> open a file; <span class="ui">Reveal in Finder</span> shows it in Finder.</li>
+  <li><span class="ui">Generate Notes…</span> creates notes for a saved transcript. <span class="ui">Regenerate Notes…</span> replaces them; the old notes go to the Trash when the new ones are saved.</li>
+  <li><span class="ui">Move to Trash…</span> moves all of a meeting’s files to the Trash.</li>
+</ul>
+
+<h2 id="menu-bar">Menu bar and shortcuts</h2>
+<p>You can control Hearsay without its window. Recording continues when the window is closed.</p>
+<ul>
+  <li>Choose where Hearsay appears with <span class="ui">Show Hearsay in:</span> in <a href="hearsay://open/settings-window"><span class="ui">Settings</span> &gt; <span class="ui">Window</span></a>: <span class="ui">Menu bar and Dock</span>, <span class="ui">Menu bar only</span>, or <span class="ui">Dock only</span>.</li>
+  <li>Click the menu bar icon to see the status and to start, pause, or stop a recording. The icon turns red while recording.</li>
+  <li>Press <kbd>⌃⌥⌘R</kbd> to start or stop and <kbd>⌃⌥⌘P</kbd> to pause or resume, in any app. To change them, go to <a href="hearsay://open/settings-general"><span class="ui">Settings</span> &gt; <span class="ui">General</span></a> &gt; <span class="ui">Shortcuts</span>, click a shortcut, and press a new one.</li>
+  <li>Press <kbd>⌘,</kbd> to open <span class="ui">Settings</span> and <kbd>⌘?</kbd> to open this help.</li>
+</ul>
+
+<h2 id="settings">Settings and more</h2>
+<ul>
+  <li><strong><span class="ui">Interface language</span>:</strong> choose it in <a href="hearsay://open/settings-general"><span class="ui">Settings</span> &gt; <span class="ui">General</span></a>. Hearsay needs to restart; click <span class="ui">Restart Now</span>.</li>
+  <li><strong>Startup:</strong> turn on <span class="ui">Launch Hearsay at login</span> in the same place.</li>
+  <li><strong>Recordings:</strong> to delete the WAV after a successful transcription, turn off <span class="ui">Keep the recording (WAV) after a successful transcription</span> in <a href="hearsay://open/settings-output"><span class="ui">Settings</span> &gt; <span class="ui">Output</span></a>.</li>
+  <li><strong>Unfinished recordings:</strong> if Hearsay or your Mac stops during a recording, the next launch asks what to do with it. <span class="ui">Transcribe</span> creates the transcript, <span class="ui">Keep</span> moves the WAV to the output folder, and <span class="ui">Delete</span> removes it.</li>
+</ul>
+
+<h2 id="troubleshooting">Troubleshooting</h2>
+<ul>
+  <li><span class="problem">No model installed</span> — Open the <a href="hearsay://open/models"><span class="ui">Models</span> tab</a>, download a model, and click <span class="ui">Use</span>.</li>
+  <li><span class="problem">No microphone access</span> — Turn on Hearsay in System Settings &gt; Privacy &amp; Security &gt; Microphone.</li>
+  <li><span class="problem"><span class="ui">System audio off: permission denied</span></span> — Turn on Hearsay in System Settings &gt; Privacy &amp; Security &gt; Screen &amp; System Audio Recording, then start a new recording.</li>
+  <li><span class="problem">System audio silent after you allowed it</span> — Quit and reopen Hearsay.</li>
+  <li><span class="problem">“No audio from” a device</span> — Check that the device is connected and not muted, or choose another <span class="ui">Microphone</span>.</li>
+  <li><span class="problem">Poor sound from AirPods or another Bluetooth headset</span> — While recording, macOS switches them to a low-quality call mode. In a noisy room, use the Mac’s built-in microphone.</li>
+  <li><span class="problem">An AI program is not found</span> — Install it, or enter its path in <a href="hearsay://open/settings-ai"><span class="ui">Settings</span> &gt; <span class="ui">AI</span></a>.</li>
+  <li><span class="problem">An AI program is not logged in</span> — In Terminal, run <code>copilot</code>, <code>claude</code>, <code>codex login</code>, or <code>agy</code> once, then click its Check button in <span class="ui">Settings</span> &gt; <span class="ui">AI</span>.</li>
+  <li><span class="problem">Can’t find your files</span> — The folder is shown in <a href="hearsay://open/settings-output"><span class="ui">Settings</span> &gt; <span class="ui">Output</span></a>. In the <span class="ui">History</span> tab, click <span class="ui">Reveal in Finder</span>.</li>
+</ul>
+
+<h2 id="about">About</h2>
+<p>Hearsay is made by Chihling Wang and released under the MIT License. It includes open-source software; to see the licenses, click <span class="ui">Show Licenses…</span> in <a href="hearsay://open/settings-general"><span class="ui">Settings</span> &gt; <span class="ui">General</span></a> &gt; <span class="ui">Acknowledgements</span>.</p>
+
+</body>
+</html>

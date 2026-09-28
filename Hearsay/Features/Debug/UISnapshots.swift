@@ -5,9 +5,9 @@ import SwiftUI
 /// Debug only. When the app is launched with `HEARSAY_UI_SNAPSHOTS=<dir>`,
 /// renders the app's own views (never a screen capture) into PNGs in
 /// `<dir>`: every main-window tab, every Settings section, the confirm,
-/// naming, onboarding, and unfinished-recording sheets with sample data, and
-/// the menu bar panel. Then it quits with status 0 (1 when a file could not
-/// be written).
+/// naming, onboarding, and unfinished-recording sheets with sample data, the
+/// menu bar panel, and the help page (top and the Meeting notes section).
+/// Then it quits with status 0 (1 when a file could not be written).
 ///
 /// The views run in the interface language of `HEARSAY_UI_LANGUAGE` (en, de,
 /// es, zh-Hant, zh-Hans; default the stored choice), applied at launch
@@ -138,7 +138,57 @@ enum UISnapshots {
         await render("17-sheet-unfinished-recording", width: 460,
                      UnfinishedRecordingSheet(queue: queue, recording: samples.unfinishedWAV, onTranscribe: { _ in }))
         await render("18-menu-bar", width: 260, MenuBarView())
+        say("help file \(HelpWindow.contentURL?.path ?? "missing")")
+        for (name, fragment) in [("19-help-top", nil), ("20-help-meeting-notes", "meeting-notes")] as [(String, String?)] {
+            let url = directory.appendingPathComponent("\(name).png")
+            if await snapshotHelp(fragment: fragment, to: url) {
+                say("wrote \(url.path)")
+            } else {
+                say("could not write \(url.path)")
+                failed = true
+            }
+        }
         return failed ? 1 : 0
+    }
+
+    /// Renders the help page at the help window's default size, scrolled to
+    /// `fragment` when given. A web view draws out of process, so it is
+    /// captured with `takeSnapshot`, not `cacheDisplay`.
+    private static func snapshotHelp(fragment: String?, to url: URL) async -> Bool {
+        guard let file = HelpWindow.contentURL else { return false }
+        var target = file
+        if let fragment, var components = URLComponents(url: file, resolvingAgainstBaseURL: false) {
+            components.fragment = fragment
+            target = components.url ?? file
+        }
+        let size = NSSize(width: 760, height: 640)
+        let webView = HelpWebView.makeWebView()
+        let window = NSWindow(
+            contentRect: NSRect(origin: NSPoint(x: 40, y: 40), size: size),
+            styleMask: [.borderless], backing: .buffered, defer: false
+        )
+        window.isReleasedWhenClosed = false
+        window.appearance = NSAppearance(named: .aqua)
+        window.contentView = webView
+        webView.frame = NSRect(origin: .zero, size: size)
+        window.orderFrontRegardless()
+        defer { window.close() }
+        HelpWebView.load(target, in: webView)
+        try? await Task.sleep(for: .milliseconds(300))
+        for _ in 0..<100 where webView.isLoading {
+            try? await Task.sleep(for: .milliseconds(100))
+        }
+        try? await Task.sleep(for: .milliseconds(700))
+        guard let image = try? await webView.takeSnapshot(configuration: nil),
+              let tiff = image.tiffRepresentation,
+              let rep = NSBitmapImageRep(data: tiff),
+              let data = rep.representation(using: .png, properties: [:]) else { return false }
+        do {
+            try data.write(to: url, options: .atomic)
+            return true
+        } catch {
+            return false
+        }
     }
 
     /// Hosts `view` in a borderless window (never constrained to the screen),

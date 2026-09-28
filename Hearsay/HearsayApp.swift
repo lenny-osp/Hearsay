@@ -45,7 +45,20 @@ struct HearsayApp: App {
             }
             // No File > New items: one main window only.
             CommandGroup(replacing: .newItem) {}
+            // Help > Hearsay Help opens the in-app help window.
+            CommandGroup(replacing: .help) {
+                HelpCommand()
+            }
         }
+
+        // One help window; opening it again brings it forward.
+        Window(HelpWindow.title, id: HelpWindow.id) {
+            HelpView()
+                .environment(\.locale, InterfaceLanguageLaunch.applied.locale)
+                .environment(appDelegate.windowOpener)
+                .registeringMainWindowOpener(appDelegate.windowOpener)
+        }
+        .defaultSize(width: 760, height: 640)
 
         MenuBarExtra(isInserted: menuBarItemInserted) {
             MenuBarView()

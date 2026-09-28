@@ -12,6 +12,9 @@ enum MainTab: Hashable {
 @Observable
 final class MainTabSelection {
     var tab: MainTab = .record
+    /// A Settings section to switch to (a help link such as
+    /// `hearsay://open/settings-ai`); the Settings tab takes it and clears it.
+    var settingsPane: SettingsView.Pane?
 }
 
 /// Main window: Record, File, Models, History, Settings (PLAN.md section 4).
