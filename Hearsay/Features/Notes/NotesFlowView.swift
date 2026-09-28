@@ -6,29 +6,48 @@ import SwiftUI
 /// errors for a `NotesFlowViewModel`.
 struct NotesFlowView: View {
     @Bindable var model: NotesFlowViewModel
+    /// The sheet SwiftUI last put on screen, so a dismissal reported while
+    /// the phase has already moved on to the next sheet is not mistaken for
+    /// a dismissal of that next sheet.
+    @State private var presentedSheetID: String?
 
     var body: some View {
         content
             .sheet(item: activeSheet) { sheet in
-                switch sheet {
-                case .confirm:
-                    ConfirmSendSheet(model: model)
-                case .manualPrompt:
-                    ManualNamingPromptSheet(model: model)
-                case .naming(let suggestion):
-                    NamingSheet(
-                        suggestion: suggestion,
-                        onSave: { model.saveName($0) },
-                        onCancel: { model.cancelNaming() }
-                    )
-                }
+                sheetContent(sheet)
+                    .onAppear { presentedSheetID = sheet.id }
             }
+    }
+
+    @ViewBuilder private func sheetContent(_ sheet: ActiveSheet) -> some View {
+        switch sheet {
+        case .confirm:
+            ConfirmSendSheet(model: model)
+        case .manualPrompt:
+            ManualNamingPromptSheet(model: model)
+        case .naming(let suggestion):
+            NamingSheet(
+                suggestion: suggestion,
+                onSave: { model.saveName($0) },
+                onCancel: { model.cancelNaming() }
+            )
+        }
     }
 
     @ViewBuilder private var content: some View {
         switch model.phase {
-        case .idle, .confirming, .askingManualNaming, .naming:
+        case .idle:
             EmptyView()
+        case .confirming, .askingManualNaming, .naming:
+            // Behind the sheet while it is up. If SwiftUI dropped the sheet
+            // without reporting it, this still ends the step, so the host
+            // tab never stays stuck in a running flow.
+            HStack(spacing: 10) {
+                Text("Waiting for your answer…")
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button("Cancel") { model.sheetDismissed() }
+            }
         case .generating:
             HStack(spacing: 10) {
                 ProgressView().controlSize(.small)
@@ -83,19 +102,30 @@ struct NotesFlowView: View {
         }
     }
 
+    private var currentSheet: ActiveSheet? {
+        switch model.phase {
+        case .confirming: .confirm
+        case .askingManualNaming: .manualPrompt
+        case .naming(let suggestion): .naming(suggestion)
+        default: nil
+        }
+    }
+
     private var activeSheet: Binding<ActiveSheet?> {
         Binding(
-            get: {
-                switch model.phase {
-                case .confirming: .confirm
-                case .askingManualNaming: .manualPrompt
-                case .naming(let suggestion): .naming(suggestion)
-                default: nil
-                }
-            },
-            // Each sheet ends its own step through the model; nothing to do
-            // when SwiftUI reports the dismissal.
-            set: { _ in }
+            get: { currentSheet },
+            set: { newValue in
+                guard newValue == nil else { return }
+                // The sheets' own buttons change the phase first, so after
+                // them `currentSheet` is nil (flow over) or a different
+                // sheet (next step): nothing to resolve. Only a dismissal
+                // of the sheet still on screen ends the step.
+                guard let current = currentSheet,
+                      presentedSheetID == nil || presentedSheetID == current.id
+                else { return }
+                presentedSheetID = nil
+                model.sheetDismissed()
+            }
         )
     }
 }

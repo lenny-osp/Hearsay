@@ -128,6 +128,8 @@ struct HistoryView: View {
             HStack(alignment: .top) {
                 NotesFlowView(model: notesModel)
                 Spacer()
+                // While running, `NotesFlowView` shows its own Cancel (sheet
+                // steps and generation), so there is always a way out.
                 if !notesModel.isRunning {
                     Button("Done") { model.dismissNotes() }
                 }

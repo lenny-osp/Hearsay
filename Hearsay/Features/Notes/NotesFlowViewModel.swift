@@ -192,6 +192,28 @@ final class NotesFlowViewModel {
         }
     }
 
+    // MARK: - Sheet dismissed without an answer
+
+    /// A sheet went away without one of its buttons (Escape, window closed,
+    /// tab switched, the Cancel button beside the panel). Resolves the step
+    /// as Python does when input closes (EOF): the confirm prompt declines,
+    /// and the follow-up "Name this meeting yourself?" then also reads EOF
+    /// and keeps the timestamp names; the naming prompt cancels. No-op in
+    /// other phases.
+    func sheetDismissed() {
+        switch phase {
+        case .confirming:
+            keepLocal()
+            declineManualNaming()
+        case .askingManualNaming:
+            declineManualNaming()
+        case .naming:
+            cancelNaming()
+        default:
+            break
+        }
+    }
+
     func reset() {
         guard !isRunning else { return }
         phase = .idle
