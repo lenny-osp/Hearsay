@@ -165,21 +165,33 @@ struct RecordView: View {
     }
 
     /// Read-only live preview, newest line kept in view.
+    ///
+    /// A `ScrollView`, not a `List`: a `List` nested in the grouped `Form`
+    /// never scrolled (`scrollTo` had no effect), so only the first rows of
+    /// the first chunk were ever visible while later chunks were appended
+    /// below the fold.
     private var liveTranscript: some View {
         Section {
             let cues = model.liveSegments.enumerated().filter { !$0.element.text.isEmpty }
             ScrollViewReader { proxy in
-                List(cues, id: \.offset) { item in
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text(LevelMeter.formatElapsed(item.element.start))
-                            .font(.caption.monospacedDigit())
-                            .foregroundStyle(.secondary)
-                        Text(item.element.text)
-                            .textSelection(.enabled)
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 6) {
+                        ForEach(cues, id: \.offset) { item in
+                            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                Text(LevelMeter.formatElapsed(item.element.start))
+                                    .font(.caption.monospacedDigit())
+                                    .foregroundStyle(.secondary)
+                                Text(item.element.text)
+                                    .textSelection(.enabled)
+                                Spacer(minLength: 0)
+                            }
+                            .id(item.offset)
+                        }
                     }
-                    .id(item.offset)
+                    .padding(.vertical, 4)
                 }
-                .frame(minHeight: 120, maxHeight: 220)
+                .defaultScrollAnchor(.bottom)
+                .frame(height: 200)
                 .overlay {
                     if cues.isEmpty {
                         Text(model.isLivePreviewEnabled ? "The first lines appear after about 10 to 30 s." : "")
@@ -187,7 +199,9 @@ struct RecordView: View {
                     }
                 }
                 .onChange(of: model.liveSegments.count) {
-                    if let last = cues.last { proxy.scrollTo(last.offset, anchor: .bottom) }
+                    // Read the model here, not the `cues` of an older body.
+                    guard let last = model.liveSegments.lastIndex(where: { !$0.text.isEmpty }) else { return }
+                    proxy.scrollTo(last, anchor: .bottom)
                 }
             }
         } header: {

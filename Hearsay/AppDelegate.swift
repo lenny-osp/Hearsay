@@ -96,6 +96,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if RecordingDebug.runIfRequested() {
             return
         }
+        // Debug only: HEARSAY_REPLAY_FILE + HEARSAY_MODEL_DIR replay a WAV
+        // through the recording pipeline and log live-job timings (see
+        // RecordingReplay).
+        if RecordingReplay.runIfRequested(engine: whisperEngine) {
+            return
+        }
         applyWindowMode(settings.windowMode)
         observeWindowMode()
         recordingController.activate()

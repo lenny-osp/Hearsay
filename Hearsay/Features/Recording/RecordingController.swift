@@ -112,8 +112,9 @@ final class RecordingController {
     @ObservationIgnored private let modelStore: ModelStore
     @ObservationIgnored private let engine: WhisperEngine
     @ObservationIgnored private let spool: RecordingSpool
-    @ObservationIgnored private var recorder: MicrophoneRecorder?
-    @ObservationIgnored private var systemRecorder: SystemAudioRecorder?
+    @ObservationIgnored private let sources: CaptureSources
+    @ObservationIgnored private var recorder: (any MicrophoneCapture)?
+    @ObservationIgnored private var systemRecorder: (any SystemAudioCapture)?
     @ObservationIgnored private var writer: WavWriter?
     @ObservationIgnored private var writeError: Error?
     @ObservationIgnored private var meter = LevelMeter()
@@ -144,8 +145,19 @@ final class RecordingController {
     @ObservationIgnored private var retryableRecording: URL?
     /// Bumped on every start; late results of an older session are ignored.
     @ObservationIgnored private var session = 0
+    /// Debug only: sees every live job (see `RecordingReplay`).
+    @ObservationIgnored var liveJobObserver: (@MainActor (LiveJobEvent) -> Void)?
+    @ObservationIgnored private var liveJobCount = 0
+
+    /// A live job's progress, for the debug replay's timing log.
+    enum LiveJobEvent: Sendable {
+        case queued(index: Int, start: TimeInterval, seconds: TimeInterval)
+        case started(index: Int)
+        case finished(index: Int, cues: Int, error: String?)
+    }
 
     private struct LiveJob: Sendable {
+        var index: Int
         var samples: [Float]
         /// Offset of the chunk in the recording, in seconds.
         var start: TimeInterval
@@ -155,12 +167,14 @@ final class RecordingController {
         settings: AppSettings,
         modelStore: ModelStore,
         engine: WhisperEngine,
-        spool: RecordingSpool = RecordingSpool()
+        spool: RecordingSpool = RecordingSpool(),
+        sources: CaptureSources = .live
     ) {
         self.settings = settings
         self.modelStore = modelStore
         self.engine = engine
         self.spool = spool
+        self.sources = sources
     }
 
     // MARK: - State
@@ -406,7 +420,7 @@ final class RecordingController {
     // MARK: - Start
 
     private func performStart() async {
-        guard await MicrophoneRecorder.requestPermission() else {
+        guard await sources.requestMicrophonePermission() else {
             phase = .failed(message: MicrophoneRecorderError.permissionDenied.description)
             return
         }
@@ -435,7 +449,7 @@ final class RecordingController {
             phase = .failed(message: "Could not create the recording file: \(error.localizedDescription)")
             return
         }
-        let recorder = MicrophoneRecorder()
+        let recorder = sources.makeMicrophone()
         do {
             try recorder.start(device: device)
         } catch {
@@ -482,7 +496,7 @@ final class RecordingController {
     /// Stops the recording loudly when the microphone delivers nothing
     /// within `NoAudioWatchdog.timeout` seconds of recording, instead of
     /// silently recording nothing.
-    private func startNoAudioWatchdog(for recorder: MicrophoneRecorder) {
+    private func startNoAudioWatchdog(for recorder: any MicrophoneCapture) {
         watchdogTask?.cancel()
         let id = session
         watchdogTask = Task { [weak self, weak recorder] in
@@ -531,7 +545,15 @@ final class RecordingController {
 
     /// Starts system audio capture, or records why it is off and returns nil
     /// so the recording continues mic-only.
-    private func startSystemAudio() async -> SystemAudioRecorder? {
+    private func startSystemAudio() async -> (any SystemAudioCapture)? {
+        if let make = sources.makeSystemAudio {
+            do {
+                return try await make()
+            } catch {
+                systemAudioNotice = "System audio off: \(error)"
+                return nil
+            }
+        }
         if SystemAudioRecorder.permission != .authorized, !SystemAudioRecorder.requestPermission() {
             systemAudioDenied = true
             systemAudioNotice = "System audio off: permission denied"
@@ -691,6 +713,7 @@ final class RecordingController {
         isUsingLivePreview = false
         chunker = LiveChunker()
         chunkedSamples = 0
+        liveJobCount = 0
     }
 
     /// Opens the live queue when a model is ready; otherwise the recording
@@ -699,7 +722,7 @@ final class RecordingController {
         resetLivePreview()
         let location: WhisperModelLocation
         do {
-            location = try WhisperModelLocation.active(in: modelStore)
+            location = try sources.modelLocation(modelStore)
         } catch {
             liveNotice = "Live preview off: \(Self.describe(error))"
             return
@@ -713,6 +736,7 @@ final class RecordingController {
         // One consumer, so chunks are transcribed strictly in order.
         liveTask = Task { [weak self] in
             for await job in stream {
+                self?.liveJobObserver?(.started(index: job.index))
                 let outcome: Result<[CoreSegment], Error>
                 do {
                     let result = try await engine.transcribe(
@@ -722,7 +746,7 @@ final class RecordingController {
                 } catch {
                     outcome = .failure(error)
                 }
-                self?.liveChunkDone(outcome, session: id)
+                self?.liveChunkDone(outcome, index: job.index, session: id)
             }
         }
     }
@@ -749,14 +773,20 @@ final class RecordingController {
     private func enqueueLive(_ range: Range<Int>) {
         guard let liveContinuation, range.upperBound <= recordedSamples.count else { return }
         liveChunksWaiting += 1
-        liveContinuation.yield(LiveJob(
-            samples: Array(recordedSamples[range]),
-            start: Double(range.lowerBound) / Double(LiveChunker.sampleRate)
+        liveJobCount += 1
+        let start = Double(range.lowerBound) / Double(LiveChunker.sampleRate)
+        liveJobObserver?(.queued(
+            index: liveJobCount, start: start, seconds: Double(range.count) / Double(LiveChunker.sampleRate)
         ))
+        liveContinuation.yield(LiveJob(index: liveJobCount, samples: Array(recordedSamples[range]), start: start))
     }
 
-    private func liveChunkDone(_ outcome: Result<[CoreSegment], Error>, session id: Int) {
+    private func liveChunkDone(_ outcome: Result<[CoreSegment], Error>, index: Int, session id: Int) {
         guard session == id else { return }
+        switch outcome {
+        case .success(let cues): liveJobObserver?(.finished(index: index, cues: cues.count, error: nil))
+        case .failure(let error): liveJobObserver?(.finished(index: index, cues: 0, error: Self.describe(error)))
+        }
         liveChunksWaiting = max(0, liveChunksWaiting - 1)
         switch outcome {
         case .success(let cues):
@@ -774,7 +804,7 @@ final class RecordingController {
     private func runFinalPass(session id: Int) async {
         let location: WhisperModelLocation
         do {
-            location = try WhisperModelLocation.active(in: modelStore)
+            location = try sources.modelLocation(modelStore)
         } catch {
             await liveTask?.value
             guard session == id else { return }
@@ -807,7 +837,7 @@ final class RecordingController {
     private func runRetry(recording: URL, session id: Int) async {
         let location: WhisperModelLocation
         do {
-            location = try WhisperModelLocation.active(in: modelStore)
+            location = try sources.modelLocation(modelStore)
         } catch {
             guard session == id else { return }
             failTranscription(Self.describe(error), missingModel: true)
@@ -957,6 +987,51 @@ final class RecordingController {
         }
         return String(describing: error)
     }
+}
+
+// MARK: - Capture seam
+
+/// What `RecordingController` needs from a microphone recorder. Production
+/// uses `MicrophoneRecorder`; the debug replay feeds a WAV instead.
+@MainActor
+protocol MicrophoneCapture: AnyObject {
+    var timedSamples: AsyncStream<TimedChunk> { get }
+    var diagnostics: MicrophoneDiagnostics { get }
+    var failure: MicrophoneRecorderError? { get }
+    func start(device: AudioInputDevice?) throws
+    func pause()
+    func resume() throws
+    func stop()
+}
+
+/// What `RecordingController` needs from a system-audio recorder.
+@MainActor
+protocol SystemAudioCapture: AnyObject {
+    var timedSamples: AsyncStream<TimedChunk> { get }
+    var failure: SystemAudioRecorderError? { get }
+    func pause()
+    func resume()
+    func stop()
+}
+
+extension MicrophoneRecorder: MicrophoneCapture {}
+extension SystemAudioRecorder: SystemAudioCapture {}
+
+/// Where a recording's audio and model come from. `.live` is the app;
+/// only the debug replay (`RecordingReplay`) passes anything else.
+struct CaptureSources: Sendable {
+    var requestMicrophonePermission: @MainActor @Sendable () async -> Bool
+    var makeMicrophone: @MainActor @Sendable () -> any MicrophoneCapture
+    /// nil: the real system audio (permission check and `SystemAudioRecorder`).
+    var makeSystemAudio: (@MainActor @Sendable () async throws -> any SystemAudioCapture)?
+    var modelLocation: @MainActor @Sendable (ModelStore) throws -> WhisperModelLocation
+
+    static let live = CaptureSources(
+        requestMicrophonePermission: { await MicrophoneRecorder.requestPermission() },
+        makeMicrophone: { MicrophoneRecorder() },
+        makeSystemAudio: nil,
+        modelLocation: { try WhisperModelLocation.active(in: $0) }
+    )
 }
 
 /// Removes a block-based notification observer when released.
