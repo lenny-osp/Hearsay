@@ -6,16 +6,24 @@ struct SettingsView: View {
     var body: some View {
         TabView {
             GeneralSettingsView()
+                .frame(minWidth: Self.minimumWidth)
                 .tabItem { Label("General", systemImage: "gearshape") }
             WindowSettingsView()
+                .frame(minWidth: Self.minimumWidth)
                 .tabItem { Label("Window", systemImage: "macwindow") }
             OutputSettingsView()
+                .frame(minWidth: Self.minimumWidth)
                 .tabItem { Label("Output", systemImage: "folder") }
             AISettingsTab()
+                // The grouped Form scrolls, so it has no natural height;
+                // give it enough room to show every section at once.
+                .frame(minWidth: Self.minimumWidth, idealWidth: 560, minHeight: 560, idealHeight: 640)
                 .tabItem { Label("AI", systemImage: "sparkles") }
         }
-        .frame(width: 480, height: 220)
     }
+
+    /// Each tab sizes to its own content, never narrower than this.
+    static let minimumWidth: CGFloat = 520
 }
 
 private struct GeneralSettingsView: View {

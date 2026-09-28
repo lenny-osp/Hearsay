@@ -9,6 +9,9 @@ public struct AIProviderConfiguration: Codable, Sendable, Equatable {
     public var model: String
     /// Sent as `reasoning_effort` when non-nil and non-empty.
     public var reasoningEffort: String?
+    /// Sent as `temperature` when non-nil (Python sends 0.3). Nil omits the
+    /// field, for models that reject it.
+    public var temperature: Double?
     public var auth: AuthHeaderStyle
     public var extraHeaders: [String: String]
     /// Parity with `AI_CONFIRM`: true is `always`, false is `never`.
@@ -20,6 +23,7 @@ public struct AIProviderConfiguration: Codable, Sendable, Equatable {
         baseURL: String,
         model: String,
         reasoningEffort: String?,
+        temperature: Double? = AIProviderConfiguration.defaultTemperature,
         auth: AuthHeaderStyle,
         extraHeaders: [String: String] = [:],
         askBeforeSending: Bool = true,
@@ -29,6 +33,7 @@ public struct AIProviderConfiguration: Codable, Sendable, Equatable {
         self.baseURL = baseURL
         self.model = model
         self.reasoningEffort = reasoningEffort
+        self.temperature = temperature
         self.auth = auth
         self.extraHeaders = extraHeaders
         self.askBeforeSending = askBeforeSending
@@ -48,6 +53,48 @@ public struct AIProviderConfiguration: Codable, Sendable, Equatable {
     }
 
     public static let `default` = AIProviderConfiguration(preset: .openAI)
+
+    /// Python `generate_meeting_notes` payload `"temperature": 0.3`.
+    public static let defaultTemperature: Double = 0.3
+
+    private enum CodingKeys: String, CodingKey {
+        case presetID, baseURL, model, reasoningEffort, temperature, auth
+        case extraHeaders, askBeforeSending, selectedTemplateID
+    }
+
+    /// A missing `temperature` key (configurations saved before the field
+    /// existed) means the default 0.3; an explicit null means omit it.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        presetID = try container.decode(String.self, forKey: .presetID)
+        baseURL = try container.decode(String.self, forKey: .baseURL)
+        model = try container.decode(String.self, forKey: .model)
+        reasoningEffort = try container.decodeIfPresent(String.self, forKey: .reasoningEffort)
+        if container.contains(.temperature) {
+            temperature = try container.decodeIfPresent(Double.self, forKey: .temperature)
+        } else {
+            temperature = Self.defaultTemperature
+        }
+        auth = try container.decode(AuthHeaderStyle.self, forKey: .auth)
+        extraHeaders = try container.decodeIfPresent([String: String].self, forKey: .extraHeaders) ?? [:]
+        askBeforeSending = try container.decodeIfPresent(Bool.self, forKey: .askBeforeSending) ?? true
+        selectedTemplateID = try container.decodeIfPresent(UUID.self, forKey: .selectedTemplateID)
+            ?? PromptTemplate.generalMeetingID
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(presetID, forKey: .presetID)
+        try container.encode(baseURL, forKey: .baseURL)
+        try container.encode(model, forKey: .model)
+        try container.encodeIfPresent(reasoningEffort, forKey: .reasoningEffort)
+        // Written as null when nil so "omit" survives a reload.
+        try container.encode(temperature, forKey: .temperature)
+        try container.encode(auth, forKey: .auth)
+        try container.encode(extraHeaders, forKey: .extraHeaders)
+        try container.encode(askBeforeSending, forKey: .askBeforeSending)
+        try container.encode(selectedTemplateID, forKey: .selectedTemplateID)
+    }
 
     public var preset: ProviderPreset {
         ProviderPreset.preset(id: presetID) ?? .custom
@@ -113,8 +160,9 @@ public final class AIProviderStore {
 
     // MARK: - Provider
 
-    /// Switches to `preset`, resetting URL, model, auth, and reasoning effort
-    /// to its defaults. Keeps extra headers, the ask setting, and the template.
+    /// Switches to `preset`, resetting URL, model, auth, reasoning effort, and
+    /// temperature to its defaults. Keeps extra headers, the ask setting, and
+    /// the template.
     public func selectPreset(_ preset: ProviderPreset) {
         var updated = AIProviderConfiguration(preset: preset)
         updated.extraHeaders = configuration.extraHeaders

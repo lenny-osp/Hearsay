@@ -61,9 +61,9 @@ public protocol ChatCompleting: Sendable {
 /// OpenAI-compatible `/chat/completions` client (port of the API branch of
 /// Python `generate_meeting_notes` and `_post_chat_completions`).
 ///
-/// Deliberate departure from Python: no `temperature` field (PLAN.md 4.3
-/// step 3 sends only `{model, messages, reasoning_effort?}`), and
-/// `reasoning_effort` is omitted when empty.
+/// Payload `{model, messages, temperature?, reasoning_effort?}`. Python always
+/// sends both; here `temperature` is omitted when nil and `reasoning_effort`
+/// when empty or unsupported by the preset.
 public actor ChatCompletionsClient: ChatCompleting {
     /// Python `urlopen(request, timeout=300)`.
     public static let timeout: TimeInterval = 300
@@ -103,6 +103,9 @@ public actor ChatCompletionsClient: ChatCompleting {
                 ["role": "user", "content": userMessage],
             ],
         ]
+        if let temperature = configuration.temperature {
+            payload["temperature"] = temperature
+        }
         if let effort = configuration.effectiveReasoningEffort {
             payload["reasoning_effort"] = effort
         }

@@ -2,7 +2,7 @@ import HearsayCore
 import SwiftUI
 
 /// Settings > AI (PLAN.md sections 7 and 8): provider preset, endpoint,
-/// model, reasoning effort, token (Keychain), extra headers, the ask-before-
+/// model, reasoning effort, temperature, token (Keychain), extra headers, the ask-before-
 /// sending switch, a connection test, and the prompt templates.
 struct AISettingsTab: View {
     @Environment(AIProviderStore.self) private var store
@@ -36,6 +36,9 @@ struct AISettingsTab: View {
                 TextField("Model:", text: $store.configuration.model)
                 TextField("Reasoning effort:", text: reasoningBinding, prompt: Text("omitted when empty"))
                     .disabled(!preset.supportsReasoningEffort)
+                TextField("Temperature:", value: $store.configuration.temperature,
+                          format: .number.precision(.fractionLength(0...2)),
+                          prompt: Text("omitted when empty"))
                 if preset.id == ProviderPreset.custom.id {
                     Picker("Token header:", selection: $store.configuration.auth) {
                         ForEach(AuthHeaderStyle.allCases, id: \.self) { style in

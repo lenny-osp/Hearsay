@@ -108,7 +108,8 @@ private func pipeline() -> NotesPipeline {
 
 struct NotesPipelineTests {
     /// Mirrors `test_api_success_payload_and_token_precedence` (payload
-    /// shape): model, the system and user messages, reasoning_effort, the
+    /// shape): model, the system and user messages, temperature 0.3,
+    /// reasoning_effort, the
     /// 300 s timeout, and the Bearer header.
     @Test func successPayloadShapeAndBearerHeader() async throws {
         let url = uniqueURL()
@@ -131,8 +132,9 @@ struct NotesPipelineTests {
         #expect(request.value(forHTTPHeaderField: "api-key") == nil)
 
         let payload = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
-        #expect(Set(payload.keys) == ["model", "messages", "reasoning_effort"])
+        #expect(Set(payload.keys) == ["model", "messages", "temperature", "reasoning_effort"])
         #expect(payload["model"] as? String == "test-model")
+        #expect(payload["temperature"] as? Double == 0.3)
         #expect(payload["reasoning_effort"] as? String == "max")
         let messages = try #require(payload["messages"] as? [[String: String]])
         #expect(messages.count == 2)
@@ -156,8 +158,42 @@ struct NotesPipelineTests {
             let payload = try #require(
                 try JSONSerialization.jsonObject(with: request.httpBody ?? Data()) as? [String: Any]
             )
-            #expect(Set(payload.keys) == ["model", "messages"])
+            #expect(Set(payload.keys) == ["model", "messages", "temperature"])
         }
+    }
+
+    @Test func temperatureIsSentWhenSetAndAbsentWhenNil() throws {
+        var config = configuration(url: uniqueURL())
+        config.temperature = 0.7
+        let set = try ChatCompletionsClient.makeRequest(
+            systemMessage: "s", userMessage: "u", configuration: config, token: "t"
+        )
+        let setPayload = try #require(
+            try JSONSerialization.jsonObject(with: set.httpBody ?? Data()) as? [String: Any]
+        )
+        #expect(setPayload["temperature"] as? Double == 0.7)
+
+        config.temperature = nil
+        let omitted = try ChatCompletionsClient.makeRequest(
+            systemMessage: "s", userMessage: "u", configuration: config, token: "t"
+        )
+        let omittedPayload = try #require(
+            try JSONSerialization.jsonObject(with: omitted.httpBody ?? Data()) as? [String: Any]
+        )
+        #expect(Set(omittedPayload.keys) == ["model", "messages", "reasoning_effort"])
+    }
+
+    @Test func temperatureNilSurvivesAReloadAndMissingKeyMeansDefault() throws {
+        var config = AIProviderConfiguration.default
+        config.temperature = nil
+        let decoded = try JSONDecoder().decode(AIProviderConfiguration.self, from: JSONEncoder().encode(config))
+        #expect(decoded.temperature == nil)
+        #expect(decoded == config)
+
+        let legacy = #"{"presetID":"openai","baseURL":"https://api.openai.com/v1/chat/completions","model":"m","auth":"bearer","extraHeaders":{},"askBeforeSending":true,"selectedTemplateID":"6E0B5A10-3C2D-4F51-9A7E-000000000001"}"#
+        let old = try JSONDecoder().decode(AIProviderConfiguration.self, from: Data(legacy.utf8))
+        #expect(old.temperature == 0.3)
+        #expect(old.reasoningEffort == nil)
     }
 
     @Test func authHeaderPerStyleAndExtraHeaders() throws {
@@ -329,6 +365,8 @@ struct AIProviderStoreTests {
         #expect(AIProviderConfiguration(preset: .openAI).reasoningEffort == "max")
         #expect(AIProviderConfiguration(preset: .openAI).model == "gpt-5.6-luna")
         #expect(AIProviderConfiguration(preset: .ollama).reasoningEffort == nil)
+        #expect(AIProviderConfiguration(preset: .openAI).temperature == 0.3)
+        #expect(AIProviderConfiguration(preset: .ollama).temperature == 0.3)
     }
 
     @Test func defaultsOnFirstLaunch() {
