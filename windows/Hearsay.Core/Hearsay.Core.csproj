@@ -31,4 +31,12 @@
                       Visible="false" />
   </ItemGroup>
 
+  <!-- The Windows model list (whisper.cpp GGML files, shared schema in
+       shared/models/README.md). Windows-only, so it lives here; read
+       through Hearsay.Core.ModelStore.ModelCatalog.Bundled(). -->
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\ModelCatalog.json"
+                      LogicalName="Hearsay.Core.Resources.ModelCatalog.json" />
+  </ItemGroup>
+
 </Project>

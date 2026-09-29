@@ -780,6 +780,15 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
     sample count is within 10 % of 32,000, and the diagnostics show a real
     mix format and non-zero callbacks. Also confirm the proposed hotkey
     defaults Ctrl+Alt+Win+R / Ctrl+Alt+Win+P (18.4, Settings).
+20. Mac, silence hallucination check (added 2026-09-29 from the Windows
+    W1 spike): append 45 s of digital silence to `shared/fixtures/en-30s.wav`
+    (for example with `afconvert` or `sox`) and run it through
+    `HEARSAY_TRANSCRIBE_FILE` with `HEARSAY_LANGUAGE=en`. The Windows spike
+    saw turbo invent "Thank you." in the silence, and turbo's no-speech
+    probability is near zero on both platforms, so the Mac's
+    `hallucination_silence_threshold` may not fire either. If the Mac
+    invents text too, port the Windows silence gate (18.4) to the Mac and
+    record it in section 6.
 
 ## 17. Polish list (found during review, not yet scheduled)
 
@@ -872,7 +881,7 @@ windows/
   Hearsay.Whisper/    whisper.cpp integration and model store
   Hearsay.Tests/      unit tests, driven by the shared vectors and fixtures
   Spike/              W1 spikes (WhisperSpike, TextSpike); models/ is git-ignored
-  scripts/            build, translation import, notices
+  scripts/            make-icon.ps1 (the .ico files from shared/assets); later build, translation import, notices
   THIRD_PARTY_NOTICES.md
 ```
 
@@ -922,7 +931,7 @@ once after pulling this.
 |---|---|---|
 | Language, UI | C# on .NET 10 (LTS), WinUI 3 (Windows App SDK) | .NET 10 pinned 2026-09-29 (installed on the dev machine; was ".NET 8 or later"); tray icon through the Windows App SDK notification-icon APIs or `H.NotifyIcon` |
 | Audio capture | WASAPI via NAudio: `WasapiCapture` for the mic, `WasapiLoopbackCapture` for system audio | loopback needs no permission prompt; resample to 16 kHz mono like the Mac; port `AudioMixer` rules |
-| Whisper | `Whisper.net` (whisper.cpp) with GGUF models; CUDA runtime package on NVIDIA, Vulkan on AMD and Intel, CPU fallback | whisper.cpp has its own timestamp decoder; language detection is built in; W1 checks the gaps in 18.8 |
+| Whisper | `Whisper.net` 1.9.1 (whisper.cpp 1.8.5) with `Whisper.net.Runtime` and `Whisper.net.Runtime.Vulkan`, default load order Vulkan then CPU, `RuntimeOptions.LoadedLibrary` logged; the CUDA runtime package is added once tested on an NVIDIA machine. Default model `ggml-large-v3-turbo-q5_0` on every machine class. Language detection and the no-speech probability come from a direct P/Invoke into the bundled `whisper.dll` (one encoder run), not from `DetectLanguageWithProbability` (one call per candidate, no usable no-speech value). | Decided 2026-09-29 (W1 Whisper spike, `windows/Spike/WhisperSpike/REPORT.md`): turbo q5_0 reproduces the Mac's en/de/es output (similarity 1.000, every cue within 0.02 s) and scores 0.976 on zh (Simplified output, one dropped leading 按, possibly the quantization; f16 not measured). `ggml-small` fails 18.5 on every fixture (different cue splits, poor zh) and is no faster than turbo on Vulkan, so there is no "smaller model for CPU" option. Speed on the dev machine: turbo 2.0 to 2.9x real time on the Intel iGPU (warm 30 s window 8.8 s, cold 12.6 s, 1.25 GB), 0.28 to 0.69x on CPU (30 s window 37 to 49 s; 8 to 12 threads gain 20 to 25 %). Vulkan and CPU output are byte-identical except one 20 ms zh boundary. |
 | Chinese script | Windows' own `C:\Windows\System32\icu.dll` (ICU 72 on this machine) through P/Invoke: `utrans_openU("Hans-Hant", UTRANS_FORWARD)` for Traditional, the same id with `UTRANS_REVERSE` for Simplified (what Swift's `reverse: true` does), `utrans_transUChars` to convert. No package. | Decided 2026-09-29 (W1 text spike, `windows/Spike/TextSpike/REPORT.md`): this is the same ICU transform the Mac uses and it reproduced the Mac's ZH-TW SRT for `zh-30s` byte for byte. OpenCC was rejected: every variant differs from ICU (on the fixture 里 vs 裏/裡; 231 to 242 of OpenCC's 3,980 table characters, including 为 台 干 只 群 周), `OpenCCNET` pulls vulnerable packages that fail restore with warnings as errors, and it costs about 1.5 s and 70 MB at startup. ELS transliteration and `LCMapStringEx` also differ from ICU. |
 | Transcript text language (History SRTs with no stored language) | A rule-based detector in `Hearsay.Core` (no package, no ELS): Han-ideograph share for zh, Traditional-only vs Simplified-only characters (via the ICU transforms) to split ZH-TW and ZH-CN, function-word and diacritic scores for en, de, es; the five probabilities sum to 1 and the largest is the confidence. Same constants as the Mac: sample 4,000 characters, nil below 12 letters, confident at 0.6 or more, ties in picker order. | Decided 2026-09-29 (W1 text spike): 68/68 labelled samples right, never confident and wrong at 0.6. Windows ELS Language Detection also got 68/68 but exposes no confidence and returns bare `zh` for script-neutral Chinese, so it is not used. Implement in W6; tests assert the language and whether it is confident, never the number. |
 | Meeting notes | same providers: Copilot CLI, Claude Code, Codex CLI (all support Windows), Antigravity CLI (confirm Windows availability first), Ollama, Custom | same JSON contract and prompt; tokens in Windows Credential Manager |
@@ -937,9 +946,27 @@ once after pulling this.
 
 - **Output is not byte-identical.** whisper.cpp and MLX decode differently;
   acceptance compares text similarity and timestamps, not bytes.
-- **Speed.** Without a GPU, `large-v3-turbo` on CPU is 5 to 20 times slower
-  than on Apple Silicon. Default to a smaller quantized model on CPU-only
-  machines and recommend NVIDIA for the turbo model.
+- **Speed.** Measured 2026-09-29 (18.3, Whisper row): turbo q5_0 runs
+  about 3x real time on an Intel iGPU through Vulkan and 0.3 to 0.7x on
+  CPU. The default model is turbo q5_0 everywhere, because the smaller
+  model fails acceptance. Live preview runs only when a warm 30 s window
+  finishes in under 15 s (measured once per model load; the Record tab
+  says "Live preview off: this computer is too slow for it" otherwise).
+  On CPU the final pass takes about 1.5 to 3.5x the recording length; the
+  app says so before the first recording on such a machine and uses 8 to
+  12 threads. Recommend a GPU (Vulkan on Intel and AMD, CUDA on NVIDIA
+  once tested).
+- **Silence gate (hallucination).** whisper.cpp's no-speech probability is
+  about 1e-10 on digital silence with turbo, and on 45 s of appended
+  silence turbo invents text on every fixture ("Thank you.", "Vielen
+  Dank.", "Gracias.", a YoYo TV subtitle credit for zh). The Mac's
+  `hallucination_silence_threshold` cannot be ported (whisper.cpp has no
+  such option) and the spike argues it never fires on the Mac either
+  (turbo's no-speech is near zero there too; section 16 item 20 checks).
+  Windows gates by audio level instead: a 30 s window whose RMS is below
+  -60 dBFS is not transcribed, and a cue whose whole span is below that
+  level is dropped; tests use the fixtures with 45 s of silence appended
+  and require the original cues unchanged and no invented ones.
 - **System audio echo.** Loopback captures what the speakers play; a
   microphone in the same room hears it too. Recommend a headset, and keep
   the mixer's per-source meters so the user sees both.
@@ -1069,10 +1096,64 @@ Settings (2026-09-29; `windows/Hearsay.Core/Settings`):
 - **Secrets**: Credential Manager generic credentials, target
   `Hearsay/<account>`, `CRED_PERSIST_LOCAL_MACHINE`, UTF-8 blob (2,560-byte
   limit). Error text "Credential Manager error: <message>" (new key, W7).
-- **Owed by W4**: subscribe to `AppSettings.SaveFailed` and show
-  `SettingsFile.CorruptFileBackup`; share one `SettingsFile` per folder
-  (two instances overwrite each other's keys); later stores (AI providers,
-  prompt templates) take the same `SettingsFile`.
+- **Owed by W4** (done in the shell, 2026-09-29): subscribe to
+  `AppSettings.SaveFailed` and show `SettingsFile.CorruptFileBackup`; share
+  one `SettingsFile` per folder (two instances overwrite each other's
+  keys); later stores (AI providers, prompt templates) take the same
+  `SettingsFile`.
+
+Model store (2026-09-29; `windows/Hearsay.Core/ModelStore`, catalog in
+`Resources/ModelCatalog.json`, sizes from the Hugging Face API at
+`ggerganov/whisper.cpp` commit 5359861c, 2026-09-29):
+
+- **Entry id** is `repo/weightsFile` (one repo holds every GGUF), folder
+  name is the id with `/` → `_`; `AppSettings.ActiveModelRepo` stores it.
+  An entry's files are the weights file alone; an empty tokenizer list
+  counts as installed and no `_tokenizer` folder is made.
+- **Delete is async**: it cancels a running download and waits up to 30 s
+  for the partial file to close (Windows cannot delete an open file).
+- **Downloader**: `HttpClient`, follows redirects itself (max 10) so Hugging
+  Face's `x-linked-size` and `x-repo-commit` are read and `Range` plus
+  `Accept-Encoding: identity` are re-sent; a read stalled 60 s fails with
+  "The request timed out."; cancel is a `CancellationToken`, progress an
+  `IProgress`; no checksum (the Mac has none either; the API reports LFS
+  sha256 if wanted later). Partial file `<name>.partial` as on the Mac.
+- **Recommended** is `ggml-large-v3-turbo-q5_0.bin` provisionally, pending
+  the W1 spike.
+
+W4 shell (2026-09-29; `windows/Hearsay.App`, unpackaged self-contained
+WinUI 3 on Windows App SDK 2.5.1, H.NotifyIcon.WinUI 2.4.1 for the tray
+because the SDK has no notification-icon API; WebView2 comes with the SDK):
+
+- **Tabs** are a top-mode `NavigationView` (Record, File, Models, History,
+  Settings, Help as a footer item plus F1); Settings sections are a
+  `SelectorBar` with the Mac's four sections (General, Window, Output, AI).
+  The language picker sits on the Record and File tabs as on the Mac.
+- **Tray**: native Win32 popup menu with the Mac's items; left click opens
+  the main window (the Mac's click opens its panel); elapsed time only in
+  the tooltip. Icons are built by `windows/scripts/make-icon.ps1` from
+  `shared/assets/icon-1024.png` (macOS margin cropped), with a red dot for
+  recording and an amber dot with pause bars for paused.
+- **Window modes**: in taskbar-only mode closing the window quits, because
+  a taskbar button needs a window (the Mac keeps running in the Dock).
+- **Hotkeys**: `RegisterHotKey` on a hidden message-only window. A shortcut
+  recorder is not built yet (the shell owns many Win-key combinations);
+  bindings show and Reset works.
+- **Single instance** through `AppInstance.FindOrRegisterForKey`; debug
+  runs skip it. WebView2 profile in `%LOCALAPPDATA%\Hearsay\WebView2`.
+- **Help**: the shared pages copied at build time; they describe macOS
+  (Menu bar, System Settings), so W7 needs Windows text or conditional
+  sections.
+- **Debug entry** `HEARSAY_UI_SNAPSHOTS` renders 14 PNGs (tabs, Settings
+  sections, the settings-problem banner, the help window, a help-link
+  navigation) and smoke-tests the tray states and hotkey registration;
+  other `HEARSAY_*` entries exit 2 with "not available yet" until W5.
+- **No unit tests for app-side logic** (`HelpNavigation.Decide`,
+  `TrayIcon.CurrentIconName`): `Hearsay.Tests` targets `net10.0` and cannot
+  reference the Windows-targeted app; add a `Hearsay.App.Tests` project or
+  move that logic into Core (W7 polish).
+- **Not yet**: Restart Now after an interface-language change, Software
+  updates and Acknowledgements sections, quit-while-recording prompt (W5).
 
 ### 18.5 Acceptance
 
@@ -1114,10 +1195,10 @@ created in the IDE.
 | Phase | Deliverable | Estimate |
 |---|---|---|
 | W0. Shared extraction (done on macOS) | `shared/prompts`, `shared/naming-tests.json`, `shared/help`, `shared/assets`, model catalog split; macOS tests unchanged | 2 days |
-| W1. Spike | Whisper.net transcribes the four fixtures; measure similarity, timestamps, speed on CPU and GPU; pick the default model | 2 to 3 days |
+| W1. Spike | Whisper.net transcribes the four fixtures; measure similarity, timestamps, speed on CPU and GPU; pick the default model. **Done 2026-09-29** (both halves; 18.3 Whisper and Chinese script rows, 18.4, 18.8) | 2 to 3 days |
 | W2. Core | Port naming, prompt, SRT, language decision, mixer; all shared vectors pass. **Done 2026-09-29** (four parallel agents, one day): naming + OutputWriter incl. Rename, HistoryIndex, prompt + reply contract + presets, SRT, LanguageDecision + SessionLanguage + LiveChunker, AudioMixer + LevelMeter + MonoResampler + WavWriter + RecordingSpool; 271 tests, every Swift test ported one for one except those needing AVFoundation or a device (listed in the test files) | 4 to 5 days |
 | W3. Audio | WASAPI mic and loopback capture, resampling, spool WAV, no-audio watchdog. **Done 2026-09-29** except the hardware run (18.4, "Untested on hardware"); with it the settings layer (AppSettings, hotkeys, interface language, output folder, Credential Manager) and the ICU script converter and text-language detector; 487 tests | 4 to 5 days |
-| W4. Shell | WinUI window with the five tabs, tray icon, window modes, hotkeys, settings, model store and downloads | 6 to 8 days |
+| W4. Shell | WinUI window with the five tabs, tray icon, window modes, hotkeys, settings, model store and downloads. **Shell, Settings, tray, hotkeys, help window, UI snapshots and the model store core done 2026-09-29** (18.4); the Models and History tabs follow | 6 to 8 days |
 | W5. Transcription | live preview, final pass, File mode, Auto detection with banners, Chinese conversion | 5 to 6 days |
 | W6. Notes | CLI providers on Windows, Ollama, Custom, confirm and naming sheets, History with regenerate and Rename (section 4.8; port `OutputWriter.renameEntry` and its tests) | 4 to 5 days |
 | W7. Polish and ship | interface languages from shared translations, help window, crash recovery, MSIX, signing, updates, README | 5 to 6 days |
@@ -1128,9 +1209,9 @@ Total: about 6 to 8 weeks of agent time.
 
 | Risk | Mitigation |
 |---|---|
-| whisper.cpp quality on Chinese below MLX | measure in W1 on `zh-30s.wav`; consider the `large-v3` (non-turbo) GGUF for zh |
+| whisper.cpp quality on Chinese below MLX | measured 2026-09-29: turbo q5_0 scores 0.976 on `zh-30s` and drops one leading character; if real meetings show more, measure the f16 turbo (1.6 GB) or `large-v3-q5_0` (1.1 GB) before switching |
+| CPU-only machines too slow for live preview | measured 2026-09-29: yes on CPU (30 s window 37 to 49 s); live preview is disabled when a warm 30 s window takes over 15 s (18.4) |
 | Antigravity CLI has no Windows build | ship without it; the preset is hidden when the binary is absent |
-| CPU-only machines too slow for live preview | disable live preview below a measured speed threshold and say so |
 | Loopback capture silent with exclusive-mode apps | document; offer "microphone only" |
 | Two code bases drift | shared vectors and fixtures are the contract; a behavior change must update the shared files first |
 | CUDA path untested (dev machine has no NVIDIA GPU) | test on an NVIDIA machine before W7; until then the CPU and Vulkan paths are the only measured ones |
@@ -1143,7 +1224,7 @@ decision recorded here before the phase named.
 
 | Gap | macOS today | Windows options | Decide by |
 |---|---|---|---|
-| Hallucination filter | `hallucination_silence_threshold` 2.0 (section 6), ported from `mlx_whisper` | whisper.cpp has no such option; measure on the fixtures without it, port the Python rule on top of whisper.cpp segments if the output needs it | W1 |
-| Language detection | probabilities of the four supported languages, renormalized, averaged over up to three speech windows, plus no-speech probability | confirm Whisper.net exposes per-language probabilities (whisper.cpp `whisper_lang_auto_detect` returns them) and a no-speech probability; the shared language-decision vectors assume both | W1 |
+| Hallucination filter | `hallucination_silence_threshold` 2.0 (section 6), ported from `mlx_whisper` | **Decided 2026-09-29:** not portable; Windows uses the audio-level silence gate in 18.4 instead. Silero VAD (`WhisperVadProcessor`) stays a fallback option if the gate proves insufficient on real meetings. | done |
+| Language detection | probabilities of the four supported languages, renormalized, averaged over up to three speech windows, plus no-speech probability | **Decided 2026-09-29:** Whisper.net's `DetectLanguageWithProbability` gives one probability per call and `SegmentData.NoSpeechProbability` is unusable, so the engine P/Invokes the bundled `whisper.dll` (`whisper_lang_auto_detect`, softmax of the SOT logits for `<|nospeech|>`), one encoder run per window; the spike's values match Whisper.net's within 1e-4 and the Python references within 0.001. Every fixture detects above 0.99. The engine owns one whisper context for both detection and transcription (the spike's prototype loaded the model twice). The Mac's RMS gate (0.001) is ported with it. | done |
 | Chinese script conversion | ICU `Hans-Hant` transform through `String.applyingTransform` | **Decided 2026-09-29:** Windows' `icu.dll` exposes the same transform and matches the Mac byte for byte on `zh-30s`; OpenCC rejected (18.3). Follow-up: a Mac-generated `shared/` vector file of Simplified↔Traditional pairs that both test suites run, so an ICU change on either OS is caught. Note `zh-30s.expected.srt` is the raw model output (mostly Simplified); the Mac's ZH-TW rendering of it equals `zh-30s.truth.srt` with 臘七→臘漆 and 裏→里. | done |
 | Transcript text language | `NLLanguageRecognizer` over the four languages, confidence at least 0.6 | **Decided 2026-09-29:** rule-based detector (18.3), implement in W6 with tests from the fixtures' SRTs and the Mac's `TranscriptTextLanguageTests` inputs; also try longer synthetic transcripts before W6 closes | done |

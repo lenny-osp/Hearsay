@@ -1,0 +1,81 @@
+{
+  "about": "Windows model list in the shared schema (shared/models/README.md). Each entry is one whisper.cpp GGML file from ggerganov/whisper.cpp with the tokenizer built in, so tokenizer.files is empty. The stable id is repo + \"/\" + weightsFile because every entry shares one repo. sizeBytes from https://huggingface.co/api/models/ggerganov/whisper.cpp?blobs=true at commit 5359861c739e955e79d9a303bcbc70fb988958b1 (2026-09-29).",
+  "tokenizer": {
+    "repo": "ggerganov/whisper.cpp",
+    "files": []
+  },
+  "entries": [
+    {
+      "repo": "ggerganov/whisper.cpp",
+      "displayName": "Whisper Tiny",
+      "sizeBytes": 77691713,
+      "weightsFile": "ggml-tiny.bin",
+      "quantization": "f16",
+      "family": "tiny",
+      "recommended": false
+    },
+    {
+      "repo": "ggerganov/whisper.cpp",
+      "displayName": "Whisper Base",
+      "sizeBytes": 147951465,
+      "weightsFile": "ggml-base.bin",
+      "quantization": "f16",
+      "family": "base",
+      "recommended": false
+    },
+    {
+      "repo": "ggerganov/whisper.cpp",
+      "displayName": "Whisper Small",
+      "sizeBytes": 487601967,
+      "weightsFile": "ggml-small.bin",
+      "quantization": "f16",
+      "family": "small",
+      "recommended": false
+    },
+    {
+      "repo": "ggerganov/whisper.cpp",
+      "displayName": "Whisper Medium (5-bit)",
+      "sizeBytes": 539212467,
+      "weightsFile": "ggml-medium-q5_0.bin",
+      "quantization": "q5_0",
+      "family": "medium",
+      "recommended": false
+    },
+    {
+      "repo": "ggerganov/whisper.cpp",
+      "displayName": "Whisper Large v3 Turbo (5-bit)",
+      "sizeBytes": 574041195,
+      "weightsFile": "ggml-large-v3-turbo-q5_0.bin",
+      "quantization": "q5_0",
+      "family": "large-v3-turbo",
+      "recommended": true
+    },
+    {
+      "repo": "ggerganov/whisper.cpp",
+      "displayName": "Whisper Large v3 Turbo",
+      "sizeBytes": 1624555275,
+      "weightsFile": "ggml-large-v3-turbo.bin",
+      "quantization": "f16",
+      "family": "large-v3-turbo",
+      "recommended": false
+    },
+    {
+      "repo": "ggerganov/whisper.cpp",
+      "displayName": "Whisper Large v3 (5-bit)",
+      "sizeBytes": 1081140203,
+      "weightsFile": "ggml-large-v3-q5_0.bin",
+      "quantization": "q5_0",
+      "family": "large-v3",
+      "recommended": false
+    },
+    {
+      "repo": "ggerganov/whisper.cpp",
+      "displayName": "Whisper Large v3",
+      "sizeBytes": 3095033483,
+      "weightsFile": "ggml-large-v3.bin",
+      "quantization": "f16",
+      "family": "large-v3",
+      "recommended": false
+    }
+  ]
+}

@@ -1,0 +1,275 @@
+# Whisper.net 1.9.1.0 (1.9.1+98278acc38ae23590cdfa9859f78f089abae52a7)
+class Whisper.net.BeamSearchSamplingStrategyBuilder
+    Whisper.net.BeamSearchSamplingStrategyBuilder WithBeamSize(System.Int32 beamSize)
+    Whisper.net.BeamSearchSamplingStrategyBuilder WithPatience(System.Single patience)
+class Whisper.net.EncoderBeginData
+    ctor()
+enum Whisper.net.Ggml.GgmlType
+    Tiny, TinyEn, Base, BaseEn, Small, SmallEn, Medium, MediumEn, LargeV1, LargeV2, LargeV3, LargeV3Turbo
+enum Whisper.net.Ggml.QuantizationType
+    NoQuantization, Q4_0, Q4_1, Q5_0, Q5_1, Q8_0
+enum Whisper.net.Ggml.SileroVadType
+    V5_1_2, V6_2_0
+class Whisper.net.Ggml.WhisperGgmlDownloader
+    System.Threading.Tasks.Task`1[System.IO.Stream] GetGgmlModelAsync(Whisper.net.Ggml.GgmlType type, Whisper.net.Ggml.QuantizationType quantization, System.Threading.CancellationToken cancellationToken)
+    System.Threading.Tasks.Task`1[System.IO.Stream] GetEncoderOpenVinoModelAsync(Whisper.net.Ggml.GgmlType type, System.Threading.CancellationToken cancellationToken)
+    System.String GetOpenVinoManifestFileName(Whisper.net.Ggml.GgmlType type)
+    System.Threading.Tasks.Task`1[System.IO.Stream] GetEncoderCoreMLModelAsync(Whisper.net.Ggml.GgmlType type, System.Threading.CancellationToken cancellationToken)
+    System.Threading.Tasks.Task`1[System.IO.Stream] GetGgmlSileroVadModelAsync(Whisper.net.Ggml.SileroVadType type, System.Threading.CancellationToken cancellationToken)
+    ctor(System.Net.Http.HttpClient httpClient)
+    prop Whisper.net.Ggml.WhisperGgmlDownloader Default { get; }
+class Whisper.net.Ggml.ZipStreamExtensions
+    static System.Threading.Tasks.Task ExtractToPath(System.Threading.Tasks.Task`1[System.IO.Stream] zipStream, System.String path)
+class Whisper.net.GreedySamplingStrategyBuilder
+    Whisper.net.GreedySamplingStrategyBuilder WithBestOf(System.Int32 bestOf)
+interface Whisper.net.IStringPool
+    System.String GetStringUtf8(System.IntPtr nativePointer)
+    System.Void ReturnString(System.String returnedString)
+class Whisper.net.LibraryLoader.NativeLibraryLoader
+enum Whisper.net.LibraryLoader.RuntimeLibrary
+    Cpu, Cuda, Cuda12, Vulkan, CoreML, OpenVino, CpuNoAvx
+class Whisper.net.LibraryLoader.RuntimeOptions
+    prop System.String LibraryPath { get; set; }
+    prop System.Collections.Generic.List`1[Whisper.net.LibraryLoader.RuntimeLibrary] RuntimeLibraryOrder { get; set; }
+    prop System.Nullable`1[Whisper.net.LibraryLoader.RuntimeLibrary] LoadedLibrary { get; set; }
+class Whisper.net.Logger.LogProvider
+    static System.IDisposable AddConsoleLogging(Whisper.net.Logger.WhisperLogLevel minLevel)
+    static System.IDisposable AddLogger(System.Action`2[Whisper.net.Logger.WhisperLogLevel,System.String] logAction)
+enum Whisper.net.Logger.WhisperLogLevel
+    None, Error, Warning, Info, Cont, Debug
+class Whisper.net.OnEncoderBeginEventHandler
+    System.Boolean Invoke(Whisper.net.EncoderBeginData e)
+    System.IAsyncResult BeginInvoke(Whisper.net.EncoderBeginData e, System.AsyncCallback callback, System.Object object)
+    System.Boolean EndInvoke(System.IAsyncResult result)
+    ctor(System.Object object, System.IntPtr method)
+class Whisper.net.OnProgressHandler
+    System.Void Invoke(System.Int32 progress)
+    System.IAsyncResult BeginInvoke(System.Int32 progress, System.AsyncCallback callback, System.Object object)
+    System.Void EndInvoke(System.IAsyncResult result)
+    ctor(System.Object object, System.IntPtr method)
+class Whisper.net.OnSegmentEventHandler
+    System.Void Invoke(Whisper.net.SegmentData e)
+    System.IAsyncResult BeginInvoke(Whisper.net.SegmentData e, System.AsyncCallback callback, System.Object object)
+    System.Void EndInvoke(System.IAsyncResult result)
+    ctor(System.Object object, System.IntPtr method)
+class Whisper.net.SegmentData
+    ctor(System.String text, System.TimeSpan start, System.TimeSpan end, System.Single minProbability, System.Single maxProbability, System.Single probability, System.Single noSpeechProbability, System.String language, Whisper.net.WhisperToken[] tokens)
+    prop System.String Text { get; }
+    prop System.TimeSpan Start { get; }
+    prop System.TimeSpan End { get; }
+    prop System.Single MinProbability { get; }
+    prop System.Single MaxProbability { get; }
+    prop System.Single Probability { get; }
+    prop System.String Language { get; }
+    prop Whisper.net.WhisperToken[] Tokens { get; }
+    prop System.Single NoSpeechProbability { get; }
+class Whisper.net.SpeechToTextOptionsExtensions
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithLanguage(Microsoft.Extensions.AI.SpeechToTextOptions options, System.String language)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithTranslate(Microsoft.Extensions.AI.SpeechToTextOptions options)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithBeamSearchSamplingStrategy(Microsoft.Extensions.AI.SpeechToTextOptions options)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithAudioContextSize(Microsoft.Extensions.AI.SpeechToTextOptions options, System.Int32 audioContextSize)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithDuration(Microsoft.Extensions.AI.SpeechToTextOptions options, System.TimeSpan duration)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithEncoderBeginHandler(Microsoft.Extensions.AI.SpeechToTextOptions options, Whisper.net.OnEncoderBeginEventHandler handler)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithEntropyThreshold(Microsoft.Extensions.AI.SpeechToTextOptions options, System.Single threshold)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithGreedySamplingStrategy(Microsoft.Extensions.AI.SpeechToTextOptions options)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithWhisperLanguage(Microsoft.Extensions.AI.SpeechToTextOptions options, System.String language)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithLanguageDetection(Microsoft.Extensions.AI.SpeechToTextOptions options, System.Boolean enableDetection)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithLengthPenalty(Microsoft.Extensions.AI.SpeechToTextOptions options, System.Single penalty)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithLogProbThreshold(Microsoft.Extensions.AI.SpeechToTextOptions options, System.Single threshold)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithMaxInitialTs(Microsoft.Extensions.AI.SpeechToTextOptions options, System.Single maxInitialTs)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithMaxSegmentLength(Microsoft.Extensions.AI.SpeechToTextOptions options, System.Int32 maxLength)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithMaxLastTextTokens(Microsoft.Extensions.AI.SpeechToTextOptions options, System.Int32 maxTokens)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithMaxTokensPerSegment(Microsoft.Extensions.AI.SpeechToTextOptions options, System.Int32 maxTokens)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithNoContext(Microsoft.Extensions.AI.SpeechToTextOptions options, System.Boolean noContext)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithNoSpeechThreshold(Microsoft.Extensions.AI.SpeechToTextOptions options, System.Single threshold)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithOffset(Microsoft.Extensions.AI.SpeechToTextOptions options, System.TimeSpan offset)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithOpenVinoEncoder(Microsoft.Extensions.AI.SpeechToTextOptions options, System.String encoderPath, System.String device, System.String cachePath)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithoutSuppressBlank(Microsoft.Extensions.AI.SpeechToTextOptions options)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithoutStringPool(Microsoft.Extensions.AI.SpeechToTextOptions options)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithPrintProgress(Microsoft.Extensions.AI.SpeechToTextOptions options, System.Boolean printProgress)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithPrintTimestamps(Microsoft.Extensions.AI.SpeechToTextOptions options, System.Boolean printTimestamps)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithPrintSpecialTokens(Microsoft.Extensions.AI.SpeechToTextOptions options, System.Boolean printSpecialTokens)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithPrintResults(Microsoft.Extensions.AI.SpeechToTextOptions options, System.Boolean printResults)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithProbabilities(Microsoft.Extensions.AI.SpeechToTextOptions options, System.Boolean enableProbabilities)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithProgressHandler(Microsoft.Extensions.AI.SpeechToTextOptions options, Whisper.net.OnProgressHandler handler)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithSegmentEventHandler(Microsoft.Extensions.AI.SpeechToTextOptions options, Whisper.net.OnSegmentEventHandler handler)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithStringPool(Microsoft.Extensions.AI.SpeechToTextOptions options, Whisper.net.IStringPool stringPool)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithTemperature(Microsoft.Extensions.AI.SpeechToTextOptions options, System.Single temperature)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithTemperatureInc(Microsoft.Extensions.AI.SpeechToTextOptions options, System.Single temperatureInc)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithThreads(Microsoft.Extensions.AI.SpeechToTextOptions options, System.Int32 threads)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithTokenTimestamps(Microsoft.Extensions.AI.SpeechToTextOptions options)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithTokenTimestampsSumThreshold(Microsoft.Extensions.AI.SpeechToTextOptions options, System.Single threshold)
+    static Microsoft.Extensions.AI.SpeechToTextOptions WithTokenTimestampsThreshold(Microsoft.Extensions.AI.SpeechToTextOptions options, System.Single threshold)
+class Whisper.net.VadSegmentData
+    ctor(System.TimeSpan start, System.TimeSpan end)
+    prop System.TimeSpan Start { get; }
+    prop System.TimeSpan End { get; }
+class Whisper.net.Wave.CorruptedWaveException
+    ctor(System.String message)
+class Whisper.net.Wave.NotSupportedWaveException
+    ctor(System.String message)
+class Whisper.net.Wave.WaveParser
+    System.Threading.Tasks.Task`1[System.Single[]] GetAvgSamplesAsync(System.Threading.CancellationToken cancellationToken)
+    System.Single[] GetAvgSamples()
+    System.Single[] GetChannelSamples(System.Int32 channelIndex)
+    System.Threading.Tasks.Task`1[System.Single[]] GetChannelSamplesAsync(System.Int32 channelIndex, System.Threading.CancellationToken cancellationToken)
+    System.Void Initialize()
+    System.Threading.Tasks.Task InitializeAsync(System.Threading.CancellationToken cancellationToken)
+    ctor(System.IO.Stream waveStream, Whisper.net.Wave.WaveParserOptions options)
+    prop System.UInt16 Channels { get; }
+    prop System.UInt32 SampleRate { get; }
+    prop System.UInt16 BitsPerSample { get; }
+    prop System.UInt32 DataChunkSize { get; }
+    prop System.Int64 DataChunkPosition { get; }
+    prop System.Boolean IsInitialized { get; }
+    prop System.Int64 SamplesCount { get; }
+    prop System.Int32 FrameSize { get; }
+    prop System.Single ValueToDivide { get; }
+class Whisper.net.Wave.WaveParserOptions
+    ctor()
+    prop System.Boolean AllowLessSamples { get; set; }
+class Whisper.net.WhisperAbortEventHandler
+    System.Boolean Invoke()
+    System.IAsyncResult BeginInvoke(System.AsyncCallback callback, System.Object object)
+    System.Boolean EndInvoke(System.IAsyncResult result)
+    ctor(System.Object object, System.IntPtr method)
+struct Whisper.net.WhisperAlignmentHead
+    ctor(System.Int32 textLayer, System.Int32 head)
+    prop System.Int32 TextLayer { get; }
+    prop System.Int32 Head { get; }
+enum Whisper.net.WhisperAlignmentHeadsPreset
+    None, NTopMost, Custom, TinyEn, Tiny, BaseEn, Base, SmallEn, Small, MediumEn, Medium, LargeV1, LargeV2, LargeV3, LargeV3Turbo
+class Whisper.net.WhisperFactory
+    static System.String GetRuntimeInfo()
+    static System.Collections.Generic.IEnumerable`1[System.String] GetSupportedLanguages()
+    static Whisper.net.WhisperFactory FromPath(System.String path)
+    static Whisper.net.WhisperFactory FromPath(System.String path, Whisper.net.WhisperFactoryOptions options)
+    static Whisper.net.WhisperFactory FromBuffer(System.Memory`1[System.Byte] memory)
+    static Whisper.net.WhisperFactory FromBuffer(System.Memory`1[System.Byte] memory, Whisper.net.WhisperFactoryOptions options)
+    Whisper.net.WhisperProcessorBuilder CreateBuilder()
+    System.Void Dispose()
+struct Whisper.net.WhisperFactoryOptions
+    ctor()
+    prop Whisper.net.WhisperFactoryOptions Default { get; }
+    prop System.Boolean UseGpu { get; set; }
+    prop System.Boolean UseFlashAttention { get; set; }
+    prop System.Boolean UseDtwTimeStamps { get; set; }
+    prop Whisper.net.WhisperAlignmentHeadsPreset HeadsPreset { get; set; }
+    prop Whisper.net.WhisperAlignmentHead[] CustomAlignmentHeads { get; set; }
+    prop System.Int32 GpuDevice { get; set; }
+    prop System.UInt32 DtwMemSize { get; set; }
+    prop System.Int32 DtwNTop { get; set; }
+    prop System.Boolean DelayInitialization { get; set; }
+class Whisper.net.WhisperModelLoadException
+    ctor(System.String message)
+class Whisper.net.WhisperProcessingException
+    ctor(System.Int32 errorCode)
+    prop System.Int32 ErrorCode { get; }
+class Whisper.net.WhisperProcessor
+    System.Void ChangeLanguage(System.String newLanguage)
+    System.String DetectLanguage(System.Single[] samples)
+    System.ValueTuple`2[System.String,System.Single] DetectLanguageWithProbability(System.Single[] samples)
+    System.ValueTuple`2[System.String,System.Single] DetectLanguageWithProbability(System.ReadOnlySpan`1[System.Single] samples, System.ReadOnlySpan`1[System.String] candidateLanguages)
+    System.Void Process(System.IO.Stream waveStream)
+    System.Void Process(System.Single[] samples)
+    System.Void Process(System.ReadOnlySpan`1[System.Single] samples)
+    System.Collections.Generic.IAsyncEnumerable`1[Whisper.net.SegmentData] ProcessAsync(System.IO.Stream waveStream, System.Threading.CancellationToken cancellationToken)
+    System.Collections.Generic.IAsyncEnumerable`1[Whisper.net.SegmentData] ProcessAsync(System.ReadOnlyMemory`1[System.Single] samples, System.Threading.CancellationToken cancellationToken)
+    System.Collections.Generic.IAsyncEnumerable`1[Whisper.net.SegmentData] ProcessAsync(System.Single[] samples, System.Threading.CancellationToken cancellationToken)
+    System.Void Return(Whisper.net.SegmentData segmentData)
+    System.Void Dispose()
+    System.Threading.Tasks.ValueTask DisposeAsync()
+class Whisper.net.WhisperProcessorBuilder
+    Whisper.net.WhisperProcessorBuilder WithThreads(System.Int32 threads)
+    Whisper.net.WhisperProcessorBuilder WithMaxLastTextTokens(System.Int32 maxLastTextTokens)
+    Whisper.net.WhisperProcessorBuilder WithOffset(System.TimeSpan offset)
+    Whisper.net.WhisperProcessorBuilder WithDuration(System.TimeSpan duration)
+    Whisper.net.WhisperProcessorBuilder WithTranslate()
+    Whisper.net.WhisperProcessorBuilder WithNoContext()
+    Whisper.net.WhisperProcessorBuilder WithSingleSegment()
+    Whisper.net.WhisperProcessorBuilder WithPrintSpecialTokens()
+    Whisper.net.WhisperProcessorBuilder WithPrintProgress()
+    Whisper.net.WhisperProcessorBuilder WithPrintResults()
+    Whisper.net.WhisperProcessorBuilder WithPrintTimestamps(System.Boolean printTimestamps)
+    Whisper.net.WhisperProcessorBuilder WithTokenTimestamps()
+    Whisper.net.WhisperProcessorBuilder WithTokenTimestampsThreshold(System.Single tokenTimestampsThreshold)
+    Whisper.net.WhisperProcessorBuilder WithTokenTimestampsSumThreshold(System.Single tokenTimestampsSumThreshold)
+    Whisper.net.WhisperProcessorBuilder WithMaxSegmentLength(System.Int32 maxSegmentLength)
+    Whisper.net.WhisperProcessorBuilder SplitOnWord()
+    Whisper.net.WhisperProcessorBuilder WithMaxTokensPerSegment(System.Int32 maxTokensPerSegment)
+    Whisper.net.WhisperProcessorBuilder WithAudioContextSize(System.Int32 audioContextSize)
+    Whisper.net.WhisperProcessorBuilder WithSuppressRegex(System.String regex)
+    Whisper.net.WhisperProcessorBuilder WithPrompt(System.String prompt)
+    Whisper.net.WhisperProcessorBuilder WithCarryInitialPrompt(System.Boolean carryInitialPrompt)
+    Whisper.net.WhisperProcessorBuilder WithLanguage(System.String language)
+    Whisper.net.WhisperProcessorBuilder WithLanguageDetection()
+    Whisper.net.WhisperProcessorBuilder WithoutSuppressBlank()
+    Whisper.net.WhisperProcessorBuilder WithTemperature(System.Single temperature)
+    Whisper.net.WhisperProcessorBuilder WithMaxInitialTs(System.Single maxInitialTs)
+    Whisper.net.WhisperProcessorBuilder WithLengthPenalty(System.Single lengthPenalty)
+    Whisper.net.WhisperProcessorBuilder WithTemperatureInc(System.Single temperature)
+    Whisper.net.WhisperProcessorBuilder WithEntropyThreshold(System.Single entropyThreshold)
+    Whisper.net.WhisperProcessorBuilder WithLogProbThreshold(System.Single logProbThreshold)
+    Whisper.net.WhisperProcessorBuilder WithNoSpeechThreshold(System.Single noSpeechThreshold)
+    Whisper.net.WhisperProcessorBuilder WithSegmentEventHandler(Whisper.net.OnSegmentEventHandler segmentEventHandler)
+    Whisper.net.WhisperProcessorBuilder WithProgressHandler(Whisper.net.OnProgressHandler progressHandler)
+    Whisper.net.WhisperProcessorBuilder WithEncoderBeginHandler(Whisper.net.OnEncoderBeginEventHandler encoderBeginEventHandler)
+    Whisper.net.WhisperProcessorBuilder WithStringPool(Whisper.net.IStringPool stringPool)
+    Whisper.net.WhisperProcessorBuilder WithoutStringPool()
+    Whisper.net.WhisperProcessorBuilder WithGreedySamplingStrategy(System.Action`1[Whisper.net.GreedySamplingStrategyBuilder] configure)
+    Whisper.net.WhisperProcessorBuilder WithBeamSearchSamplingStrategy(System.Action`1[Whisper.net.BeamSearchSamplingStrategyBuilder] configure)
+    Whisper.net.WhisperProcessorBuilder WithProbabilities()
+    Whisper.net.WhisperProcessorBuilder WithOpenVinoEncoder(System.String openVinoEncoderPath, System.String openVinoDevice, System.String openVinoCachePath)
+    Whisper.net.WhisperProcessor Build()
+class Whisper.net.WhisperSpeechToTextClient
+    System.Void Dispose()
+    System.Object GetService(System.Type serviceType, System.Object serviceKey)
+    System.Collections.Generic.IAsyncEnumerable`1[Microsoft.Extensions.AI.SpeechToTextResponseUpdate] GetStreamingTextAsync(System.IO.Stream audioSpeechStream, Microsoft.Extensions.AI.SpeechToTextOptions options, System.Threading.CancellationToken cancellationToken)
+    System.Threading.Tasks.Task`1[Microsoft.Extensions.AI.SpeechToTextResponse] GetTextAsync(System.IO.Stream audioSpeechStream, Microsoft.Extensions.AI.SpeechToTextOptions options, System.Threading.CancellationToken cancellationToken)
+    ctor(System.String modelFileName)
+    ctor(System.Func`1[Whisper.net.WhisperFactory] buildFactoryFunc)
+class Whisper.net.WhisperToken
+    ctor()
+    field System.Int32 Id
+    field System.Int32 TimestampId
+    field System.Single Probability
+    field System.Single ProbabilityLog
+    field System.Single TimestampProbability
+    field System.Single TimestampProbabilitySum
+    field System.Int64 Start
+    field System.Int64 End
+    field System.Int64 DtwTimestamp
+    field System.Single VoiceLen
+    field System.String Text
+class Whisper.net.WhisperVadFactory
+    static Whisper.net.WhisperVadFactory FromPath(System.String path)
+    static Whisper.net.WhisperVadFactory FromPath(System.String path, Whisper.net.WhisperFactoryOptions options)
+    Whisper.net.WhisperVadProcessorBuilder CreateBuilder()
+    System.Void Dispose()
+class Whisper.net.WhisperVadProcessor
+    System.Collections.Generic.IReadOnlyList`1[Whisper.net.VadSegmentData] DetectSpeech(System.IO.Stream waveStream)
+    System.Collections.Generic.IReadOnlyList`1[Whisper.net.VadSegmentData] DetectSpeechNoReset(System.IO.Stream waveStream)
+    System.Collections.Generic.IReadOnlyList`1[Whisper.net.VadSegmentData] DetectSpeech(System.Single[] samples)
+    System.Collections.Generic.IReadOnlyList`1[Whisper.net.VadSegmentData] DetectSpeechNoReset(System.Single[] samples)
+    System.Collections.Generic.IReadOnlyList`1[Whisper.net.VadSegmentData] DetectSpeech(System.ReadOnlySpan`1[System.Single] samples)
+    System.Collections.Generic.IReadOnlyList`1[Whisper.net.VadSegmentData] DetectSpeechNoReset(System.ReadOnlySpan`1[System.Single] samples)
+    System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[Whisper.net.VadSegmentData]] DetectSpeechAsync(System.IO.Stream waveStream, System.Threading.CancellationToken cancellationToken)
+    System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[Whisper.net.VadSegmentData]] DetectSpeechNoResetAsync(System.IO.Stream waveStream, System.Threading.CancellationToken cancellationToken)
+    System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[Whisper.net.VadSegmentData]] DetectSpeechAsync(System.Single[] samples, System.Threading.CancellationToken cancellationToken)
+    System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[Whisper.net.VadSegmentData]] DetectSpeechNoResetAsync(System.Single[] samples, System.Threading.CancellationToken cancellationToken)
+    System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[Whisper.net.VadSegmentData]] DetectSpeechAsync(System.ReadOnlyMemory`1[System.Single] samples, System.Threading.CancellationToken cancellationToken)
+    System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[Whisper.net.VadSegmentData]] DetectSpeechNoResetAsync(System.ReadOnlyMemory`1[System.Single] samples, System.Threading.CancellationToken cancellationToken)
+    System.Void ResetState()
+    System.Void Dispose()
+    System.Threading.Tasks.ValueTask DisposeAsync()
+class Whisper.net.WhisperVadProcessorBuilder
+    Whisper.net.WhisperVadProcessorBuilder WithThreads(System.Int32 threads)
+    Whisper.net.WhisperVadProcessorBuilder WithUseGpu(System.Boolean useGpu)
+    Whisper.net.WhisperVadProcessorBuilder WithGpuDevice(System.Int32 gpuDevice)
+    Whisper.net.WhisperVadProcessorBuilder WithThreshold(System.Single threshold)
+    Whisper.net.WhisperVadProcessorBuilder WithMinSpeechDuration(System.TimeSpan duration)
+    Whisper.net.WhisperVadProcessorBuilder WithMinSilenceDuration(System.TimeSpan duration)
+    Whisper.net.WhisperVadProcessorBuilder WithMaxSpeechDuration(System.TimeSpan duration)
+    Whisper.net.WhisperVadProcessorBuilder WithSpeechPadding(System.TimeSpan padding)
+    Whisper.net.WhisperVadProcessorBuilder WithSamplesOverlap(System.TimeSpan overlap)
+    Whisper.net.WhisperVadProcessor Build()
