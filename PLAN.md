@@ -372,6 +372,10 @@ release page needs no third-party framework.
      `FileManager.replaceItemAt` swaps the bundles (on failure the old app
      stays and keeps running), the cache folder is deleted, and the usual
      restart path (`AppDelegate.restart`) opens the new bundle and quits.
+     `restart` defers `NSApp.terminate` with `RunLoop.main.perform`:
+     called from the installer's main-actor Task, the terminate-later
+     reply Task could not run and 0.2.2 and 0.2.3 hung on "Installing"
+     after the swap (found by the owner 2026-09-29, fixed the same day).
   - Debug: `HEARSAY_INSTALL_UPDATE=<dmg> HEARSAY_INSTALL_TARGET=<app>` runs
     steps 1 and 4 to 6 and the replacement against a scratch bundle.
 - The version comes from `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` in
@@ -715,6 +719,11 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
     works), then "Hearsay <v> is ready to install."; Install and Relaunch
     quits and opens the new version (About Hearsay shows it), and the
     Microphone and System audio permissions are kept.
+    2026-09-29, 0.2.2 to 0.2.3: download, verification, and the swap
+    worked; the relaunch hung on "Installing" (fixed, see 4.6 step 7).
+    Builds up to 0.2.3 still hang once on their next update: force quit
+    Hearsay and open it again; it is already the new version. Check again
+    on the first update from a build that has the fix.
 
 ## 17. Polish list (found during review, not yet scheduled)
 

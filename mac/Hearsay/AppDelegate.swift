@@ -258,9 +258,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// "Restart Now": quits through the usual quit path (which asks before
     /// stopping a recording) and opens a new instance once quitting is
     /// allowed.
+    ///
+    /// The terminate call is deferred to the run loop. `applicationShouldTerminate`
+    /// answers `.terminateLater` and replies from a main-actor Task, and
+    /// AppKit waits for that reply in a nested run loop. When `restart()` runs
+    /// inside a main-actor job (Install and Relaunch is called from the
+    /// installer's Task), that nested run loop cannot run other main-actor
+    /// jobs, so the reply never came and Hearsay hung on "Installing"
+    /// (fixed 2026-09-29). A run-loop block is not a main-actor job, so the
+    /// reply Task runs.
     private func restart() {
         relaunchAfterQuit = true
-        NSApp.terminate(nil)
+        RunLoop.main.perform {
+            NSApp.terminate(nil)
+        }
     }
 
     /// Allows the pending quit, opening the new instance first when a
