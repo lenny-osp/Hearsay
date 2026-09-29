@@ -242,7 +242,8 @@ public sealed class NotesPipelineTests : IDisposable
         var error = await Assert.ThrowsAsync<ChatCompletionsException>(() =>
             client.CompleteAsync("s", "u", ChatFixtures.Configuration(url), "t"));
         var transport = Assert.IsType<ChatCompletionsError.Transport>(error.Error);
-        Assert.NotEmpty(transport.Detail);
+        Assert.Equal(ChatCompletionsError.Transport.TimedOut(), transport);
+        Assert.Equal(Hearsay.Core.CommonMessages.RequestTimedOut, transport.LocalizedDetail);
     }
 
     [Theory]

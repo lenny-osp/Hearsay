@@ -4,6 +4,7 @@ using System.Xml.Linq;
 using Hearsay.Core;
 using Hearsay.Core.Notes;
 using Hearsay.Core.Settings;
+using Hearsay.Core.Updates;
 using Hearsay.Whisper;
 
 namespace Hearsay.App.Tests;
@@ -75,13 +76,57 @@ public sealed class StringsTests
             "The model %@ is not fully downloaded. Finish the download in Models.", "Large v3 Turbo"), Strings.Describe(model));
     }
 
+    /// <summary>Core's Windows-only texts (catalog "windows"), with the English values Core inserts translated too.</summary>
+    [Fact]
+    public void DescribesWindowsOnlyCoreTextsInGerman()
+    {
+        using var german = new InterfaceLanguageScope(InterfaceLanguage.German, "de-DE");
+        var tooLong = new CliProviderException(new CliProviderError.CommandLineTooLong(CliTool.Copilot, 40_000));
+        Assert.Equal(Translations.Format(InterfaceLanguage.German, "windows",
+                "%@ cannot take a transcript this long on Windows: the command line would be %@ characters, and Windows allows %@. "
+                + "Use Claude Code, Codex, or an HTTP provider for long meetings.", "GitHub Copilot CLI", "40.000", "32.766"),
+            Strings.Describe(tooLong));
+        Assert.NotEqual(tooLong.Message, Strings.Describe(tooLong));
+
+        var product = new UpdatePackageException(new UpdatePackageError.WrongIdentifier(null));
+        Assert.Equal(Translations.Format(InterfaceLanguage.German, "windows", "The new app has the product name %@, not Hearsay.",
+            Translations.Text(InterfaceLanguage.German, "windows", "none")), Strings.Describe(product));
+
+        // A Mac key (app catalog) with a nested Windows key.
+        var version = new UpdatePackageException(new UpdatePackageError.WrongVersion(null, "1.2.0"));
+        Assert.Equal(Translations.Format(InterfaceLanguage.German, "app", "The new app is version %@, not %@.",
+            Translations.Text(InterfaceLanguage.German, "windows", "unknown"), "1.2.0"), Strings.Describe(version));
+
+        var timedOut = new ChatCompletionsException(ChatCompletionsError.Transport.TimedOut());
+        Assert.Equal(Translations.Format(InterfaceLanguage.German, "core",
+                "API call failed: A network connection or HTTP client error occurred. %@",
+                Translations.Text(InterfaceLanguage.German, "windows", "The request timed out.")),
+            Strings.Describe(timedOut));
+
+        var load = WhisperEngineException.LoadFailed(new InvalidOperationException("whisper.cpp could not load the model m.bin."));
+        Assert.Equal(Translations.Format(InterfaceLanguage.German, "windows", "Could not load the speech model: %@",
+            "whisper.cpp could not load the model m.bin."), Strings.Describe(load));
+
+        var srt = new NotesPipelineException(new NotesPipelineError.SrtUnreadable(@"C:\x.srt", "gone"));
+        Assert.Equal(Translations.Format(InterfaceLanguage.German, "app", "Error: SRT file not found or unreadable (%@): %@",
+            @"C:\x.srt", "gone"), Strings.Describe(srt));
+
+        Assert.Equal(Translations.Text(InterfaceLanguage.German, "windows", UpdateTexts.PreviousInstallFailed),
+            Strings.Localize(UpdateTexts.PreviousInstallFailedMessage));
+        var location = new InstallLocationException(new InstallLocationProblem.FolderNotWritable(@"C:\Apps\Hearsay"));
+        Assert.Equal(Translations.Format(InterfaceLanguage.German, "windows",
+                "Hearsay cannot write to the folder %@. Move the Hearsay folder to a folder you can write to, open it from there, then check for updates again.",
+                @"C:\Apps\Hearsay"),
+            Strings.Describe(location));
+    }
+
     [Fact]
     public void DescribeFallsBackToTheEnglish()
     {
         using var german = new InterfaceLanguageScope(InterfaceLanguage.German);
-        // No key yet (Windows only): the English message.
-        var tooLong = new CliProviderException(new CliProviderError.CommandLineTooLong(CliTool.Copilot, 40_000));
-        Assert.Equal(tooLong.Message, Strings.Describe(tooLong));
+        // No key (a technical message): the English message.
+        var technical = new WhisperEngineException("whisper_full failed (-1).");
+        Assert.Equal(technical.Message, Strings.Describe(technical));
         // Plain English a core key matches exactly.
         Assert.Equal(Translations.Text(InterfaceLanguage.German, "core", "No token"),
             Strings.Describe(new InvalidOperationException("No token")));

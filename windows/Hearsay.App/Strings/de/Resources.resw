@@ -365,6 +365,10 @@
     <value>Transkript:</value>
     <comment>app: Transcript:</comment>
   </data>
+  <data name="app_5753ea3780f34ad1" xml:space="preserve">
+    <value>Tastaturkurzbefehl</value>
+    <comment>app: Shortcut</comment>
+  </data>
   <data name="app_59a62100b3820687" xml:space="preserve">
     <value>Auch Systemaudio aufnehmen</value>
     <comment>app: Also capture system audio</comment>
@@ -436,6 +440,10 @@
   <data name="app_64aa002c089b740e" xml:space="preserve">
     <value>Stattdessen Live-Vorschau verwenden</value>
     <comment>app: Use live preview instead</comment>
+  </data>
+  <data name="app_6533240ef4cdc529" xml:space="preserve">
+    <value>Klicken, dann einen neuen Tastaturkurzbefehl drücken.</value>
+    <comment>app: Click, then press a new shortcut.</comment>
   </data>
   <data name="app_65d48235a91ee221" xml:space="preserve">
     <value>Start</value>
@@ -584,6 +592,10 @@
   <data name="app_85d972199ed4cb30" xml:space="preserve">
     <value>Der Live-Vorschau fehlt ein Abschnitt: {0}</value>
     <comment>app: Live preview missed a chunk: %@</comment>
+  </data>
+  <data name="app_863e1c76c4ef8dd2" xml:space="preserve">
+    <value>Tastaturkurzbefehl eingeben …</value>
+    <comment>app: Type shortcut…</comment>
   </data>
   <data name="app_871a3f5b8bd91899" xml:space="preserve">
     <value>{0} wird transkribiert …</value>
@@ -856,6 +868,10 @@
   <data name="app_cf6214111dd9188a" xml:space="preserve">
     <value>Keine App zum Öffnen von {0} verfügbar.</value>
     <comment>app: No app is available to open %@.</comment>
+  </data>
+  <data name="app_d139a2e0a0d3c5d1" xml:space="preserve">
+    <value>Fehler: SRT-Datei nicht gefunden oder nicht lesbar ({0}): {1}</value>
+    <comment>app: Error: SRT file not found or unreadable (%@): %@</comment>
   </data>
   <data name="app_d17d2d78d76e6a6c" xml:space="preserve">
     <value>Modelle</value>
@@ -1425,6 +1441,10 @@
     <value>Media Foundation lieferte {0}, {1} Bit, {2} Kanäle.</value>
     <comment>windows: Media Foundation returned %@, %@ bits, %@ channels.</comment>
   </data>
+  <data name="windows_021409e9fd222e4b" xml:space="preserve">
+    <value>Hearsay kann nicht in den Ordner {0} schreiben. Den Hearsay-Ordner in einen beschreibbaren Ordner bewegen, Hearsay dort öffnen und dann erneut nach Updates suchen.</value>
+    <comment>windows: Hearsay cannot write to the folder %@. Move the Hearsay folder to a folder you can write to, open it from there, then check for updates again.</comment>
+  </data>
   <data name="windows_090a0c74f4e57815" xml:space="preserve">
     <value>Verwendet das auf diesem PC installierte Codex und die ChatGPT-Anmeldung; Anfragen zählen zu den Nutzungslimits des Tarifs. Zum Anmelden einmal `codex login` im Terminal ausführen. Aufwand: none, minimal, low, medium, high, xhigh oder max. Ohne Modell wird der Standard von Codex verwendet.</value>
     <comment>windows: Uses Codex installed on this PC and your ChatGPT login; requests count against your plan's usage limits. Run `codex login` once in Terminal to log in. Effort: none, minimal, low, medium, high, xhigh, or max. An empty model uses Codex's default.</comment>
@@ -1437,9 +1457,33 @@
     <value>Nur Taskleiste</value>
     <comment>windows: Taskbar only</comment>
   </data>
+  <data name="windows_140bedbf9c3f6d56" xml:space="preserve">
+    <value>keiner</value>
+    <comment>windows: none</comment>
+  </data>
+  <data name="windows_1a59c0faaf94413f" xml:space="preserve">
+    <value>Die ZIP-Datei sollte eine Hearsay.exe enthalten, enthält aber {0}.</value>
+    <comment>windows: The zip file should contain one Hearsay.exe but contains %lld.</comment>
+  </data>
+  <data name="windows_2b1ed580d0d89941" xml:space="preserve">
+    <value>{0} wird bereits von einer anderen App oder von Windows verwendet.</value>
+    <comment>windows: %@ is already used by another app or Windows.</comment>
+  </data>
+  <data name="windows_2e544a292f6979ed" xml:space="preserve">
+    <value>Umschalt</value>
+    <comment>windows: Shift</comment>
+  </data>
+  <data name="windows_2f193e7ac7ef28e2" xml:space="preserve">
+    <value>Windows akzeptiert diesen Tastaturkurzbefehl nicht (Fehler {0}).</value>
+    <comment>windows: Windows does not accept this shortcut (error %d).</comment>
+  </data>
   <data name="windows_30a2207299bf8d6a" xml:space="preserve">
     <value>Aufnahmestatus im Infobereich anzeigen</value>
     <comment>windows: Show recording status in the notification area</comment>
+  </data>
+  <data name="windows_31da81ee4c14f0af" xml:space="preserve">
+    <value>Bereits für „Pausieren / Fortsetzen“ verwendet.</value>
+    <comment>windows: Already used for Pause / Resume.</comment>
   </data>
   <data name="windows_39e17d7a7d2ee080" xml:space="preserve">
     <value>Die Datei konnte nicht geöffnet werden</value>
@@ -1453,6 +1497,10 @@
     <value>Im Explorer zeigen</value>
     <comment>windows: Show in Explorer</comment>
   </data>
+  <data name="windows_47723a8d3ac48c95" xml:space="preserve">
+    <value>Die ZIP-Datei konnte nicht extrahiert werden: {0}</value>
+    <comment>windows: The zip file could not be extracted: %@</comment>
+  </data>
   <data name="windows_47c6addbf1cc699a" xml:space="preserve">
     <value>Wird transkribiert …</value>
     <comment>windows: Transcribing…</comment>
@@ -1460,6 +1508,10 @@
   <data name="windows_4ece928cc9306cf9" xml:space="preserve">
     <value>Verwendet die auf diesem PC installierte Copilot CLI und deren eigene Anmeldung. Zum Anmelden einmal `copilot` im Terminal ausführen. Mit „auto“ wählt Copilot das Modell.</value>
     <comment>windows: Uses the Copilot CLI installed on this PC and its own login. Run `copilot` once in Terminal to log in. "auto" lets Copilot pick the model.</comment>
+  </data>
+  <data name="windows_5c4fb4d46cc9e941" xml:space="preserve">
+    <value>Eine Kombination mit Strg, Alt oder Win drücken. Esc bricht ab, die Rücktaste stellt den Standard wieder her.</value>
+    <comment>windows: Press a combination with Ctrl, Alt, or Win. Esc cancels; Backspace restores the default.</comment>
   </data>
   <data name="windows_5e1aef8bb73d890d" xml:space="preserve">
     <value>Die aktuellen Notizen werden in den Papierkorb verschoben, sobald die neuen gesichert sind.</value>
@@ -1473,9 +1525,17 @@
     <value>Die Einstellungen konnten nicht gesichert werden: {0} Die Änderung gilt, bis Hearsay beendet wird.</value>
     <comment>windows: Could not save the settings: %@ The change holds until Hearsay quits.</comment>
   </data>
+  <data name="windows_6ab7c6f11835ac7c" xml:space="preserve">
+    <value>Das Sprachmodell konnte nicht geladen werden: {0}</value>
+    <comment>windows: Could not load the speech model: %@</comment>
+  </data>
   <data name="windows_6af8eef13809f390" xml:space="preserve">
     <value>Einige Dateien konnten nicht in den Papierkorb verschoben werden:</value>
     <comment>windows: Some files could not be moved to the Recycle Bin:</comment>
+  </data>
+  <data name="windows_74dc07fb2df5951b" xml:space="preserve">
+    <value>Das Release enthält keine Windows-ZIP-Datei oder keine Prüfsummenliste.</value>
+    <comment>windows: The release has no Windows zip file or checksum list.</comment>
   </data>
   <data name="windows_78e4af71ba04ca8e" xml:space="preserve">
     <value>Die Dateien werden von diesem PC entfernt. Das Modell kann jederzeit erneut geladen werden.</value>
@@ -1497,6 +1557,10 @@
     <value>Dieser Computer transkribiert auf seinem Prozessor (CPU): Nach dem Stoppen dauert das Transkript etwa 1,5- bis 3,5-mal so lange wie die Aufnahme.</value>
     <comment>windows: This computer transcribes on its processor (CPU): after you stop, the transcript takes about 1.5 to 3.5 times as long as the recording.</comment>
   </data>
+  <data name="windows_87b7917d027b1c03" xml:space="preserve">
+    <value>Die neue Version ist von {0} signiert, nicht wie diese Kopie von Hearsay von {1}.</value>
+    <comment>windows: The new version is signed by %@, not by %@ like this copy of Hearsay.</comment>
+  </data>
   <data name="windows_8f8367e088351c7b" xml:space="preserve">
     <value>Die Dateien konnten nicht im Explorer angezeigt werden: {0}</value>
     <comment>windows: Could not show the files in File Explorer: %@</comment>
@@ -1508,6 +1572,14 @@
   <data name="windows_93e4b0adc4b7959d" xml:space="preserve">
     <value>Hearsay hat keinen Zugriff auf das Mikrofon. Unter Einstellungen &gt; Datenschutz und Sicherheit &gt; Mikrofon erlauben („Desktop-Apps den Zugriff auf Ihr Mikrofon erlauben“).</value>
     <comment>windows: Hearsay has no microphone access. Allow it in Settings &gt; Privacy &amp; security &gt; Microphone ("Let desktop apps access your microphone").</comment>
+  </data>
+  <data name="windows_96eb7d451c46f3eb" xml:space="preserve">
+    <value>Diese Kopie von Hearsay liegt nicht in einem eigenen App-Ordner und kann sich nicht selbst aktualisieren. Die neue Version von der Releaseseite laden.</value>
+    <comment>windows: This copy of Hearsay is not in its own app folder, so it cannot update itself. Download the new version from the release page.</comment>
+  </data>
+  <data name="windows_a38e8d5912361a0e" xml:space="preserve">
+    <value>HTTP {0}</value>
+    <comment>windows: HTTP %lld</comment>
   </data>
   <data name="windows_a7ab565beee318c8" xml:space="preserve">
     <value>{0} Byte</value>
@@ -1529,17 +1601,41 @@
     <value>Im Explorer zeigen</value>
     <comment>windows: Reveal in Explorer</comment>
   </data>
+  <data name="windows_b23a6a8439c0dde5" xml:space="preserve">
+    <value>unbekannt</value>
+    <comment>windows: unknown</comment>
+  </data>
   <data name="windows_b4141a0afe74b969" xml:space="preserve">
     <value>Besprechungsnotizen sind in dieser Version noch nicht verfügbar.</value>
     <comment>windows: Meeting notes are not available in this build yet.</comment>
+  </data>
+  <data name="windows_b74e9b4478156399" xml:space="preserve">
+    <value>Die neue App hat den Produktnamen {0}, nicht Hearsay.</value>
+    <comment>windows: The new app has the product name %@, not Hearsay.</comment>
   </data>
   <data name="windows_b79cac926e0b2e34" xml:space="preserve">
     <value>Hilfe</value>
     <comment>windows: Help</comment>
   </data>
+  <data name="windows_b980a145c5e8c9e2" xml:space="preserve">
+    <value>Win</value>
+    <comment>windows: Win</comment>
+  </data>
+  <data name="windows_bcc0753c970f15ca" xml:space="preserve">
+    <value>{0} kann unter Windows kein so langes Transkript verarbeiten: Die Befehlszeile hätte {1} Zeichen, Windows erlaubt {2}. Für lange Besprechungen Claude Code, Codex oder einen HTTP-Anbieter verwenden.</value>
+    <comment>windows: %@ cannot take a transcript this long on Windows: the command line would be %@ characters, and Windows allows %@. Use Claude Code, Codex, or an HTTP provider for long meetings.</comment>
+  </data>
+  <data name="windows_c91da2e0203bbe90" xml:space="preserve">
+    <value>Alt</value>
+    <comment>windows: Alt</comment>
+  </data>
   <data name="windows_c922f7e788140aac" xml:space="preserve">
     <value>Verwendet die auf diesem PC installierte Antigravity CLI und das Google-Konto, mit dem sie angemeldet ist; Anfragen zählen zu den Limits dieses Kontos. Zum Anmelden einmal `agy` im Terminal ausführen; `agy models` listet die Modell-IDs auf. Aufwand: low, medium, high oder max, nur für eine Modell-ID ohne eigene Stufe (ein Modell, das auf -high, -medium oder -low endet, ignoriert ihn). Läufe verwenden das agy-Projekt hearsay-notes, dessen Deny-Regeln dem Modell außer der Websuche keine Werkzeuge lassen, und die Konversation jedes Laufs wird danach aus dem agy-Verlauf gelöscht.</value>
     <comment>windows: Uses the Antigravity CLI installed on this PC and the Google account it is logged in with; requests count against that account's limits. Run `agy` once in Terminal to log in; `agy models` lists the model ids. Effort: low, medium, high, or max, only for a model id without its own level (a model ending in -high, -medium, or -low ignores it). Runs use agy's hearsay-notes project, whose deny rules leave the model no tools except web search, and each run's conversation is deleted from agy's history afterwards.</comment>
+  </data>
+  <data name="windows_cc998ac38d55e048" xml:space="preserve">
+    <value>Strg, Alt oder Win verwenden.</value>
+    <comment>windows: Include Ctrl, Alt, or Win.</comment>
   </data>
   <data name="windows_cc9e108f2c7b21c1" xml:space="preserve">
     <value>Live-Vorschau aus: Dieser Computer ist dafür zu langsam</value>
@@ -1561,6 +1657,18 @@
     <value>In den Papierkorb verschieben …</value>
     <comment>windows: Move to Recycle Bin…</comment>
   </data>
+  <data name="windows_db1423267c535dfc" xml:space="preserve">
+    <value>Das letzte Update konnte nicht installiert werden. Hearsay ist noch die vorherige Version.</value>
+    <comment>windows: The last update could not be installed. Hearsay is still the previous version.</comment>
+  </data>
+  <data name="windows_e23325c173e9de96" xml:space="preserve">
+    <value>Bereits für „Aufnahme starten / stoppen“ verwendet.</value>
+    <comment>windows: Already used for Start / Stop recording.</comment>
+  </data>
+  <data name="windows_e2ee2909fe279f5c" xml:space="preserve">
+    <value>Strg</value>
+    <comment>windows: Ctrl</comment>
+  </data>
   <data name="windows_e57398e272e7cf49" xml:space="preserve">
     <value>wav, m4a, mp3, aac, wma, flac oder die Tonspur von mp4 / mov</value>
     <comment>windows: wav, m4a, mp3, aac, wma, flac, or the audio track of mp4 / mov</comment>
@@ -1572,6 +1680,18 @@
   <data name="windows_e70ed824b8a162d4" xml:space="preserve">
     <value>Nur Infobereich</value>
     <comment>windows: Notification area only</comment>
+  </data>
+  <data name="windows_e7a50435a351e221" xml:space="preserve">
+    <value>Zeitüberschreitung bei der Anforderung.</value>
+    <comment>windows: The request timed out.</comment>
+  </data>
+  <data name="windows_e7cf76b321ed3f73" xml:space="preserve">
+    <value>{0}. {1}</value>
+    <comment>windows: %@. %@</comment>
+  </data>
+  <data name="windows_ee45aba71c60ac6a" xml:space="preserve">
+    <value>Windows führt Hearsay direkt aus der ZIP-Datei aus. Die ZIP-Datei in einen beschreibbaren Ordner extrahieren, Hearsay dort öffnen und dann erneut nach Updates suchen.</value>
+    <comment>windows: Windows is running Hearsay straight from the zip file. Extract the zip to a folder you can write to, open Hearsay from there, then check for updates again.</comment>
   </data>
   <data name="windows_f0991d29d2328b1e" xml:space="preserve">
     <value>{0} löschen?</value>

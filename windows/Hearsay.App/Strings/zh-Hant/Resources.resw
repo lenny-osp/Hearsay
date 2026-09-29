@@ -365,6 +365,10 @@
     <value>逐字稿：</value>
     <comment>app: Transcript:</comment>
   </data>
+  <data name="app_5753ea3780f34ad1" xml:space="preserve">
+    <value>快速鍵</value>
+    <comment>app: Shortcut</comment>
+  </data>
   <data name="app_59a62100b3820687" xml:space="preserve">
     <value>同時擷取系統聲音</value>
     <comment>app: Also capture system audio</comment>
@@ -436,6 +440,10 @@
   <data name="app_64aa002c089b740e" xml:space="preserve">
     <value>改用即時預覽</value>
     <comment>app: Use live preview instead</comment>
+  </data>
+  <data name="app_6533240ef4cdc529" xml:space="preserve">
+    <value>按一下，然後按下新的快速鍵。</value>
+    <comment>app: Click, then press a new shortcut.</comment>
   </data>
   <data name="app_65d48235a91ee221" xml:space="preserve">
     <value>啟動</value>
@@ -584,6 +592,10 @@
   <data name="app_85d972199ed4cb30" xml:space="preserve">
     <value>即時預覽遺漏了一個片段：{0}</value>
     <comment>app: Live preview missed a chunk: %@</comment>
+  </data>
+  <data name="app_863e1c76c4ef8dd2" xml:space="preserve">
+    <value>輸入快速鍵…</value>
+    <comment>app: Type shortcut…</comment>
   </data>
   <data name="app_871a3f5b8bd91899" xml:space="preserve">
     <value>正在轉錄 {0}…</value>
@@ -856,6 +868,10 @@
   <data name="app_cf6214111dd9188a" xml:space="preserve">
     <value>沒有可打開 {0} 的 App。</value>
     <comment>app: No app is available to open %@.</comment>
+  </data>
+  <data name="app_d139a2e0a0d3c5d1" xml:space="preserve">
+    <value>錯誤：找不到或無法讀取 SRT 檔案（{0}）：{1}</value>
+    <comment>app: Error: SRT file not found or unreadable (%@): %@</comment>
   </data>
   <data name="app_d17d2d78d76e6a6c" xml:space="preserve">
     <value>模型</value>
@@ -1425,6 +1441,10 @@
     <value>Media Foundation 傳回 {0}、{1} 位元、{2} 聲道。</value>
     <comment>windows: Media Foundation returned %@, %@ bits, %@ channels.</comment>
   </data>
+  <data name="windows_021409e9fd222e4b" xml:space="preserve">
+    <value>Hearsay 無法寫入資料夾 {0}。請將 Hearsay 資料夾移到可寫入的資料夾，從那裡打開後再檢查更新。</value>
+    <comment>windows: Hearsay cannot write to the folder %@. Move the Hearsay folder to a folder you can write to, open it from there, then check for updates again.</comment>
+  </data>
   <data name="windows_090a0c74f4e57815" xml:space="preserve">
     <value>使用這台電腦上安裝的 Codex 與你的 ChatGPT 登入；請求會計入你方案的用量限制。請在「終端機」中執行一次 `codex login` 以登入。推理強度：none、minimal、low、medium、high、xhigh 或 max。模型留空時使用 Codex 的預設值。</value>
     <comment>windows: Uses Codex installed on this PC and your ChatGPT login; requests count against your plan's usage limits. Run `codex login` once in Terminal to log in. Effort: none, minimal, low, medium, high, xhigh, or max. An empty model uses Codex's default.</comment>
@@ -1437,9 +1457,33 @@
     <value>僅工作列</value>
     <comment>windows: Taskbar only</comment>
   </data>
+  <data name="windows_140bedbf9c3f6d56" xml:space="preserve">
+    <value>無</value>
+    <comment>windows: none</comment>
+  </data>
+  <data name="windows_1a59c0faaf94413f" xml:space="preserve">
+    <value>ZIP 檔應只包含一個 Hearsay.exe，但包含 {0} 個。</value>
+    <comment>windows: The zip file should contain one Hearsay.exe but contains %lld.</comment>
+  </data>
+  <data name="windows_2b1ed580d0d89941" xml:space="preserve">
+    <value>{0} 已被其他 App 或 Windows 使用。</value>
+    <comment>windows: %@ is already used by another app or Windows.</comment>
+  </data>
+  <data name="windows_2e544a292f6979ed" xml:space="preserve">
+    <value>Shift</value>
+    <comment>windows: Shift</comment>
+  </data>
+  <data name="windows_2f193e7ac7ef28e2" xml:space="preserve">
+    <value>Windows 不接受此快速鍵（錯誤 {0}）。</value>
+    <comment>windows: Windows does not accept this shortcut (error %d).</comment>
+  </data>
   <data name="windows_30a2207299bf8d6a" xml:space="preserve">
     <value>在通知區域顯示錄音狀態</value>
     <comment>windows: Show recording status in the notification area</comment>
+  </data>
+  <data name="windows_31da81ee4c14f0af" xml:space="preserve">
+    <value>已用於「暫停／繼續」。</value>
+    <comment>windows: Already used for Pause / Resume.</comment>
   </data>
   <data name="windows_39e17d7a7d2ee080" xml:space="preserve">
     <value>無法打開檔案</value>
@@ -1453,6 +1497,10 @@
     <value>在檔案總管中顯示</value>
     <comment>windows: Show in Explorer</comment>
   </data>
+  <data name="windows_47723a8d3ac48c95" xml:space="preserve">
+    <value>無法解壓縮 ZIP 檔：{0}</value>
+    <comment>windows: The zip file could not be extracted: %@</comment>
+  </data>
   <data name="windows_47c6addbf1cc699a" xml:space="preserve">
     <value>正在轉錄…</value>
     <comment>windows: Transcribing…</comment>
@@ -1460,6 +1508,10 @@
   <data name="windows_4ece928cc9306cf9" xml:space="preserve">
     <value>使用這台電腦上安裝的 Copilot CLI 及其自身的登入。請在「終端機」中執行一次 `copilot` 以登入。「auto」會讓 Copilot 自行選擇模型。</value>
     <comment>windows: Uses the Copilot CLI installed on this PC and its own login. Run `copilot` once in Terminal to log in. "auto" lets Copilot pick the model.</comment>
+  </data>
+  <data name="windows_5c4fb4d46cc9e941" xml:space="preserve">
+    <value>請按下包含 Ctrl、Alt 或 Win 的組合鍵。按 Esc 鍵取消，按 Backspace 鍵還原預設值。</value>
+    <comment>windows: Press a combination with Ctrl, Alt, or Win. Esc cancels; Backspace restores the default.</comment>
   </data>
   <data name="windows_5e1aef8bb73d890d" xml:space="preserve">
     <value>儲存新筆記時，目前的筆記會移至資源回收筒。</value>
@@ -1473,9 +1525,17 @@
     <value>無法儲存設定：{0} 此變更在 Hearsay 結束前有效。</value>
     <comment>windows: Could not save the settings: %@ The change holds until Hearsay quits.</comment>
   </data>
+  <data name="windows_6ab7c6f11835ac7c" xml:space="preserve">
+    <value>無法載入語音模型：{0}</value>
+    <comment>windows: Could not load the speech model: %@</comment>
+  </data>
   <data name="windows_6af8eef13809f390" xml:space="preserve">
     <value>部分檔案無法移至資源回收筒：</value>
     <comment>windows: Some files could not be moved to the Recycle Bin:</comment>
+  </data>
+  <data name="windows_74dc07fb2df5951b" xml:space="preserve">
+    <value>此版本沒有 Windows ZIP 檔或校驗和清單。</value>
+    <comment>windows: The release has no Windows zip file or checksum list.</comment>
   </data>
   <data name="windows_78e4af71ba04ca8e" xml:space="preserve">
     <value>其檔案會從這台電腦移除。你隨時可以重新下載。</value>
@@ -1497,6 +1557,10 @@
     <value>這台電腦使用處理器（CPU）轉錄：停止後，逐字稿約需錄音長度的 1.5 到 3.5 倍時間。</value>
     <comment>windows: This computer transcribes on its processor (CPU): after you stop, the transcript takes about 1.5 to 3.5 times as long as the recording.</comment>
   </data>
+  <data name="windows_87b7917d027b1c03" xml:space="preserve">
+    <value>新版本由 {0} 簽署，而不是像這份 Hearsay 一樣由 {1} 簽署。</value>
+    <comment>windows: The new version is signed by %@, not by %@ like this copy of Hearsay.</comment>
+  </data>
   <data name="windows_8f8367e088351c7b" xml:space="preserve">
     <value>無法在檔案總管中顯示檔案：{0}</value>
     <comment>windows: Could not show the files in File Explorer: %@</comment>
@@ -1508,6 +1572,14 @@
   <data name="windows_93e4b0adc4b7959d" xml:space="preserve">
     <value>Hearsay 沒有麥克風取用權限。請在「設定 &gt; 隱私權與安全性 &gt; 麥克風」中允許（「讓桌面應用程式存取您的麥克風」）。</value>
     <comment>windows: Hearsay has no microphone access. Allow it in Settings &gt; Privacy &amp; security &gt; Microphone ("Let desktop apps access your microphone").</comment>
+  </data>
+  <data name="windows_96eb7d451c46f3eb" xml:space="preserve">
+    <value>這份 Hearsay 不在自己的 App 資料夾中，無法自行更新。請從版本頁面下載新版本。</value>
+    <comment>windows: This copy of Hearsay is not in its own app folder, so it cannot update itself. Download the new version from the release page.</comment>
+  </data>
+  <data name="windows_a38e8d5912361a0e" xml:space="preserve">
+    <value>HTTP {0}</value>
+    <comment>windows: HTTP %lld</comment>
   </data>
   <data name="windows_a7ab565beee318c8" xml:space="preserve">
     <value>{0} 位元組</value>
@@ -1529,17 +1601,41 @@
     <value>在檔案總管中顯示</value>
     <comment>windows: Reveal in Explorer</comment>
   </data>
+  <data name="windows_b23a6a8439c0dde5" xml:space="preserve">
+    <value>未知</value>
+    <comment>windows: unknown</comment>
+  </data>
   <data name="windows_b4141a0afe74b969" xml:space="preserve">
     <value>此版本尚未提供會議筆記。</value>
     <comment>windows: Meeting notes are not available in this build yet.</comment>
+  </data>
+  <data name="windows_b74e9b4478156399" xml:space="preserve">
+    <value>新 App 的產品名稱是 {0}，而不是 Hearsay。</value>
+    <comment>windows: The new app has the product name %@, not Hearsay.</comment>
   </data>
   <data name="windows_b79cac926e0b2e34" xml:space="preserve">
     <value>說明</value>
     <comment>windows: Help</comment>
   </data>
+  <data name="windows_b980a145c5e8c9e2" xml:space="preserve">
+    <value>Win</value>
+    <comment>windows: Win</comment>
+  </data>
+  <data name="windows_bcc0753c970f15ca" xml:space="preserve">
+    <value>{0} 在 Windows 上無法處理這麼長的逐字稿：命令列會有 {1} 個字元，而 Windows 最多允許 {2} 個。長時間的會議請改用 Claude Code、Codex 或 HTTP 提供者。</value>
+    <comment>windows: %@ cannot take a transcript this long on Windows: the command line would be %@ characters, and Windows allows %@. Use Claude Code, Codex, or an HTTP provider for long meetings.</comment>
+  </data>
+  <data name="windows_c91da2e0203bbe90" xml:space="preserve">
+    <value>Alt</value>
+    <comment>windows: Alt</comment>
+  </data>
   <data name="windows_c922f7e788140aac" xml:space="preserve">
     <value>使用這台電腦上安裝的 Antigravity CLI 及其登入的 Google 帳號；請求會計入該帳號的限制。請在「終端機」中執行一次 `agy` 以登入；`agy models` 會列出模型 ID。推理強度：low、medium、high 或 max，僅適用於本身未帶等級的模型 ID（以 -high、-medium 或 -low 結尾的模型會忽略此設定）。執行時使用 agy 的 hearsay-notes 專案，其拒絕規則讓模型除了網路搜尋外無法使用任何工具，且每次執行的對話之後都會從 agy 的歷史記錄中刪除。</value>
     <comment>windows: Uses the Antigravity CLI installed on this PC and the Google account it is logged in with; requests count against that account's limits. Run `agy` once in Terminal to log in; `agy models` lists the model ids. Effort: low, medium, high, or max, only for a model id without its own level (a model ending in -high, -medium, or -low ignores it). Runs use agy's hearsay-notes project, whose deny rules leave the model no tools except web search, and each run's conversation is deleted from agy's history afterwards.</comment>
+  </data>
+  <data name="windows_cc998ac38d55e048" xml:space="preserve">
+    <value>須包含 Ctrl、Alt 或 Win。</value>
+    <comment>windows: Include Ctrl, Alt, or Win.</comment>
   </data>
   <data name="windows_cc9e108f2c7b21c1" xml:space="preserve">
     <value>即時預覽已關閉：這台電腦的速度不足</value>
@@ -1561,6 +1657,18 @@
     <value>移至資源回收筒…</value>
     <comment>windows: Move to Recycle Bin…</comment>
   </data>
+  <data name="windows_db1423267c535dfc" xml:space="preserve">
+    <value>上次的更新無法安裝，Hearsay 仍是先前的版本。</value>
+    <comment>windows: The last update could not be installed. Hearsay is still the previous version.</comment>
+  </data>
+  <data name="windows_e23325c173e9de96" xml:space="preserve">
+    <value>已用於「開始／停止錄音」。</value>
+    <comment>windows: Already used for Start / Stop recording.</comment>
+  </data>
+  <data name="windows_e2ee2909fe279f5c" xml:space="preserve">
+    <value>Ctrl</value>
+    <comment>windows: Ctrl</comment>
+  </data>
   <data name="windows_e57398e272e7cf49" xml:space="preserve">
     <value>wav、m4a、mp3、aac、wma、flac，或 mp4／mov 的音軌</value>
     <comment>windows: wav, m4a, mp3, aac, wma, flac, or the audio track of mp4 / mov</comment>
@@ -1572,6 +1680,18 @@
   <data name="windows_e70ed824b8a162d4" xml:space="preserve">
     <value>僅通知區域</value>
     <comment>windows: Notification area only</comment>
+  </data>
+  <data name="windows_e7a50435a351e221" xml:space="preserve">
+    <value>要求逾時。</value>
+    <comment>windows: The request timed out.</comment>
+  </data>
+  <data name="windows_e7cf76b321ed3f73" xml:space="preserve">
+    <value>{0}. {1}</value>
+    <comment>windows: %@. %@</comment>
+  </data>
+  <data name="windows_ee45aba71c60ac6a" xml:space="preserve">
+    <value>Windows 正直接從 ZIP 檔執行 Hearsay。請將 ZIP 檔解壓縮到可寫入的資料夾，從那裡打開 Hearsay 後再檢查更新。</value>
+    <comment>windows: Windows is running Hearsay straight from the zip file. Extract the zip to a folder you can write to, open Hearsay from there, then check for updates again.</comment>
   </data>
   <data name="windows_f0991d29d2328b1e" xml:space="preserve">
     <value>要刪除 {0} 嗎？</value>

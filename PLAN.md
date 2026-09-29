@@ -810,6 +810,12 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
     against a scratch copy of the install folder, then a real in-app
     update; the helper swaps the folder after quit and relaunches, log in
     `%LOCALAPPDATA%\Hearsay\Updates\install.log`.
+25. Windows, shortcut recorder (added 2026-09-30): in Settings > General
+    click the Start / Stop button, press Ctrl+Shift+F9: it shows and fires
+    from another app. Try Shift+A (hint), the Pause chord (hint), Win+E
+    (the shell takes it; nothing happens), an AltGr chord on a German
+    layout, Escape (keeps the old one) and Backspace (default). While it
+    listens, the old chord must not start a recording.
 
 ## 17. Polish list (found during review, not yet scheduled)
 
@@ -959,7 +965,7 @@ once after pulling this.
 | Settings and state | `%APPDATA%\Hearsay\settings.json`; models in `%LOCALAPPDATA%\Hearsay\Models`; spool in `%LOCALAPPDATA%\Hearsay\Recording`; output default `%USERPROFILE%\Documents\Hearsay` | |
 | Hotkeys, login, window modes | `RegisterHotKey`; `HKCU\...\Run` for launch at login; tray-only vs taskbar | |
 | Tray status | Same setting as the Mac (`menuBarShowsStatus`, default on): the tray icon swaps to a red variant while recording and a pause variant while paused. The Windows notification area cannot show text next to an icon, so the elapsed time goes in the tooltip. Label is Windows-only ("Show recording status in the notification area"); add it to `shared/localization` | added 2026-09-29 |
-| Localization | `windows/scripts/import-strings.py` generates `windows/Hearsay.App/Strings/<lang>/Resources.resw` (committed, so a build needs no Python; `--check` in CI) from `shared/localization/*.json`; `Strings.cs` is the single lookup over MRT Core (`ResourceManager` without package identity, language from `InterfaceLanguage.ResolveAtLaunch`); Restart Now relaunches. | Done 2026-09-30: 261 Mac keys reused (246 app, 15 core; all 96 core entries are also in the resw so `Strings.CoreText` translates Core's English), 40 Windows-only keys added under catalog `windows` with translations in all four languages; resw names are `<catalog>_` + 16 hex digits of the key's SHA-256 (keys are sentences). The Mac scripts skip catalog `windows` (`merge-translations.py validate`) and keep those entries on export (`export-strings.py`). Placeholders `%@` become `{0}`. Core errors carry their Mac key and values (`ILocalizedMessage` / `ILocalizedError`, `LocalizedMessage` in Core; `Strings.Localize` in the app), so formatted messages translate too; a test per type proves key plus values equal the English `Message`. Still English: the Core texts with no Mac key (listed in 18.9) and hotkey key names. `windows/Hearsay.App.Tests` (net10.0-windows, references the app; copies `Hearsay.pri` to `resources.pri` so the resource manager works under testhost) covers the app-side logic. |
+| Localization | `windows/scripts/import-strings.py` generates `windows/Hearsay.App/Strings/<lang>/Resources.resw` (committed, so a build needs no Python; `--check` in CI) from `shared/localization/*.json`; `Strings.cs` is the single lookup over MRT Core (`ResourceManager` without package identity, language from `InterfaceLanguage.ResolveAtLaunch`); Restart Now relaunches. | Done 2026-09-30: 261 Mac keys reused (246 app, 15 core; all 96 core entries are also in the resw so `Strings.CoreText` translates Core's English), 40 Windows-only keys added under catalog `windows` with translations in all four languages; resw names are `<catalog>_` + 16 hex digits of the key's SHA-256 (keys are sentences). The Mac scripts skip catalog `windows` (`merge-translations.py validate`) and keep those entries on export (`export-strings.py`). Placeholders `%@` become `{0}`. Core errors carry their Mac key and values (`ILocalizedMessage` / `ILocalizedError`, `LocalizedMessage` in Core; `Strings.Localize` in the app), so formatted messages translate too; a test per type proves key plus values equal the English `Message`. Core's Windows-only texts (install location, zip and signer checks, the command-line limit, the joined login-status line, "Could not load the speech model: %@", and the inserted "The request timed out.", "HTTP %lld", "unknown", "none" as nested messages) have `windows` keys too (2026-09-30, 16 keys; `Strings.CoreMessageInWindowsCatalog` names them for import-strings.py). Still English: technical details inside a translated sentence (18.9) and hotkey key names. `windows/Hearsay.App.Tests` (net10.0-windows, references the app; copies `Hearsay.pri` to `resources.pri` so the resource manager works under testhost) covers the app-side logic. |
 | Help | WebView2 rendering `shared/help/<lang>/Help.html`; `hearsay://open/<tab>` links handled the same way. One page per language serves both platforms: a platform-specific passage carries `data-platform="mac"` or `data-platform="windows"` on the smallest enclosing `<li>`, `<p>`, `<span>` or `<section>`, and the shared CSS hides it unless `<html>` has the matching class (`html:not(.windows) [data-platform="windows"]` and `html.windows [data-platform="mac"]` are `display: none`, so a page with no class shows the Mac text). The Windows `HelpWindow` adds class `windows` at each document's DOMContentLoaded through `ExecuteScriptAsync` and keeps the view transparent until then; `AddScriptToExecuteOnDocumentCreatedAsync` does not run with `IsScriptEnabled` off (WebView2 154), and turning page scripts on was rejected. | Decided 2026-09-30 (W7). Windows passages cover only what differs: notification area and taskbar, the three window modes, Settings > Privacy & security > Microphone (system audio needs no permission), Ctrl+Alt+Win+R / P and F1, `%USERPROFILE%\Documents\Hearsay`, Reveal in Explorer and the Recycle Bin, right-click, the install commands, the Copilot and Antigravity length limit (18.4 "W6 core"), Vulkan or CPU speed and live preview off (18.4 "Speed"), the File tab's types (18.4 "W5 app wiring"), the Windows model, restart wording. The Mac page renders the same visible text as before with no class (checked by extracting each page's visible text under the CSS rule, all five languages). The Mac still sets no class (18.9). |
 | Packaging | **Proposal for the owner, 2026-09-30 (not decided):** the unpackaged, self-contained `win-x64` app it already is (18.6, "Toolchain verified"), published as `Hearsay-<version>-win-x64.zip` (one `Hearsay\` folder inside) on the same GitHub Release and `SHA256SUMS.txt` as the DMG, with the in-app update of 18.4 "Updates and packaging (proposal)": parity with the Mac's DMG plus in-app install. Signed with a self-signed code-signing identity from a repository secret, as the Mac is, so every release has the same signer and the update can check it; SmartScreen still shows "Windows protected your PC" (More info > Run anyway) on the first launch of a downloaded zip, which README and the release notes explain. If the owner buys Azure Trusted Signing, releases are signed with it instead and the prompt goes away as reputation builds; no code change (the signer rule accepts a renewed trusted certificate with the same subject). | Alternatives not chosen: **MSIX** needs a certificate the PC already trusts (a self-signed one must be imported into the machine's trusted store by an administrator, or the package sideloaded with Developer Mode, which AGENTS.md says not to ask users to change), and its App Installer updates would replace the Mac-style check. **Velopack** adds a framework (its NuGet package, CLI and release-feed layout) for delta updates and a Setup.exe, the kind of dependency 4.6 removed Sparkle to avoid. **Inno Setup** adds an installer the zip does not need. Until the owner decides there is no Windows release workflow; `windows-ci.yml` builds and tests only. |
 
@@ -1008,12 +1014,24 @@ passes, 271 tests). Where Windows forced a difference from the Swift:
 - **Birth time** (`Timestamps.SourceFileTimestamp`): the file's creation
   time, falling back to the last write only when creation time is the 1601
   sentinel; a missing file gives null.
-- **Recycle Bin** (`ReplaceNamed`): `SHFileOperationW` with `FOF_ALLOWUNDO`
-  does not report where the recycled file went, so when a later step fails
-  the old notes cannot be moved back as on the Mac; the error lists them as
-  not restored. `IFileOperation` with a progress sink could restore them
-  (W6 candidate). The user-facing text still says "Trash" so the
-  translations are reused; W7 decides on a Windows string.
+- **Recycle Bin** (`ReplaceNamed`, `RecycleBin.cs`, 2026-09-30):
+  `IFileOperation.DeleteItem` with `FOF_ALLOWUNDO | FOFX_RECYCLEONDELETE`
+  (plus `FOF_NOCONFIRMATION | FOF_SILENT | FOF_NOERRORUI |
+  FOFX_EARLYFAILURE`); the progress sink's `PostDeleteItem` gives the
+  recycled item (`C:\$Recycle.Bin\<SID>\$R<id>.md`), whose path is the
+  handle. When a later step fails the old notes are moved back as on the
+  Mac: `IFileOperation.MoveItem` of that item as a child of the Recycle Bin
+  folder to the original folder and name, never over an existing file.
+  `MoveItem` leaves the bin's `$I<id>` record (original path, deletion
+  time) behind, so Hearsay deletes it when it names the restored path; an
+  orphaned record is not shown in the bin. A file the bin cannot take
+  (network share, oversized) still asks before it is deleted for good
+  (`FOF_WANTNUKEWARNING`), gives no handle, and a rollback lists it as not
+  restored, as before. A failed move back lists the `$R` path (the Mac lists
+  the file's Trash URL). Operations run on an STA thread. Tested against
+  the real bin with `HEARSAY_TEST_RECYCLE_BIN=1` (off by default). The
+  user-facing text still says "Trash" so the translations are reused; W7
+  decides on a Windows string.
 - **History scan** skips files with the Hidden attribute as well as dot
   files; reparse points are not skipped because OneDrive placeholders in
   Documents are reparse points.
@@ -1186,7 +1204,9 @@ Settings (2026-09-29; `windows/Hearsay.Core/Settings`):
 - **Hotkeys** store `{keyCode, modifiers}` with Win32 values (VK codes;
   MOD_ALT 1, MOD_CONTROL 2, MOD_SHIFT 4, MOD_WIN 8; MOD_NOREPEAT added at
   registration). Proposed defaults Ctrl+Alt+Win+R and Ctrl+Alt+Win+P
-  (⌘→Win), to be confirmed by the owner. Key names are English until W7.
+  (⌘→Win), to be confirmed by the owner. Core's `DisplayString` is
+  English (log lines); the app shows `HotkeyDisplay.Text`, which translates
+  the modifiers, Space and "Key n" (18.9 lists the rest).
 - **Window mode** keeps the Mac's stored values; the menu bar item is the
   tray icon and the Dock icon the taskbar button.
 - **Interface language**: `ResolveAtLaunch(stored, environment)`
@@ -1238,9 +1258,15 @@ because the SDK has no notification-icon API; WebView2 comes with the SDK):
   recording and an amber dot with pause bars for paused.
 - **Window modes**: in taskbar-only mode closing the window quits, because
   a taskbar button needs a window (the Mac keeps running in the Dock).
-- **Hotkeys**: `RegisterHotKey` on a hidden message-only window. A shortcut
-  recorder is not built yet (the shell owns many Win-key combinations);
-  bindings show and Reset works.
+- **Hotkeys**: `RegisterHotKey` on a hidden message-only window. The
+  shortcut recorder (done 2026-09-30, `HotkeyRecorderView`) mirrors the
+  Mac's: click, press a chord with Ctrl, Alt or Win; Escape cancels; the
+  hotkeys are unregistered while it listens. Windows additions: Backspace
+  or Delete alone restores that action's default, the other action's
+  chord is refused, and a trial `RegisterHotKey` (`HotkeyManager.Probe`)
+  refuses a chord Windows or another app owns ("already used by another
+  app or Windows") before it is saved; each reason shows under the button.
+  Modifier names are Windows' in each language (Strg, Umschalt, Mayús).
 - **Single instance** through `AppInstance.FindOrRegisterForKey`; debug
   runs skip it. WebView2 profile in `%LOCALAPPDATA%\Hearsay\WebView2`.
 - **Help**: the shared pages copied at build time; they describe macOS
@@ -1619,26 +1645,34 @@ decision recorded here before the phase named.
 Like section 17, for the Windows app. Add here rather than leaving
 findings only in a chat report.
 
-- **Core texts with no catalog key** (still English in every language):
-  Core errors now carry their Mac key and values (`Hearsay.Core.ILocalizedError`,
-  `LocalizedMessage`; `Strings.Describe` translates them), except the
-  Windows wording that has no `shared/localization` entry yet:
-  `CliProviderError.CommandLineTooLong`; `NotesPipelineError.SrtUnreadable`
-  ("Error: SRT file not found or unreadable (…)", no Mac key); every
-  `InstallLocationProblem`; `UpdatePackageError` `ExtractFailed`,
-  `AppNotFound`, `SignerMismatch`, `WrongIdentifier`, `NoPackage`;
-  `UpdateTexts.PreviousInstallFailed`; a CLI's own login-status line with
-  the login advice appended. Values Core inserts in English stay English
-  ("The request timed out.", "HTTP 404", "unknown", "none"), as do the
-  technical whisper.cpp and runtime errors of `Hearsay.Whisper`. The 18.3
-  Localization row's "Still English" list should then shrink to these and
-  the hotkey key names. The update texts (`UpdateTexts.*Message`) and
-  `CliInstallation.LocalizedLoginStatus`, `ModelStore.CatalogErrorMessage`
-  are ready for the app to show through `Strings.Localize`.
-- **Shortcut recorder** for the hotkeys (Settings shows and resets the
-  bindings only).
-- **Recycle Bin restore** on a failed `ReplaceNamed` through
-  `IFileOperation` with a progress sink (18.4, "Recycle Bin").
+- **Core texts still English** (the Windows-only Core texts got `windows`
+  keys on 2026-09-30, 18.3 Localization row): the technical detail inside
+  a translated sentence (the whisper.cpp or runtime message after "Could
+  not load the speech model:", "whisper_full failed (n)" after
+  "Transcription failed:", system error messages, `SignatureInvalid`'s
+  "invalid" / "not signed"). The app shows `error.Message` instead of
+  `Strings.Describe` for the `WhisperEngineException` of
+  `WhisperModelLocation.Active` in `FileViewModel` and `RecordingController`
+  (five `catch` blocks), so "No model installed" and "not fully downloaded"
+  stay English there. The update texts (`UpdateTexts.*Message`,
+  `PreviousInstallFailedMessage`), `InstallLocationException`,
+  `CliInstallation.LocalizedLoginStatus` and `ModelStore.CatalogErrorMessage`
+  are ready for the app to show through `Strings.Localize` / `Describe`.
+- **Shortcut recorder follow-ups** (the recorder itself done 2026-09-30,
+  18.4 "W4 shell" Hotkeys): chords the shell or another app takes before
+  any window sees them (Win+E, Win+L, a chord another app registered)
+  never reach the recorder, so the trial `RegisterHotKey` mostly catches
+  chords that do reach it but are reserved (F12 and the like); only the
+  debug smoke test's probe of Hearsay's own chord (1409) was run, no real
+  shell chord was tried. The other named keys (Page Up, Delete, Insert,
+  Home, End, Enter, Backspace, Tab, Esc, Num n) stay English: Windows'
+  German menus write Entf, Einfg, Pos1, Ende, Bild auf, and those need
+  checking on a German Windows before they get keys. Hotkeys stay
+  suspended while the window is in the background with a recorder
+  listening (it stops on focus loss inside the window, as the Mac's does
+  only on disappear). The Shortcuts card needs the owner's hands-on check
+  with a real keyboard (section 16): Alt chords, AltGr (reads as
+  Ctrl+Alt) on a German layout, and the Win key opening Start on release.
 - **Mac help platform class** (18.3, Help row): `HelpWebView.makeWebView()`
   in `mac/Hearsay/Features/Help/HelpView.swift` should add one user script,
   `configuration.userContentController.addUserScript(WKUserScript(source:

@@ -717,7 +717,7 @@ public sealed class CliClient : IChatCompleting
 
     /// <summary>
     /// <see cref="LoginStatus"/> with the catalog key of the line
-    /// (<see cref="StatusLine.Localized"/>), null for a line taken from the
+    /// (<see cref="StatusLine.Localized"/>), null for a line that is only the
     /// CLI's own output.
     /// </summary>
     internal static (StatusLine Text, bool LoggedIn) LoginStatusMessage(CliTool tool, CliRunResult result)
@@ -777,8 +777,9 @@ public sealed class CliClient : IChatCompleting
         {
             return (line.Length == 0 ? loggedInText : new StatusLine(line, null), true);
         }
-        // The CLI's own line, then the advice: no key for the whole.
-        return (line.Length == 0 ? notLoggedIn : new StatusLine($"{line}. {advice.English}", null), false);
+        // The CLI's own line as it is, then the advice (a Windows key; the Mac
+        // joins the two with ". " and localizes only the advice).
+        return (line.Length == 0 ? notLoggedIn : new StatusLine(new LocalizedMessage("%@. %@", line, advice)), false);
     }
 
     /// <summary>A login status line in English and, when Hearsay wrote it, as its catalog key.</summary>

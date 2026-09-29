@@ -172,7 +172,7 @@ internal sealed class NotesFlowViewModel
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {
             srtText = "";
-            Fail(new NotesPipelineError.SrtUnreadable(SrtPath, error.Message).Description);
+            Fail(Strings.Localize(new NotesPipelineError.SrtUnreadable(SrtPath, error.Message).Localized));
             return;
         }
         // Swift String.count: grapheme clusters.

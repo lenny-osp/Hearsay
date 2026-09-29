@@ -104,9 +104,12 @@ public sealed unsafe class WhisperEngine : IDisposable
         TranscriptionOptions.DefaultThreads(WhisperRuntime.IsCpu, Environment.ProcessorCount);
 
     /// <summary>Loads <paramref name="path"/> (a whisper.cpp GGML/GGUF file) unless it is already loaded.</summary>
-    /// <exception cref="FileNotFoundException">The file does not exist.</exception>
-    /// <exception cref="PlatformNotSupportedException">No whisper.cpp runtime could be loaded.</exception>
-    /// <exception cref="InvalidOperationException">whisper.cpp could not read the model.</exception>
+    /// <exception cref="WhisperEngineException">
+    /// <see cref="WhisperEngineError.LoadFailed"/>: the file does not exist
+    /// (inner <see cref="FileNotFoundException"/>), no whisper.cpp runtime
+    /// could be loaded (<see cref="PlatformNotSupportedException"/>), or
+    /// whisper.cpp could not read the model (<see cref="InvalidOperationException"/>).
+    /// </exception>
     public void Load(string path)
     {
         ArgumentException.ThrowIfNullOrEmpty(path);
@@ -332,9 +335,27 @@ public sealed unsafe class WhisperEngine : IDisposable
 
     // MARK: - Jobs (called with gate held)
 
+    /// <summary>
+    /// <see cref="LoadModelLocked"/>, its failures wrapped in
+    /// <see cref="WhisperEngineError.LoadFailed"/> for the user (the
+    /// technical message stays as the detail and the inner exception).
+    /// </summary>
     private void LoadLocked(string path)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
+        try
+        {
+            LoadModelLocked(path);
+        }
+        catch (Exception error) when (error is FileNotFoundException or PlatformNotSupportedException
+                                          || (error is InvalidOperationException && error is not ObjectDisposedException))
+        {
+            throw WhisperEngineException.LoadFailed(error);
+        }
+    }
+
+    private void LoadModelLocked(string path)
+    {
         string full = Path.GetFullPath(path);
         if (context != IntPtr.Zero && string.Equals(modelPath, full, StringComparison.OrdinalIgnoreCase))
         {

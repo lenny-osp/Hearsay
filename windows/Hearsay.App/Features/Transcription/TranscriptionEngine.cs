@@ -110,8 +110,11 @@ internal sealed class TranscriptionEngine : IDisposable
     /// <summary>The engine stopped because the job was cancelled (the Mac's <c>isTranscriptionCancelled</c>).</summary>
     public static bool IsCancellation(Exception error) => error is OperationCanceledException;
 
-    /// <summary>The user-facing text of an error (the Mac's <c>RecordingController.describe</c>).</summary>
-    public static string Describe(Exception error) => error.Message;
+    /// <summary>
+    /// The user-facing text of an error (the Mac's <c>RecordingController.describe</c>),
+    /// in the interface language when it carries a catalog key (<see cref="Strings.Describe"/>).
+    /// </summary>
+    public static string Describe(Exception error) => Strings.Describe(error);
 
     /// <summary>
     /// One line for the debug paths, as the Mac's <c>DetectionResult.debugSummary</c>

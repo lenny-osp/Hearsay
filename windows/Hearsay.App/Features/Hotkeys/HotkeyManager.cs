@@ -24,6 +24,9 @@ internal enum HotkeyAction
 /// </summary>
 internal sealed class HotkeyManager : INotifyPropertyChanged, IDisposable
 {
+    /// <summary>The hotkey id of <see cref="Probe"/>'s trial registration, apart from the actions' ids.</summary>
+    private const int ProbeId = 3;
+
     private readonly AppSettings settings;
     private readonly Action<HotkeyAction> perform;
     private readonly HashSet<HotkeyAction> registered = [];
@@ -74,7 +77,7 @@ internal sealed class HotkeyManager : INotifyPropertyChanged, IDisposable
         Register();
     }
 
-    /// <summary>Unregisters the hotkeys while a shortcut recorder listens.</summary>
+    /// <summary>Unregisters the hotkeys while a shortcut recorder listens, so the chord reaches the recorder.</summary>
     public void Suspend()
     {
         suspended = true;
@@ -85,6 +88,29 @@ internal sealed class HotkeyManager : INotifyPropertyChanged, IDisposable
     {
         suspended = false;
         Register();
+    }
+
+    /// <summary>
+    /// Whether Windows would register <paramref name="binding"/> now: a
+    /// trial <c>RegisterHotKey</c> on the message window, released at once
+    /// (the shortcut recorder's check, <see cref="HotkeyRecorder.Validate"/>).
+    /// 0 when it registered, else the Win32 error (ERROR_HOTKEY_ALREADY_REGISTERED
+    /// when another app or the shell owns the chord). Also 0 when there is no
+    /// message window to try it on (<see cref="Start"/> not called or failed),
+    /// so the recorder then saves unchecked. Call while suspended: a chord this
+    /// manager holds reports as taken.
+    /// </summary>
+    public int Probe(HotkeyBinding binding)
+    {
+        if (window is null) return 0;
+        if (NativeMethods.RegisterHotKey(window.Handle, ProbeId, binding.RegisterHotKeyModifiers, binding.VirtualKey))
+        {
+            NativeMethods.UnregisterHotKey(window.Handle, ProbeId);
+            return 0;
+        }
+        var error = Marshal.GetLastWin32Error();
+        AppLog.Write($"hotkeys: {binding.DisplayString} is not available, error {error}");
+        return error;
     }
 
     public void Dispose()
@@ -124,7 +150,7 @@ internal sealed class HotkeyManager : INotifyPropertyChanged, IDisposable
             {
                 var error = Marshal.GetLastWin32Error();
                 AppLog.Write($"hotkeys: {binding.DisplayString} for {action} failed, error {error}");
-                failures.Add(Strings.ShortcutTaken(binding.DisplayString));
+                failures.Add(Strings.ShortcutTaken(HotkeyDisplay.Text(binding)));
             }
         }
         RegistrationError = failures.Count == 0 ? null : string.Join('\n', failures);

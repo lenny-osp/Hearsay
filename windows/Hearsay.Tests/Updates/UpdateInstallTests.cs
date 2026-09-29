@@ -514,7 +514,7 @@ public sealed class UpdateInstallTests : IDisposable
         File.WriteAllText(destination, "an older file");
         var error = await Assert.ThrowsAsync<UpdatePackageException>(() =>
             UpdateInstall.DownloadAsync(client, new Uri(Base + "missing.zip"), destination));
-        Assert.Equal(new UpdatePackageError.DownloadFailed("HTTP 404"), error.Error);
+        Assert.Equal(UpdatePackageError.DownloadFailed.HttpStatus(404), error.Error);
         Assert.False(File.Exists(destination));
         Assert.False(File.Exists(destination + ".part"));
 

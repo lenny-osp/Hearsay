@@ -120,6 +120,8 @@ public sealed class LocalizedMessageTests
             new CliProviderError.TimedOut(CliTool.Antigravity),
             new CliProviderError.EmptyOutput(CliTool.Copilot),
             new CliProviderError.NotACliPreset("Ollama"),
+            new CliProviderError.CommandLineTooLong(CliTool.Copilot, 40_000),
+            new CliProviderError.CommandLineTooLong(CliTool.Antigravity, 1_234_567),
         ];
         foreach (var error in errors)
         {
@@ -137,12 +139,15 @@ public sealed class LocalizedMessageTests
         Assert.Same(detail, error.Localized?.MessageArguments[1]);
     }
 
-    /// <summary>Windows only: no key in shared/localization yet, so the app shows the English.</summary>
+    /// <summary>Windows only: the counts are grouped in the interface culture, the English in the invariant one.</summary>
     [Fact]
-    public void CommandLineTooLongHasNoKey()
+    public void CommandLineTooLongGroupsTheCounts()
     {
         var error = new CliProviderException(new CliProviderError.CommandLineTooLong(CliTool.Copilot, 40_000));
-        Assert.Null(error.LocalizedMessage);
+        Assert.Contains("would be 40,000 characters, and Windows allows 32,766.", error.Message, StringComparison.Ordinal);
+        var german = LocalizedMessage.Format(error.LocalizedMessage, _ => null, CultureInfo.GetCultureInfo("de-DE"));
+        Assert.Contains("would be 40.000 characters, and Windows allows 32.766.", german, StringComparison.Ordinal);
+        Assert.Equal(new GroupedNumber(40_000), error.LocalizedMessage.MessageArguments[1]);
     }
 
     [Fact]
@@ -173,9 +178,13 @@ public sealed class LocalizedMessageTests
             Assert.Equal(CliClient.LoginStatus(tool, result).Text, line.English);
             AssertLocalized(line.Localized, line.English);
         }
-        // The CLI's own words have no key.
+        // The CLI's own words alone have no key; followed by the advice, a Windows key joins the two.
         Assert.Null(CliClient.LoginStatusMessage(CliTool.Codex, new CliRunResult(0, "", "Logged in using ChatGPT")).Text.Localized);
-        Assert.Null(CliClient.LoginStatusMessage(CliTool.Codex, new CliRunResult(1, "", "Not logged in")).Text.Localized);
+        var (loggedOut, _) = CliClient.LoginStatusMessage(CliTool.Codex, new CliRunResult(1, "", "Not logged in"));
+        Assert.Equal("Not logged in. Run `codex login` once in Terminal to log in.", loggedOut.English);
+        AssertLocalized(loggedOut.Localized, loggedOut.English);
+        Assert.Equal("%@. %@", loggedOut.Localized?.MessageKey);
+        Assert.Equal("Not logged in", loggedOut.Localized?.MessageArguments[0]);
     }
 
     // Notes (ChatCompletionsClient.swift, NotesPipeline.swift, NotesResponse.swift)
@@ -188,6 +197,7 @@ public sealed class LocalizedMessageTests
             new ChatCompletionsError.MissingToken(),
             new ChatCompletionsError.InvalidUrl(),
             new ChatCompletionsError.Transport("The request timed out."),
+            ChatCompletionsError.Transport.TimedOut(),
             new ChatCompletionsError.Unreachable("localhost"),
             new ChatCompletionsError.HttpStatus(500, "  "),
             new ChatCompletionsError.HttpStatus(401, """{"error":{"message":"bad key"}}"""),
@@ -205,8 +215,8 @@ public sealed class LocalizedMessageTests
     public void NotesPipelineErrors()
     {
         AssertLocalized(new NotesPipelineException(new NotesPipelineError.EmptyTranscript()));
-        // No Mac key: the Mac's flow reports an unreadable SRT itself.
-        Assert.Null(new NotesPipelineException(new NotesPipelineError.SrtUnreadable(@"C:\x.srt", "gone")).LocalizedMessage);
+        // The key of the Mac's NotesFlowViewModel (app catalog), which reports the same text.
+        AssertLocalized(new NotesPipelineException(new NotesPipelineError.SrtUnreadable(@"C:\x.srt", "gone")));
     }
 
     [Fact]
@@ -284,6 +294,13 @@ public sealed class LocalizedMessageTests
         AssertLocalized(new WhisperEngineException(WhisperEngineError.NoActiveModel, null));
         AssertLocalized(new WhisperEngineException(WhisperEngineError.ModelNotReady, "Large v3 Turbo (q5_0)"));
         Assert.Null(new WhisperEngineException("whisper_full failed (-1).").LocalizedMessage);
+        // Windows only: the technical cause is the argument of a Windows key.
+        var cause = new InvalidOperationException(@"whisper.cpp could not load the model C:\m\ggml-base.bin.");
+        var loadFailed = WhisperEngineException.LoadFailed(cause);
+        AssertLocalized(loadFailed);
+        Assert.Equal(@"Could not load the speech model: whisper.cpp could not load the model C:\m\ggml-base.bin.", loadFailed.Message);
+        Assert.Equal(WhisperEngineError.LoadFailed, loadFailed.Error);
+        Assert.Same(cause, loadFailed.InnerException);
     }
 
     // Updates (UpdateChecker.swift, UpdatePackage.swift, UpdateService.swift, UpdateInstaller.swift)
@@ -307,31 +324,59 @@ public sealed class LocalizedMessageTests
     [Fact]
     public void UpdatePackageErrors()
     {
-        UpdatePackageError[] keyed =
+        UpdatePackageError[] errors =
         [
             new UpdatePackageError.ChecksumMissing("Hearsay-1.2.0-win-x64.zip"),
             new UpdatePackageError.ChecksumMismatch("Hearsay-1.2.0-win-x64.zip"),
             new UpdatePackageError.SignatureInvalid("not signed"),
             new UpdatePackageError.WrongVersion("1.1.0", "1.2.0"),
             new UpdatePackageError.WrongVersion(null, "1.2.0"),
-            new UpdatePackageError.DownloadFailed("HTTP 404"),
+            new UpdatePackageError.DownloadFailed("No such host is known."),
+            UpdatePackageError.DownloadFailed.HttpStatus(404),
+            UpdatePackageError.DownloadFailed.TimedOut(),
+            // The Windows wording (zip file, Hearsay.exe, signer, product name), under Windows keys.
+            new UpdatePackageError.ExtractFailed("bad zip"), new UpdatePackageError.AppNotFound(2),
+            new UpdatePackageError.SignerMismatch("CN=a", "CN=b"), new UpdatePackageError.SignerMismatch(null, null),
+            new UpdatePackageError.WrongIdentifier("Notepad"), new UpdatePackageError.WrongIdentifier(null),
+            new UpdatePackageError.NoPackage(),
         ];
-        foreach (var error in keyed)
+        foreach (var error in errors)
         {
             AssertLocalized(new UpdatePackageException(error));
         }
-        // The Windows wording (zip file, Hearsay.exe, signer, product name) has no key yet.
-        UpdatePackageError[] windowsOnly =
+        // The English values Core inserts are keys of their own.
+        Assert.Equal(CommonMessages.Unknown, new UpdatePackageError.WrongVersion(null, "1.2.0").Localized.MessageArguments[0]);
+        Assert.Equal(CommonMessages.Unknown, new UpdatePackageError.SignerMismatch("CN=a", null).Localized.MessageArguments[1]);
+        Assert.Equal(CommonMessages.None, new UpdatePackageError.WrongIdentifier(null).Localized.MessageArguments[0]);
+        var http = UpdatePackageError.DownloadFailed.HttpStatus(404);
+        Assert.Equal("The download failed: HTTP 404", http.Description);
+        Assert.Equal(CommonMessages.HttpStatus(404), http.Localized.MessageArguments[0]);
+        Assert.Equal("The download failed: The request timed out.", UpdatePackageError.DownloadFailed.TimedOut().Description);
+    }
+
+    [Fact]
+    public void InstallLocationProblems()
+    {
+        InstallLocationProblem[] problems =
         [
-            new UpdatePackageError.ExtractFailed("bad zip"), new UpdatePackageError.AppNotFound(2),
-            new UpdatePackageError.SignerMismatch("CN=a", "CN=b"), new UpdatePackageError.WrongIdentifier(null),
-            new UpdatePackageError.NoPackage(),
+            new InstallLocationProblem.RunningFromArchive(), new InstallLocationProblem.NotAnInstallFolder(),
+            new InstallLocationProblem.FolderNotWritable(@"C:\Program Files\Hearsay"),
         ];
-        foreach (var error in windowsOnly)
+        foreach (var problem in problems)
         {
-            Assert.Null(new UpdatePackageException(error).LocalizedMessage);
-            Assert.DoesNotContain(error.Description, Keys.Value);
+            AssertLocalized(new InstallLocationException(problem));
         }
+    }
+
+    [Fact]
+    public void CommonMessagesAreKeys()
+    {
+        AssertLocalized(CommonMessages.RequestTimedOut, "The request timed out.");
+        AssertLocalized(CommonMessages.Unknown, "unknown");
+        AssertLocalized(CommonMessages.None, "none");
+        AssertLocalized(CommonMessages.HttpStatus(503), "HTTP 503");
+        Assert.Equal("1,234,567", new GroupedNumber(1_234_567).ToString());
+        Assert.Equal("1.234.567", string.Format(CultureInfo.GetCultureInfo("de-DE"), "{0}", new GroupedNumber(1_234_567)));
     }
 
     [Fact]
@@ -361,7 +406,7 @@ public sealed class LocalizedMessageTests
         {
             Assert.True(Keys.Value.Contains(text), $"not in strings-en.json: {text}");
         }
-        // Windows only, not in shared/localization yet.
-        Assert.DoesNotContain(UpdateTexts.PreviousInstallFailed, Keys.Value);
+        // Windows only, under a Windows key.
+        AssertLocalized(UpdateTexts.PreviousInstallFailedMessage, UpdateTexts.PreviousInstallFailed);
     }
 }

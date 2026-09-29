@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Security;
+using Hearsay.App.Features.Hotkeys;
 using Hearsay.Core.Settings;
 using Hearsay.Core.Transcription;
 using Microsoft.UI.Xaml;
@@ -19,9 +20,9 @@ namespace Hearsay.App.Features.Settings;
 /// then Acknowledgements (<c>AcknowledgementsSection</c> in
 /// Features/Settings/AcknowledgementsView.swift), whose Show Licenses… opens
 /// the licenses page in a help window (<see cref="AppShell.ShowLicenses"/>).
+/// Each shortcut row has a <see cref="HotkeyRecorderView"/> (PLAN.md 18.9).
 /// <para>
-/// Not here yet: the shortcut recorder (the bindings are shown and can be
-/// reset; recording new ones is later work) and Software updates (W7).
+/// Not here yet: Software updates (W7).
 /// </para>
 /// </summary>
 internal sealed partial class GeneralSettingsView : UserControl
@@ -34,8 +35,8 @@ internal sealed partial class GeneralSettingsView : UserControl
     private readonly ToggleSwitch launchAtLogin;
     private readonly TextBlock launchError;
     private readonly ComboBox preferredLanguage;
-    private readonly TextBlock startStopShortcut;
-    private readonly TextBlock pauseShortcut;
+    private readonly HotkeyRecorderView startStopShortcut;
+    private readonly HotkeyRecorderView pauseShortcut;
     private readonly Button resetShortcuts;
     private readonly TextBlock shortcutError;
     private bool refreshing;
@@ -96,11 +97,15 @@ internal sealed partial class GeneralSettingsView : UserControl
             Caption(Strings.PreferredLanguageCaption)));
 
         // Shortcuts.
-        startStopShortcut = new TextBlock { IsTextSelectionEnabled = true };
-        pauseShortcut = new TextBlock { IsTextSelectionEnabled = true };
+        startStopShortcut = new HotkeyRecorderView(shell.Hotkeys, HotkeyAction.StartStop,
+            () => settings.StartStopHotkey, () => settings.PauseHotkey, binding => settings.StartStopHotkey = binding);
+        pauseShortcut = new HotkeyRecorderView(shell.Hotkeys, HotkeyAction.Pause,
+            () => settings.PauseHotkey, () => settings.StartStopHotkey, binding => settings.PauseHotkey = binding);
         resetShortcuts = new Button { Content = Strings.ShortcutsReset };
         resetShortcuts.Click += (_, _) =>
         {
+            startStopShortcut.StopListening();
+            pauseShortcut.StopListening();
             settings.StartStopHotkey = HotkeyBinding.DefaultStartStop;
             settings.PauseHotkey = HotkeyBinding.DefaultPause;
         };
@@ -146,13 +151,27 @@ internal sealed partial class GeneralSettingsView : UserControl
         pendingRow.Visibility = pendingLanguage.Text.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
         launchAtLogin.IsOn = shell.LaunchAtLogin.IsEnabled;
         preferredLanguage.SelectedIndex = IndexOf(TranscriptLanguages.All, settings.PreferredLanguage);
-        startStopShortcut.Text = settings.StartStopHotkey.DisplayString;
-        pauseShortcut.Text = settings.PauseHotkey.DisplayString;
+        startStopShortcut.Refresh();
+        pauseShortcut.Refresh();
         resetShortcuts.IsEnabled = settings.StartStopHotkey != HotkeyBinding.DefaultStartStop
             || settings.PauseHotkey != HotkeyBinding.DefaultPause;
         SetWarning(shortcutError, shell.Hotkeys.RegistrationError);
         refreshing = false;
     }
+
+    /// <summary>
+    /// UI snapshots only: the Start / Stop recorder listening, after a
+    /// Shift+A press it refused, so the recording state and its inline reason
+    /// show. <see cref="EndRecordingSample"/> puts it back.
+    /// </summary>
+    internal HotkeyRecorderView ShowRecordingSample()
+    {
+        startStopShortcut.StartListening();
+        startStopShortcut.Handle(0x41, HotkeyModifiers.Shift);
+        return startStopShortcut;
+    }
+
+    internal void EndRecordingSample() => startStopShortcut.Handle(HotkeyRecorder.VkEscape, HotkeyModifiers.None);
 
     /// <summary>Only the user's toggle writes the Run key; the switch then reads the state back.</summary>
     private void SetLaunchAtLogin(bool enabled)

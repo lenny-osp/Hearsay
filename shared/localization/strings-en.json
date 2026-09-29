@@ -3839,5 +3839,213 @@
     "english": "This computer transcribes on its processor (CPU): after you stop, the transcript takes about 1.5 to 3.5 times as long as the recording.",
     "comment": "Record tab notice before the first recording when transcription runs on the processor (no Vulkan graphics). Windows only.",
     "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Ctrl",
+    "english": "Ctrl",
+    "comment": "Shortcut display: the Control key, as Windows menus name it in this language (German Strg). Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Alt",
+    "english": "Alt",
+    "comment": "Shortcut display: the Alt key, as Windows menus name it. Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Shift",
+    "english": "Shift",
+    "comment": "Shortcut display: the Shift key, as Windows menus name it in this language (German Umschalt, Spanish Mayús). Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Win",
+    "english": "Win",
+    "comment": "Shortcut display: the Windows logo key. Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Press a combination with Ctrl, Alt, or Win. Esc cancels; Backspace restores the default.",
+    "english": "Press a combination with Ctrl, Alt, or Win. Esc cancels; Backspace restores the default.",
+    "comment": "Shortcut recorder tooltip while listening. Use the key names Windows uses in this language. Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Include Ctrl, Alt, or Win.",
+    "english": "Include Ctrl, Alt, or Win.",
+    "comment": "Shortcut recorder hint. Use the key names Windows uses in this language. Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Already used for Start / Stop recording.",
+    "english": "Already used for Start / Stop recording.",
+    "comment": "Shortcut recorder hint: the Pause shortcut was set to the Start / Stop one. Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Already used for Pause / Resume.",
+    "english": "Already used for Pause / Resume.",
+    "comment": "Shortcut recorder hint: the Start / Stop shortcut was set to the Pause one. Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "%@ is already used by another app or Windows.",
+    "english": "%@ is already used by another app or Windows.",
+    "comment": "Shortcut recorder hint. %@ is a shortcut such as Ctrl+Alt+Win+R. Windows only.",
+    "placeholders": [
+      "%@"
+    ]
+  },
+  {
+    "catalog": "windows",
+    "key": "Windows does not accept this shortcut (error %d).",
+    "english": "Windows does not accept this shortcut (error %d).",
+    "comment": "Shortcut recorder hint. %d is a system error number. Windows only.",
+    "placeholders": [
+      "%d"
+    ]
+  },
+  {
+    "catalog": "windows",
+    "key": "%@ cannot take a transcript this long on Windows: the command line would be %@ characters, and Windows allows %@. Use Claude Code, Codex, or an HTTP provider for long meetings.",
+    "english": "%1$@ cannot take a transcript this long on Windows: the command line would be %2$@ characters, and Windows allows %3$@. Use Claude Code, Codex, or an HTTP provider for long meetings.",
+    "comment": "Meeting notes error when the prompt would not fit on the command line (Copilot and Antigravity take it as an argument). %1$@ is a CLI name, %2$@ and %3$@ are character counts with digit grouping. Keep the product names. Windows only.",
+    "placeholders": [
+      "%@",
+      "%@",
+      "%@"
+    ]
+  },
+  {
+    "catalog": "windows",
+    "key": "%@. %@",
+    "english": "%1$@. %2$@",
+    "comment": "Settings > AI login status line: %1$@ is the CLI's own status output (as the CLI prints it, not translated), %2$@ the 'Run … once in Terminal to log in.' hint. The Mac joins the two the same way. Windows only.",
+    "placeholders": [
+      "%@",
+      "%@"
+    ]
+  },
+  {
+    "catalog": "windows",
+    "key": "Windows is running Hearsay straight from the zip file. Extract the zip to a folder you can write to, open Hearsay from there, then check for updates again.",
+    "english": "Windows is running Hearsay straight from the zip file. Extract the zip to a folder you can write to, open Hearsay from there, then check for updates again.",
+    "comment": "Update install error: Hearsay was opened from inside the downloaded zip file (Explorer runs it from a temporary copy). The Mac's disk image text for Windows. Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "This copy of Hearsay is not in its own app folder, so it cannot update itself. Download the new version from the release page.",
+    "english": "This copy of Hearsay is not in its own app folder, so it cannot update itself. Download the new version from the release page.",
+    "comment": "Update install error: the running Hearsay.exe is not in a folder of its own. The Mac's 'not an app bundle' text for Windows. Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Hearsay cannot write to the folder %@. Move the Hearsay folder to a folder you can write to, open it from there, then check for updates again.",
+    "english": "Hearsay cannot write to the folder %@. Move the Hearsay folder to a folder you can write to, open it from there, then check for updates again.",
+    "comment": "Update install error. %@ is a folder path. The Mac's text without the Applications folder. Windows only.",
+    "placeholders": [
+      "%@"
+    ]
+  },
+  {
+    "catalog": "windows",
+    "key": "The zip file could not be extracted: %@",
+    "english": "The zip file could not be extracted: %@",
+    "comment": "Update verification error. %@ is the system's error message. The Mac's disk image text for Windows. Windows only.",
+    "placeholders": [
+      "%@"
+    ]
+  },
+  {
+    "catalog": "windows",
+    "key": "The zip file should contain one Hearsay.exe but contains %lld.",
+    "english": "The zip file should contain one Hearsay.exe but contains %lld.",
+    "comment": "Update verification error. %lld is a number of Hearsay.exe files. Keep Hearsay.exe. Windows only.",
+    "placeholders": [
+      "%lld"
+    ]
+  },
+  {
+    "catalog": "windows",
+    "key": "The new version is signed by %@, not by %@ like this copy of Hearsay.",
+    "english": "The new version is signed by %1$@, not by %2$@ like this copy of Hearsay.",
+    "comment": "Update verification error. %1$@ is the new version's certificate subject, %2$@ the running copy's (either may be 'unknown'). Windows only.",
+    "placeholders": [
+      "%@",
+      "%@"
+    ]
+  },
+  {
+    "catalog": "windows",
+    "key": "The new app has the product name %@, not Hearsay.",
+    "english": "The new app has the product name %@, not Hearsay.",
+    "comment": "Update verification error. %@ is the product name in the new Hearsay.exe (or 'none'). The Mac's bundle identifier text for Windows. Windows only.",
+    "placeholders": [
+      "%@"
+    ]
+  },
+  {
+    "catalog": "windows",
+    "key": "The release has no Windows zip file or checksum list.",
+    "english": "The release has no Windows zip file or checksum list.",
+    "comment": "Update error: the GitHub release lacks the Windows download. The Mac's disk image text for Windows. Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "The last update could not be installed. Hearsay is still the previous version.",
+    "english": "The last update could not be installed. Hearsay is still the previous version.",
+    "comment": "Shown after Hearsay reopens when the update helper failed to replace the app. Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Could not load the speech model: %@",
+    "english": "Could not load the speech model: %@",
+    "comment": "Transcription error when whisper.cpp cannot load the model file. %@ is the technical reason (English). Windows only (the Mac shows the decoder's error as it is).",
+    "placeholders": [
+      "%@"
+    ]
+  },
+  {
+    "catalog": "windows",
+    "key": "The request timed out.",
+    "english": "The request timed out.",
+    "comment": "Error detail after 'API call failed: …' or 'The download failed: …' when the server did not answer in time (the Mac shows the system's text). Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "HTTP %lld",
+    "english": "HTTP %lld",
+    "comment": "Error detail after 'The download failed: …'. %lld is an HTTP status code such as 404. Windows only.",
+    "placeholders": [
+      "%lld"
+    ]
+  },
+  {
+    "catalog": "windows",
+    "key": "unknown",
+    "english": "unknown",
+    "comment": "Inserted into update errors for a version or certificate Hearsay could not read ('The new app is version unknown, not 1.2.0.'). Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "none",
+    "english": "none",
+    "comment": "Inserted into an update error when the new Hearsay.exe has no product name ('The new app has the product name none, not Hearsay.'). Windows only.",
+    "placeholders": []
   }
 ]

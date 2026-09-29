@@ -164,6 +164,29 @@ internal static class UISnapshots
             await Render(name, window.RenderRoot).ConfigureAwait(true);
         }
 
+        #region Settings > General > Shortcuts recorder (Features/Hotkeys/HotkeyRecorderView.cs)
+        // The Start / Stop recorder listening, with the reason it refused
+        // Shift+A. The hotkeys are not started yet, so nothing is suspended
+        // or probed.
+        window.SettingsView.Show(SettingsPane.General);
+        await Settle().ConfigureAwait(true);
+        if (Descendant<GeneralSettingsView>(window.RenderRoot) is { } general)
+        {
+            var recorder = general.ShowRecordingSample();
+            await Settle().ConfigureAwait(true);
+            Check(recorder.IsListening && recorder.Hint == Strings.ShortcutNeedsModifier,
+                $"the recorder listens and refuses Shift+A (\"{recorder.Hint}\")");
+            await Render("58-settings-general-shortcut-recording", window.RenderRoot).ConfigureAwait(true);
+            general.EndRecordingSample();
+            Check(!recorder.IsListening && settings.StartStopHotkey == HotkeyBinding.DefaultStartStop,
+                "Escape stops the recorder and keeps the binding");
+        }
+        else
+        {
+            Check(false, "the General settings section is shown");
+        }
+        #endregion
+
         // The whole model list, so the installed and active row shows too.
         shell.Tabs.Tab = MainTab.Models;
         await Settle().ConfigureAwait(true);
@@ -344,7 +367,9 @@ internal static class UISnapshots
     /// render: shows the icon for about two seconds, stubs the recording,
     /// paused, transcribing and idle states and checks the icon and tooltip
     /// of each, then registers and unregisters the global shortcuts
-    /// once (a shortcut another app holds is reported, not a failure).
+    /// once (a shortcut another app holds is reported, not a failure); while
+    /// they are registered, the recorder's trial registration of the Start /
+    /// Stop chord must report it taken (1409).
     /// </summary>
     private static async Task<bool> CheckTrayAndHotkeysAsync(AppShell shell)
     {
@@ -385,8 +410,29 @@ internal static class UISnapshots
 
         shell.Hotkeys.Start();
         Say($"hotkeys: {shell.Hotkeys.RegistrationError ?? "both registered"}");
+        if (shell.Hotkeys.RegistrationError is null)
+        {
+            // The recorder's check: a chord Hearsay itself holds reports as
+            // taken, which is how another app's or the shell's chord reports.
+            var probe = shell.Hotkeys.Probe(shell.Settings.StartStopHotkey);
+            var good = probe == Interop.NativeMethods.ERROR_HOTKEY_ALREADY_REGISTERED;
+            ok &= good;
+            Say($"hotkeys: probe of the registered {shell.Settings.StartStopHotkey.DisplayString} returned {probe}{(good ? "" : " (expected 1409)")}");
+        }
         shell.Hotkeys.Dispose();
         return ok;
+    }
+
+    /// <summary>The first element of type <typeparamref name="T"/> under <paramref name="root"/> in the visual tree.</summary>
+    private static T? Descendant<T>(DependencyObject root) where T : DependencyObject
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is T found) return found;
+            if (Descendant<T>(child) is { } nested) return nested;
+        }
+        return null;
     }
 
     /// <summary>The recommended model installed and in use, Whisper Small at 40 %, the rest not installed.</summary>

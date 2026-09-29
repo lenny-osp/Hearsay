@@ -22,7 +22,9 @@ public interface ILocalizedMessage
 
     /// <summary>
     /// The values of the key's placeholders, in order: strings, integers,
-    /// or <see cref="ILocalizedMessage"/> (translated in turn).
+    /// other <see cref="IFormattable"/> values such as <see cref="GroupedNumber"/>
+    /// (formatted in the interface culture), or <see cref="ILocalizedMessage"/>
+    /// (translated in turn).
     /// </summary>
     IReadOnlyList<object> MessageArguments { get; }
 
@@ -170,4 +172,39 @@ public sealed partial class LocalizedMessage : ILocalizedMessage, IEquatable<Loc
     /// <summary>The placeholder rule of mac/Scripts/export-strings.py and import-strings.py.</summary>
     [GeneratedRegex(@"%%|%(?:(\d+)\$)?[-+ #0']*(?:\d+|\*)?(?:\.(?:\d+|\*))?(?:hh|h|ll|l|q|z|t|j|L)?[@dDuUxXoOfFeEgGcCsSaAp]")]
     private static partial Regex FormatToken();
+}
+
+/// <summary>
+/// A count shown with digit grouping in the interface language ("40,000",
+/// "40.000"), for a message argument: <see cref="LocalizedMessage.English"/>
+/// formats it with the invariant culture, the app with the interface culture.
+/// </summary>
+public sealed record GroupedNumber(long Value) : IFormattable
+{
+    public string ToString(string? format, IFormatProvider? formatProvider) =>
+        Value.ToString("N0", formatProvider ?? CultureInfo.InvariantCulture);
+
+    public override string ToString() => ToString(null, CultureInfo.InvariantCulture);
+}
+
+/// <summary>
+/// The short English values Core inserts into other messages, as Windows keys
+/// (catalog "windows" in shared/localization) so the app translates them too.
+/// The Mac inserts the same words in English ("unknown", "none",
+/// UpdatePackage.swift) or gets them from the system ("The request timed
+/// out.", URLError's description).
+/// </summary>
+public static class CommonMessages
+{
+    /// <summary>An HTTP request or a download read ran into its time limit.</summary>
+    public static LocalizedMessage RequestTimedOut { get; } = new("The request timed out.");
+
+    /// <summary>A value Hearsay could not read (a version, a signer).</summary>
+    public static LocalizedMessage Unknown { get; } = new("unknown");
+
+    /// <summary>A value that is missing (a product name).</summary>
+    public static LocalizedMessage None { get; } = new("none");
+
+    /// <summary>"HTTP 404": a server answered with an error status.</summary>
+    public static LocalizedMessage HttpStatus(int code) => new("HTTP %lld", code);
 }

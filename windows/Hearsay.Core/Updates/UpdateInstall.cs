@@ -38,10 +38,19 @@ public abstract record InstallLocationProblem
         FolderNotWritable e => string.Format(CultureInfo.CurrentCulture, "Hearsay cannot write to the folder {0}. Move the Hearsay folder to a folder you can write to, open it from there, then check for updates again.", e.Folder),
         _ => throw new InvalidOperationException("Unknown InstallLocationProblem."),
     };
+
+    /// <summary><see cref="Description"/> as its catalog key (Windows keys) and values, for the app to translate.</summary>
+    public LocalizedMessage Localized => this switch
+    {
+        RunningFromArchive => new LocalizedMessage("Windows is running Hearsay straight from the zip file. Extract the zip to a folder you can write to, open Hearsay from there, then check for updates again."),
+        NotAnInstallFolder => new LocalizedMessage("This copy of Hearsay is not in its own app folder, so it cannot update itself. Download the new version from the release page."),
+        FolderNotWritable e => new LocalizedMessage("Hearsay cannot write to the folder %@. Move the Hearsay folder to a folder you can write to, open it from there, then check for updates again.", e.Folder),
+        _ => throw new InvalidOperationException("Unknown InstallLocationProblem."),
+    };
 }
 
 /// <summary>Thrown by <see cref="UpdateInstall.CheckInstallLocation"/>.</summary>
-public sealed class InstallLocationException : Exception
+public sealed class InstallLocationException : Exception, ILocalizedError
 {
     public InstallLocationException(InstallLocationProblem problem)
         : base(problem?.Description)
@@ -51,6 +60,8 @@ public sealed class InstallLocationException : Exception
     }
 
     public InstallLocationProblem Problem { get; }
+
+    public ILocalizedMessage LocalizedMessage => Problem.Localized;
 }
 
 /// <summary>
@@ -78,15 +89,30 @@ public abstract record UpdatePackageError
 
     public sealed record SignatureInvalid(string Detail) : UpdatePackageError;
 
-    /// <summary>Windows only: signed, but not by the running build's signer.</summary>
-    public sealed record SignerMismatch(string Found, string Expected) : UpdatePackageError;
+    /// <summary>Windows only: signed, but not by the running build's signer (a null subject is shown as "unknown").</summary>
+    public sealed record SignerMismatch(string? Found, string? Expected) : UpdatePackageError;
 
     /// <summary>The Mac's bundle identifier check, on the ProductName.</summary>
     public sealed record WrongIdentifier(string? Found) : UpdatePackageError;
 
     public sealed record WrongVersion(string? Found, string Expected) : UpdatePackageError;
 
-    public sealed record DownloadFailed(string Detail) : UpdatePackageError;
+    public sealed record DownloadFailed(string Detail) : UpdatePackageError
+    {
+        /// <summary><see cref="Detail"/> with its catalog key, when Hearsay wrote it.</summary>
+        public ILocalizedMessage? LocalizedDetail { get; init; }
+
+        /// <summary>The server answered with <paramref name="code"/> ("HTTP 404").</summary>
+        public static DownloadFailed HttpStatus(int code)
+        {
+            var detail = CommonMessages.HttpStatus(code);
+            return new(detail.English) { LocalizedDetail = detail };
+        }
+
+        /// <summary>No bytes arrived within <see cref="UpdateInstall.ReadTimeout"/>.</summary>
+        public static DownloadFailed TimedOut() =>
+            new(CommonMessages.RequestTimedOut.English) { LocalizedDetail = CommonMessages.RequestTimedOut };
+    }
 
     /// <summary>The release lacks the Windows zip or <c>SHA256SUMS.txt</c>.</summary>
     public sealed record NoPackage : UpdatePackageError;
@@ -101,7 +127,7 @@ public abstract record UpdatePackageError
         ExtractFailed e => string.Format(CultureInfo.CurrentCulture, "The zip file could not be extracted: {0}", e.Detail),
         AppNotFound e => string.Format(CultureInfo.CurrentCulture, "The zip file should contain one Hearsay.exe but contains {0}.", e.Count),
         SignatureInvalid e => string.Format(CultureInfo.CurrentCulture, "The code signature of the new version is not valid: {0}", e.Detail),
-        SignerMismatch e => string.Format(CultureInfo.CurrentCulture, "The new version is signed by {0}, not by {1} like this copy of Hearsay.", e.Found, e.Expected),
+        SignerMismatch e => string.Format(CultureInfo.CurrentCulture, "The new version is signed by {0}, not by {1} like this copy of Hearsay.", e.Found ?? "unknown", e.Expected ?? "unknown"),
         WrongIdentifier e => string.Format(CultureInfo.CurrentCulture, "The new app has the product name {0}, not Hearsay.", e.Found ?? "none"),
         WrongVersion e => string.Format(CultureInfo.CurrentCulture, "The new app is version {0}, not {1}.", e.Found ?? "unknown", e.Expected),
         DownloadFailed e => string.Format(CultureInfo.CurrentCulture, "The download failed: {0}", e.Detail),
@@ -110,19 +136,29 @@ public abstract record UpdatePackageError
     };
 
     /// <summary>
-    /// <see cref="Description"/> as the Mac's catalog key (app catalog,
-    /// UpdatePackage.swift) and values, for the app to translate; null for the
-    /// Windows texts, which have no key in shared/localization yet.
+    /// <see cref="Description"/> as its catalog key and values, for the app to
+    /// translate: the Mac's key (app catalog, UpdatePackage.swift) where the
+    /// text is the same, otherwise a Windows key; the inserted "unknown" and
+    /// "none" are keys too (<see cref="CommonMessages"/>).
     /// </summary>
-    public LocalizedMessage? Localized => this switch
+    public LocalizedMessage Localized => this switch
     {
         ChecksumMissing e => new LocalizedMessage("The release's checksum list has no entry for %@.", e.Name),
         ChecksumMismatch e => new LocalizedMessage("The checksum of %@ does not match the release's checksum list.", e.Name),
+        ExtractFailed e => new LocalizedMessage("The zip file could not be extracted: %@", e.Detail),
+        AppNotFound e => new LocalizedMessage("The zip file should contain one Hearsay.exe but contains %lld.", e.Count),
         SignatureInvalid e => new LocalizedMessage("The code signature of the new version is not valid: %@", e.Detail),
-        WrongVersion e => new LocalizedMessage("The new app is version %@, not %@.", e.Found ?? "unknown", e.Expected),
-        DownloadFailed e => new LocalizedMessage("The download failed: %@", e.Detail),
-        _ => null,
+        SignerMismatch e => new LocalizedMessage("The new version is signed by %@, not by %@ like this copy of Hearsay.",
+            OrUnknown(e.Found), OrUnknown(e.Expected)),
+        WrongIdentifier e => new LocalizedMessage("The new app has the product name %@, not Hearsay.",
+            (object?)e.Found ?? CommonMessages.None),
+        WrongVersion e => new LocalizedMessage("The new app is version %@, not %@.", OrUnknown(e.Found), e.Expected),
+        DownloadFailed e => new LocalizedMessage("The download failed: %@", (object?)e.LocalizedDetail ?? e.Detail),
+        NoPackage => new LocalizedMessage("The release has no Windows zip file or checksum list."),
+        _ => throw new InvalidOperationException("Unknown UpdatePackageError."),
     };
+
+    private static object OrUnknown(string? value) => (object?)value ?? CommonMessages.Unknown;
 }
 
 public sealed class UpdatePackageException : Exception, ILocalizedError
@@ -143,7 +179,7 @@ public sealed class UpdatePackageException : Exception, ILocalizedError
 
     public UpdatePackageError Error { get; }
 
-    public ILocalizedMessage? LocalizedMessage => Error.Localized;
+    public ILocalizedMessage LocalizedMessage => Error.Localized;
 }
 
 /// <summary>Bytes received so far and the total when the server announced it.</summary>
@@ -366,7 +402,7 @@ public static class UpdateInstall
             using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
             if (response.StatusCode != HttpStatusCode.OK)
             {
-                throw new UpdatePackageException(new UpdatePackageError.DownloadFailed($"HTTP {(int)response.StatusCode}"));
+                throw new UpdatePackageException(UpdatePackageError.DownloadFailed.HttpStatus((int)response.StatusCode));
             }
             var total = response.Content.Headers.ContentLength is > 0 and var length ? length : (long?)null;
             await using (var output = new FileStream(partial, FileMode.CreateNew, FileAccess.Write, FileShare.None, 1 << 16, useAsync: true))
@@ -390,7 +426,7 @@ public static class UpdateInstall
                             }
                             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
                             {
-                                throw new UpdatePackageException(new UpdatePackageError.DownloadFailed("The request timed out."));
+                                throw new UpdatePackageException(UpdatePackageError.DownloadFailed.TimedOut());
                             }
                         }
                         if (read == 0)
@@ -499,8 +535,7 @@ public static class UpdateInstall
         {
             return $"signed by {candidate.Subject} through a trusted certificate, as the running build";
         }
-        throw new UpdatePackageException(new UpdatePackageError.SignerMismatch(
-            candidate.Subject ?? "unknown", running.Subject ?? "unknown"));
+        throw new UpdatePackageException(new UpdatePackageError.SignerMismatch(candidate.Subject, running.Subject));
     }
 
     /// <summary>

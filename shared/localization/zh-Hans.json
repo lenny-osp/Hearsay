@@ -4338,5 +4338,239 @@
     "comment": "Record tab notice before the first recording when transcription runs on the processor (no Vulkan graphics). Windows only.",
     "placeholders": [],
     "translation": "这台电脑使用处理器（CPU）转录：停止后，转录稿约需录音时长的 1.5 到 3.5 倍时间。"
+  },
+  {
+    "catalog": "windows",
+    "key": "Ctrl",
+    "english": "Ctrl",
+    "comment": "Shortcut display: the Control key, as Windows menus name it in this language (German Strg). Windows only.",
+    "placeholders": [],
+    "translation": "Ctrl"
+  },
+  {
+    "catalog": "windows",
+    "key": "Alt",
+    "english": "Alt",
+    "comment": "Shortcut display: the Alt key, as Windows menus name it. Windows only.",
+    "placeholders": [],
+    "translation": "Alt"
+  },
+  {
+    "catalog": "windows",
+    "key": "Shift",
+    "english": "Shift",
+    "comment": "Shortcut display: the Shift key, as Windows menus name it in this language (German Umschalt, Spanish Mayús). Windows only.",
+    "placeholders": [],
+    "translation": "Shift"
+  },
+  {
+    "catalog": "windows",
+    "key": "Win",
+    "english": "Win",
+    "comment": "Shortcut display: the Windows logo key. Windows only.",
+    "placeholders": [],
+    "translation": "Win"
+  },
+  {
+    "catalog": "windows",
+    "key": "Press a combination with Ctrl, Alt, or Win. Esc cancels; Backspace restores the default.",
+    "english": "Press a combination with Ctrl, Alt, or Win. Esc cancels; Backspace restores the default.",
+    "comment": "Shortcut recorder tooltip while listening. Use the key names Windows uses in this language. Windows only.",
+    "placeholders": [],
+    "translation": "按下包含 Ctrl、Alt 或 Win 的组合键。按 Esc 键取消，按 Backspace 键恢复默认值。"
+  },
+  {
+    "catalog": "windows",
+    "key": "Include Ctrl, Alt, or Win.",
+    "english": "Include Ctrl, Alt, or Win.",
+    "comment": "Shortcut recorder hint. Use the key names Windows uses in this language. Windows only.",
+    "placeholders": [],
+    "translation": "需包含 Ctrl、Alt 或 Win。"
+  },
+  {
+    "catalog": "windows",
+    "key": "Already used for Start / Stop recording.",
+    "english": "Already used for Start / Stop recording.",
+    "comment": "Shortcut recorder hint: the Pause shortcut was set to the Start / Stop one. Windows only.",
+    "placeholders": [],
+    "translation": "已用于“开始 / 停止录音”。"
+  },
+  {
+    "catalog": "windows",
+    "key": "Already used for Pause / Resume.",
+    "english": "Already used for Pause / Resume.",
+    "comment": "Shortcut recorder hint: the Start / Stop shortcut was set to the Pause one. Windows only.",
+    "placeholders": [],
+    "translation": "已用于“暂停 / 继续”。"
+  },
+  {
+    "catalog": "windows",
+    "key": "%@ is already used by another app or Windows.",
+    "english": "%@ is already used by another app or Windows.",
+    "comment": "Shortcut recorder hint. %@ is a shortcut such as Ctrl+Alt+Win+R. Windows only.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "%@ 已被其他应用或 Windows 占用。"
+  },
+  {
+    "catalog": "windows",
+    "key": "Windows does not accept this shortcut (error %d).",
+    "english": "Windows does not accept this shortcut (error %d).",
+    "comment": "Shortcut recorder hint. %d is a system error number. Windows only.",
+    "placeholders": [
+      "%d"
+    ],
+    "translation": "Windows 不接受此快捷键（错误 %d）。"
+  },
+  {
+    "catalog": "windows",
+    "key": "%@ cannot take a transcript this long on Windows: the command line would be %@ characters, and Windows allows %@. Use Claude Code, Codex, or an HTTP provider for long meetings.",
+    "english": "%1$@ cannot take a transcript this long on Windows: the command line would be %2$@ characters, and Windows allows %3$@. Use Claude Code, Codex, or an HTTP provider for long meetings.",
+    "comment": "Meeting notes error when the prompt would not fit on the command line (Copilot and Antigravity take it as an argument). %1$@ is a CLI name, %2$@ and %3$@ are character counts with digit grouping. Keep the product names. Windows only.",
+    "placeholders": [
+      "%@",
+      "%@",
+      "%@"
+    ],
+    "translation": "%1$@ 在 Windows 上无法处理这么长的转录稿：命令行将有 %2$@ 个字符，而 Windows 最多允许 %3$@ 个。长时间的会议请改用 Claude Code、Codex 或 HTTP 提供方。"
+  },
+  {
+    "catalog": "windows",
+    "key": "%@. %@",
+    "english": "%1$@. %2$@",
+    "comment": "Settings > AI login status line: %1$@ is the CLI's own status output (as the CLI prints it, not translated), %2$@ the 'Run … once in Terminal to log in.' hint. The Mac joins the two the same way. Windows only.",
+    "placeholders": [
+      "%@",
+      "%@"
+    ],
+    "translation": "%1$@. %2$@"
+  },
+  {
+    "catalog": "windows",
+    "key": "Windows is running Hearsay straight from the zip file. Extract the zip to a folder you can write to, open Hearsay from there, then check for updates again.",
+    "english": "Windows is running Hearsay straight from the zip file. Extract the zip to a folder you can write to, open Hearsay from there, then check for updates again.",
+    "comment": "Update install error: Hearsay was opened from inside the downloaded zip file (Explorer runs it from a temporary copy). The Mac's disk image text for Windows. Windows only.",
+    "placeholders": [],
+    "translation": "Windows 正直接从 ZIP 文件运行 Hearsay。请将 ZIP 文件解压到可写入的文件夹，从那里打开 Hearsay 后再检查更新。"
+  },
+  {
+    "catalog": "windows",
+    "key": "This copy of Hearsay is not in its own app folder, so it cannot update itself. Download the new version from the release page.",
+    "english": "This copy of Hearsay is not in its own app folder, so it cannot update itself. Download the new version from the release page.",
+    "comment": "Update install error: the running Hearsay.exe is not in a folder of its own. The Mac's 'not an app bundle' text for Windows. Windows only.",
+    "placeholders": [],
+    "translation": "这份 Hearsay 不在自己的 App 文件夹中，无法自行更新。请从版本页面下载新版本。"
+  },
+  {
+    "catalog": "windows",
+    "key": "Hearsay cannot write to the folder %@. Move the Hearsay folder to a folder you can write to, open it from there, then check for updates again.",
+    "english": "Hearsay cannot write to the folder %@. Move the Hearsay folder to a folder you can write to, open it from there, then check for updates again.",
+    "comment": "Update install error. %@ is a folder path. The Mac's text without the Applications folder. Windows only.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Hearsay 无法写入文件夹 %@。请将 Hearsay 文件夹移到可写入的文件夹，从那里打开后再检查更新。"
+  },
+  {
+    "catalog": "windows",
+    "key": "The zip file could not be extracted: %@",
+    "english": "The zip file could not be extracted: %@",
+    "comment": "Update verification error. %@ is the system's error message. The Mac's disk image text for Windows. Windows only.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "无法解压 ZIP 文件：%@"
+  },
+  {
+    "catalog": "windows",
+    "key": "The zip file should contain one Hearsay.exe but contains %lld.",
+    "english": "The zip file should contain one Hearsay.exe but contains %lld.",
+    "comment": "Update verification error. %lld is a number of Hearsay.exe files. Keep Hearsay.exe. Windows only.",
+    "placeholders": [
+      "%lld"
+    ],
+    "translation": "ZIP 文件应只包含一个 Hearsay.exe，但包含 %lld 个。"
+  },
+  {
+    "catalog": "windows",
+    "key": "The new version is signed by %@, not by %@ like this copy of Hearsay.",
+    "english": "The new version is signed by %1$@, not by %2$@ like this copy of Hearsay.",
+    "comment": "Update verification error. %1$@ is the new version's certificate subject, %2$@ the running copy's (either may be 'unknown'). Windows only.",
+    "placeholders": [
+      "%@",
+      "%@"
+    ],
+    "translation": "新版本由 %1$@ 签名，而不是像这份 Hearsay 一样由 %2$@ 签名。"
+  },
+  {
+    "catalog": "windows",
+    "key": "The new app has the product name %@, not Hearsay.",
+    "english": "The new app has the product name %@, not Hearsay.",
+    "comment": "Update verification error. %@ is the product name in the new Hearsay.exe (or 'none'). The Mac's bundle identifier text for Windows. Windows only.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "新 App 的产品名称是 %@，而不是 Hearsay。"
+  },
+  {
+    "catalog": "windows",
+    "key": "The release has no Windows zip file or checksum list.",
+    "english": "The release has no Windows zip file or checksum list.",
+    "comment": "Update error: the GitHub release lacks the Windows download. The Mac's disk image text for Windows. Windows only.",
+    "placeholders": [],
+    "translation": "此版本没有 Windows ZIP 文件或校验和列表。"
+  },
+  {
+    "catalog": "windows",
+    "key": "The last update could not be installed. Hearsay is still the previous version.",
+    "english": "The last update could not be installed. Hearsay is still the previous version.",
+    "comment": "Shown after Hearsay reopens when the update helper failed to replace the app. Windows only.",
+    "placeholders": [],
+    "translation": "上次的更新无法安装，Hearsay 仍是之前的版本。"
+  },
+  {
+    "catalog": "windows",
+    "key": "Could not load the speech model: %@",
+    "english": "Could not load the speech model: %@",
+    "comment": "Transcription error when whisper.cpp cannot load the model file. %@ is the technical reason (English). Windows only (the Mac shows the decoder's error as it is).",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "无法加载语音模型：%@"
+  },
+  {
+    "catalog": "windows",
+    "key": "The request timed out.",
+    "english": "The request timed out.",
+    "comment": "Error detail after 'API call failed: …' or 'The download failed: …' when the server did not answer in time (the Mac shows the system's text). Windows only.",
+    "placeholders": [],
+    "translation": "请求超时。"
+  },
+  {
+    "catalog": "windows",
+    "key": "HTTP %lld",
+    "english": "HTTP %lld",
+    "comment": "Error detail after 'The download failed: …'. %lld is an HTTP status code such as 404. Windows only.",
+    "placeholders": [
+      "%lld"
+    ],
+    "translation": "HTTP %lld"
+  },
+  {
+    "catalog": "windows",
+    "key": "unknown",
+    "english": "unknown",
+    "comment": "Inserted into update errors for a version or certificate Hearsay could not read ('The new app is version unknown, not 1.2.0.'). Windows only.",
+    "placeholders": [],
+    "translation": "未知"
+  },
+  {
+    "catalog": "windows",
+    "key": "none",
+    "english": "none",
+    "comment": "Inserted into an update error when the new Hearsay.exe has no product name ('The new app has the product name none, not Hearsay.'). Windows only.",
+    "placeholders": [],
+    "translation": "无"
   }
 ]

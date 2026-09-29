@@ -221,7 +221,10 @@ public sealed class WhisperEngineUnitTests
             engine.Transcribe(new float[16_000], new TranscriptionOptions { Language = "en" }));
         Assert.Equal(WhisperEngineError.NoActiveModel, error.Error);
         Assert.Throws<WhisperEngineException>(() => engine.DetectLanguage(new float[16_000]));
-        Assert.Throws<FileNotFoundException>(() => engine.Load(System.IO.Path.Combine(System.IO.Path.GetTempPath(), "no-such-model.bin")));
+        var missing = Assert.Throws<WhisperEngineException>(() => engine.Load(System.IO.Path.Combine(System.IO.Path.GetTempPath(), "no-such-model.bin")));
+        Assert.Equal(WhisperEngineError.LoadFailed, missing.Error);
+        Assert.IsType<FileNotFoundException>(missing.InnerException);
+        Assert.StartsWith("Could not load the speech model: Whisper model not found: ", missing.Message, StringComparison.Ordinal);
         Assert.False(engine.IsBusy);
     }
 

@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Hearsay.Core.Naming;
@@ -31,6 +30,12 @@ public static class OutputWriter
     /// when the system does not say).
     /// </summary>
     internal delegate string? Trasher(string path);
+
+    /// <summary>
+    /// Moves a recycled file from <paramref name="location"/> (what the
+    /// <see cref="Trasher"/> returned) back to <paramref name="original"/>.
+    /// </summary>
+    internal delegate void Restorer(string location, string original);
 
     /// <summary>The files <c>SaveNamed</c> and <c>ReplaceNamed</c> produce.</summary>
     public sealed record NamedOutputs(string Srt, string Markdown, string Transcript, IReadOnlyList<string> Companions);
@@ -129,11 +134,18 @@ public static class OutputWriter
     public static NamedOutputs ReplaceNamed(string existingStem, string directory, string meetingName,
         string markdown, string transcriptMarkdown, string? timestamp) =>
         ReplaceNamed(existingStem, directory, meetingName, markdown, transcriptMarkdown, timestamp,
-            DefaultMove, WriteAtomically, DefaultTrash);
+            DefaultMove, WriteAtomically, DefaultTrash, DefaultRestore);
 
+    /// <summary>
+    /// <paramref name="restore"/> puts a recycled file back; without one the
+    /// file is moved back with <paramref name="move"/> (the Swift code, where
+    /// the Trash is an ordinary folder, and the tests' fake Recycle Bin).
+    /// </summary>
     internal static NamedOutputs ReplaceNamed(string existingStem, string directory, string meetingName,
-        string markdown, string transcriptMarkdown, string? timestamp, Mover move, Writer writeText, Trasher trash)
+        string markdown, string transcriptMarkdown, string? timestamp, Mover move, Writer writeText, Trasher trash,
+        Restorer? restore = null)
     {
+        var putBack = restore ?? ((location, original) => move(location, original));
         var safeName = FilenameSanitizer.Sanitize(meetingName)
             ?? throw new OutputWriterException(new OutputWriterError.UnusableMeetingName());
         var notes = MeetingNameInserter.Insert(markdown, safeName, NotesFallbackHeading);
@@ -167,7 +179,7 @@ public static class OutputWriter
             }
             catch (Exception error)
             {
-                var unrestored = RestoreFromTrash(trashed, move);
+                var unrestored = RestoreFromTrash(trashed, putBack);
                 throw new OutputWriterException(new OutputWriterError.TrashFailed(path, Reason(error), unrestored));
             }
         }
@@ -183,7 +195,7 @@ public static class OutputWriter
             catch (OutputWriterException exception)
                 when (exception.Error is OutputWriterError.RenameFailed failure)
             {
-                List<string> notRestored = [.. failure.Unrestored, .. RestoreFromTrash(trashed, move)];
+                List<string> notRestored = [.. failure.Unrestored, .. RestoreFromTrash(trashed, putBack)];
                 throw new OutputWriterException(failure with { Unrestored = notRestored });
             }
         }
@@ -199,7 +211,7 @@ public static class OutputWriter
         catch (Exception error)
         {
             RemoveQuietly(finalNotes, finalTranscript);
-            List<string> unrestored = [.. RollBack(renamed, move), .. RestoreFromTrash(trashed, move)];
+            List<string> unrestored = [.. RollBack(renamed, move), .. RestoreFromTrash(trashed, putBack)];
             throw new OutputWriterException(new OutputWriterError.WriteFailed(failedWrite, Reason(error), unrestored));
         }
         var srtResult = renamed.Count > 0 ? renamed[0].Destination : srt;
@@ -214,7 +226,7 @@ public static class OutputWriter
     /// Returns the current paths of files that could not be restored (the
     /// original path when the Recycle Bin location is unknown).
     /// </summary>
-    private static List<string> RestoreFromTrash(List<Recycled> trashed, Mover move)
+    private static List<string> RestoreFromTrash(List<Recycled> trashed, Restorer restore)
     {
         var unrestored = new List<string>();
         for (var index = trashed.Count - 1; index >= 0; index--)
@@ -227,7 +239,7 @@ public static class OutputWriter
             }
             try
             {
-                move(location, item.Original);
+                restore(location, item.Original);
             }
             catch (Exception)
             {
@@ -533,13 +545,6 @@ public static class OutputWriter
         File.Move(source, destination, overwrite: false);
 
     /// <summary>
-    /// Sends the file to the Recycle Bin. Windows does not say where the
-    /// recycled file ended up, so this returns null and a later rollback
-    /// reports the file as not restored (the Mac moves it back from the Trash).
-    /// A file that cannot be recycled (for example on a network share) asks
-    /// before it is deleted instead (<c>FOF_WANTNUKEWARNING</c>).
-    /// </summary>
-    /// <summary>
     /// Sends one file to the Recycle Bin (History's "Move to Recycle Bin…").
     /// Same operation <see cref="ReplaceNamed"/> uses for the old notes.
     /// </summary>
@@ -549,29 +554,31 @@ public static class OutputWriter
         _ = DefaultTrash(path);
     }
 
+    /// <summary>
+    /// Sends the file to the Recycle Bin (<see cref="RecycleBin.Recycle"/>)
+    /// and returns the recycled item's handle, which <see cref="DefaultRestore"/>
+    /// takes to move it back, as the Mac moves notes back from the Trash. A
+    /// file that cannot be recycled (for example on a network share) asks
+    /// before it is deleted instead (<c>FOF_WANTNUKEWARNING</c>) and returns
+    /// null, so a later rollback reports it as not restored.
+    /// </summary>
     internal static string? DefaultTrash(string path)
     {
         if (!OperatingSystem.IsWindows())
         {
             throw new PlatformNotSupportedException("The Recycle Bin is available on Windows only.");
         }
-        var operation = new NativeMethods.ShFileOpStruct
+        return RecycleBin.Recycle(path);
+    }
+
+    /// <summary>Moves a file <see cref="DefaultTrash"/> recycled back to its original path.</summary>
+    internal static void DefaultRestore(string location, string original)
+    {
+        if (!OperatingSystem.IsWindows())
         {
-            Func = NativeMethods.FoDelete,
-            From = Path.GetFullPath(path) + "\0",
-            Flags = NativeMethods.FofAllowUndo | NativeMethods.FofNoConfirmation | NativeMethods.FofNoErrorUi
-                | NativeMethods.FofSilent | NativeMethods.FofWantNukeWarning,
-        };
-        var result = NativeMethods.SHFileOperation(ref operation);
-        if (result != 0)
-        {
-            throw new IOException($"The file could not be moved to the Recycle Bin (error 0x{result:X})");
+            throw new PlatformNotSupportedException("The Recycle Bin is available on Windows only.");
         }
-        if (operation.AnyOperationsAborted)
-        {
-            throw new IOException("Moving the file to the Recycle Bin was cancelled");
-        }
-        return null;
+        RecycleBin.Restore(location, original);
     }
 
     /// <summary>
@@ -649,33 +656,5 @@ public static class OutputWriter
     {
         var message = error is OutputWriterException writerError ? writerError.Error.Description : error.Message;
         return message.TrimEnd().TrimEnd('.');
-    }
-
-    private static class NativeMethods
-    {
-        public const uint FoDelete = 0x0003;
-        public const ushort FofSilent = 0x0004;
-        public const ushort FofNoConfirmation = 0x0010;
-        public const ushort FofAllowUndo = 0x0040;
-        public const ushort FofNoErrorUi = 0x0400;
-        public const ushort FofWantNukeWarning = 0x4000;
-
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        public struct ShFileOpStruct
-        {
-            public IntPtr Hwnd;
-            public uint Func;
-            public string From;
-            public string? To;
-            public ushort Flags;
-            [MarshalAs(UnmanagedType.Bool)]
-            public bool AnyOperationsAborted;
-            public IntPtr NameMappings;
-            public string? ProgressTitle;
-        }
-
-        [DllImport("shell32.dll", EntryPoint = "SHFileOperationW", CharSet = CharSet.Unicode)]
-        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        public static extern int SHFileOperation(ref ShFileOpStruct operation);
     }
 }

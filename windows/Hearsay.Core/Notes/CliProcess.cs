@@ -223,10 +223,9 @@ public abstract record CliProviderError
 
     /// <summary>
     /// <see cref="Description"/> as its catalog keys and values, for the app
-    /// to translate; null for <see cref="CommandLineTooLong"/>, which has no
-    /// key in shared/localization yet (Windows only).
+    /// to translate (<see cref="CommandLineTooLong"/> under a Windows key).
     /// </summary>
-    public LocalizedMessage? Localized => this switch
+    public LocalizedMessage Localized => this switch
     {
         NotInstalled e => new LocalizedMessage(
             "%@ not found. Install it with `%@` or set the path in Settings > AI.", e.Tool.DisplayName(), e.Tool.InstallCommand()),
@@ -241,7 +240,11 @@ public abstract record CliProviderError
             e.Tool.DisplayName(), (int)CliClient.Timeout.TotalMinutes),
         EmptyOutput e => new LocalizedMessage("%@ returned empty output.", e.Tool.DisplayName()),
         NotACliPreset e => new LocalizedMessage("The %@ preset does not use a command-line tool.", e.PresetName),
-        _ => null,
+        CommandLineTooLong e => new LocalizedMessage(
+            "%@ cannot take a transcript this long on Windows: the command line would be %@ characters, and Windows allows %@. "
+            + "Use Claude Code, Codex, or an HTTP provider for long meetings.",
+            e.Tool.DisplayName(), new GroupedNumber(e.Length), new GroupedNumber(WindowsCommandLine.MaxLength)),
+        _ => throw new InvalidOperationException("Unknown CliProviderError."),
     };
 
     private static LocalizedMessage FailedLocalized(Failed e)
@@ -365,7 +368,7 @@ public sealed class CliProviderException : Exception, ILocalizedError
 
     public CliProviderError Error { get; }
 
-    public ILocalizedMessage? LocalizedMessage => Error.Localized;
+    public ILocalizedMessage LocalizedMessage => Error.Localized;
 }
 
 /// <summary>

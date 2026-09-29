@@ -12,7 +12,8 @@ namespace Hearsay.Core.Notes;
 /// mac/HearsayCore/Sources/HearsayCore/Notes/ChatCompletionsClient.swift;
 /// the Swift enum cases are records and <see cref="ChatCompletionsException"/>
 /// carries one. Messages follow the Python <c>_request_api</c> /
-/// <c>_report_http_error</c> diagnostics; English until W7.
+/// <c>_report_http_error</c> diagnostics; <see cref="ChatCompletionsError.Localized"/>
+/// carries their catalog keys for the app.
 /// </summary>
 public abstract record ChatCompletionsError
 {
@@ -28,7 +29,15 @@ public abstract record ChatCompletionsError
 
     public sealed record InvalidUrl : ChatCompletionsError;
 
-    public sealed record Transport(string Detail) : ChatCompletionsError;
+    public sealed record Transport(string Detail) : ChatCompletionsError
+    {
+        /// <summary><see cref="Detail"/> with its catalog key, when Hearsay wrote it (a time-out).</summary>
+        public ILocalizedMessage? LocalizedDetail { get; init; }
+
+        /// <summary>The request ran into <see cref="ChatCompletionsClient"/>'s time limit (URLError's "The request timed out." on the Mac).</summary>
+        public static Transport TimedOut() =>
+            new(CommonMessages.RequestTimedOut.English) { LocalizedDetail = CommonMessages.RequestTimedOut };
+    }
 
     /// <summary>The host could not be resolved or connected to, or there is no network.</summary>
     public sealed record Unreachable(string Host) : ChatCompletionsError;
@@ -63,7 +72,8 @@ public abstract record ChatCompletionsError
         InvalidUrl => new LocalizedMessage("The API URL is not a valid http or https address. Check it in Settings > AI."),
         Unreachable e => new LocalizedMessage(
             "Cannot reach %@. Check the base URL in Settings > AI and your network connection.", e.Host),
-        Transport e => new LocalizedMessage("API call failed: A network connection or HTTP client error occurred. %@", e.Detail),
+        Transport e => new LocalizedMessage("API call failed: A network connection or HTTP client error occurred. %@",
+            (object?)e.LocalizedDetail ?? e.Detail),
         HttpStatus e when e.BodyExcerpt.Trim().Length == 0 =>
             new LocalizedMessage("API HTTP Error %lld: The response body is empty.", e.Code),
         HttpStatus e => new LocalizedMessage("API HTTP Error %lld: %@", e.Code, ApiErrorMessage(e.BodyExcerpt) ?? e.BodyExcerpt),
@@ -265,7 +275,7 @@ public sealed class ChatCompletionsClient : IChatCompleting, IDisposable
         }
         catch (TaskCanceledException error)
         {
-            throw new ChatCompletionsException(new ChatCompletionsError.Transport("The request timed out."), error);
+            throw new ChatCompletionsException(ChatCompletionsError.Transport.TimedOut(), error);
         }
         catch (HttpRequestException error) when (error.HttpRequestError is HttpRequestError.NameResolutionError
                                                      or HttpRequestError.ConnectionError)

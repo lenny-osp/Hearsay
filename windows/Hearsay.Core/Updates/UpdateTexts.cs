@@ -7,7 +7,8 @@ namespace Hearsay.Core.Updates;
 /// mac/Hearsay/Features/Updates/UpdateService.swift and UpdateInstaller.swift),
 /// in English. Where the Mac has the same text the value is its string
 /// catalog key, so shared/localization can translate it; the Windows-only
-/// ones are marked and listed in PLAN.md 18.4, "Updates and packaging". The
+/// ones are marked, listed in PLAN.md 18.4, "Updates and packaging", and have
+/// Windows keys (catalog "windows") in shared/localization. The
 /// App may move these into its Strings class when it wires the dialogs.
 /// </summary>
 public static class UpdateTexts
@@ -64,4 +65,7 @@ public static class UpdateTexts
 
     /// <summary>Windows only: shown after a relaunch when the helper's log ends in a failure.</summary>
     public const string PreviousInstallFailed = "The last update could not be installed. Hearsay is still the previous version.";
+
+    /// <summary><see cref="PreviousInstallFailed"/> as its Windows key, for the app to translate.</summary>
+    public static LocalizedMessage PreviousInstallFailedMessage { get; } = new(PreviousInstallFailed);
 }

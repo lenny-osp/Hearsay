@@ -190,9 +190,10 @@ internal static partial class Strings
 
     /// <summary>
     /// A Core text in the interface language: its key looked up in the app
-    /// catalog for the few Core texts the Mac keeps in its app target,
-    /// otherwise in the core, then the Windows catalog; each nested message
-    /// likewise, the English key when no translation is found.
+    /// catalog for the few Core texts the Mac keeps in its app target, in the
+    /// Windows catalog for Core's Windows-only texts, otherwise in the core
+    /// catalog (then the Windows one); each nested message likewise, the
+    /// English key when no translation is found.
     /// </summary>
     public static string Localize(Hearsay.Core.ILocalizedMessage message)
     {
@@ -200,6 +201,7 @@ internal static partial class Strings
         object Resolve(object value) => value is Hearsay.Core.ILocalizedMessage nested ? Localize(nested) : value;
         var arguments = message.MessageArguments.Select(Resolve).ToArray();
         var head = CoreMessageInAppCatalog(message.MessageKey, arguments)
+            ?? CoreMessageInWindowsCatalog(message.MessageKey, arguments)
             ?? Hearsay.Core.LocalizedMessage.Format(new Hearsay.Core.LocalizedMessage(message.MessageKey, arguments, []),
                 key => Lookup("core", key, required: false) ?? Lookup("windows", key, required: false), Culture);
         return head + string.Concat(message.MessageTail.Select(part => part.Separator + Resolve(part.Content)));
@@ -207,8 +209,9 @@ internal static partial class Strings
 
     /// <summary>
     /// The Core texts whose Mac key is in the app catalog (WhisperEngine.swift,
-    /// UpdatePackage.swift live in the Mac's app target), named here so
-    /// import-strings.py puts them in the .resw; null for any other key.
+    /// UpdatePackage.swift, NotesFlowViewModel.swift live in the Mac's app
+    /// target), named here so import-strings.py puts them in the .resw; null
+    /// for any other key.
     /// </summary>
     private static string? CoreMessageInAppCatalog(string key, object[] arguments) => key switch
     {
@@ -222,6 +225,45 @@ internal static partial class Strings
             App("The code signature of the new version is not valid: %@", arguments),
         "The new app is version %@, not %@." => App("The new app is version %@, not %@.", arguments),
         "The download failed: %@" => App("The download failed: %@", arguments),
+        "Error: SRT file not found or unreadable (%@): %@" => App("Error: SRT file not found or unreadable (%@): %@", arguments),
+        _ => null,
+    };
+
+    /// <summary>
+    /// Core's Windows-only texts (catalog "windows"; PLAN.md 18.4 and the
+    /// former 18.9 list), named here so import-strings.py puts them in the
+    /// .resw; null for any other key.
+    /// </summary>
+    private static string? CoreMessageInWindowsCatalog(string key, object[] arguments) => key switch
+    {
+        // Notes (CliProcess.cs, CliClient.cs).
+        "%@ cannot take a transcript this long on Windows: the command line would be %@ characters, and Windows allows %@. Use Claude Code, Codex, or an HTTP provider for long meetings." =>
+            Win("%@ cannot take a transcript this long on Windows: the command line would be %@ characters, and Windows allows %@. "
+                + "Use Claude Code, Codex, or an HTTP provider for long meetings.", arguments),
+        "%@. %@" => Win("%@. %@", arguments),
+        // Updates (UpdateInstall.cs, UpdateTexts.cs).
+        "Windows is running Hearsay straight from the zip file. Extract the zip to a folder you can write to, open Hearsay from there, then check for updates again." =>
+            Win("Windows is running Hearsay straight from the zip file. Extract the zip to a folder you can write to, open Hearsay from there, then check for updates again."),
+        "This copy of Hearsay is not in its own app folder, so it cannot update itself. Download the new version from the release page." =>
+            Win("This copy of Hearsay is not in its own app folder, so it cannot update itself. Download the new version from the release page."),
+        "Hearsay cannot write to the folder %@. Move the Hearsay folder to a folder you can write to, open it from there, then check for updates again." =>
+            Win("Hearsay cannot write to the folder %@. Move the Hearsay folder to a folder you can write to, open it from there, then check for updates again.", arguments),
+        "The zip file could not be extracted: %@" => Win("The zip file could not be extracted: %@", arguments),
+        "The zip file should contain one Hearsay.exe but contains %lld." =>
+            Win("The zip file should contain one Hearsay.exe but contains %lld.", arguments),
+        "The new version is signed by %@, not by %@ like this copy of Hearsay." =>
+            Win("The new version is signed by %@, not by %@ like this copy of Hearsay.", arguments),
+        "The new app has the product name %@, not Hearsay." => Win("The new app has the product name %@, not Hearsay.", arguments),
+        "The release has no Windows zip file or checksum list." => Win("The release has no Windows zip file or checksum list."),
+        "The last update could not be installed. Hearsay is still the previous version." =>
+            Win("The last update could not be installed. Hearsay is still the previous version."),
+        // Whisper (WhisperModelLocation.cs).
+        "Could not load the speech model: %@" => Win("Could not load the speech model: %@", arguments),
+        // Values Core inserts into other messages (CommonMessages in LocalizedMessage.cs).
+        "The request timed out." => Win("The request timed out."),
+        "HTTP %lld" => Win("HTTP %lld", arguments),
+        "unknown" => Win("unknown"),
+        "none" => Win("none"),
         _ => null,
     };
 
@@ -674,6 +716,33 @@ internal static partial class Strings
     /// <summary>Record tab, before the first recording on whisper.cpp's CPU runtime (PLAN.md 18.4, "Speed"; Windows only).</summary>
     public static string CpuFinalPassNotice =>
         Win("This computer transcribes on its processor (CPU): after you stop, the transcript takes about 1.5 to 3.5 times as long as the recording.");
+
+    #endregion
+
+    #region Hotkeys (PLAN.md 18.9, "Shortcut recorder"): appended here only
+
+    // Shortcut names (Features/Hotkeys/HotkeyDisplay.cs): the modifiers as
+    // Windows names them in its menus in each language (Windows only).
+    public static string ModifierCtrl => Win("Ctrl");
+    public static string ModifierAlt => Win("Alt");
+    public static string ModifierShift => Win("Shift");
+    public static string ModifierWin => Win("Win");
+    public static string KeySpace => Core("Space");
+    public static string KeyNumber(uint keyCode) => Core("Key %u", keyCode);
+
+    // The recorder (mac/Hearsay/Features/Hotkeys/HotkeyRecorderView.swift).
+    public static string RecorderListening => App("Type shortcut…");
+    public static string RecorderTooltip => App("Click, then press a new shortcut.");
+    public static string RecorderAccessibilityName => App("Shortcut");
+    /// <summary>The Mac's "Press a combination with ⌃, ⌥, or ⌘. Escape cancels." with Windows' keys (Windows only).</summary>
+    public static string RecorderListeningTooltip => Win("Press a combination with Ctrl, Alt, or Win. Esc cancels; Backspace restores the default.");
+    /// <summary>The Mac's "Include ⌃, ⌥, or ⌘." with Windows' keys (Windows only).</summary>
+    public static string ShortcutNeedsModifier => Win("Include Ctrl, Alt, or Win.");
+    public static string ShortcutSameAsStartStop => Win("Already used for Start / Stop recording.");
+    public static string ShortcutSameAsPause => Win("Already used for Pause / Resume.");
+    /// <summary>A trial <c>RegisterHotKey</c> failed with ERROR_HOTKEY_ALREADY_REGISTERED (Windows only).</summary>
+    public static string ShortcutUsedElsewhere(string shortcut) => Win("%@ is already used by another app or Windows.", shortcut);
+    public static string ShortcutRejected(int error) => Win("Windows does not accept this shortcut (error %d).", error);
 
     #endregion
 }
