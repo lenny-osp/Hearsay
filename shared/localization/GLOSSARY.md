@@ -50,6 +50,7 @@ ZH-TW, ZH-CN, DE, ES).
 | Meeting notes / Notes | Besprechungsnotizen / Notizen | Notas de la reunión / Notas | 會議筆記 / 筆記 | 会议笔记 / 笔记 |
 | Generate Notes… / Regenerate Notes… | Notizen erstellen … / Notizen neu erstellen … | Generar notas… / Regenerar notas… | 產生筆記… / 重新產生筆記… | 生成笔记… / 重新生成笔记… |
 | Meeting name | Besprechungsname | Nombre de la reunión | 會議名稱 | 会议名称 |
+| Rename… / Rename (History) | Umbenennen … / Umbenennen | Renombrar… / Renombrar | 重新命名… / 重新命名 | 重命名… / 重命名 |
 | Microphone | Mikrofon | Micrófono | 麥克風 | 麦克风 |
 | System audio | Systemaudio | Audio del sistema | 系統聲音 | 系统声音 |
 | Input device | Eingabegerät | Dispositivo de entrada | 輸入裝置 | 输入设备 |

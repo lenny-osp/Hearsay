@@ -1729,6 +1729,35 @@
         }
       }
     },
+    "Could not rename the meeting" : {
+      "comment" : "Alert title when History > Rename failed",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Besprechung konnte nicht umbenannt werden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido renombrar la reunión"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法重命名会议"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法重新命名會議"
+          }
+        }
+      }
+    },
     "Could not repair the recording: %@" : {
       "comment" : "Recovery sheet error. %@ is the system error message.",
       "localizations" : {
@@ -6318,6 +6347,93 @@
         }
       }
     },
+    "Rename" : {
+      "comment" : "Rename sheet button: renames the meeting's files",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Umbenennen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Renombrar"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重命名"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新命名"
+          }
+        }
+      }
+    },
+    "Rename meeting" : {
+      "comment" : "Rename sheet title (History > Rename)",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Besprechung umbenennen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Renombrar reunión"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重命名会议"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新命名會議"
+          }
+        }
+      }
+    },
+    "Rename…" : {
+      "comment" : "Button: rename the meeting's files",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Umbenennen …"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Renombrar…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重命名…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新命名…"
+          }
+        }
+      }
+    },
     "Reset" : {
       "localizations" : {
         "de" : {
@@ -8467,6 +8583,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "逐字稿與錄音會重新命名為 <時間戳記>_<名稱>。"
+          }
+        }
+      }
+    },
+    "The transcript, notes, and recording are renamed to <timestamp>_<name>." : {
+      "comment" : "Rename sheet explanation (History > Rename). Translate the words inside <timestamp>_<name> but keep the angle brackets and underscore.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkript, Notizen und Aufnahme werden in <Zeitstempel>_<Name> umbenannt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La transcripción, las notas y la grabación se renombran como <fecha-hora>_<nombre>."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "转录稿、笔记和录音将重命名为 <时间戳>_<名称>。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "逐字稿、筆記與錄音會重新命名為 <時間戳記>_<名稱>。"
           }
         }
       }

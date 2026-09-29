@@ -5,7 +5,7 @@ import SwiftUI
 /// Debug only. When the app is launched with `HEARSAY_UI_SNAPSHOTS=<dir>`,
 /// renders the app's own views (never a screen capture) into PNGs in
 /// `<dir>`: every main-window tab, every Settings section, the confirm,
-/// naming, onboarding, unfinished-recording, and permission sheets with
+/// naming, rename, onboarding, unfinished-recording, and permission sheets with
 /// sample data (and the Record tab with both permissions granted), the
 /// menu bar panel, the update progress window, and the help page (top and the Meeting notes section).
 /// Then it quits with status 0 (1 when a file could not be written).
@@ -167,6 +167,10 @@ enum UISnapshots {
         await render("25-update-progress", width: 380, UpdateProgressView(
             version: "0.3.0", phase: .downloading(fraction: 0.42, received: 20_400_000, total: 48_600_000),
             onCancel: {}
+        ))
+        await render("26-sheet-rename", width: 420, NamingSheet(
+            suggestion: nil, currentName: "history-of-coffee-origins", renames: true,
+            onSave: { _ in }, onCancel: {}
         ))
         say("help file \(HelpWindow.contentURL?.path ?? "missing")")
         for (name, fragment) in [("19-help-top", nil), ("20-help-meeting-notes", "meeting-notes")] as [(String, String?)] {

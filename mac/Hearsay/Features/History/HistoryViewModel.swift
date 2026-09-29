@@ -15,6 +15,12 @@ final class HistoryViewModel {
     private(set) var errorMessage: String?
     /// Entry waiting for the delete confirmation.
     var pendingDelete: HistoryEntry?
+    /// Entry shown in the rename sheet.
+    var pendingRename: HistoryEntry?
+    /// Why the last rename failed, shown in an alert.
+    var renameError: String?
+    /// The selected entry's stem; a renamed entry stays selected.
+    var selection: String?
     /// Notes flow started with "Generate notes…" or "Regenerate notes…".
     private(set) var notesModel: NotesFlowViewModel?
 
@@ -182,6 +188,44 @@ final class HistoryViewModel {
         guard !isGeneratingNotes else { return }
         notesModel = nil
         rescan()
+    }
+
+    // MARK: - Rename
+
+    /// Rename is off for the meeting whose notes are being generated (the
+    /// notes flow renames and writes its files) and for the recording that
+    /// is being recorded or transcribed (`busyStems`).
+    func canRename(_ entry: HistoryEntry, busyStems: Set<String>) -> Bool {
+        guard !busyStems.contains(entry.stem) else { return false }
+        guard isGeneratingNotes, let srt = notesModel?.srtURL else { return true }
+        return srt.deletingPathExtension().lastPathComponent != entry.stem
+    }
+
+    /// Stems of the recording the Record tab is capturing, transcribing, or
+    /// transcribing again (its WAV and SRT are in the output folder while a
+    /// retry or a re-run in another language runs).
+    static func busyStems(of recording: RecordingController) -> Set<String> {
+        guard recording.isSessionActive || recording.isTranscribing else { return [] }
+        return Set([recording.finishedRecording, recording.finishedTranscript]
+            .compactMap { $0?.deletingPathExtension().lastPathComponent })
+    }
+
+    /// Renames every file of `entry` (`OutputWriter.renameEntry`), rescans,
+    /// and keeps the entry selected under its new name. A failure (already
+    /// rolled back) is shown in an alert.
+    func rename(_ entry: HistoryEntry, to name: String) {
+        pendingRename = nil
+        guard let folderURL else { return }
+        do {
+            let result = try OutputWriter.renameEntry(
+                stem: entry.stem, directory: folderURL, meetingName: name
+            )
+            rescan()
+            selection = result.stem
+        } catch {
+            rescan()
+            renameError = error.localizedDescription
+        }
     }
 
     /// Moves every file of the confirmed entry to the Trash.

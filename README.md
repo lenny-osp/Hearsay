@@ -174,6 +174,7 @@ Transcript, Reveal in Finder, and:
 
 - **Generate Notes…** for a saved transcript, or **Regenerate Notes…**; the
   old notes go to the Trash when the new ones are saved.
+- **Rename…** gives all of a meeting's files a new name.
 - **Move to Trash…** moves all of a meeting's files to the Trash.
 
 ## Menu bar, window, and startup

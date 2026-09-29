@@ -7,11 +7,15 @@ import SwiftUI
 ///
 /// When regenerating notes, the field starts from the meeting's current
 /// name (`currentName`) and the AI suggestion is a one-click alternative.
+/// History > Rename uses it with `renames` set: prefilled with the current
+/// name, no suggestion, and a Rename button.
 struct NamingSheet: View {
     let suggestion: String?
     let currentName: String?
     /// Saving moves the meeting's current notes to the Trash.
     let replacesNotes: Bool
+    /// History > Rename: renames an existing meeting's files.
+    let renames: Bool
     let onSave: (String) -> Void
     let onCancel: () -> Void
 
@@ -21,12 +25,14 @@ struct NamingSheet: View {
         suggestion: String?,
         currentName: String? = nil,
         replacesNotes: Bool = false,
+        renames: Bool = false,
         onSave: @escaping (String) -> Void,
         onCancel: @escaping () -> Void
     ) {
         self.suggestion = suggestion
         self.currentName = currentName
         self.replacesNotes = replacesNotes
+        self.renames = renames
         self.onSave = onSave
         self.onCancel = onCancel
         _name = State(initialValue: currentName ?? suggestion ?? "")
@@ -43,6 +49,10 @@ struct NamingSheet: View {
     }
 
     private var explanation: String {
+        if renames {
+            return String(localized: "The transcript, notes, and recording are renamed to <timestamp>_<name>.",
+                          comment: "Rename sheet explanation (History > Rename). Translate the words inside <timestamp>_<name> but keep the angle brackets and underscore.")
+        }
         if currentName != nil {
             return alternative == nil
                 ? String(localized: "This is the meeting's current name. Edit it or press Return to keep it.",
@@ -57,11 +67,18 @@ struct NamingSheet: View {
                      comment: "Naming sheet explanation")
     }
 
+    private var title: String {
+        if renames {
+            return String(localized: "Rename meeting", comment: "Rename sheet title (History > Rename)")
+        }
+        return suggestion == nil && currentName == nil
+            ? String(localized: "Name this meeting", comment: "Naming sheet title")
+            : String(localized: "Meeting name", comment: "Naming sheet title")
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(suggestion == nil && currentName == nil
-                 ? String(localized: "Name this meeting", comment: "Naming sheet title")
-                 : String(localized: "Meeting name", comment: "Naming sheet title"))
+            Text(title)
                 .font(.headline)
             Text(explanation)
                 .font(.callout)
@@ -100,9 +117,16 @@ struct NamingSheet: View {
                 Spacer()
                 Button("Cancel", role: .cancel, action: onCancel)
                     .keyboardShortcut(.cancelAction)
-                Button("Save", action: save)
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(slug == nil)
+                if renames {
+                    Button(String(localized: "Rename", comment: "Rename sheet button: renames the meeting's files"),
+                           action: save)
+                        .keyboardShortcut(.defaultAction)
+                        .disabled(slug == nil)
+                } else {
+                    Button("Save", action: save)
+                        .keyboardShortcut(.defaultAction)
+                        .disabled(slug == nil)
+                }
             }
         }
         .padding(20)
@@ -124,4 +148,8 @@ struct NamingSheet: View {
         suggestion: "genhe-road-trip", currentName: "trip-to-genhe", replacesNotes: true,
         onSave: { _ in }, onCancel: {}
     )
+}
+
+#Preview("Rename") {
+    NamingSheet(suggestion: nil, currentName: "history-of-coffee", renames: true, onSave: { _ in }, onCancel: {})
 }

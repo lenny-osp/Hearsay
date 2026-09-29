@@ -6,6 +6,7 @@ import SwiftUI
 struct HistoryView: View {
     @Environment(AppSettings.self) private var settings
     @Environment(AIProviderStore.self) private var store
+    @Environment(RecordingController.self) private var recording
     @State private var model = HistoryViewModel()
 
     var body: some View {
@@ -38,6 +39,22 @@ struct HistoryView: View {
             Button("Cancel", role: .cancel) { model.pendingDelete = nil }
         } message: { entry in
             Text(entry.files.map(\.lastPathComponent).joined(separator: "\n"))
+        }
+        .sheet(item: $model.pendingRename) { entry in
+            NamingSheet(
+                suggestion: nil, currentName: entry.meetingName, renames: true,
+                onSave: { name in model.rename(entry, to: name) },
+                onCancel: { model.pendingRename = nil }
+            )
+        }
+        .alert(
+            Text("Could not rename the meeting", comment: "Alert title when History > Rename failed"),
+            isPresented: renameAlertShown,
+            presenting: model.renameError
+        ) { _ in
+            Button("OK", role: .cancel) { model.renameError = nil }
+        } message: { message in
+            Text(message)
         }
     }
 
@@ -78,19 +95,28 @@ struct HistoryView: View {
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            List(model.entries) { entry in
-                HistoryRow(
-                    entry: entry,
-                    canGenerateNotes: HistoryViewModel.canGenerateNotes(entry) && !model.isGeneratingNotes
-                ) { action in
-                    perform(action, on: entry)
+            let busy = HistoryViewModel.busyStems(of: recording)
+            ScrollViewReader { proxy in
+                List(model.entries, selection: $model.selection) { entry in
+                    HistoryRow(
+                        entry: entry,
+                        canGenerateNotes: HistoryViewModel.canGenerateNotes(entry) && !model.isGeneratingNotes,
+                        canRename: model.canRename(entry, busyStems: busy)
+                    ) { action in
+                        perform(action, on: entry)
+                    }
+                    .tag(entry.stem)
+                    .contextMenu { menuItems(for: entry, busyStems: busy) }
                 }
-                .contextMenu { menuItems(for: entry) }
+                .onChange(of: model.selection) { _, stem in
+                    guard let stem else { return }
+                    withAnimation { proxy.scrollTo(stem) }
+                }
             }
         }
     }
 
-    @ViewBuilder private func menuItems(for entry: HistoryEntry) -> some View {
+    @ViewBuilder private func menuItems(for entry: HistoryEntry, busyStems: Set<String>) -> some View {
         Button("Open Notes") { perform(.openNotes, on: entry) }
             .disabled(entry.notes == nil)
         Button("Open Transcript") { perform(.openTranscript, on: entry) }
@@ -99,6 +125,8 @@ struct HistoryView: View {
             .disabled(entry.srt == nil)
         Button("Reveal in Finder") { perform(.reveal, on: entry) }
         Divider()
+        Button("Rename…") { perform(.rename, on: entry) }
+            .disabled(!model.canRename(entry, busyStems: busyStems))
         Button(HistoryViewModel.notesActionTitle(entry)) { perform(.generateNotes, on: entry) }
             .disabled(!HistoryViewModel.canGenerateNotes(entry) || model.isGeneratingNotes)
         Divider()
@@ -113,8 +141,18 @@ struct HistoryView: View {
         case .reveal: model.reveal(entry)
         case .generateNotes:
             model.generateNotes(entry, store: store, settings: settings)
+        case .rename:
+            guard model.canRename(entry, busyStems: HistoryViewModel.busyStems(of: recording)) else { return }
+            model.pendingRename = entry
         case .delete: model.pendingDelete = entry
         }
+    }
+
+    private var renameAlertShown: Binding<Bool> {
+        Binding(
+            get: { model.renameError != nil },
+            set: { shown in if !shown { model.renameError = nil } }
+        )
     }
 
     private var deleteAlertShown: Binding<Bool> {
@@ -145,11 +183,12 @@ struct HistoryView: View {
 /// One meeting: name, date and time, duration, file badges, action buttons.
 private struct HistoryRow: View {
     enum Action {
-        case openNotes, openTranscript, openSRT, reveal, generateNotes, delete
+        case openNotes, openTranscript, openSRT, reveal, rename, generateNotes, delete
     }
 
     let entry: HistoryEntry
     let canGenerateNotes: Bool
+    let canRename: Bool
     let perform: (Action) -> Void
 
     var body: some View {
@@ -196,6 +235,8 @@ private struct HistoryRow: View {
                        systemImage: "captions.bubble", enabled: entry.srt != nil, .openSRT)
             iconButton(String(localized: "Reveal in Finder", comment: "Button"),
                        systemImage: "folder", enabled: true, .reveal)
+            iconButton(String(localized: "Rename…", comment: "Button: rename the meeting's files"),
+                       systemImage: "pencil", enabled: canRename, .rename)
             iconButton(
                 HistoryViewModel.notesActionTitle(entry), systemImage: "sparkles",
                 enabled: canGenerateNotes, .generateNotes

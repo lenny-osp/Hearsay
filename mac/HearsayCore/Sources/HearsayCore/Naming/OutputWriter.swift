@@ -335,6 +335,120 @@ public enum OutputWriter {
             .map(\.destination)
     }
 
+    // MARK: - Rename a History entry
+
+    /// A History entry after `renameEntry`.
+    public struct RenamedEntry: Equatable, Sendable {
+        public let stem: String
+        /// The entry's files under `stem`, in SRT, notes, transcript, audio
+        /// order (only those that exist).
+        public let files: [URL]
+    }
+
+    /// Every file suffix a History entry can have, in `HistoryEntry.files`
+    /// order.
+    static let entrySuffixes = [".srt", ".md", "_transcript.md"] + retainedAudioExtensions.map { "." + $0 }
+
+    /// Renames every existing file of the History entry `<stem>.*` in
+    /// `directory` (SRT, notes, structured transcript, WAV) to
+    /// `<timestamp>_<meetingName>` (History > Rename, PLAN.md 4.8). The name
+    /// is sanitized like every saved name. The timestamp is the one in
+    /// `stem`, else the first file's birth or modification time (the
+    /// `renameRetained` rule), else now. `-N` is added when any of the
+    /// entry's names (all four, so a foreign file never joins the entry) is
+    /// taken by a file that is not the entry's own. Renaming to the current
+    /// name changes nothing.
+    ///
+    /// Notes and structured transcript whose first section has a
+    /// `**Meeting Name:**` line get it rewritten to the new sanitized name
+    /// (the value `saveNamed` writes), atomically after the moves; other
+    /// Markdown is only renamed. On a failed move, completed moves are rolled
+    /// back; on a failed write, rewritten files get their old text back and
+    /// every move is rolled back. Either way the error lists what could not
+    /// be restored.
+    public static func renameEntry(stem: String, directory: URL, meetingName: String) throws -> RenamedEntry {
+        try renameEntry(stem: stem, directory: directory, meetingName: meetingName,
+                        move: defaultMove, writeText: writeReplacing)
+    }
+
+    static func renameEntry(
+        stem: String,
+        directory: URL,
+        meetingName: String,
+        move: Mover,
+        writeText: TextWriter
+    ) throws -> RenamedEntry {
+        guard let safeName = FilenameSanitizer.sanitize(meetingName) else {
+            throw OutputWriterError.unusableMeetingName
+        }
+        let folder = directory.standardizedFileURL
+        let present = entrySuffixes.compactMap { suffix -> (url: URL, suffix: String)? in
+            let url = folder.appendingPathComponent(stem + suffix)
+            return isRegularFile(url) ? (url, suffix) : nil
+        }
+        let sources = present.map(\.url)
+        guard let first = sources.first else { return RenamedEntry(stem: stem, files: []) }
+
+        let outputTimestamp = Timestamps.parse(fromFilename: stem)
+            ?? Timestamps.sourceFileTimestamp(url: first)
+            ?? Timestamps.now()
+        let newStem = freeStem(
+            base: "\(outputTimestamp)_\(safeName)",
+            directory: folder,
+            suffixes: entrySuffixes,
+            ignoring: sources.compactMap(fileIdentity)
+        )
+        guard newStem != stem else { return RenamedEntry(stem: stem, files: sources) }
+
+        // Meeting-name lines to rewrite, read before anything moves.
+        let headings = [".md": notesFallbackHeading, "_transcript.md": transcriptFallbackHeading]
+        var rewrites: [(suffix: String, old: String, new: String)] = []
+        for (url, suffix) in present {
+            guard let heading = headings[suffix],
+                  let old = try? String(contentsOf: url, encoding: .utf8),
+                  MeetingNameInserter.hasMeetingName(old)
+            else { continue }
+            let new = MeetingNameInserter.insert(into: old, meetingName: safeName, fallbackHeading: heading)
+            if new != old { rewrites.append((suffix, old, new)) }
+        }
+
+        let renamed = try renameAll(sources: sources, suffixes: present.map(\.suffix), stem: newStem,
+                                    directory: folder, move: move)
+
+        var written: [(url: URL, old: String)] = []
+        for rewrite in rewrites {
+            let url = folder.appendingPathComponent(newStem + rewrite.suffix)
+            do {
+                try writeText(rewrite.new, url)
+                written.append((url, rewrite.old))
+            } catch {
+                var oldText: [URL] = []
+                for done in written.reversed() {
+                    do {
+                        try writeText(done.old, done.url)
+                    } catch {
+                        oldText.append(done.url)
+                    }
+                }
+                // Every file still moves back so the entry stays together; a
+                // file that kept the new meeting-name line is reported by
+                // the path it ends up at.
+                let unmoved = rollBack(renamed, move: move)
+                let unrestored = unmoved + oldText.compactMap { url in
+                    guard !unmoved.contains(url) else { return nil }
+                    return renamed.first(where: { $0.destination == url })?.source ?? url
+                }
+                throw OutputWriterError.writeFailed(url: url, reason: reason(error), unrestored: unrestored)
+            }
+        }
+        return RenamedEntry(stem: newStem, files: renamed.map(\.destination))
+    }
+
+    private static func isRegularFile(_ url: URL) -> Bool {
+        var isDirectory: ObjCBool = false
+        return FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) && !isDirectory.boolValue
+    }
+
     /// Renames each source to `stem + suffix` in order. On the first failure,
     /// rolls back the completed renames in reverse and throws `renameFailed`.
     private static func renameAll(
@@ -448,16 +562,39 @@ public enum OutputWriter {
     /// Writes to a hidden temp file in the destination directory, syncs it,
     /// then moves it into place. The temp file is removed on failure.
     static func writeAtomically(_ text: String, to destination: URL) throws {
+        try writeThroughTemporary(text, to: destination) { temporary in
+            try FileManager.default.moveItem(at: temporary, to: destination)
+        }
+    }
+
+    /// Like `writeAtomically`, but atomically replaces a file already at
+    /// `destination` (`rename(2)`), so a reader sees the old or the new text,
+    /// never a partial one.
+    static func writeReplacing(_ text: String, to destination: URL) throws {
+        try writeThroughTemporary(text, to: destination) { temporary in
+            guard rename(temporary.path, destination.path) == 0 else {
+                throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+            }
+        }
+    }
+
+    private static func writeThroughTemporary(
+        _ text: String,
+        to destination: URL,
+        place: (URL) throws -> Void
+    ) throws {
         let directory = destination.deletingLastPathComponent()
         let temporary = directory.appendingPathComponent(
             ".\(destination.lastPathComponent).\(UUID().uuidString).tmp"
         )
         do {
             try Data(text.utf8).write(to: temporary, options: [.withoutOverwriting])
-            let handle = try FileHandle(forUpdating: temporary)
-            defer { try? handle.close() }
-            try handle.synchronize()
-            try FileManager.default.moveItem(at: temporary, to: destination)
+            do {
+                let handle = try FileHandle(forUpdating: temporary)
+                defer { try? handle.close() }
+                try handle.synchronize()
+            }
+            try place(temporary)
         } catch {
             try? FileManager.default.removeItem(at: temporary)
             throw error

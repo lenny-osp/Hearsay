@@ -410,6 +410,46 @@ missing, cache SwiftPM checkouts, and never download a model.
   secret the build is ad-hoc. Notarization and stapling run only when the
   Apple ID secrets listed in `.github/workflows/README.md` exist too.
 
+### 4.8 History
+
+`HistoryIndex.scan` groups the files in the output folder by stem: one
+entry is `<stem>.srt`, `<stem>.md` (notes), `<stem>_transcript.md` and
+`<stem>.wav`, whichever exist. Row actions: Open SRT / Notes / Transcript,
+Reveal in Finder, Rename…, Generate or Regenerate Notes… (`replaceNamed`),
+Move to Trash….
+
+**Rename…** (added 2026-09-29, owner request; no Python counterpart). It
+opens the naming sheet in rename mode ("Rename meeting", prefilled with the
+entry's meeting name, button "Rename"). `OutputWriter.renameEntry`:
+
+- The name goes through `FilenameSanitizer`; nothing usable is rejected
+  inline (and throws `unusableMeetingName` in core).
+- New stem `<timestamp>_<slug>`. The timestamp is the one in the old stem,
+  else the first existing file's birth or modification time (the
+  `renameRetained` rule, `Timestamps.sourceFileTimestamp`), else now.
+- `-N` when any of the four entry names is taken by a file that is not the
+  entry's own (`freeStem` with file identities). All four suffixes count,
+  not only the kinds the entry has, so a foreign `<new>.wav` never joins
+  the renamed entry. The same name (or the entry's own `-N` name) is a
+  no-op.
+- Every existing file is renamed; a failed move rolls back the completed
+  ones and throws `renameFailed` with `unrestored`.
+- Notes and structured transcript whose first section has a
+  `**Meeting Name:**` line (`MeetingNameInserter.hasMeetingName`) get it
+  rewritten with `MeetingNameInserter.insert` and the slug (the value
+  `saveNamed` writes), atomically replacing the renamed file after the
+  moves. On a failed write the rewritten files get their old text back and
+  every move is rolled back (`writeFailed`). Markdown without that line is
+  only renamed.
+- Disabled for the entry whose notes the History notes flow is generating,
+  and for the Record tab's recording while it is recording or
+  transcribing (its `finishedRecording` / `finishedTranscript` stems).
+  Not covered: a Record or File tab notes flow still waiting at its
+  confirm or naming sheet for the same SRT (that state is private to those
+  tabs); renaming then makes that flow report the SRT as missing.
+- After success History rescans and selects the renamed entry; errors go
+  to an alert with the error text (which says what was restored).
+
 ## 5. Model catalog and download
 
 Built-in `ModelCatalog.json`, editable later without a code change. Every
@@ -669,7 +709,7 @@ cd .. && Spike/.build/derived/Build/Products/Release/hearsay-spike \
 
 Things no agent could verify because they need permissions or a person.
 Verified 2026-09-28: recording, live preview, final pass, File mode (items
-1, 10, 12 in part). Still open: 2 to 9, 11, 13 to 17.
+1, 10, 12 in part). Still open: 2 to 9, 11, 13 to 18.
 
 1. First Start: grant Microphone, then Screen & System Audio Recording;
    relaunch if system audio stays off after granting.
@@ -724,6 +764,12 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
     Builds up to 0.2.3 still hang once on their next update: force quit
     Hearsay and open it again; it is already the new version. Check again
     on the first update from a build that has the fix.
+18. History > Rename… (section 4.8): rename a meeting that has SRT, notes,
+    transcript, and WAV. All four files get the new name with the same
+    timestamp, the row stays selected, and the notes' **Meeting Name:**
+    line shows the new name. Rename another meeting to the same name: it
+    gets `-2`. While a recording is transcribing, and while History is
+    generating notes for a meeting, its Rename… is disabled.
 
 ## 17. Polish list (found during review, not yet scheduled)
 
@@ -925,7 +971,7 @@ created in the IDE.
 | W3. Audio | WASAPI mic and loopback capture, resampling, spool WAV, no-audio watchdog | 4 to 5 days |
 | W4. Shell | WinUI window with the five tabs, tray icon, window modes, hotkeys, settings, model store and downloads | 6 to 8 days |
 | W5. Transcription | live preview, final pass, File mode, Auto detection with banners, Chinese conversion | 5 to 6 days |
-| W6. Notes | CLI providers on Windows, Ollama, Custom, confirm and naming sheets, History with regenerate | 4 to 5 days |
+| W6. Notes | CLI providers on Windows, Ollama, Custom, confirm and naming sheets, History with regenerate and Rename (section 4.8; port `OutputWriter.renameEntry` and its tests) | 4 to 5 days |
 | W7. Polish and ship | interface languages from shared translations, help window, crash recovery, MSIX, signing, updates, README | 5 to 6 days |
 
 Total: about 6 to 8 weeks of agent time.

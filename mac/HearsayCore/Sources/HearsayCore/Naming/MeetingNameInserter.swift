@@ -52,6 +52,19 @@ public enum MeetingNameInserter {
         return result + (remaining.isEmpty ? "" : "\n\(remaining)")
     }
 
+    /// True when the first section (below the first heading) holds a
+    /// `**Meeting Name:**` line, the line `insert` replaces. A document
+    /// without a heading, or with the line only in a later section, has none.
+    /// History > Rename rewrites only notes for which this is true.
+    public static func hasMeetingName(_ markdown: String) -> Bool {
+        let text = markdown as NSString
+        guard let heading = firstMatch(headingLine, in: text) else { return false }
+        let body = text.substring(from: heading.location + heading.length) as NSString
+        let sectionEnd = firstMatch(headingStart, in: body)?.location ?? body.length
+        let section = body.substring(to: sectionEnd) as NSString
+        return firstMatch(meetingNameLine, in: section) != nil
+    }
+
     private static func firstMatch(_ regex: NSRegularExpression?, in text: NSString) -> NSRange? {
         guard let regex,
               let match = regex.firstMatch(in: text as String, range: NSRange(location: 0, length: text.length))

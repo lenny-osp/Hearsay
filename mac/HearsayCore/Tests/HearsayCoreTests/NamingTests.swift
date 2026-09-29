@@ -781,6 +781,311 @@ private final class FakeTrash: @unchecked Sendable {
     }
 }
 
+// MARK: - OutputWriter.renameEntry (History > Rename)
+
+// No Python counterpart: whisper-tools has no rename of a finished meeting.
+// These follow the rules of the ported `rename_transcription_outputs` tests.
+@Suite struct RenameEntryTests {
+    private static let stem = "2026-09-28_15-44-12_history-of-coffee"
+    private static let renamed = "2026-09-28_15-44-12_coffee-origins"
+    private static let notes = "# Meeting Notes\n\n**Meeting Name:** history-of-coffee\n\n## Summary\n\n- Beans came from Ethiopia.\n"
+    private static let transcript = "# Structured Transcript\n\n**Meeting Name:** history-of-coffee\n\n## Speaker 1\n\nHello.\n"
+
+    /// A meeting with the given files, written as `saveNamed` writes them.
+    private func meeting(
+        in directory: TemporaryDirectory,
+        stem: String = stem,
+        suffixes: [String] = [".srt", ".md", "_transcript.md", ".wav"]
+    ) throws {
+        for suffix in suffixes {
+            let text = switch suffix {
+            case ".md": Self.notes
+            case "_transcript.md": Self.transcript
+            case ".wav": "RIFF"
+            default: "1\n00:00:01,000 --> 00:00:02,000\nCoffee\n"
+            }
+            _ = try directory.write(stem + suffix, text)
+        }
+    }
+
+    private func names(_ stem: String, _ suffixes: [String] = [".md", ".srt", ".wav", "_transcript.md"]) -> [String] {
+        suffixes.map { stem + $0 }
+    }
+
+    @Test func renamesAllFourFilesAndTheMeetingNameLines() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        try meeting(in: directory)
+
+        let result = try OutputWriter.renameEntry(
+            stem: Self.stem, directory: directory.url, meetingName: "Coffee Origins"
+        )
+        #expect(result.stem == Self.renamed)
+        #expect(result.files.map(\.lastPathComponent) == [
+            "\(Self.renamed).srt", "\(Self.renamed).md", "\(Self.renamed)_transcript.md", "\(Self.renamed).wav",
+        ])
+        #expect(try directory.listing() == names(Self.renamed))
+        #expect(try directory.read("\(Self.renamed).md")
+            == "# Meeting Notes\n\n**Meeting Name:** coffee-origins\n\n## Summary\n\n- Beans came from Ethiopia.\n")
+        #expect(try directory.read("\(Self.renamed)_transcript.md")
+            == "# Structured Transcript\n\n**Meeting Name:** coffee-origins\n\n## Speaker 1\n\nHello.\n")
+        #expect(try directory.read("\(Self.renamed).wav") == "RIFF")
+    }
+
+    @Test func renamesOnlyTheFilesThatExist() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        try meeting(in: directory, suffixes: [".srt", ".wav"])
+
+        let result = try OutputWriter.renameEntry(
+            stem: Self.stem, directory: directory.url, meetingName: "coffee-origins"
+        )
+        #expect(result.files.map(\.lastPathComponent) == ["\(Self.renamed).srt", "\(Self.renamed).wav"])
+        #expect(try directory.listing() == names(Self.renamed, [".srt", ".wav"]))
+    }
+
+    @Test func notesOnlyEntryIsRenamed() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        try meeting(in: directory, suffixes: [".md"])
+
+        let result = try OutputWriter.renameEntry(
+            stem: Self.stem, directory: directory.url, meetingName: "coffee-origins"
+        )
+        #expect(result.files.map(\.lastPathComponent) == ["\(Self.renamed).md"])
+        #expect(try directory.listing() == ["\(Self.renamed).md"])
+    }
+
+    @Test func collisionWithAnotherMeetingAddsSuffix() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        try meeting(in: directory)
+        _ = try directory.write("\(Self.renamed).srt", "other")
+
+        let result = try OutputWriter.renameEntry(
+            stem: Self.stem, directory: directory.url, meetingName: "coffee-origins"
+        )
+        #expect(result.stem == "\(Self.renamed)-2")
+        #expect(try directory.listing() == (["\(Self.renamed).srt"] + names("\(Self.renamed)-2")).sorted())
+        #expect(try directory.read("\(Self.renamed).srt") == "other")
+    }
+
+    /// A foreign `<new>.wav` would join the renamed entry in History, so it
+    /// is a collision even when the entry has no WAV.
+    @Test func foreignFileOfAKindTheEntryLacksStillAddsSuffix() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        try meeting(in: directory, suffixes: [".srt"])
+        _ = try directory.write("\(Self.renamed).wav", "other")
+
+        let result = try OutputWriter.renameEntry(
+            stem: Self.stem, directory: directory.url, meetingName: "coffee-origins"
+        )
+        #expect(result.stem == "\(Self.renamed)-2")
+    }
+
+    @Test func sameNameIsANoOp() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        try meeting(in: directory)
+        let failingMove: OutputWriter.Mover = { _, _ in throw SimulatedFailure(message: "must not move") }
+        let failingWrite: OutputWriter.TextWriter = { _, _ in throw SimulatedFailure(message: "must not write") }
+
+        let result = try OutputWriter.renameEntry(
+            stem: Self.stem, directory: directory.url, meetingName: "History of Coffee",
+            move: failingMove, writeText: failingWrite
+        )
+        #expect(result.stem == Self.stem)
+        #expect(result.files.count == 4)
+        #expect(try directory.listing() == names(Self.stem))
+        #expect(try directory.read("\(Self.stem).md") == Self.notes)
+    }
+
+    /// An entry that already carries `-2` keeps it when renamed to its own
+    /// name while the plain name is taken by another meeting.
+    @Test func suffixedEntryKeepsItsNameWhenUnchanged() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        try meeting(in: directory)
+        try meeting(in: directory, stem: "\(Self.stem)-2")
+
+        let result = try OutputWriter.renameEntry(
+            stem: "\(Self.stem)-2", directory: directory.url, meetingName: "history-of-coffee"
+        )
+        #expect(result.stem == "\(Self.stem)-2")
+        #expect(try directory.listing() == (names(Self.stem) + names("\(Self.stem)-2")).sorted())
+    }
+
+    @Test func unusableNameThrowsAndChangesNothing() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        try meeting(in: directory)
+
+        #expect(throws: OutputWriterError.unusableMeetingName) {
+            try OutputWriter.renameEntry(stem: Self.stem, directory: directory.url, meetingName: "會議 !!")
+        }
+        #expect(try directory.listing() == names(Self.stem))
+        #expect(try directory.read("\(Self.stem).md") == Self.notes)
+    }
+
+    @Test func failingThirdMoveRollsBackTheFirstTwo() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        try meeting(in: directory)
+        var moves = 0
+        let failingMove: OutputWriter.Mover = { source, destination in
+            moves += 1
+            if moves == 3 { throw SimulatedFailure(message: "device is busy") }
+            try OutputWriter.defaultMove(source, destination)
+        }
+
+        do {
+            _ = try OutputWriter.renameEntry(
+                stem: Self.stem, directory: directory.url, meetingName: "coffee-origins",
+                move: failingMove, writeText: OutputWriter.writeReplacing
+            )
+            Issue.record("renameEntry should have thrown")
+        } catch let error as OutputWriterError {
+            guard case let .renameFailed(source, destination, reason, unrestored) = error else {
+                Issue.record("unexpected error \(error)")
+                return
+            }
+            #expect(source.lastPathComponent == "\(Self.stem)_transcript.md")
+            #expect(destination.lastPathComponent == "\(Self.renamed)_transcript.md")
+            #expect(reason == "device is busy")
+            #expect(unrestored.isEmpty)
+        }
+        #expect(try directory.listing() == names(Self.stem))
+        #expect(try directory.read("\(Self.stem).md") == Self.notes)
+    }
+
+    @Test func unrestorableMoveIsNamedInTheError() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        try meeting(in: directory, suffixes: [".srt", ".wav"])
+        let failingMove: OutputWriter.Mover = { source, destination in
+            // The WAV cannot move, and the SRT cannot move back.
+            if source.pathExtension == "wav" || source.lastPathComponent.hasPrefix(Self.renamed) {
+                throw SimulatedFailure(message: "device is busy")
+            }
+            try OutputWriter.defaultMove(source, destination)
+        }
+
+        do {
+            _ = try OutputWriter.renameEntry(
+                stem: Self.stem, directory: directory.url, meetingName: "coffee-origins",
+                move: failingMove, writeText: OutputWriter.writeReplacing
+            )
+            Issue.record("renameEntry should have thrown")
+        } catch let error as OutputWriterError {
+            guard case let .renameFailed(_, _, _, unrestored) = error else {
+                Issue.record("unexpected error \(error)")
+                return
+            }
+            #expect(unrestored.map(\.lastPathComponent) == ["\(Self.renamed).srt"])
+            #expect(error.localizedDescription.contains("\(Self.renamed).srt"))
+        }
+    }
+
+    @Test func failingNotesWriteRestoresTextAndNames() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        try meeting(in: directory)
+        // The notes are rewritten first, then the transcript fails.
+        let failingWrite: OutputWriter.TextWriter = { text, destination in
+            if destination.lastPathComponent.hasSuffix("_transcript.md") {
+                throw SimulatedFailure(message: "disk full")
+            }
+            try OutputWriter.writeReplacing(text, to: destination)
+        }
+
+        do {
+            _ = try OutputWriter.renameEntry(
+                stem: Self.stem, directory: directory.url, meetingName: "coffee-origins",
+                move: OutputWriter.defaultMove, writeText: failingWrite
+            )
+            Issue.record("renameEntry should have thrown")
+        } catch let error as OutputWriterError {
+            guard case let .writeFailed(url, reason, unrestored) = error else {
+                Issue.record("unexpected error \(error)")
+                return
+            }
+            #expect(url.lastPathComponent == "\(Self.renamed)_transcript.md")
+            #expect(reason == "disk full")
+            #expect(unrestored.isEmpty)
+        }
+        #expect(try directory.listing() == names(Self.stem))
+        #expect(try directory.read("\(Self.stem).md") == Self.notes)
+        #expect(try directory.read("\(Self.stem)_transcript.md") == Self.transcript)
+    }
+
+    @Test func notesWithoutAMeetingNameLineAreOnlyRenamed() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        let plain = "# Meeting Notes\n\n## Summary\n\n**Meeting Name:** in a later section\n"
+        let noHeading = "Just text.\n**Meeting Name:** history-of-coffee\n"
+        _ = try directory.write("\(Self.stem).srt", "1\n")
+        _ = try directory.write("\(Self.stem).md", plain)
+        _ = try directory.write("\(Self.stem)_transcript.md", noHeading)
+
+        _ = try OutputWriter.renameEntry(stem: Self.stem, directory: directory.url, meetingName: "coffee-origins")
+        #expect(try directory.read("\(Self.renamed).md") == plain)
+        #expect(try directory.read("\(Self.renamed)_transcript.md") == noHeading)
+    }
+
+    @Test func stemWithoutTimestampUsesTheFirstFileBirthTime() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        let srt = try directory.write("interview.srt", "1\n")
+        _ = try directory.write("interview.wav", "RIFF")
+        let birth = try #require(Calendar(identifier: .gregorian).date(
+            from: DateComponents(timeZone: .current, year: 2026, month: 9, day: 3, hour: 14, minute: 5, second: 6)
+        ))
+        try FileManager.default.setAttributes([.creationDate: birth], ofItemAtPath: srt.path)
+
+        let result = try OutputWriter.renameEntry(
+            stem: "interview", directory: directory.url, meetingName: "Customer Interview"
+        )
+        #expect(result.stem == "2026-09-03_14-05-06_customer-interview")
+        #expect(try directory.listing() == [
+            "2026-09-03_14-05-06_customer-interview.srt", "2026-09-03_14-05-06_customer-interview.wav",
+        ])
+    }
+
+    @Test func plainTimestampStemGetsTheName() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        try meeting(in: directory, stem: "2026-09-28_15-44-12", suffixes: [".srt", ".wav"])
+
+        let result = try OutputWriter.renameEntry(
+            stem: "2026-09-28_15-44-12", directory: directory.url, meetingName: "coffee-origins"
+        )
+        #expect(result.stem == Self.renamed)
+    }
+
+    @Test func replacingWriteLeavesNoTemporaryFiles() throws {
+        let directory = try TemporaryDirectory()
+        defer { directory.remove() }
+        let target = try directory.write("notes.md", "old")
+        try OutputWriter.writeReplacing("new", to: target)
+        #expect(try directory.read("notes.md") == "new")
+        #expect(try directory.listing() == ["notes.md"])
+    }
+}
+
+@Suite struct MeetingNameDetectionTests {
+    @Test(arguments: [
+        ("# Notes\n\n**Meeting Name:** a\n\nBody\n", true),
+        ("# Notes\n\n**meeting name:** a\n", true),
+        ("# Notes\n\nBody\n\n## Next\n\n**Meeting Name:** a\n", false),
+        ("**Meeting Name:** a\n\nNo heading\n", false),
+        ("# Notes\n\nBody\n", false),
+    ])
+    func findsTheLineInsertReplaces(markdown: String, expected: Bool) {
+        #expect(MeetingNameInserter.hasMeetingName(markdown) == expected)
+    }
+}
+
 // MARK: - shared/naming-tests.json
 
 /// The naming vectors both platforms run. Expected values come from the

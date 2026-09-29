@@ -481,6 +481,13 @@
   },
   {
     "catalog": "app",
+    "key": "Could not rename the meeting",
+    "english": "Could not rename the meeting",
+    "comment": "Alert title when History > Rename failed",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
     "key": "Could not repair the recording: %@",
     "english": "Could not repair the recording: %@",
     "comment": "Recovery sheet error. %@ is the system error message.",
@@ -1656,6 +1663,27 @@
   },
   {
     "catalog": "app",
+    "key": "Rename",
+    "english": "Rename",
+    "comment": "Rename sheet button: renames the meeting's files",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "Rename meeting",
+    "english": "Rename meeting",
+    "comment": "Rename sheet title (History > Rename)",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "Rename…",
+    "english": "Rename…",
+    "comment": "Button: rename the meeting's files",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
     "key": "Reset",
     "english": "Reset",
     "comment": "UI text in HotkeyRecorderView.swift.",
@@ -2214,6 +2242,13 @@
     "key": "The transcript and recording are renamed to <timestamp>_<name>.",
     "english": "The transcript and recording are renamed to <timestamp>_<name>.",
     "comment": "Naming sheet explanation. Translate the words inside <timestamp>_<name> but keep the angle brackets and underscore.",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "The transcript, notes, and recording are renamed to <timestamp>_<name>.",
+    "english": "The transcript, notes, and recording are renamed to <timestamp>_<name>.",
+    "comment": "Rename sheet explanation (History > Rename). Translate the words inside <timestamp>_<name> but keep the angle brackets and underscore.",
     "placeholders": []
   },
   {
