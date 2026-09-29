@@ -1,10 +1,12 @@
 # GitHub Actions
 
-Three workflows. `ci.yml` and `release.yml` build the Mac app on the
+Four workflows. `ci.yml` and `release.yml` build the Mac app on the
 `macos-26` Apple Silicon runner with the newest stable Xcode installed there
-(selected by `.github/actions/setup-mac`); `windows-ci.yml` builds the
-Windows version on `windows-latest` (see "Windows" below). None needs or
-downloads a speech model. PLAN.md section 4.7 has the reasons.
+(selected by `.github/actions/setup-mac`); `windows-ci.yml` and
+`windows-release.yml` build the Windows version on `windows-latest` (see
+"Windows" below). A pushed `v*` tag runs both release workflows, which
+publish one GitHub release. None needs or downloads a speech model.
+PLAN.md sections 4.7 and 18.4 ("Updates and packaging") have the reasons.
 
 ## ci.yml: every pull request and every push to `main`
 
@@ -89,13 +91,74 @@ One job on `windows-latest` with the .NET 10 SDK (`actions/setup-dotnet`):
 NuGet packages are cached by the hash of the project files. Test results
 (`.trx`) are uploaded when a step fails.
 
-### Releases
+### windows-release.yml: a pushed tag `v*`
 
-There is no Windows release workflow yet: it waits for the owner's
-packaging decision (PLAN.md 18.3, Packaging, and 18.4, "Updates and
-packaging (proposal)"). The proposal is to add the Windows build to the
-same `v*` tag: `dotnet publish` of the self-contained app, zipped as
-`Hearsay-<version>-win-x64.zip` with one `Hearsay\` folder inside,
-signed with the same kind of self-signed identity the Mac uses (or Azure
-Trusted Signing), and its line added to the release's `SHA256SUMS.txt`,
-which the in-app update reads.
+Runs on the same tag as `release.yml` and adds the Windows build to the
+same release:
+
+1. The version is the tag without `v`, with the same rule as `release.yml`
+   (`v1.2.3` or `v1.2.3-beta.1`; a suffix makes a pre-release).
+2. Builds `windows\Hearsay.slnx` in Release with `-p:Version=<version>` and
+   runs the core and App tests, as `windows-ci.yml` does.
+3. `windows\scripts\make-release.ps1` builds the app again in a clean
+   folder (`dist\build`), checks that `Hearsay.exe` has ProductName
+   `Hearsay` and ProductVersion `<version>`, signs `Hearsay.exe` and the
+   `Hearsay*.dll` files when the secrets exist, and writes
+   `dist\Hearsay-<version>-win-x64.zip` (one `Hearsay\` folder inside, no
+   `.pdb` files) and its `SHA256SUMS.txt` line.
+4. **Coordination with the Mac release:** it waits (checking every minute,
+   up to 45 minutes) until `gh release view <tag>` shows the release with
+   `Hearsay-<version>.dmg` and `SHA256SUMS.txt`, i.e. until `release.yml`
+   has published. Then it downloads that `SHA256SUMS.txt`, adds the zip's
+   line (replacing an older line for the same zip), and uploads the zip and
+   the merged file with `gh release upload --clobber`. The in-app update on
+   both platforms reads this one file.
+5. Adds a "Windows" section to the release notes (download, extract to e.g.
+   `%LOCALAPPDATA%\Programs`, run `Hearsay.exe`, the SmartScreen "More
+   info > Run anyway" step, and `Get-FileHash` against `SHA256SUMS.txt`),
+   before GitHub's generated "What's Changed" part. The section sits
+   between `<!-- hearsay-windows:start -->` and `<!-- hearsay-windows:end -->`
+   markers, so a re-run replaces it instead of adding a second one.
+
+If the Mac release has not appeared after 45 minutes, the job creates the
+release itself (`gh release create`, same title, generated notes), with a
+`SHA256SUMS.txt` holding only the zip's line and a note in the body. If
+`release.yml` publishes later, it overwrites the notes and
+`SHA256SUMS.txt`; re-run `windows-release.yml` for the tag to add the
+Windows part back. Re-running is always safe.
+
+### Windows signing
+
+Releases are signed with a **self-signed** code-signing certificate,
+"Hearsay Code Signing (self-signed)", the Windows counterpart of the Mac's
+(PLAN.md 4.7). Windows does not trust it, so SmartScreen still asks on the
+first launch of a downloaded zip, but every release has the same signer
+and the in-app update checks that a new `Hearsay.exe` has the running
+build's certificate (SHA-256 thumbprint). Create it once, on the owner's
+machine, and keep the PFX and its password outside the repository:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File windows\scripts\make-signing-cert.ps1 -PfxPath "$env:USERPROFILE\Documents\hearsay-code-signing.pfx"
+```
+
+It creates the certificate in `Cert:\CurrentUser\My` (RSA 3072, SHA-256,
+10 years), asks for a password, exports the PFX, and prints its base64 and
+the thumbprints. It refuses to run if a certificate with that subject
+already exists (`-Force` makes another one, which breaks in-app updates
+from builds signed with the old one). Add these repository secrets:
+
+| Secret | What it is |
+|---|---|
+| `WINDOWS_CERTIFICATE_PFX` | The base64 of the PFX, one line, as `make-signing-cert.ps1` prints it |
+| `WINDOWS_CERTIFICATE_PASSWORD` | The PFX password chosen when running the script |
+
+With both, the workflow decodes the PFX into `$RUNNER_TEMP`, signs through
+`make-release.ps1` (`signtool sign /fd SHA256`, no timestamp: it adds
+nothing to a self-signed certificate), checks each signature
+(`signtool verify /pa` reports the untrusted self-signed root, which the
+script accepts; the signer must be the PFX's certificate), and deletes the
+PFX in a step that always runs. **Without them** the zip is unsigned: the
+log and the job summary say so, and the release notes say the build is
+not signed. An unsigned release cannot be installed from inside a signed
+copy of Hearsay (the signer check refuses it); users download it instead.
+If Azure Trusted Signing is bought later, only the signing step changes.

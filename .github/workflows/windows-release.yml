@@ -1,0 +1,274 @@
+# Adds the Windows build to the GitHub release of a pushed version tag
+# (PLAN.md 4.7 and 18.4, "Updates and packaging"), next to the Mac's DMG:
+#   git tag v0.3.0 && git push origin v0.3.0
+# release.yml (macOS) and this workflow both run on the tag. This one builds
+# and tests the Windows version, makes Hearsay-<version>-win-x64.zip with
+# windows/scripts/make-release.ps1, waits until the Mac job has published the
+# release with Hearsay-<version>.dmg and SHA256SUMS.txt, then adds the zip,
+# adds its line to SHA256SUMS.txt (which the in-app update reads on both
+# platforms), and adds a "Windows" install section to the release notes.
+# If the Mac release has not appeared after 45 minutes, it creates the
+# release itself and says so in the notes. Re-running it is safe: the zip
+# and its checksum line are replaced, and the Windows section is rewritten,
+# not added twice.
+#
+# Signing: with the WINDOWS_CERTIFICATE_PFX and WINDOWS_CERTIFICATE_PASSWORD
+# secrets (windows/scripts/make-signing-cert.ps1 makes them; see
+# .github/workflows/README.md) Hearsay.exe and the Hearsay*.dll files are
+# signed with Hearsay's self-signed certificate. Without them the zip is
+# unsigned, with a warning in the log and in the notes. No step needs or
+# downloads a speech model.
+name: Windows Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 110
+    env:
+      DOTNET_NOLOGO: "1"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      NUGET_PACKAGES: ${{ github.workspace }}\.nuget\packages
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      # Secrets cannot be tested in a step's `if:`; this is "true" when both
+      # signing secrets exist.
+      HAS_SIGNING: ${{ secrets.WINDOWS_CERTIFICATE_PFX != '' && secrets.WINDOWS_CERTIFICATE_PASSWORD != '' }}
+      # How long to wait for the Mac job's release (release.yml).
+      MAC_WAIT_MINUTES: "45"
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}\.nuget\packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('windows/**/*.csproj', 'windows/Directory.Build.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      # The same rule as release.yml: v1.2.3 or v1.2.3-beta.1; a suffix makes
+      # a pre-release, which the in-app update check never offers.
+      - name: Version from the tag
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          $version = $tag -replace '^v', ''
+          if ($version -cnotmatch '^[0-9]+\.[0-9]+(\.[0-9]+)?(-[0-9A-Za-z.]+)?$') {
+            Write-Output "::error::Tag $tag is not a version (expected v1.2.3 or v1.2.3-beta.1)"
+            exit 1
+          }
+          $prerelease = if ($version.Contains('-')) { 'true' } else { 'false' }
+          Add-Content -Path $env:GITHUB_ENV -Value @(
+            "VERSION=$version",
+            "PRERELEASE=$prerelease",
+            "ZIP=Hearsay-$version-win-x64.zip",
+            "DMG=Hearsay-$version.dmg"
+          )
+          Write-Output "Releasing $version for Windows (prerelease $prerelease, signing $env:HAS_SIGNING)"
+
+      # Warnings are errors through windows/Directory.Build.props.
+      - name: Build Release
+        run: |
+          dotnet build windows\Hearsay.slnx -c Release "-p:Version=$env:VERSION"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Core tests (no model; integration and device tests skip)
+        run: |
+          Remove-Item Env:TEST_RUNNER_HEARSAY_MODEL_DIR -ErrorAction SilentlyContinue
+          dotnet test windows\Hearsay.Tests -c Release --no-build --logger trx --results-directory windows\Hearsay.Tests\TestResults
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: App tests
+        run: |
+          dotnet test windows\Hearsay.App.Tests -c Release -p:Platform=x64 --no-build --logger trx --results-directory windows\Hearsay.App.Tests\TestResults
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # ---- Signing: skipped unless both WINDOWS_CERTIFICATE_* secrets exist ----
+      - name: "Signing (optional): decode the certificate"
+        if: env.HAS_SIGNING == 'true'
+        env:
+          WINDOWS_CERTIFICATE_PFX: ${{ secrets.WINDOWS_CERTIFICATE_PFX }}
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP 'hearsay-signing.pfx'
+          $base64 = $env:WINDOWS_CERTIFICATE_PFX -replace '\s', ''
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($base64))
+          Add-Content -Path $env:GITHUB_ENV -Value "PFX=$pfx"
+
+      # make-release.ps1 builds the app again on its own (dist\build, clean),
+      # checks ProductName and ProductVersion, signs when it has the PFX,
+      # zips, and writes dist\SHA256SUMS.txt. Windows PowerShell 5.1, as on
+      # the owner's machine.
+      - name: Make the zip
+        shell: powershell
+        env:
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          if ($env:HAS_SIGNING -eq 'true') {
+            & .\windows\scripts\make-release.ps1 -Version $env:VERSION -PfxPath $env:PFX -PfxPassword $env:WINDOWS_CERTIFICATE_PASSWORD
+          } else {
+            Write-Output "::warning::No WINDOWS_CERTIFICATE_PFX / WINDOWS_CERTIFICATE_PASSWORD secrets: $env:ZIP is UNSIGNED."
+            & .\windows\scripts\make-release.ps1 -Version $env:VERSION
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "**$env:ZIP is unsigned** (no WINDOWS_CERTIFICATE_* secrets)."
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: "Signing (optional): delete the certificate"
+        if: always() && env.HAS_SIGNING == 'true'
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP 'hearsay-signing.pfx'
+          if (Test-Path -LiteralPath $pfx) { Remove-Item -LiteralPath $pfx -Force }
+          Write-Output 'Certificate file removed.'
+
+      # release.yml publishes the release with softprops/action-gh-release,
+      # which creates it first and uploads the DMG and then SHA256SUMS.txt;
+      # both present means the Mac job is done with the release's files.
+      - name: Wait for the Mac release
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          $deadline = (Get-Date).AddMinutes([int]$env:MAC_WAIT_MINUTES)
+          $published = 'false'
+          while ($true) {
+            $names = @(gh release view $tag --json assets --jq '.assets[].name' 2>$null)
+            $found = $LASTEXITCODE -eq 0
+            if ($found -and ($names -contains $env:DMG) -and ($names -contains 'SHA256SUMS.txt')) {
+              $published = 'true'
+              Write-Output "The Mac release has $env:DMG and SHA256SUMS.txt."
+              break
+            }
+            if ((Get-Date) -ge $deadline) {
+              Write-Output "::warning::The Mac release of $tag did not publish $env:DMG and SHA256SUMS.txt within $env:MAC_WAIT_MINUTES minutes."
+              break
+            }
+            $state = if ($found) { 'release exists, Mac files missing' } else { 'no release yet' }
+            Write-Output ("{0:HH:mm:ss} waiting for the Mac release ({1})" -f (Get-Date), $state)
+            Start-Sleep -Seconds 60
+          }
+          Add-Content -Path $env:GITHUB_ENV -Value "MAC_PUBLISHED=$published"
+          exit 0
+
+      - name: Merge SHA256SUMS.txt and upload the zip
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          $work = Join-Path $env:RUNNER_TEMP 'hearsay-release'
+          New-Item -ItemType Directory -Force -Path $work | Out-Null
+          $utf8 = New-Object Text.UTF8Encoding($false)
+
+          gh release view $tag --json tagName 2>$null | Out-Null
+          $exists = $LASTEXITCODE -eq 0
+          if (-not $exists) {
+            # The Mac job never published: create the release (same title and
+            # generated notes as release.yml) with a note for the owner.
+            $notes = Join-Path $work 'notes.md'
+            [IO.File]::WriteAllText($notes, "The Mac build was not published with this release when the Windows build finished.`n", $utf8)
+            $createArgs = @('release', 'create', $tag, '--verify-tag', '--title', "Hearsay $env:VERSION", '--notes-file', $notes, '--generate-notes')
+            if ($env:PRERELEASE -eq 'true') { $createArgs += '--prerelease' }
+            gh @createArgs
+            if ($LASTEXITCODE -ne 0) { Write-Output '::error::gh release create failed'; exit 1 }
+          }
+
+          # SHA256SUMS.txt: the release's lines (the DMG's), without an older
+          # line for this zip, plus the zip's line; LF, shasum format.
+          $existing = ''
+          $names = @(gh release view $tag --json assets --jq '.assets[].name')
+          if ($names -contains 'SHA256SUMS.txt') {
+            gh release download $tag --pattern SHA256SUMS.txt --dir $work --clobber
+            if ($LASTEXITCODE -ne 0) { Write-Output '::error::downloading SHA256SUMS.txt failed'; exit 1 }
+            $existing = [IO.File]::ReadAllText((Join-Path $work 'SHA256SUMS.txt'))
+          }
+          # Absolute paths: .NET resolves relative ones against the process
+          # folder, not the PowerShell location.
+          $dist = Join-Path $env:GITHUB_WORKSPACE 'dist'
+          $zipLine = @([IO.File]::ReadAllText((Join-Path $dist 'SHA256SUMS.txt')) -split "`n" |
+            Where-Object { $_.EndsWith("  $env:ZIP") })
+          if ($zipLine.Count -ne 1) { Write-Output "::error::dist\SHA256SUMS.txt has no line for $env:ZIP"; exit 1 }
+          $lines = @($existing -split "`n" | ForEach-Object { $_.TrimEnd("`r") } |
+            Where-Object { $_ -ne '' -and -not $_.EndsWith("  $env:ZIP") })
+          $lines += $zipLine[0]
+          $upload = Join-Path $work 'upload'
+          New-Item -ItemType Directory -Force -Path $upload | Out-Null
+          $sums = Join-Path $upload 'SHA256SUMS.txt'
+          [IO.File]::WriteAllText($sums, (($lines -join "`n") + "`n"), $utf8)
+          Write-Output 'SHA256SUMS.txt:'
+          Get-Content $sums
+
+          gh release upload $tag (Join-Path $dist $env:ZIP) $sums --clobber
+          if ($LASTEXITCODE -ne 0) { Write-Output '::error::gh release upload failed'; exit 1 }
+
+      # The body gets one Windows section between two markers; a re-run
+      # replaces it. It goes before GitHub's generated "What's Changed" part
+      # when there is one, so both install sections come first.
+      - name: Add the Windows section to the release notes
+        run: |
+          # gh writes UTF-8; without this, non-ASCII text in the notes (names,
+          # punctuation) would not survive the round trip on Windows.
+          [Console]::OutputEncoding = New-Object Text.UTF8Encoding($false)
+          $tag = $env:GITHUB_REF_NAME
+          $v = $env:VERSION
+          $start = '<!-- hearsay-windows:start -->'
+          $end = '<!-- hearsay-windows:end -->'
+          $section = @(
+            $start,
+            '## Windows',
+            '',
+            "Download ``Hearsay-$v-win-x64.zip`` and extract it to a folder you can write to, for example ``%LOCALAPPDATA%\Programs`` (which gives ``%LOCALAPPDATA%\Programs\Hearsay``). Run ``Hearsay.exe`` in the ``Hearsay`` folder, not from inside the zip. Requires Windows 11 x64.",
+            ''
+          )
+          if ($env:HAS_SIGNING -eq 'true') {
+            $section += "**This build is signed with Hearsay's own certificate, which Windows does not trust** (updates check that they come from the same certificate). The first time, SmartScreen says ""Windows protected your PC"": click More info, then Run anyway. Updates installed from inside Hearsay do not ask again."
+          } else {
+            $section += "**This build is not signed.** The first time, SmartScreen says ""Windows protected your PC"": click More info, then Run anyway. A copy signed by an earlier release cannot update to it from inside Hearsay; download it instead."
+          }
+          $section += @(
+            '',
+            "Verify the download: in PowerShell, ``(Get-FileHash Hearsay-$v-win-x64.zip).Hash`` must equal the zip's line in ``SHA256SUMS.txt`` (letter case does not matter)."
+          )
+          if ($env:MAC_PUBLISHED -ne 'true') {
+            $section += @('', "> The Mac build was not attached when the Windows build finished (waited $env:MAC_WAIT_MINUTES minutes). If release.yml publishes it later, re-run this Windows workflow so the zip's line is back in ``SHA256SUMS.txt``.")
+          }
+          $section += $end
+          $sectionText = $section -join "`n"
+
+          $body = (gh release view $tag --json body | Out-String | ConvertFrom-Json).body
+          if ($null -eq $body) { $body = '' }
+          $body = [regex]::Replace($body, '(?s)\s*' + [regex]::Escape($start) + '.*?' + [regex]::Escape($end), '')
+          $generated = [regex]::Match($body, "(?m)^(## What's Changed|\*\*Full Changelog\*\*)")
+          if ($body.Trim() -eq '') {
+            $new = $sectionText + "`n"
+          } elseif ($generated.Success) {
+            $before = $body.Substring(0, $generated.Index).TrimEnd()
+            $after = $body.Substring($generated.Index)
+            $new = if ($before -eq '') { $sectionText + "`n`n" + $after } else { $before + "`n`n" + $sectionText + "`n`n" + $after }
+          } else {
+            $new = $body.TrimEnd() + "`n`n" + $sectionText + "`n"
+          }
+          $notes = Join-Path $env:RUNNER_TEMP 'hearsay-release-notes.md'
+          [IO.File]::WriteAllText($notes, $new, (New-Object Text.UTF8Encoding($false)))
+          Get-Content $notes
+          gh release edit $tag --notes-file $notes
+          if ($LASTEXITCODE -ne 0) { Write-Output '::error::gh release edit failed'; exit 1 }
+
+      - name: Upload the test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release-test-results
+          path: |
+            windows/Hearsay.Tests/TestResults/
+            windows/Hearsay.App.Tests/TestResults/
+          if-no-files-found: ignore

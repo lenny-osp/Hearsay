@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Security;
 using Hearsay.App.Features.Hotkeys;
+using Hearsay.App.Features.Updates;
 using Hearsay.Core.Settings;
 using Hearsay.Core.Transcription;
 using Microsoft.UI.Xaml;
@@ -21,9 +22,9 @@ namespace Hearsay.App.Features.Settings;
 /// Features/Settings/AcknowledgementsView.swift), whose Show Licenses… opens
 /// the licenses page in a help window (<see cref="AppShell.ShowLicenses"/>).
 /// Each shortcut row has a <see cref="HotkeyRecorderView"/> (PLAN.md 18.9).
-/// <para>
-/// Not here yet: Software updates (W7).
-/// </para>
+/// Software updates, between Shortcuts and Acknowledgements as on the Mac,
+/// is <see cref="SoftwareUpdatesSection"/> (<c>SoftwareUpdatesSection</c> in
+/// mac/Hearsay/Features/Updates/UpdateService.swift).
 /// </summary>
 internal sealed partial class GeneralSettingsView : UserControl
 {
@@ -122,6 +123,11 @@ internal sealed partial class GeneralSettingsView : UserControl
             captionRow,
             shortcutError));
 
+        // Software updates.
+        Updates = new SoftwareUpdatesSection(shell.Updates, settings);
+        page.Children.Add(Header(Strings.SectionSoftwareUpdates));
+        page.Children.Add(Updates.Card);
+
         // Acknowledgements.
         var showLicenses = new Button { Content = Strings.ShowLicenses };
         showLicenses.Click += (_, _) => shell.ShowLicenses();
@@ -135,6 +141,9 @@ internal sealed partial class GeneralSettingsView : UserControl
         // The user can change launch at login elsewhere (Task Manager).
         Loaded += (_, _) => Refresh();
     }
+
+    /// <summary>The Software updates card, for the UI snapshots.</summary>
+    internal SoftwareUpdatesSection Updates { get; }
 
     private void OnSettingsChanged(object? sender, PropertyChangedEventArgs e) => Refresh();
 

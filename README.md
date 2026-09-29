@@ -207,8 +207,8 @@ is shown there and in About Hearsay.
 
 ## Windows
 
-The Windows version (`windows/`, PLAN.md section 18) is in progress and
-has no release yet. It works like the Mac app; this is what differs.
+The Windows version (`windows/`, PLAN.md section 18) is in progress. It
+works like the Mac app; this is what differs.
 
 **Requirements**
 
@@ -218,18 +218,22 @@ has no release yet. It works like the Mac app; this is what differs.
   about 1.5 to 3.5 times the recording length, and live preview is off.
 - Disk space for the speech model (574 MB for the recommended one).
 
-**Install** (once releases exist)
+**Install**
 
-1. Download `Hearsay-<version>-win-x64.zip` from GitHub Releases (and
-   `SHA256SUMS.txt` to check it with `Get-FileHash`).
+1. Download `Hearsay-<version>-win-x64.zip` from GitHub Releases (the
+   same release as the Mac's DMG, built by
+   `.github/workflows/windows-release.yml`).
 2. Extract it to a folder you can write to, for example
-   `%LOCALAPPDATA%\Programs`, and start `Hearsay.exe` in the `Hearsay`
-   folder. Do not run it from inside the zip: Hearsay can only update
-   itself from a folder it can write to.
-3. The first launch: releases are not signed with a certificate Windows
-   trusts, so SmartScreen says "Windows protected your PC". Click More
-   info, then Run anyway. Updates installed from inside Hearsay do not ask
-   again.
+   `%LOCALAPPDATA%\Programs` (which gives `%LOCALAPPDATA%\Programs\Hearsay`),
+   and run `Hearsay.exe` in the `Hearsay` folder. Do not run it from inside
+   the zip: Hearsay can only update itself from a folder it can write to.
+3. The first launch: releases are signed with Hearsay's own certificate,
+   which Windows does not trust, so SmartScreen says "Windows protected
+   your PC". Click More info, then Run anyway. Updates installed from
+   inside Hearsay do not ask again.
+
+To check the download, compare `(Get-FileHash Hearsay-<version>-win-x64.zip).Hash`
+in PowerShell with the zip's line in the release's `SHA256SUMS.txt`.
 
 **First run**
 

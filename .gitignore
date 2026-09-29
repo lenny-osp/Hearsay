@@ -41,3 +41,5 @@ ggml-*.bin
 # W1 Whisper spike raw outputs (SRTs, JSON, native logs); REPORT.md keeps the findings
 windows/Spike/WhisperSpike/out/
 windows/Spike/WhisperSpike/run-log.txt
+# Release output of mac/Scripts/make-dmg.sh and windows/scripts/make-release.ps1
+dist/

@@ -25,9 +25,9 @@ internal static class DebugEnvironment
         "HEARSAY_INSTALL_UPDATE",
     ];
 
-    /// <summary>The entry points this build implements; HEARSAY_INSTALL_UPDATE arrives with W7.</summary>
+    /// <summary>The entry points this build implements (all of them since W7).</summary>
     public static readonly IReadOnlyList<string> ImplementedVariables =
-        [SnapshotsVariable, "HEARSAY_TRANSCRIBE_FILE", "HEARSAY_REPLAY_FILE", "HEARSAY_RECORD_SECONDS"];
+        [SnapshotsVariable, "HEARSAY_TRANSCRIBE_FILE", "HEARSAY_REPLAY_FILE", "HEARSAY_RECORD_SECONDS", "HEARSAY_INSTALL_UPDATE"];
 
     public static readonly IReadOnlyList<string> CopiedKeys =
     [

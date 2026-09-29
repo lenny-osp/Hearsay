@@ -409,6 +409,10 @@ missing, cache SwiftPM checkouts, and never download a model.
   Open; macOS 15 and later: Privacy & Security > Open Anyway). Without the
   secret the build is ad-hoc. Notarization and stapling run only when the
   Apple ID secrets listed in `.github/workflows/README.md` exist too.
+- Windows (2026-09-30): `windows-release.yml` runs on the same tag, waits
+  for this release, and adds `Hearsay-<version>-win-x64.zip`, its line in
+  the same `SHA256SUMS.txt`, and a Windows section in the notes (18.4,
+  "Updates and packaging").
 
 ### 4.8 History
 
@@ -807,9 +811,14 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
     never run by an agent (it would start a second instance).
 24. Windows, update install (added 2026-09-30, after the packaging
     decision): with a release zip, run the `HEARSAY_INSTALL_UPDATE` entry
-    against a scratch copy of the install folder, then a real in-app
-    update; the helper swaps the folder after quit and relaunches, log in
-    `%LOCALAPPDATA%\Hearsay\Updates\install.log`.
+    against a scratch copy of the install folder (an agent did this on
+    2026-09-30 for 0.0.0 to 0.9.9: every step printed ok), then a real
+    in-app update from a GitHub release: Settings > General > Check Now,
+    Install Update, the progress window, Install and Relaunch; the helper
+    swaps the folder after quit and relaunches, and deletes
+    `.Hearsay-previous` after success; log in
+    `%LOCALAPPDATA%\Hearsay\Updates\install.log`. Never run by an agent
+    (a normal launch would join the running instance).
 25. Windows, shortcut recorder (added 2026-09-30): in Settings > General
     click the Start / Stop button, press Ctrl+Shift+F9: it shows and fires
     from another app. Try Shift+A (hint), the Pause chord (hint), Win+E
@@ -967,7 +976,7 @@ once after pulling this.
 | Tray status | Same setting as the Mac (`menuBarShowsStatus`, default on): the tray icon swaps to a red variant while recording and a pause variant while paused. The Windows notification area cannot show text next to an icon, so the elapsed time goes in the tooltip. Label is Windows-only ("Show recording status in the notification area"); add it to `shared/localization` | added 2026-09-29 |
 | Localization | `windows/scripts/import-strings.py` generates `windows/Hearsay.App/Strings/<lang>/Resources.resw` (committed, so a build needs no Python; `--check` in CI) from `shared/localization/*.json`; `Strings.cs` is the single lookup over MRT Core (`ResourceManager` without package identity, language from `InterfaceLanguage.ResolveAtLaunch`); Restart Now relaunches. | Done 2026-09-30: 261 Mac keys reused (246 app, 15 core; all 96 core entries are also in the resw so `Strings.CoreText` translates Core's English), 40 Windows-only keys added under catalog `windows` with translations in all four languages; resw names are `<catalog>_` + 16 hex digits of the key's SHA-256 (keys are sentences). The Mac scripts skip catalog `windows` (`merge-translations.py validate`) and keep those entries on export (`export-strings.py`). Placeholders `%@` become `{0}`. Core errors carry their Mac key and values (`ILocalizedMessage` / `ILocalizedError`, `LocalizedMessage` in Core; `Strings.Localize` in the app), so formatted messages translate too; a test per type proves key plus values equal the English `Message`. Core's Windows-only texts (install location, zip and signer checks, the command-line limit, the joined login-status line, "Could not load the speech model: %@", and the inserted "The request timed out.", "HTTP %lld", "unknown", "none" as nested messages) have `windows` keys too (2026-09-30, 16 keys; `Strings.CoreMessageInWindowsCatalog` names them for import-strings.py). Still English: technical details inside a translated sentence (18.9) and hotkey key names. `windows/Hearsay.App.Tests` (net10.0-windows, references the app; copies `Hearsay.pri` to `resources.pri` so the resource manager works under testhost) covers the app-side logic. |
 | Help | WebView2 rendering `shared/help/<lang>/Help.html`; `hearsay://open/<tab>` links handled the same way. One page per language serves both platforms: a platform-specific passage carries `data-platform="mac"` or `data-platform="windows"` on the smallest enclosing `<li>`, `<p>`, `<span>` or `<section>`, and the shared CSS hides it unless `<html>` has the matching class (`html:not(.windows) [data-platform="windows"]` and `html.windows [data-platform="mac"]` are `display: none`, so a page with no class shows the Mac text). The Windows `HelpWindow` adds class `windows` at each document's DOMContentLoaded through `ExecuteScriptAsync` and keeps the view transparent until then; `AddScriptToExecuteOnDocumentCreatedAsync` does not run with `IsScriptEnabled` off (WebView2 154), and turning page scripts on was rejected. | Decided 2026-09-30 (W7). Windows passages cover only what differs: notification area and taskbar, the three window modes, Settings > Privacy & security > Microphone (system audio needs no permission), Ctrl+Alt+Win+R / P and F1, `%USERPROFILE%\Documents\Hearsay`, Reveal in Explorer and the Recycle Bin, right-click, the install commands, the Copilot and Antigravity length limit (18.4 "W6 core"), Vulkan or CPU speed and live preview off (18.4 "Speed"), the File tab's types (18.4 "W5 app wiring"), the Windows model, restart wording. The Mac page renders the same visible text as before with no class (checked by extracting each page's visible text under the CSS rule, all five languages). The Mac still sets no class (18.9). |
-| Packaging | **Proposal for the owner, 2026-09-30 (not decided):** the unpackaged, self-contained `win-x64` app it already is (18.6, "Toolchain verified"), published as `Hearsay-<version>-win-x64.zip` (one `Hearsay\` folder inside) on the same GitHub Release and `SHA256SUMS.txt` as the DMG, with the in-app update of 18.4 "Updates and packaging (proposal)": parity with the Mac's DMG plus in-app install. Signed with a self-signed code-signing identity from a repository secret, as the Mac is, so every release has the same signer and the update can check it; SmartScreen still shows "Windows protected your PC" (More info > Run anyway) on the first launch of a downloaded zip, which README and the release notes explain. If the owner buys Azure Trusted Signing, releases are signed with it instead and the prompt goes away as reputation builds; no code change (the signer rule accepts a renewed trusted certificate with the same subject). | Alternatives not chosen: **MSIX** needs a certificate the PC already trusts (a self-signed one must be imported into the machine's trusted store by an administrator, or the package sideloaded with Developer Mode, which AGENTS.md says not to ask users to change), and its App Installer updates would replace the Mac-style check. **Velopack** adds a framework (its NuGet package, CLI and release-feed layout) for delta updates and a Setup.exe, the kind of dependency 4.6 removed Sparkle to avoid. **Inno Setup** adds an installer the zip does not need. Until the owner decides there is no Windows release workflow; `windows-ci.yml` builds and tests only. |
+| Packaging | **Decided 2026-09-30 (owner):** the unpackaged, self-contained `win-x64` app it already is (18.6, "Toolchain verified"), published as `Hearsay-<version>-win-x64.zip` (one `Hearsay\` folder inside) on the same GitHub Release and `SHA256SUMS.txt` as the DMG, with the in-app update of 18.4 "Updates and packaging": parity with the Mac's DMG plus in-app install. Signed with a self-signed code-signing certificate, "Hearsay Code Signing (self-signed)", held as a repository secret, as the Mac's is (4.7), so every release has the same signer and the update can check it; SmartScreen still shows "Windows protected your PC" (More info > Run anyway) on the first launch of a downloaded zip, which README and the release notes explain. If the owner buys Azure Trusted Signing, releases are signed with it instead and the prompt goes away as reputation builds; no code change (the signer rule accepts a renewed trusted certificate with the same subject). | Alternatives not chosen: **MSIX** needs a certificate the PC already trusts (a self-signed one must be imported into the machine's trusted store by an administrator, or the package sideloaded with Developer Mode, which AGENTS.md says not to ask users to change), and its App Installer updates would replace the Mac-style check. **Velopack** adds a framework (its NuGet package, CLI and release-feed layout) for delta updates and a Setup.exe, the kind of dependency 4.6 removed Sparkle to avoid. **Inno Setup** adds an installer the zip does not need. Release mechanics (`windows-release.yml`, `windows/scripts/make-release.ps1`, the secrets): 18.4 "Updates and packaging". |
 
 ### 18.4 Differences to accept
 
@@ -1281,9 +1290,10 @@ because the SDK has no notification-icon API; WebView2 comes with the SDK):
   `TrayIcon.CurrentIconName`): `Hearsay.Tests` targets `net10.0` and cannot
   reference the Windows-targeted app; add a `Hearsay.App.Tests` project or
   move that logic into Core (W7 polish).
-- **Not yet**: Restart Now after an interface-language change and the
-  Software updates section (the quit-while-recording prompt landed with the
-  W5 app wiring; Acknowledgements with the polish of 2026-09-30, below).
+- **Not yet**: Restart Now after an interface-language change (the
+  quit-while-recording prompt landed with the W5 app wiring;
+  Acknowledgements with the polish of 2026-09-30, below; Software updates
+  with the update UI of 2026-09-30, 18.4 "Updates and packaging").
 
 Models and History tabs (2026-09-29; `Features/Models`, `Features/History`,
 `Features/Notes/NamingSheet.cs` as a ContentDialog in name, regenerate and
@@ -1434,11 +1444,70 @@ active or transcribing. Where Windows differs from the Mac:
   detection at 30 s settled English, the final pass took 30 s. The live
   microphone path is still untested on hardware (W3, section 16 item 19).
 
-Updates and packaging (proposal, 2026-09-30; W7). The core is done and
-tested in `windows/Hearsay.Core/Updates` against scratch folders and fake
-zips; the dialogs, the Settings section and a Windows release workflow wait
-for the owner's decision (18.3, Packaging). Mechanism, step by step against
-4.6:
+Updates and packaging (2026-09-30; W7). **Decided 2026-09-30 (owner):**
+the zip plus in-app update proposed in 18.3 (Packaging); a self-signed
+code-signing certificate held as a repository secret, like the Mac's; every
+`v*` tag carries both platforms (one version number, one release, one
+`SHA256SUMS.txt`); the suggested install folder is
+`%LOCALAPPDATA%\Programs` (README). The core is done and tested in
+`windows/Hearsay.Core/Updates` against scratch folders and fake zips.
+
+Release mechanics:
+
+- **`.github/workflows/windows-release.yml`** runs on the same `v*` tag as
+  `release.yml`, on `windows-latest`: the version from the tag with the
+  Mac's rule (a suffix makes a pre-release), a Release build with
+  `-p:Version=<version>`, the core and App tests, then
+  `windows/scripts/make-release.ps1`.
+- **`make-release.ps1 -Version <v> [-PfxPath <pfx> -PfxPassword <p>]`**
+  (Windows PowerShell 5.1): `dotnet build windows\Hearsay.slnx -c Release
+  -p:Version=<v> --artifacts-path dist\build`, a clean build of its own, so
+  no stale dev-build file reaches the zip and a running dev copy (which
+  locks `bin\`) does not block it. `dotnet build`, not `dotnet publish`:
+  the app is already self-contained, and its build output is the complete
+  app (300 files, 162.6 MB without the `.pdb` files, which are left out).
+  It checks ProductName `Hearsay` and ProductVersion `<v>` (build metadata
+  ignored), signs `Hearsay.exe` and the three `Hearsay*.dll` with `signtool
+  sign /fd SHA256` (no timestamp unless `-Timestamp`: it adds nothing to a
+  self-signed certificate), requires each signature to be the PFX's
+  certificate and `signtool verify /pa` to pass or fail only on the
+  untrusted root ("signed, chain untrusted", the expected result), zips
+  `dist\Hearsay-<v>-win-x64.zip` entry by entry with forward slashes (one
+  `Hearsay/` top folder; .NET Framework's `CreateFromDirectory` writes
+  backslashes) and writes the `SHA256SUMS.txt` line in `shasum`'s format
+  (two spaces, LF). The zip is about 53 MB. Without a PFX it makes an
+  unsigned zip and says so. Checked 2026-09-30 with a throwaway
+  certificate: the Core's `FileAppIdentityReader` reads the signed exe as
+  `UntrustedRoot` with the PFX's SHA-256 thumbprint, and `VerifyApp`
+  accepts it against a running build with that thumbprint and refuses it
+  against another signer.
+- **Secrets**: `WINDOWS_CERTIFICATE_PFX` (base64 of the PFX) and
+  `WINDOWS_CERTIFICATE_PASSWORD`, made once on the owner's machine by
+  `windows/scripts/make-signing-cert.ps1` ("CN=Hearsay Code Signing
+  (self-signed)", RSA 3072, SHA-256, 10 years, in `Cert:\CurrentUser\My`;
+  refuses to run when one with that subject exists, unless `-Force`, and
+  refuses a PFX path inside the repository). The workflow decodes the PFX
+  into `$RUNNER_TEMP` and deletes it in an `always()` step. Without the
+  secrets the zip is unsigned, with a warning in the log, the job summary
+  and the release notes; a signed installed copy refuses it as an update
+  (the signer rule below), so users download it.
+- **Coordination with the Mac release**: the Windows job waits (every
+  minute, up to 45 minutes) until the release exists with
+  `Hearsay-<v>.dmg` and `SHA256SUMS.txt`, the last file `release.yml`
+  uploads; then it downloads `SHA256SUMS.txt`, replaces or adds the zip's
+  line, and uploads the zip and the merged file with `gh release upload
+  --clobber`. It adds a "Windows" section to the notes (download, extract,
+  SmartScreen "More info > Run anyway", `Get-FileHash` against
+  `SHA256SUMS.txt`) between `<!-- hearsay-windows:start/end -->` markers,
+  before GitHub's generated "What's Changed", so a re-run replaces it. If
+  the Mac release never appears it creates the release with `gh release
+  create` and says so in the notes; a Mac job finishing later would
+  overwrite the notes and `SHA256SUMS.txt` (softprops), so the Windows
+  workflow is then re-run. Tested offline only (the steps' scripts
+  against a simulated `gh`: both release states, a re-run, non-ASCII
+  notes); the first real tag is the live test.
+
+Mechanism, step by step against 4.6:
 
 - **Check** (`UpdateChecker`): the Mac's request, 15 s timeout, version
   rule, errors and texts on `HttpClient`, plus a `User-Agent` header, which
@@ -1513,12 +1582,11 @@ for the owner's decision (18.3, Packaging). Mechanism, step by step against
   has the product name %@, not Hearsay.", "The release has no Windows zip
   file or checksum list.", "The last update could not be installed. Hearsay
   is still the previous version."
-- **The owner decides**: (1) packaging as proposed in 18.3 (zip plus in-app
-  update) or MSIX/Velopack; (2) signing: create a self-signed Windows
-  code-signing certificate once and store it as a repository secret (as
-  `MACOS_CERTIFICATE_P12`), or buy Azure Trusted Signing; (3) whether every
-  `v*` tag carries both platforms (proposed: yes, one version number); (4)
-  the suggested install folder `%LOCALAPPDATA%\Programs\Hearsay` (README).
+- **Decided** (2026-09-30, owner; see the top of this block): zip plus
+  in-app update, the self-signed certificate as a repository secret (Azure
+  Trusted Signing stays possible later without a code change), both
+  platforms on every `v*` tag, and `%LOCALAPPDATA%\Programs\Hearsay` as
+  the suggested install folder.
 
 App polish (2026-09-30; `windows/Hearsay.App`, the Whisper project file,
 `windows/THIRD_PARTY_NOTICES.md`):
@@ -1566,6 +1634,36 @@ App polish (2026-09-30; `windows/Hearsay.App`, the Whisper project file,
 - **Snapshots**: 56 (Record tab with the CPU notice, stubbed) and 57 (the
   licenses page); the tray smoke test checks the transcribing tooltip.
 
+Update UI (2026-09-30; `Features/Updates/`: UpdateService with states
+Idle / Checking / UpToDate / Available / Downloading / Verifying / Ready /
+Installing / Failed, UpdateInstaller on the Core steps, UpdatePrompts,
+UpdateProgressWindow, SoftwareUpdatesSection in Settings > General between
+Shortcuts and Acknowledgements; `HEARSAY_INSTALL_UPDATE` runs before any
+window opens). Checks 10 s after launch and hourly, only when
+`lastUpdateCheck` is 24 h old, and on Check Now. Where Windows differs
+from the Mac:
+
+- "Hearsay x is ready to install." with Later and Install and Relaunch is
+  shown inside the progress window (the Mac closes the panel and shows an
+  alert). The failure dialog adds Show in Explorer while the zip is still
+  in the cache. The Settings card uses the Mac's Check Now and Install
+  Update keys; there is no app-menu Check for Updates… (a tray-menu entry
+  is a 18.9 candidate).
+- The version line "Version %@ (%@)" shows the commit the SDK appends as
+  the build (7 digits; "0" without one); the Mac shows its build number.
+- "Verifying…" starts at the download's last progress report because
+  `UpdateInstall.PrepareAsync` has no step callback.
+- After a relaunch the app reads `%LOCALAPPDATA%\Hearsay\Updates\install.log`
+  (up to 10 s for the helper's "exit N") and on failure shows
+  `UpdateTexts.PreviousInstallFailed`, then renames the log to
+  `install-previous.log`.
+- An install blocked by a recording, final pass, busy engine or File mode
+  discards the staged copy and goes back to Available before the helper
+  starts, so the quit never has to ask.
+- Untested: the GUI path against a real release and a signed build
+  (section 16 item 24); the state machine (47 tests) and the Core steps
+  through the debug entry are tested.
+
 ### 18.5 Acceptance
 
 For each `shared/fixtures/<lang>-30s.wav`, transcribed with the Windows
@@ -1612,7 +1710,7 @@ created in the IDE.
 | W4. Shell | WinUI window with the five tabs, tray icon, window modes, hotkeys, settings, model store and downloads. **Shell, Settings, tray, hotkeys, help window, UI snapshots and the model store core done 2026-09-29** (18.4); the Models and History tabs follow | 6 to 8 days |
 | W5. Transcription | live preview, final pass, File mode, Auto detection with banners, Chinese conversion. **Engine done 2026-09-29** (`windows/Hearsay.Whisper`: one context, detection, silence gate, speed probe; 18.4 "W5 Whisper engine"); **app wiring done 2026-09-30** (Record and File tabs, recording controller, recovery sheet, quit prompt, debug entries; 18.4 "W5 app wiring") | 5 to 6 days |
 | W6. Notes | CLI providers on Windows, Ollama, Custom, confirm and naming sheets, History with regenerate and Rename (section 4.8; port `OutputWriter.renameEntry` and its tests). **Core done 2026-09-29, app done 2026-09-30** (18.4 "W6 core" and "W6 app"); live runs with the real CLIs are section 16 item 22 | 4 to 5 days |
-| W7. Polish and ship | interface languages from shared translations, help window, crash recovery, MSIX, signing, updates, README. **2026-09-30: interface languages, Windows help passages, crash recovery (with W5), the update check and install in Core, third-party notices, Windows CI and the README section are done.** Open: the packaging and signing decision (18.4 "Updates and packaging (proposal)"), the app-side update UI and `HEARSAY_INSTALL_UPDATE` entry, the Windows release workflow, and the 18.9 list | 5 to 6 days |
+| W7. Polish and ship | interface languages from shared translations, help window, crash recovery, MSIX, signing, updates, README. **Done 2026-09-30**: interface languages, Windows help passages, crash recovery (with W5), the update check, install and in-app update UI, `HEARSAY_INSTALL_UPDATE`, third-party notices, Windows CI, the release tooling (`windows-release.yml`, `make-release.ps1`, `make-signing-cert.ps1`) and the README section. Open: the owner creates the signing certificate and adds the two secrets (18.4 "Updates and packaging"), the first real tag is the live test of the workflow, and the 18.9 list | 5 to 6 days |
 
 Total: about 6 to 8 weeks of agent time.
 

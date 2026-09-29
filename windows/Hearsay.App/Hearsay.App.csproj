@@ -25,8 +25,16 @@
     <!-- Program.cs owns Main: single instance and the debug entry points run
          before the XAML application starts. -->
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+    <!-- Identity the update checks (PLAN.md 18.4, "Identity and signer"):
+         ProductName must be Hearsay (Core's UpdateInstall.ProductName) and
+         the version resource the release version. Local builds are 0.0.0;
+         the release script passes -p:Version=<v>. The SDK appends
+         +<commit> to the informational version, which Core strips and
+         Settings > General shows as the build (AppVersion). -->
+    <Version>0.0.0</Version>
     <Product>Hearsay</Product>
     <Company>Chihling Wang</Company>
+    <Authors>Chihling Wang</Authors>
     <Copyright>Copyright (c) Chihling Wang</Copyright>
   </PropertyGroup>
 

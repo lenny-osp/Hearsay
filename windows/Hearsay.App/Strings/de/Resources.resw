@@ -49,6 +49,10 @@
     <value>Diese Aufnahme erneut auf {0} transkribieren. Die Sprachauswahl bleibt unverändert.</value>
     <comment>app: Transcribe this recording again in %@. Your language choice stays as it is.</comment>
   </data>
+  <data name="app_0e5343b6db60af32" xml:space="preserve">
+    <value>Jetzt suchen</value>
+    <comment>app: Check Now</comment>
+  </data>
   <data name="app_0e76960093379060" xml:space="preserve">
     <value>Verlauf</value>
     <comment>app: History</comment>
@@ -68,6 +72,10 @@
   <data name="app_1065d5b02276c30a" xml:space="preserve">
     <value>Vorgeschlagenen Namen verwenden: {0}</value>
     <comment>app: Use suggested name: %@</comment>
+  </data>
+  <data name="app_10780280bdb0d78a" xml:space="preserve">
+    <value>Softwareupdates</value>
+    <comment>app: Software updates</comment>
   </data>
   <data name="app_10886554da510708" xml:space="preserve">
     <value>Als Standard festlegen</value>
@@ -152,6 +160,10 @@
   <data name="app_1f788b1878c98569" xml:space="preserve">
     <value>{0} Zeichen</value>
     <comment>app: %@ characters</comment>
+  </data>
+  <data name="app_20672423d7169088" xml:space="preserve">
+    <value>Auf GitHub ansehen</value>
+    <comment>app: View on GitHub</comment>
   </data>
   <data name="app_21b111cbfe6e8fca" xml:space="preserve">
     <value>Standard</value>
@@ -265,6 +277,10 @@
     <value>Vorlage:</value>
     <comment>app: Template:</comment>
   </data>
+  <data name="app_409e6a1af9c130c5" xml:space="preserve">
+    <value>Automatisch nach Updates suchen</value>
+    <comment>app: Automatically check for updates</comment>
+  </data>
   <data name="app_41503e03d78bc218" xml:space="preserve">
     <value>Verbunden. Antwort: {0}</value>
     <comment>app: Connected. Reply: %@</comment>
@@ -325,6 +341,14 @@
     <value>Modelle öffnen</value>
     <comment>app: Open Models</comment>
   </data>
+  <data name="app_4bcbc1a7b6042a20" xml:space="preserve">
+    <value>Die Suche nach Updates ist fehlgeschlagen.</value>
+    <comment>app: Could not check for updates.</comment>
+  </data>
+  <data name="app_4c1e952ac76e319a" xml:space="preserve">
+    <value>Hearsay konnte das Update nicht laden.</value>
+    <comment>app: Hearsay could not download the update.</comment>
+  </data>
   <data name="app_4c5afbfa2dec0aa4" xml:space="preserve">
     <value>Kein Besprechungsname ausgewählt; die aktuellen Notizen bleiben unverändert.</value>
     <comment>app: No meeting name selected; the current notes are unchanged.</comment>
@@ -340,6 +364,10 @@
   <data name="app_50e02d5262cbf36b" xml:space="preserve">
     <value>Das ist der aktuelle Name der Besprechung. Bearbeiten, beibehalten oder den Vorschlag der KI verwenden.</value>
     <comment>app: This is the meeting's current name. Edit it, keep it, or use the AI's suggestion.</comment>
+  </data>
+  <data name="app_516af4954273bec2" xml:space="preserve">
+    <value>Hearsay {0} kann installiert werden.</value>
+    <comment>app: Hearsay %@ is ready to install.</comment>
   </data>
   <data name="app_536798d0202e7d7b" xml:space="preserve">
     <value>Sprache wird erkannt …</value>
@@ -385,6 +413,10 @@
     <value>integriert</value>
     <comment>app: built-in</comment>
   </data>
+  <data name="app_5d6562b5d27e5882" xml:space="preserve">
+    <value>Hearsay {0} wird installiert …</value>
+    <comment>app: Installing Hearsay %@…</comment>
+  </data>
   <data name="app_5d948fe41775033b" xml:space="preserve">
     <value>einsetzen und Eingabetaste drücken</value>
     <comment>app: paste and press Return</comment>
@@ -412,6 +444,10 @@
   <data name="app_60f3eeb276f2cd2a" xml:space="preserve">
     <value>Beim nächsten 30-s-Fenster anhalten; nichts wird gesichert</value>
     <comment>app: Stop at the next 30 s window; nothing is saved</comment>
+  </data>
+  <data name="app_621b052602b0a035" xml:space="preserve">
+    <value>Die Downloadseite wird im Browser geöffnet.</value>
+    <comment>app: The download page opens in your browser.</comment>
   </data>
   <data name="app_62a4293666d54286" xml:space="preserve">
     <value>Das Transkript konnte nicht geschrieben werden: {0}</value>
@@ -513,6 +549,10 @@
     <value>KI-Verarbeitung übersprungen; es wurden keine Besprechungsnotizen erstellt.</value>
     <comment>app: Skipped AI processing; no meeting notes were generated.</comment>
   </data>
+  <data name="app_73b6e48a1b552d11" xml:space="preserve">
+    <value>Später</value>
+    <comment>app: Later</comment>
+  </data>
   <data name="app_743480b28db3e225" xml:space="preserve">
     <value>Die Vorschau hinkt der Aufnahme hinterher, bleibt aber vollständig.</value>
     <comment>app: The preview lags behind the recording but stays complete.</comment>
@@ -561,6 +601,10 @@
     <value>Auswählen …</value>
     <comment>app: Choose…</comment>
   </data>
+  <data name="app_7e08c50fb774dd67" xml:space="preserve">
+    <value>Update installieren</value>
+    <comment>app: Install Update</comment>
+  </data>
   <data name="app_7ef9454c5eb3ec8a" xml:space="preserve">
     <value>Die Aufnahme wird gesichert, bevor Hearsay beendet wird.</value>
     <comment>app: The recording is saved before Hearsay quits.</comment>
@@ -576,6 +620,10 @@
   <data name="app_80e8dd1a5a05f707" xml:space="preserve">
     <value>Aufnahme</value>
     <comment>app: Recording</comment>
+  </data>
+  <data name="app_81d314a3cea05604" xml:space="preserve">
+    <value>Installiert ist Version {0}.</value>
+    <comment>app: You have version %@.</comment>
   </data>
   <data name="app_82b0b50c13119060" xml:space="preserve">
     <value>Lokal behalten</value>
@@ -597,6 +645,10 @@
     <value>Tastaturkurzbefehl eingeben …</value>
     <comment>app: Type shortcut…</comment>
   </data>
+  <data name="app_8670956de0d95b4e" xml:space="preserve">
+    <value>Zuerst die Aufnahme beenden.</value>
+    <comment>app: Finish the recording first.</comment>
+  </data>
   <data name="app_871a3f5b8bd91899" xml:space="preserve">
     <value>{0} wird transkribiert …</value>
     <comment>app: Transcribing %@…</comment>
@@ -604,6 +656,10 @@
   <data name="app_87d78f6f05110216" xml:space="preserve">
     <value>Vor dem Senden immer fragen</value>
     <comment>app: Always ask before sending</comment>
+  </data>
+  <data name="app_881d23f6ba57497b" xml:space="preserve">
+    <value>Noch nicht gesucht</value>
+    <comment>app: Not checked yet</comment>
   </data>
   <data name="app_8827afadfb868f66" xml:space="preserve">
     <value>Standardsprache für Automatisch</value>
@@ -625,13 +681,25 @@
     <value>Notizen</value>
     <comment>app: Notes</comment>
   </data>
+  <data name="app_8f24c982c3912ed1" xml:space="preserve">
+    <value>Installieren und neu starten</value>
+    <comment>app: Install and Relaunch</comment>
+  </data>
   <data name="app_8fd8a6c55164e822" xml:space="preserve">
     <value>Wenn deaktiviert, wird die WAV-Datei gelöscht, sobald ihre SRT-Datei geschrieben ist. Bei einer fehlgeschlagenen Transkription bleibt sie immer erhalten.</value>
     <comment>app: When off, the WAV is deleted once its SRT is written. A failed transcription always keeps it.</comment>
   </data>
+  <data name="app_8fe93de97b01058e" xml:space="preserve">
+    <value>Hearsay kann das Update hier nicht installieren.</value>
+    <comment>app: Hearsay cannot install the update here.</comment>
+  </data>
   <data name="app_918c99cd6ccc6dbe" xml:space="preserve">
     <value>Audio- oder Videodatei hier ablegen</value>
     <comment>app: Drop an audio or video file here</comment>
+  </data>
+  <data name="app_91f4c12390c18b0e" xml:space="preserve">
+    <value>Hearsay konnte das Update nicht installieren.</value>
+    <comment>app: Hearsay could not install the update.</comment>
   </data>
   <data name="app_921c494d51df39fd" xml:space="preserve">
     <value>Transkript für Besprechungsnotizen senden?</value>
@@ -693,6 +761,14 @@
     <value>{0} Die Aufnahme bleibt unter {1}.</value>
     <comment>app: %@ It stays at %@.</comment>
   </data>
+  <data name="app_a6fd9a4ce671435d" xml:space="preserve">
+    <value>Hearsay wird beendet und als neue Version wieder geöffnet.</value>
+    <comment>app: Hearsay will quit and open again as the new version.</comment>
+  </data>
+  <data name="app_a948609ba88b3082" xml:space="preserve">
+    <value>Softwareupdate</value>
+    <comment>app: Software Update</comment>
+  </data>
   <data name="app_a94c6ad4c84244e5" xml:space="preserve">
     <value>Pausiert {0}</value>
     <comment>app: Paused %@</comment>
@@ -712,6 +788,10 @@
   <data name="app_ac1de0a7ff0292e5" xml:space="preserve">
     <value>Dieser Anbieter benötigt kein Token.</value>
     <comment>app: This provider needs no token.</comment>
+  </data>
+  <data name="app_ac2fd283593ad594" xml:space="preserve">
+    <value>Fragt GitHub einmal am Tag nach einer neuen Version. Sonst wird nichts gesendet.</value>
+    <comment>app: Checks GitHub once a day for a new release. Nothing else is sent.</comment>
   </data>
   <data name="app_ac7c25a3e4816ec2" xml:space="preserve">
     <value>Danach noch {0} weitere.</value>
@@ -736,6 +816,10 @@
   <data name="app_afb9410322ba1da4" xml:space="preserve">
     <value>Benennen …</value>
     <comment>app: Name It…</comment>
+  </data>
+  <data name="app_b032748bb644829b" xml:space="preserve">
+    <value>Zuletzt gesucht: {0}</value>
+    <comment>app: Last checked %@</comment>
   </data>
   <data name="app_b0624f3408f6416d" xml:space="preserve">
     <value>Erneutes Transkribieren fehlgeschlagen: {0} wurde bewegt oder umbenannt.</value>
@@ -777,6 +861,10 @@
     <value>Kein Eingabegerät</value>
     <comment>app: No input device</comment>
   </data>
+  <data name="app_bdbae54dcb284674" xml:space="preserve">
+    <value>Version {0} ({1})</value>
+    <comment>app: Version %@ (%@)</comment>
+  </data>
   <data name="app_be10ae0f25c077ae" xml:space="preserve">
     <value>Es wurden keine Besprechungsnotizen erstellt.</value>
     <comment>app: No meeting notes were generated.</comment>
@@ -816,6 +904,10 @@
   <data name="app_c5e3b314bee94431" xml:space="preserve">
     <value>Token-Header:</value>
     <comment>app: Token header:</comment>
+  </data>
+  <data name="app_c613828ae7673420" xml:space="preserve">
+    <value>Hearsay {0} ist verfügbar.</value>
+    <comment>app: Hearsay %@ is available.</comment>
   </data>
   <data name="app_c760977d2a506491" xml:space="preserve">
     <value>Die Aufnahme konnte nicht transkribiert werden</value>
@@ -925,6 +1017,10 @@
     <value>Hearsay steht unter der MIT-Lizenz und enthält Open-Source-Software.</value>
     <comment>app: Hearsay is MIT licensed and includes open-source software.</comment>
   </data>
+  <data name="app_dca058acc8d6fb58" xml:space="preserve">
+    <value>Hearsay konnte das geladene Update nicht prüfen.</value>
+    <comment>app: Hearsay could not verify the downloaded update.</comment>
+  </data>
   <data name="app_de3ab6b30c87483b" xml:space="preserve">
     <value>Die neue App hat Version {0}, nicht {1}.</value>
     <comment>app: The new app is version %@, not %@.</comment>
@@ -976,6 +1072,10 @@
   <data name="app_e870048c507b7c63" xml:space="preserve">
     <value>das Eingabegerät</value>
     <comment>app: the input device</comment>
+  </data>
+  <data name="app_eb22dc1265410de8" xml:space="preserve">
+    <value>Hearsay {0} wird geladen …</value>
+    <comment>app: Downloading Hearsay %@…</comment>
   </data>
   <data name="app_eb34f2c0068cd82f" xml:space="preserve">
     <value>Der Download ist fehlgeschlagen: {0}</value>
@@ -1040,6 +1140,14 @@
   <data name="app_fc72d42a41c7dd76" xml:space="preserve">
     <value>Die Aufnahme bleibt unter {0}.</value>
     <comment>app: The recording is kept at %@.</comment>
+  </data>
+  <data name="app_fd26c058a4f36421" xml:space="preserve">
+    <value>Hearsay {0} wird geprüft …</value>
+    <comment>app: Verifying Hearsay %@…</comment>
+  </data>
+  <data name="app_fe0d3d54153f8611" xml:space="preserve">
+    <value>Hearsay ist auf dem neuesten Stand ({0}).</value>
+    <comment>app: You're up to date (%@).</comment>
   </data>
   <data name="app_fe69a43d8568a2bd" xml:space="preserve">
     <value>Erneut transkribieren</value>

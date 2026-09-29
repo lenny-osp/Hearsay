@@ -10,10 +10,11 @@ namespace Hearsay.App;
 /// The entry point, the counterpart of <c>HearsayMain</c> in
 /// mac/Hearsay/HearsayApp.swift. Before any XAML loads it: connects stdout to
 /// the parent console for debug runs, refuses debug entry points this build
-/// does not have yet, and makes a normal launch single-instance (macOS gives
-/// every app one instance; a second Hearsay.exe hands its activation to the
-/// running one and exits, so there is never a second main window, tray icon
-/// or set of hotkeys). Debug runs never look for or redirect to the user's
+/// does not have yet, runs <c>HEARSAY_INSTALL_UPDATE</c>
+/// (<see cref="UpdateInstallDebugEntry"/>) without starting XAML, and makes
+/// a normal launch single-instance (macOS gives every app one instance; a
+/// second Hearsay.exe hands its activation to the running one and exits, so
+/// there is never a second main window, tray icon or set of hotkeys). Debug runs never look for or redirect to the user's
 /// running instance.
 /// </summary>
 public static class Program
@@ -33,6 +34,11 @@ public static class Program
             {
                 Console.Error.WriteLine($"Hearsay: {debugVariable} is not available in this build yet (Windows W5/W7).");
                 return 2;
+            }
+            if (debugVariable == UpdateInstallDebugEntry.Variable)
+            {
+                // Before any window, settings folder or single-instance key.
+                return UpdateInstallDebugEntry.Run();
             }
         }
         else if (!TakeSingleInstance())

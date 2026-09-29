@@ -30,9 +30,10 @@ namespace Hearsay.App.Features.Debug;
 /// section and the Windows-only notification area section; a page that
 /// still shows Mac passages fails). Then it quits with status 0 (1 when a
 /// file could not be written or a check failed).
-/// Port of mac/Hearsay/Features/Debug/UISnapshots.swift; the Mac's confirm,
-/// unfinished-recording and permission sheets, menu bar panel and update
-/// window do not exist on Windows yet. The tray menu is a native Win32
+/// Port of mac/Hearsay/Features/Debug/UISnapshots.swift; the Mac's
+/// permission sheets and menu bar panel do not exist on Windows. The update
+/// states (Settings card, available and failure dialogs, progress window
+/// downloading and ready) are rendered by <see cref="UpdateSnapshots"/>. The tray menu is a native Win32
 /// popup menu, which XAML cannot render. A sheet (a <see cref="ContentDialog"/>)
 /// is rendered alone, without the window behind it, as the Mac renders its
 /// sheets.
@@ -180,6 +181,12 @@ internal static class UISnapshots
             general.EndRecordingSample();
             Check(!recorder.IsListening && settings.StartStopHotkey == HotkeyBinding.DefaultStartStop,
                 "Escape stops the recorder and keeps the binding");
+
+            #region Settings > General > Software updates and the update windows (Features/Debug/UpdateSnapshots.cs)
+            // Stubbed states: nothing is checked, downloaded or installed.
+            await UpdateSnapshots.RunAsync(shell, general, sampleOutput,
+                new RecordingSnapshots.Tools(Render, Check, Settle, DialogBox)).ConfigureAwait(true);
+            #endregion
         }
         else
         {

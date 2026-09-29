@@ -100,6 +100,16 @@ dotnet test windows\Hearsay.App.Tests -c Release      # app logic and string loo
   repeat them in a csproj. New source files need no csproj edit.
 - Tests read `shared/` through `Hearsay.Tests.SharedFiles` (path stamped
   at build time); never copy a shared file into `windows/`.
+- Release zip: `windows\scripts\make-release.ps1 -Version <v> [-PfxPath
+  <pfx> -PfxPassword <p>]` builds in a clean `dist\build`, checks
+  ProductName and ProductVersion, signs, and writes
+  `dist\Hearsay-<v>-win-x64.zip` and its `SHA256SUMS.txt` line; without a
+  PFX the zip is unsigned. `.github/workflows/windows-release.yml` runs it
+  on a `v*` tag with the `WINDOWS_CERTIFICATE_PFX` and
+  `WINDOWS_CERTIFICATE_PASSWORD` secrets (made once by
+  `windows\scripts\make-signing-cert.ps1`, on the owner's machine only).
+  Agents test signing only with a throwaway `-Subject` certificate that
+  they remove afterwards; delete `dist\` when done.
 
 - The Whisper integration tests (`windows/Hearsay.Tests/Whisper`) read
   the model path from `TEST_RUNNER_HEARSAY_MODEL_DIR` and skip without it,

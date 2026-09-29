@@ -745,4 +745,42 @@ internal static partial class Strings
     public static string ShortcutRejected(int error) => Win("Windows does not accept this shortcut (error %d).", error);
 
     #endregion
+
+    #region Updates (PLAN.md 4.6, 18.4 "Updates and packaging"): appended here only
+
+    // Settings > General > Software updates and the update dialogs
+    // (mac/Hearsay/Features/Updates/UpdateService.swift, UpdateInstaller.swift);
+    // the keys are Core's UpdateTexts, which a test compares.
+    public static string SectionSoftwareUpdates => App("Software updates");
+    public static string UpdateVersionLine(string version, string build) => App("Version %@ (%@)", version, build);
+    public static string UpdateAutomaticallyCheck => App("Automatically check for updates");
+    public static string UpdateAutomaticallyCheckCaption => App("Checks GitHub once a day for a new release. Nothing else is sent.");
+    public static string UpdateCheckNow => App("Check Now");
+    public static string UpdateLastChecked(string dateTime) => App("Last checked %@", dateTime);
+    public static string UpdateNotCheckedYet => App("Not checked yet");
+    public static string UpdateUpToDate(string version) => App("You're up to date (%@).", version);
+    public static string UpdateAvailable(string version) => App("Hearsay %@ is available.", version);
+    public static string UpdateYouHaveVersion(string version) => App("You have version %@.", version);
+    public static string UpdateDownloadPageOpens => App("The download page opens in your browser.");
+    public static string UpdateCouldNotCheck => App("Could not check for updates.");
+    public static string UpdateInstallUpdate => App("Install Update");
+    public static string UpdateViewOnGitHub => App("View on GitHub");
+    public static string UpdateLater => App("Later");
+    public static string UpdateCannotInstallHere => App("Hearsay cannot install the update here.");
+    public static string UpdateCouldNotDownload => App("Hearsay could not download the update.");
+    public static string UpdateCouldNotVerify => App("Hearsay could not verify the downloaded update.");
+    public static string UpdateCouldNotInstall => App("Hearsay could not install the update.");
+    public static string UpdateWindowTitle => App("Software Update");
+    public static string UpdateDownloading(string version) => App("Downloading Hearsay %@…", version);
+    public static string UpdateVerifying(string version) => App("Verifying Hearsay %@…", version);
+    public static string UpdateReadyToInstall(string version) => App("Hearsay %@ is ready to install.", version);
+    public static string UpdateInstalling(string version) => App("Installing Hearsay %@…", version);
+    public static string UpdateWillQuitAndReopen => App("Hearsay will quit and open again as the new version.");
+    public static string UpdateInstallAndRelaunch => App("Install and Relaunch");
+    public static string UpdateFinishRecordingFirst => App("Finish the recording first.");
+    public static string UpdateBytesOf(string received, string total) => App("%@ of %@", received, total);
+    /// <summary>After a relaunch whose helper log ends in a failure (Windows only).</summary>
+    public static string UpdatePreviousInstallFailed => Win("The last update could not be installed. Hearsay is still the previous version.");
+
+    #endregion
 }

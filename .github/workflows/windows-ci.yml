@@ -2,8 +2,8 @@
 # to main (PLAN.md 4.7 and 18.4, "Updates and packaging"). No step needs or
 # downloads a speech model: the Whisper integration tests skip themselves
 # without TEST_RUNNER_HEARSAY_MODEL_DIR, and the capture tests skip on a
-# runner without audio devices. There is no Windows release workflow yet;
-# it waits for the owner's packaging decision (PLAN.md 18.3, Packaging).
+# runner without audio devices. Releases are windows-release.yml, on the
+# same v* tag as the Mac's release.yml (PLAN.md 18.4, "Updates and packaging").
 name: Windows CI
 
 on:

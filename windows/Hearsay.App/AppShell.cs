@@ -12,10 +12,12 @@ using Hearsay.App.Features.Recording;
 using Hearsay.App.Features.Recovery;
 using Hearsay.App.Features.Settings;
 using Hearsay.App.Features.Transcription;
+using Hearsay.App.Features.Updates;
 using Hearsay.Core.Audio;
 using Hearsay.Core.ModelStore;
 using Hearsay.Core.Notes;
 using Hearsay.Core.Settings;
+using Hearsay.Core.Updates;
 using Microsoft.UI.Dispatching;
 
 namespace Hearsay.App;
@@ -100,8 +102,32 @@ internal sealed class AppShell
         FileModel = new FileViewModel(Settings, Models, Engine);
         Recording.Connect(RecordingController.ToggleStartStop, RecordingController.TogglePause);
         RecordingController.PropertyChanged += (_, _) => SyncRecordingStatus();
+        // PLAN.md 4.6 and 18.4: the update check and install (the Mac's
+        // UpdateService); the cache is %LOCALAPPDATA%\Hearsay\Updates, debug
+        // runs use the scratch folder and never check or install.
+        UpdateChecks = new GitHubUpdateCheckSource();
+        UpdateSteps = new UpdateInstaller(UpdateInstaller.RunningInstallFolder,
+            scratchFolder is not null ? Path.Combine(scratchFolder, "Updates") : UpdateInstall.DefaultUpdatesRoot);
+        UpdatePrompts = new UpdatePrompts(this);
+        Updates = new UpdateService(Settings, AppVersion.Current, UpdateChecks, UpdateSteps, UpdatePrompts)
+        {
+            InstallBlocker = UpdateInstallBlocker,
+            Quit = Quit,
+        };
         MainWindow = new MainWindow(this);
     }
+
+    /// <summary>GitHub's latest release (disposed on quit).</summary>
+    private GitHubUpdateCheckSource UpdateChecks { get; }
+
+    /// <summary>The install steps for this install folder (disposed on quit).</summary>
+    private UpdateInstaller UpdateSteps { get; }
+
+    /// <summary>The update check and install (the Mac's <c>UpdateService</c> environment object).</summary>
+    public UpdateService Updates { get; }
+
+    /// <summary>The update dialogs and progress window.</summary>
+    public UpdatePrompts UpdatePrompts { get; }
 
     /// <summary>The app's one Whisper engine.</summary>
     public TranscriptionEngine Engine { get; }
@@ -191,7 +217,29 @@ internal sealed class AppShell
         MainWindow.Activate();
         // PLAN.md 4.5: unfinished spool recordings, once the window can show a sheet.
         dispatcher.TryEnqueue(DispatcherQueuePriority.Low, () => _ = OfferRecoveryAsync());
+        // PLAN.md 4.6: 10 s after launch, then hourly; and the result of an
+        // install that failed after the last quit (Windows only).
+        Updates.StartAutomaticChecks();
+        dispatcher.TryEnqueue(DispatcherQueuePriority.Low, () => _ = ReportPreviousInstallAsync());
     }
+
+    /// <summary>"The last update could not be installed. …" when the swap helper's log says so.</summary>
+    private async Task ReportPreviousInstallAsync()
+    {
+        if (await Updates.TakePreviousInstallFailureAsync().ConfigureAwait(true) is not { } message) return;
+        if (MainWindow.RenderRoot.XamlRoot is not { } root) return;
+        await Alert.ShowAsync(root, Strings.UpdateCouldNotInstall, message).ConfigureAwait(true);
+    }
+
+    /// <summary>
+    /// Why Install and Relaunch must wait: a recording session, its final
+    /// pass, or a Whisper job (File mode) runs; notes and model downloads are
+    /// not checked (the Mac's <c>AppDelegate.updateInstallBlocker</c>).
+    /// </summary>
+    private string? UpdateInstallBlocker() =>
+        RecordingController.IsSessionActive || RecordingController.IsTranscribing || Engine.IsBusy || FileModel.IsBusy
+            ? Strings.UpdateFinishRecordingFirst
+            : null;
 
     /// <summary>
     /// The recovery sheet for spool recordings a crash left behind (the Mac's
@@ -358,6 +406,10 @@ internal sealed class AppShell
         ticker?.Stop();
         Settings.PropertyChanged -= OnSettingsChanged;
         Hotkeys.Dispose();
+        Updates.Dispose();
+        UpdatePrompts.CloseProgress();
+        UpdateChecks.Dispose();
+        UpdateSteps.Dispose();
         Tray.Dispose();
         Models.Dispose();
         RecordingController.Dispose();
