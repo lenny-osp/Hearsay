@@ -281,6 +281,10 @@
     <value>Temperatur:</value>
     <comment>app: Temperature:</comment>
   </data>
+  <data name="app_44c6989ff0a5b136" xml:space="preserve">
+    <value>Das Modell {0} ist nicht vollständig geladen. Den Download unter „Modelle“ abschließen.</value>
+    <comment>app: The model %@ is not fully downloaded. Finish the download in Models.</comment>
+  </data>
   <data name="app_458d1e52464f85be" xml:space="preserve">
     <value>Dieser Ordner konnte nicht gemerkt werden: {0}</value>
     <comment>app: Could not remember that folder: %@</comment>
@@ -380,6 +384,10 @@
   <data name="app_5d948fe41775033b" xml:space="preserve">
     <value>einsetzen und Eingabetaste drücken</value>
     <comment>app: paste and press Return</comment>
+  </data>
+  <data name="app_5e4fe8ce938e4a77" xml:space="preserve">
+    <value>Die Prüfsumme von {0} stimmt nicht mit der Prüfsummenliste des Release überein.</value>
+    <comment>app: The checksum of %@ does not match the release's checksum list.</comment>
   </data>
   <data name="app_5fa7aac5375c5815" xml:space="preserve">
     <value>Bereit</value>
@@ -537,6 +545,10 @@
     <value>Besprechungsnotizen wurden nicht gesichert</value>
     <comment>app: Meeting notes were not saved</comment>
   </data>
+  <data name="app_7c1d9c8bf6b44c1b" xml:space="preserve">
+    <value>Die Codesignatur der neuen Version ist ungültig: {0}</value>
+    <comment>app: The code signature of the new version is not valid: %@</comment>
+  </data>
   <data name="app_7ca41615c19be38d" xml:space="preserve">
     <value>Auswählen …</value>
     <comment>app: Choose…</comment>
@@ -636,6 +648,10 @@
   <data name="app_97020746c98151a0" xml:space="preserve">
     <value>Zusätzliche Header:</value>
     <comment>app: Extra headers:</comment>
+  </data>
+  <data name="app_97ad74e526d29a3d" xml:space="preserve">
+    <value>Kein Modell installiert. Unter „Modelle“ ein Modell auswählen.</value>
+    <comment>app: No model installed. Choose a model in Models.</comment>
   </data>
   <data name="app_9af089758da42b6e" xml:space="preserve">
     <value>Besprechung umbenennen</value>
@@ -793,6 +809,10 @@
     <value>Die Aufnahme konnte nicht transkribiert werden</value>
     <comment>app: Could not transcribe the recording</comment>
   </data>
+  <data name="app_c9015d53b9084645" xml:space="preserve">
+    <value>Danksagungen</value>
+    <comment>app: Acknowledgements</comment>
+  </data>
   <data name="app_c910d474dcd724bf" xml:space="preserve">
     <value>Allgemein</value>
     <comment>app: General</comment>
@@ -885,6 +905,14 @@
     <value>Zurücksetzen</value>
     <comment>app: Reset</comment>
   </data>
+  <data name="app_dc260f7f10774596" xml:space="preserve">
+    <value>Hearsay steht unter der MIT-Lizenz und enthält Open-Source-Software.</value>
+    <comment>app: Hearsay is MIT licensed and includes open-source software.</comment>
+  </data>
+  <data name="app_de3ab6b30c87483b" xml:space="preserve">
+    <value>Die neue App hat Version {0}, nicht {1}.</value>
+    <comment>app: The new app is version %@, not %@.</comment>
+  </data>
   <data name="app_de53e4035f737ad2" xml:space="preserve">
     <value>{0}-CLI-Pfad:</value>
     <comment>app: %@ CLI path:</comment>
@@ -933,6 +961,10 @@
     <value>das Eingabegerät</value>
     <comment>app: the input device</comment>
   </data>
+  <data name="app_eb34f2c0068cd82f" xml:space="preserve">
+    <value>Der Download ist fehlgeschlagen: {0}</value>
+    <comment>app: The download failed: %@</comment>
+  </data>
   <data name="app_edc369964dc1f970" xml:space="preserve">
     <value>Hearsay beim Anmelden öffnen</value>
     <comment>app: Launch Hearsay at login</comment>
@@ -968,6 +1000,14 @@
   <data name="app_f6f4688ff23d50c6" xml:space="preserve">
     <value>Senden</value>
     <comment>app: Send</comment>
+  </data>
+  <data name="app_f851e33aec10e834" xml:space="preserve">
+    <value>Die Prüfsummenliste des Release enthält keinen Eintrag für {0}.</value>
+    <comment>app: The release's checksum list has no entry for %@.</comment>
+  </data>
+  <data name="app_f970d29fd0256ce2" xml:space="preserve">
+    <value>Lizenzen anzeigen …</value>
+    <comment>app: Show Licenses…</comment>
   </data>
   <data name="app_fa2723b8f3f41f91" xml:space="preserve">
     <value>Transkript behalten: {0}</value>
@@ -1452,6 +1492,10 @@
   <data name="windows_856dbc2661974e2d" xml:space="preserve">
     <value>Hearsay verwendet {0} nach dem Neustart.</value>
     <comment>windows: Hearsay will use %@ after it restarts.</comment>
+  </data>
+  <data name="windows_87a8d0efd3f4c5ab" xml:space="preserve">
+    <value>Dieser Computer transkribiert auf seinem Prozessor (CPU): Nach dem Stoppen dauert das Transkript etwa 1,5- bis 3,5-mal so lange wie die Aufnahme.</value>
+    <comment>windows: This computer transcribes on its processor (CPU): after you stop, the transcript takes about 1.5 to 3.5 times as long as the recording.</comment>
   </data>
   <data name="windows_8f8367e088351c7b" xml:space="preserve">
     <value>Die Dateien konnten nicht im Explorer angezeigt werden: {0}</value>

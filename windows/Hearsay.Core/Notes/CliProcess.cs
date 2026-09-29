@@ -165,7 +165,11 @@ public abstract record CliProviderError
     }
 
     /// <summary>The binary could not be started.</summary>
-    public sealed record LaunchFailed(CliTool Tool, string Detail) : CliProviderError;
+    public sealed record LaunchFailed(CliTool Tool, string Detail) : CliProviderError
+    {
+        /// <summary><see cref="Detail"/> with its catalog key, when Hearsay wrote it (the Antigravity project set-up).</summary>
+        public ILocalizedMessage? LocalizedDetail { get; init; }
+    }
 
     /// <summary>
     /// Nonzero exit status. <see cref="Excerpt"/> is at most
@@ -216,6 +220,59 @@ public abstract record CliProviderError
             + "Use Claude Code, Codex, or an HTTP provider for long meetings.",
         _ => throw new InvalidOperationException("Unknown CliProviderError."),
     };
+
+    /// <summary>
+    /// <see cref="Description"/> as its catalog keys and values, for the app
+    /// to translate; null for <see cref="CommandLineTooLong"/>, which has no
+    /// key in shared/localization yet (Windows only).
+    /// </summary>
+    public LocalizedMessage? Localized => this switch
+    {
+        NotInstalled e => new LocalizedMessage(
+            "%@ not found. Install it with `%@` or set the path in Settings > AI.", e.Tool.DisplayName(), e.Tool.InstallCommand()),
+        LaunchFailed { Tool: CliTool.Copilot } e => new LocalizedMessage(
+            "GitHub Copilot CLI call failed. Check the Copilot login status and model configuration: %@",
+            (object?)e.LocalizedDetail ?? e.Detail),
+        LaunchFailed e => new LocalizedMessage("%@ could not be started: %@", e.Tool.DisplayName(),
+            (object?)e.LocalizedDetail ?? e.Detail),
+        Failed e => FailedLocalized(e),
+        NotLoggedIn e => NotLoggedInLocalized(e),
+        TimedOut e => new LocalizedMessage("%@ did not answer within %lld minutes and was stopped.",
+            e.Tool.DisplayName(), (int)CliClient.Timeout.TotalMinutes),
+        EmptyOutput e => new LocalizedMessage("%@ returned empty output.", e.Tool.DisplayName()),
+        NotACliPreset e => new LocalizedMessage("The %@ preset does not use a command-line tool.", e.PresetName),
+        _ => null,
+    };
+
+    private static LocalizedMessage FailedLocalized(Failed e)
+    {
+        var trimmed = e.Excerpt.Trim();
+        var message = e.Tool == CliTool.Copilot
+            ? new LocalizedMessage(
+                "GitHub Copilot CLI call failed (exit code %d). Check the Copilot login status and model configuration.", e.ExitCode)
+            : new LocalizedMessage(
+                "%@ call failed (exit code %d). Check the model and reasoning effort in Settings > AI.", e.Tool.DisplayName(), e.ExitCode);
+        if (trimmed.Length > 0) message = message.Appending("\n", trimmed);
+        if (e.Tool == CliTool.Copilot && MentionsLogin(trimmed))
+        {
+            message = message.Appending("\n", new LocalizedMessage("Run `copilot` once in Terminal to log in."));
+        }
+        return message;
+    }
+
+    private static LocalizedMessage NotLoggedInLocalized(NotLoggedIn e)
+    {
+        var key = e.Tool switch
+        {
+            CliTool.ClaudeCode => "%@ is not logged in. Run `%@` once in Terminal to log in with your Claude subscription.",
+            CliTool.Codex => "%@ is not logged in. Run `%@` once in Terminal to log in with your ChatGPT account.",
+            CliTool.Antigravity => "%@ is not logged in. Run `%@` once in Terminal to log in with your Google account.",
+            _ => "%@ is not logged in. Run `%@` once in Terminal to log in.",
+        };
+        var message = new LocalizedMessage(key, e.Tool.DisplayName(), e.Tool.LoginCommand());
+        var trimmed = e.Excerpt.Trim();
+        return trimmed.Length > 0 ? message.Appending("\n", trimmed) : message;
+    }
 
     private static string FailedMessage(Failed e)
     {
@@ -297,7 +354,7 @@ public abstract record CliProviderError
 }
 
 /// <summary>Thrown by <see cref="CliClient"/>; <see cref="Error"/> says what failed.</summary>
-public sealed class CliProviderException : Exception
+public sealed class CliProviderException : Exception, ILocalizedError
 {
     public CliProviderException(CliProviderError error)
         : base(error?.Description)
@@ -307,6 +364,8 @@ public sealed class CliProviderException : Exception
     }
 
     public CliProviderError Error { get; }
+
+    public ILocalizedMessage? LocalizedMessage => Error.Localized;
 }
 
 /// <summary>
@@ -377,7 +436,14 @@ public sealed record CliInstallation(
     string Path,
     string Version,
     string? LoginStatus = null,
-    bool? LoggedIn = null);
+    bool? LoggedIn = null)
+{
+    /// <summary>
+    /// <see cref="LoginStatus"/> as its catalog key and values, for the app
+    /// to translate; null when there is no status or the line is the CLI's own output.
+    /// </summary>
+    public ILocalizedMessage? LocalizedLoginStatus { get; init; }
+}
 
 /// <summary>
 /// The per-user folders <see cref="CliLocator"/> searches, from the

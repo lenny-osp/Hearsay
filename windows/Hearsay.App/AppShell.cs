@@ -147,6 +147,9 @@ internal sealed class AppShell
 
     public HelpWindow? HelpWindow { get; private set; }
 
+    /// <summary>The licenses window (Settings > General > Acknowledgements), while open.</summary>
+    public HelpWindow? LicensesWindow { get; private set; }
+
     public bool IsQuitting { get; private set; }
 
     /// <summary>Whether closing the main window hides it (the tray modes) instead of quitting.</summary>
@@ -267,6 +270,19 @@ internal sealed class AppShell
         return window;
     }
 
+    /// <summary>"Show Licenses…": the licenses page in a help window; opening it again brings it forward.</summary>
+    public HelpWindow ShowLicenses()
+    {
+        if (LicensesWindow is not { } window)
+        {
+            window = HelpWindow.Licenses(OnHelpLink);
+            window.Closed += (_, _) => LicensesWindow = null;
+            LicensesWindow = window;
+        }
+        window.Activate();
+        return window;
+    }
+
     /// <summary>
     /// Quits Hearsay (tray menu, or closing the window in taskbar-only mode).
     /// While a recording is active it asks first, then stops and saves it;
@@ -347,6 +363,7 @@ internal sealed class AppShell
         RecordingController.Dispose();
         Engine.Dispose();
         HelpWindow?.Close();
+        LicensesWindow?.Close();
         MainWindow.CloseForQuit();
         app.Exit();
     }

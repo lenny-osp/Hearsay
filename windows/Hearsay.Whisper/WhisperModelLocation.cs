@@ -1,3 +1,4 @@
+using Hearsay.Core;
 using Hearsay.Core.ModelStore;
 
 namespace Hearsay.Whisper;
@@ -7,7 +8,7 @@ namespace Hearsay.Whisper;
 /// mac/Hearsay/Features/Transcription/WhisperEngine.swift. The text is the
 /// Mac's English string; the app localizes it in W7.
 /// </summary>
-public sealed class WhisperEngineException : Exception
+public sealed class WhisperEngineException : Exception, ILocalizedError
 {
     public WhisperEngineException()
         : this(WhisperEngineError.NoActiveModel, null)
@@ -34,6 +35,18 @@ public sealed class WhisperEngineException : Exception
     public WhisperEngineError? Error { get; }
 
     public string? ModelName { get; }
+
+    /// <summary>
+    /// The message as the Mac's catalog key (app catalog, WhisperEngine.swift)
+    /// and the model name; null when made from a bare message.
+    /// </summary>
+    public ILocalizedMessage? LocalizedMessage => Error switch
+    {
+        WhisperEngineError.NoActiveModel => new LocalizedMessage("No model installed. Choose a model in Models."),
+        WhisperEngineError.ModelNotReady => new LocalizedMessage(
+            "The model %@ is not fully downloaded. Finish the download in Models.", ModelName ?? string.Empty),
+        _ => null,
+    };
 
     private static string Describe(WhisperEngineError error, string? modelName) => error switch
     {

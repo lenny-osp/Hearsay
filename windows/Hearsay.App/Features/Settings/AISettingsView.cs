@@ -572,10 +572,39 @@ internal sealed partial class AISettingsView : UserControl
     // Layout helpers
 
     /// <summary>A label column and a stretched control (the Mac's grouped <c>Form</c> rows).</summary>
+    /// <summary>
+    /// The label column of every <see cref="Field"/>: as wide as the widest
+    /// label in this interface language (at least 150, at most 230, beyond
+    /// which a label wraps), so all rows line up and "Esfuerzo de
+    /// razonamiento:" does not wrap. Measured once, on first use.
+    /// </summary>
+    private static double LabelColumnWidth => labelColumnWidth ??= MeasureLabelColumn();
+    private static double? labelColumnWidth;
+
+    private static double MeasureLabelColumn()
+    {
+        string[] labels =
+        [
+            Strings.AIPreset, Strings.AIModel, Strings.AIReasoningEffort, Strings.AIEndpointUrl,
+            Strings.AITemperature, Strings.AITokenHeader, Strings.AIExtraHeaders, Strings.AIApiToken,
+            Strings.AITokenStatus,
+            .. Enum.GetValues<CliTool>().Select(tool => Strings.AICliPath(tool.ShortName())),
+        ];
+        var probe = new TextBlock();
+        var widest = 0.0;
+        foreach (var label in labels)
+        {
+            probe.Text = label;
+            probe.Measure(new Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
+            widest = Math.Max(widest, probe.DesiredSize.Width);
+        }
+        return Math.Clamp(Math.Ceiling(widest) + 2, 150, 230);
+    }
+
     private static Grid Field(string label, FrameworkElement control)
     {
         var grid = new Grid { ColumnSpacing = 12 };
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(150) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(LabelColumnWidth) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.Children.Add(new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap });
         if (control is not StackPanel) control.HorizontalAlignment = HorizontalAlignment.Stretch;

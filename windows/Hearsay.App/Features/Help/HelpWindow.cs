@@ -22,6 +22,14 @@ namespace Hearsay.App.Features.Help;
 /// document it loads (PLAN.md 18.3, Help row).
 /// Mirrors mac/Hearsay/Features/Help/HelpView.swift (<c>HelpWindow</c>,
 /// <c>HelpView</c>, <c>HelpWebView</c>).
+/// <para>
+/// <see cref="Licenses"/> opens the same window on the licenses page
+/// (Settings > General > Acknowledgements; the Mac's <c>LicensesSheet</c> in
+/// mac/Hearsay/Features/Settings/AcknowledgementsView.swift): Hearsay's
+/// LICENSE, then windows/THIRD_PARTY_NOTICES.md, as monospaced text, the
+/// Mac's layout. The build writes it (<c>HearsayLicensesPage</c> in
+/// Hearsay.App.csproj) to <c>help\Licenses.html</c>.
+/// </para>
 /// </summary>
 internal sealed partial class HelpWindow : Window
 {
@@ -62,10 +70,15 @@ internal sealed partial class HelpWindow : Window
     private readonly TaskCompletionSource<bool> firstLoad = new();
 
     public HelpWindow(InterfaceLanguage language, Action<HelpDestination> onOpen)
+        : this(ContentPath(language), Strings.HelpTitle, onOpen)
+    {
+    }
+
+    private HelpWindow(string page, string title, Action<HelpDestination> onOpen)
     {
         this.onOpen = onOpen;
-        Title = Strings.HelpTitle;
-        HelpFile = ContentPath(language);
+        Title = title;
+        HelpFile = page;
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "Hearsay.ico"));
         var hwnd = Win32Interop.GetWindowFromWindowId(AppWindow.Id);
         var dpi = NativeMethods.GetDpiForWindow(hwnd);
@@ -94,7 +107,7 @@ internal sealed partial class HelpWindow : Window
                 {
                     new TextBlock
                     {
-                        Text = Strings.HelpMissing("Help.html"),
+                        Text = Strings.HelpMissing(Path.GetFileName(page)),
                         HorizontalAlignment = HorizontalAlignment.Center,
                         VerticalAlignment = VerticalAlignment.Center,
                         Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
@@ -106,6 +119,13 @@ internal sealed partial class HelpWindow : Window
 
     /// <summary>Full path of the page this window shows.</summary>
     public string HelpFile { get; }
+
+    /// <summary>The licenses page (Settings > General > Acknowledgements > Show Licenses…).</summary>
+    public static HelpWindow Licenses(Action<HelpDestination> onOpen) =>
+        new(LicensesPath, Strings.SectionAcknowledgements, onOpen);
+
+    /// <summary><c>help\Licenses.html</c> next to Hearsay.exe, written at build time.</summary>
+    public static string LicensesPath => Path.Combine(AppContext.BaseDirectory, "help", "Licenses.html");
 
     /// <summary>
     /// <c>help\&lt;code&gt;\Help.html</c> next to Hearsay.exe for the

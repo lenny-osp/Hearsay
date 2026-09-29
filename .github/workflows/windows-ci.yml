@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   build-and-test:
-    name: Build, core tests, notices, strings
+    name: Build, core and app tests, notices, strings
     runs-on: windows-latest
     timeout-minutes: 45
     env:
@@ -55,6 +55,13 @@ jobs:
           Remove-Item Env:TEST_RUNNER_HEARSAY_MODEL_DIR -ErrorAction SilentlyContinue
           dotnet test windows\Hearsay.Tests -c Release --no-build --logger trx --results-directory windows\Hearsay.Tests\TestResults
 
+      # The app's pure logic and its string lookup (PLAN.md 18.9). The
+      # solution builds this project for x64 (bin\x64\Release), hence the
+      # platform; it needs no model, device or package identity.
+      - name: App tests
+        run: |
+          dotnet test windows\Hearsay.App.Tests -c Release -p:Platform=x64 --no-build --logger trx --results-directory windows\Hearsay.App.Tests\TestResults
+
       - name: Third-party notices are current
         shell: powershell
         run: |
@@ -71,5 +78,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-test-results
-          path: windows/Hearsay.Tests/TestResults/
+          path: |
+            windows/Hearsay.Tests/TestResults/
+            windows/Hearsay.App.Tests/TestResults/
           if-no-files-found: ignore

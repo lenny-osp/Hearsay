@@ -6,6 +6,10 @@
        verified"): unpackaged and self-contained until MSIX in W7. -->
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
+    <!-- Inputs and output of HearsayLicensesPage (below). -->
+    <HearsayLicenseFile>$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)..', '..', 'LICENSE'))</HearsayLicenseFile>
+    <HearsayNoticesFile>$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)..', 'THIRD_PARTY_NOTICES.md'))</HearsayNoticesFile>
+    <HearsayLicensesPage>$(MSBuildThisFileDirectory)obj\Licenses.html</HearsayLicensesPage>
     <!-- Directory.Build.props sets net10.0 for the core and tests; WinUI needs
          the Windows target framework. -->
     <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
@@ -27,12 +31,27 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Versions: PLAN.md 18.3 and 18.6. WebView2 comes with the Windows App
-         SDK. The Windows App SDK 2.5.1 has no notification-icon API, so the
-         tray icon uses H.NotifyIcon.WinUI (PLAN.md 18.3). -->
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.5.1" />
+    <!-- Versions: PLAN.md 18.3 and 18.6. The Windows App SDK 2.5.1 is
+         referenced through the split packages its metapackage pins (its
+         nuspec), without Windows ML, AI, Search and Widgets, which the app
+         does not use (PLAN.md 18.4, "Package weight"). Base comes through
+         them; WebView2 comes with WinUI. The Windows App SDK has no
+         notification-icon API, so the tray icon uses H.NotifyIcon.WinUI
+         (PLAN.md 18.3). -->
+    <PackageReference Include="Microsoft.WindowsAppSDK.Foundation" Version="2.3.12" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" Version="2.3.9" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.InteractiveExperiences" Version="2.1.9" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.DWrite" Version="2.1.0" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.Runtime" Version="2.5.1" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.4654" />
     <PackageReference Include="H.NotifyIcon.WinUI" Version="2.4.1" />
+    <!-- H.NotifyIcon.WinUI depends on the metapackage (>= 1.6.250108002),
+         which would bring the Windows App SDK 1.6 back into the graph; the
+         split packages above supply what it needs, so the metapackage is
+         pruned from the restore graph (NuGet package pruning). -->
+    <PrunePackageReference Include="Microsoft.WindowsAppSDK" Version="2.5.1" />
+    <!-- As in Hearsay.Whisper.csproj: a macOS-only shader file. -->
+    <PrunePackageReference Include="Whisper.net.Runtime.Metal" Version="1.9.1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -57,6 +76,12 @@
              Link="help\%(RecursiveDir)%(Filename)%(Extension)"
              CopyToOutputDirectory="PreserveNewest"
              Visible="false" />
+    <!-- The licenses page (Settings > General > Acknowledgements), written by
+         HearsayLicensesPage below from LICENSE and THIRD_PARTY_NOTICES.md. -->
+    <Content Include="$(HearsayLicensesPage)"
+             Link="help\Licenses.html"
+             CopyToOutputDirectory="PreserveNewest"
+             Visible="false" />
     <!-- Debug only: the SRT text of the History samples in the UI snapshots
          (Features/Debug/UISnapshots.cs), byte for byte from shared/fixtures. -->
     <Content Include="$(HearsaySharedDir)fixtures\en-30s.expected.srt"
@@ -64,5 +89,58 @@
              CopyToOutputDirectory="PreserveNewest"
              Visible="false" />
   </ItemGroup>
+
+  <!-- The licenses page: the Mac's LicensesSheet text (mac/Hearsay/Features/
+       Settings/AcknowledgementsView.swift: "Hearsay", the LICENSE, a rule of
+       72 "=", then THIRD_PARTY_NOTICES.md) as monospaced, HTML-escaped text
+       with the help pages' light and dark colours. Both files are read as
+       they are (LF, never translated) and nothing is fetched. -->
+  <UsingTask TaskName="HearsayWriteLicensesPage" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <License ParameterType="System.String" Required="true" />
+      <Notices ParameterType="System.String" Required="true" />
+      <Page ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Net" />
+      <Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        const string NL = "\n";
+        var utf8 = new UTF8Encoding(false);
+        var text = "Hearsay" + NL + NL + File.ReadAllText(License, utf8) + NL + NL + new string('=', 72) + NL + NL
+            + File.ReadAllText(Notices, utf8);
+        var html = "<!DOCTYPE html>" + NL
+            + "<html lang=\"en\">" + NL
+            + "<head>" + NL
+            + "<meta charset=\"utf-8\">" + NL
+            + "<meta name=\"color-scheme\" content=\"light dark\">" + NL
+            + "<title>Hearsay licenses</title>" + NL
+            + "<style>" + NL
+            + ":root { color-scheme: light dark; }" + NL
+            + "body { margin: 0; padding: 16px 20px; background: #ffffff; color: rgba(0, 0, 0, 0.85); }" + NL
+            + "@media (prefers-color-scheme: dark) { body { background: #1e1e1e; color: rgba(255, 255, 255, 0.85); } }" + NL
+            + "pre { margin: 0; font: 12px/1.45 \"Cascadia Mono\", Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }" + NL
+            + "</style>" + NL
+            + "</head>" + NL
+            + "<body>" + NL
+            + "<pre>" + WebUtility.HtmlEncode(text) + "</pre>" + NL
+            + "</body>" + NL
+            + "</html>" + NL;
+        Directory.CreateDirectory(Path.GetDirectoryName(Page));
+        if (!File.Exists(Page) || File.ReadAllText(Page, utf8) != html) File.WriteAllText(Page, html, utf8);
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="HearsayLicensesPage" BeforeTargets="AssignTargetPaths"
+          Inputs="$(HearsayLicenseFile);$(HearsayNoticesFile);$(MSBuildThisFileFullPath)"
+          Outputs="$(HearsayLicensesPage)">
+    <HearsayWriteLicensesPage License="$(HearsayLicenseFile)" Notices="$(HearsayNoticesFile)" Page="$(HearsayLicensesPage)" />
+  </Target>
+
+  <!-- Only the win-x64 whisper.cpp builds reach the output. -->
+  <Import Project="..\Hearsay.Whisper\TrimWhisperRuntimes.targets" />
 
 </Project>

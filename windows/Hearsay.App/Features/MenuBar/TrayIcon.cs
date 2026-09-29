@@ -22,7 +22,8 @@ namespace Hearsay.App.Features.MenuBar;
 /// <see cref="MenuFlyout"/> each time it opens, so it looks like every other
 /// tray menu. A left click opens the main window, as Windows tray icons do;
 /// the Mac's click opens its panel. The notification area cannot show text
-/// beside the icon, so the elapsed time is in the tooltip.
+/// beside the icon, so the elapsed time and the final pass's percentage are
+/// in the tooltip.
 /// </para>
 /// Use from the UI thread.
 /// </summary>
@@ -78,9 +79,16 @@ internal sealed class TrayIcon : IDisposable
         }
     }
 
-    /// <summary>The tooltip now: "Hearsay", or with status on the state line with the elapsed time.</summary>
+    /// <summary>
+    /// The tooltip now: "Hearsay", or with status on the state line: the
+    /// elapsed time while capturing, the percentage while transcribing
+    /// ("Hearsay: Transcribing… 42%", the Mac's menu bar percentage in
+    /// <c>MenuBarLabel</c>).
+    /// </summary>
     public string CurrentTooltip =>
-        settings.MenuBarShowsStatus && recording.IsCapturing ? Strings.TrayTooltip(recording.StateText) : "Hearsay";
+        settings.MenuBarShowsStatus && (recording.IsCapturing || recording.Phase == RecordingPhase.Transcribing)
+            ? Strings.TrayTooltip(recording.StateText)
+            : "Hearsay";
 
     public void Dispose()
     {

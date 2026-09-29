@@ -56,6 +56,22 @@ public abstract record ChatCompletionsError
         _ => throw new InvalidOperationException("Unknown ChatCompletionsError."),
     };
 
+    /// <summary><see cref="Description"/> as its catalog key and values, for the app to translate.</summary>
+    public LocalizedMessage Localized => this switch
+    {
+        MissingToken => new LocalizedMessage("No API token is set for this provider. Add one in Settings > AI."),
+        InvalidUrl => new LocalizedMessage("The API URL is not a valid http or https address. Check it in Settings > AI."),
+        Unreachable e => new LocalizedMessage(
+            "Cannot reach %@. Check the base URL in Settings > AI and your network connection.", e.Host),
+        Transport e => new LocalizedMessage("API call failed: A network connection or HTTP client error occurred. %@", e.Detail),
+        HttpStatus e when e.BodyExcerpt.Trim().Length == 0 =>
+            new LocalizedMessage("API HTTP Error %lld: The response body is empty.", e.Code),
+        HttpStatus e => new LocalizedMessage("API HTTP Error %lld: %@", e.Code, ApiErrorMessage(e.BodyExcerpt) ?? e.BodyExcerpt),
+        InvalidJson e => new LocalizedMessage("Parsing Error: The API response is not valid JSON: %@", e.BodyExcerpt),
+        EmptyContent => new LocalizedMessage("Parsing Error: API response did not contain usable message content."),
+        _ => throw new InvalidOperationException("Unknown ChatCompletionsError."),
+    };
+
     /// <summary>
     /// <c>error.message</c> of an OpenAI-style error body, when present. An
     /// <c>error</c> object without a string <c>message</c> is shown as JSON
@@ -77,7 +93,7 @@ public abstract record ChatCompletionsError
 }
 
 /// <summary>Thrown by <see cref="ChatCompletionsClient"/>; <see cref="Error"/> says what failed.</summary>
-public sealed class ChatCompletionsException : Exception
+public sealed class ChatCompletionsException : Exception, ILocalizedError
 {
     public ChatCompletionsException(ChatCompletionsError error, Exception? innerException = null)
         : base(error?.Description, innerException)
@@ -87,6 +103,8 @@ public sealed class ChatCompletionsException : Exception
     }
 
     public ChatCompletionsError Error { get; }
+
+    public ILocalizedMessage LocalizedMessage => Error.Localized;
 }
 
 /// <summary>

@@ -281,6 +281,10 @@
     <value>Temperature:</value>
     <comment>app: Temperature:</comment>
   </data>
+  <data name="app_44c6989ff0a5b136" xml:space="preserve">
+    <value>The model {0} is not fully downloaded. Finish the download in Models.</value>
+    <comment>app: The model %@ is not fully downloaded. Finish the download in Models.</comment>
+  </data>
   <data name="app_458d1e52464f85be" xml:space="preserve">
     <value>Could not remember that folder: {0}</value>
     <comment>app: Could not remember that folder: %@</comment>
@@ -380,6 +384,10 @@
   <data name="app_5d948fe41775033b" xml:space="preserve">
     <value>paste and press Return</value>
     <comment>app: paste and press Return</comment>
+  </data>
+  <data name="app_5e4fe8ce938e4a77" xml:space="preserve">
+    <value>The checksum of {0} does not match the release's checksum list.</value>
+    <comment>app: The checksum of %@ does not match the release's checksum list.</comment>
   </data>
   <data name="app_5fa7aac5375c5815" xml:space="preserve">
     <value>Ready</value>
@@ -537,6 +545,10 @@
     <value>Meeting notes were not saved</value>
     <comment>app: Meeting notes were not saved</comment>
   </data>
+  <data name="app_7c1d9c8bf6b44c1b" xml:space="preserve">
+    <value>The code signature of the new version is not valid: {0}</value>
+    <comment>app: The code signature of the new version is not valid: %@</comment>
+  </data>
   <data name="app_7ca41615c19be38d" xml:space="preserve">
     <value>Choose…</value>
     <comment>app: Choose…</comment>
@@ -636,6 +648,10 @@
   <data name="app_97020746c98151a0" xml:space="preserve">
     <value>Extra headers:</value>
     <comment>app: Extra headers:</comment>
+  </data>
+  <data name="app_97ad74e526d29a3d" xml:space="preserve">
+    <value>No model installed. Choose a model in Models.</value>
+    <comment>app: No model installed. Choose a model in Models.</comment>
   </data>
   <data name="app_9af089758da42b6e" xml:space="preserve">
     <value>Rename meeting</value>
@@ -793,6 +809,10 @@
     <value>Could not transcribe the recording</value>
     <comment>app: Could not transcribe the recording</comment>
   </data>
+  <data name="app_c9015d53b9084645" xml:space="preserve">
+    <value>Acknowledgements</value>
+    <comment>app: Acknowledgements</comment>
+  </data>
   <data name="app_c910d474dcd724bf" xml:space="preserve">
     <value>General</value>
     <comment>app: General</comment>
@@ -885,6 +905,14 @@
     <value>Reset</value>
     <comment>app: Reset</comment>
   </data>
+  <data name="app_dc260f7f10774596" xml:space="preserve">
+    <value>Hearsay is MIT licensed and includes open-source software.</value>
+    <comment>app: Hearsay is MIT licensed and includes open-source software.</comment>
+  </data>
+  <data name="app_de3ab6b30c87483b" xml:space="preserve">
+    <value>The new app is version {0}, not {1}.</value>
+    <comment>app: The new app is version %@, not %@.</comment>
+  </data>
   <data name="app_de53e4035f737ad2" xml:space="preserve">
     <value>{0} CLI path:</value>
     <comment>app: %@ CLI path:</comment>
@@ -933,6 +961,10 @@
     <value>the input device</value>
     <comment>app: the input device</comment>
   </data>
+  <data name="app_eb34f2c0068cd82f" xml:space="preserve">
+    <value>The download failed: {0}</value>
+    <comment>app: The download failed: %@</comment>
+  </data>
   <data name="app_edc369964dc1f970" xml:space="preserve">
     <value>Launch Hearsay at login</value>
     <comment>app: Launch Hearsay at login</comment>
@@ -968,6 +1000,14 @@
   <data name="app_f6f4688ff23d50c6" xml:space="preserve">
     <value>Send</value>
     <comment>app: Send</comment>
+  </data>
+  <data name="app_f851e33aec10e834" xml:space="preserve">
+    <value>The release's checksum list has no entry for {0}.</value>
+    <comment>app: The release's checksum list has no entry for %@.</comment>
+  </data>
+  <data name="app_f970d29fd0256ce2" xml:space="preserve">
+    <value>Show Licenses…</value>
+    <comment>app: Show Licenses…</comment>
   </data>
   <data name="app_fa2723b8f3f41f91" xml:space="preserve">
     <value>Transcript kept: {0}</value>
@@ -1452,6 +1492,10 @@
   <data name="windows_856dbc2661974e2d" xml:space="preserve">
     <value>Hearsay will use {0} after it restarts.</value>
     <comment>windows: Hearsay will use %@ after it restarts.</comment>
+  </data>
+  <data name="windows_87a8d0efd3f4c5ab" xml:space="preserve">
+    <value>This computer transcribes on its processor (CPU): after you stop, the transcript takes about 1.5 to 3.5 times as long as the recording.</value>
+    <comment>windows: This computer transcribes on its processor (CPU): after you stop, the transcript takes about 1.5 to 3.5 times as long as the recording.</comment>
   </data>
   <data name="windows_8f8367e088351c7b" xml:space="preserve">
     <value>Could not show the files in File Explorer: {0}</value>

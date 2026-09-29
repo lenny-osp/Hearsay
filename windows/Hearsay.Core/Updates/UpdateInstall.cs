@@ -108,9 +108,24 @@ public abstract record UpdatePackageError
         NoPackage => "The release has no Windows zip file or checksum list.",
         _ => throw new InvalidOperationException("Unknown UpdatePackageError."),
     };
+
+    /// <summary>
+    /// <see cref="Description"/> as the Mac's catalog key (app catalog,
+    /// UpdatePackage.swift) and values, for the app to translate; null for the
+    /// Windows texts, which have no key in shared/localization yet.
+    /// </summary>
+    public LocalizedMessage? Localized => this switch
+    {
+        ChecksumMissing e => new LocalizedMessage("The release's checksum list has no entry for %@.", e.Name),
+        ChecksumMismatch e => new LocalizedMessage("The checksum of %@ does not match the release's checksum list.", e.Name),
+        SignatureInvalid e => new LocalizedMessage("The code signature of the new version is not valid: %@", e.Detail),
+        WrongVersion e => new LocalizedMessage("The new app is version %@, not %@.", e.Found ?? "unknown", e.Expected),
+        DownloadFailed e => new LocalizedMessage("The download failed: %@", e.Detail),
+        _ => null,
+    };
 }
 
-public sealed class UpdatePackageException : Exception
+public sealed class UpdatePackageException : Exception, ILocalizedError
 {
     public UpdatePackageException(UpdatePackageError error)
         : base(error?.Description)
@@ -127,6 +142,8 @@ public sealed class UpdatePackageException : Exception
     }
 
     public UpdatePackageError Error { get; }
+
+    public ILocalizedMessage? LocalizedMessage => Error.Localized;
 }
 
 /// <summary>Bytes received so far and the total when the server announced it.</summary>

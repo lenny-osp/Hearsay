@@ -49,6 +49,19 @@ public static class UpdateTexts
     public const string FinishRecordingFirst = "Finish the recording first.";
     public static string BytesOf(string received, string total) => string.Format(Culture, "{0} of {1}", received, total);
 
+    // The formatted texts above as their catalog keys (app catalog) and
+    // values, for the app to translate.
+    public static LocalizedMessage VersionLineMessage(string version, string build) => new("Version %@ (%@)", version, build);
+    public static LocalizedMessage UpToDateMessage(string version) => new("You're up to date (%@).", version);
+    public static LocalizedMessage AvailableMessage(string version) => new("Hearsay %@ is available.", version);
+    public static LocalizedMessage YouHaveVersionMessage(string version) => new("You have version %@.", version);
+    public static LocalizedMessage LastCheckedMessage(string dateTime) => new("Last checked %@", dateTime);
+    public static LocalizedMessage DownloadingMessage(string version) => new("Downloading Hearsay %@…", version);
+    public static LocalizedMessage VerifyingMessage(string version) => new("Verifying Hearsay %@…", version);
+    public static LocalizedMessage ReadyToInstallMessage(string version) => new("Hearsay %@ is ready to install.", version);
+    public static LocalizedMessage InstallingMessage(string version) => new("Installing Hearsay %@…", version);
+    public static LocalizedMessage BytesOfMessage(string received, string total) => new("%@ of %@", received, total);
+
     /// <summary>Windows only: shown after a relaunch when the helper's log ends in a failure.</summary>
     public const string PreviousInstallFailed = "The last update could not be installed. Hearsay is still the previous version.";
 }

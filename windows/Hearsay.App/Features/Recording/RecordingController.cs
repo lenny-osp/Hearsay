@@ -126,6 +126,9 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
     private float[]? rerunSamples;
     private ChineseScript? sessionChineseScript;
     private List<TranscriptSegment> liveSegments = [];
+    private bool? cpuRuntime;
+    private bool checkingRuntime;
+    private bool startedThisRun;
 
     public RecordingController(
         AppSettings settings, ModelStore modelStore, TranscriptionEngine engine, RecordingSpool spool,
@@ -202,6 +205,15 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
 
     /// <summary>Why the live preview is off or incomplete, shown under it.</summary>
     public string? LiveNotice { get; private set; }
+
+    /// <summary>
+    /// PLAN.md 18.4, "Speed" (Windows only): on whisper.cpp's CPU runtime,
+    /// until the first recording of this run starts, how long the final pass
+    /// will take. The runtime is looked up when the Record tab activates with
+    /// a model installed (<see cref="TranscriptionEngine.IsCpuRuntimeAsync"/>).
+    /// </summary>
+    public string? CpuSpeedNotice =>
+        cpuRuntime == true && !startedThisRun && phase is ControllerPhase.Idle ? Strings.CpuFinalPassNotice : null;
 
     /// <summary>The current session transcribes live chunks.</summary>
     public bool IsLivePreviewEnabled { get; private set; }
@@ -318,6 +330,7 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
     public void Activate()
     {
         RefreshDevices();
+        _ = CheckRuntimeAsync();
         if (deviceObservation is not null) return;
         try
         {
@@ -327,6 +340,22 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
         {
             AppLog.Write($"recording: cannot watch audio devices: {error.Message}");
         }
+    }
+
+    /// <summary>Finds out once whether transcription runs on the CPU, for <see cref="CpuSpeedNotice"/>.</summary>
+    private async Task CheckRuntimeAsync()
+    {
+        if (cpuRuntime is not null || checkingRuntime || startedThisRun || modelStore.Installed.Count == 0) return;
+        checkingRuntime = true;
+        try
+        {
+            cpuRuntime = await engine.IsCpuRuntimeAsync().ConfigureAwait(true);
+        }
+        finally
+        {
+            checkingRuntime = false;
+        }
+        Notify(nameof(CpuSpeedNotice));
     }
 
     public void RefreshDevices()
@@ -350,6 +379,7 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
     public void Start()
     {
         if (!CanStart) return;
+        startedThisRun = true;
         Phase = new ControllerPhase.Starting();
         FinishedRecording = null;
         FinishedTranscript = null;
@@ -1443,6 +1473,7 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
         FinishedRecording = sample.FinishedRecording;
         pendingSpoolWav = sample.CanUseLivePreview ? sample.FinishedRecording ?? "sample.wav" : null;
         rerunSamples = sample.Notice is not null ? Array.Empty<float>() : null;
+        cpuRuntime = sample.CpuRuntime;
         phase = sample.Phase;
         Notify();
     }
@@ -1540,4 +1571,7 @@ internal sealed record RecordingSample(ControllerPhase Phase, SessionLanguageTra
     public string? FinishedRecording { get; init; }
 
     public bool CanUseLivePreview { get; init; }
+
+    /// <summary>True shows the CPU runtime's final-pass notice while idle.</summary>
+    public bool? CpuRuntime { get; init; }
 }

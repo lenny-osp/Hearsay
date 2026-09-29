@@ -1,4 +1,7 @@
 <Solution>
+  <Project Path="Hearsay.App.Tests/Hearsay.App.Tests.csproj">
+    <Platform Project="x64" />
+  </Project>
   <Project Path="Hearsay.App/Hearsay.App.csproj">
     <Platform Project="x64" />
   </Project>

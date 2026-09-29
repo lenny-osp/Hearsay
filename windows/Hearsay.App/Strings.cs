@@ -171,8 +171,11 @@ internal static partial class Strings
 
     /// <summary>
     /// The user-facing text of an error (the Swift <c>describe</c>): the
-    /// Core errors whose English the Mac localizes are translated here by
-    /// kind; every other error shows its message.
+    /// capture and Credential Manager errors by kind (Windows wording where
+    /// it differs); then a Core error that carries its catalog key
+    /// (<see cref="Hearsay.Core.ILocalizedError"/>), translated through the key and its
+    /// arguments; then Core's plain English by exact text
+    /// (<see cref="CoreText"/>); otherwise the message as it is.
     /// </summary>
     public static string Describe(Exception error) => error switch
     {
@@ -180,8 +183,46 @@ internal static partial class Strings
         SystemAudioRecorderException system => Describe(system),
         SecretStoreException { ErrorCode: not 0 } secret => Win("Credential Manager error: %@",
             new Win32Exception(secret.ErrorCode).Message.TrimEnd().TrimEnd('.')),
+        Hearsay.Core.ILocalizedError { LocalizedMessage: { } message } => Localize(message),
         null => throw new ArgumentNullException(nameof(error)),
-        _ => error.Message,
+        _ => CoreText(error.Message),
+    };
+
+    /// <summary>
+    /// A Core text in the interface language: its key looked up in the app
+    /// catalog for the few Core texts the Mac keeps in its app target,
+    /// otherwise in the core, then the Windows catalog; each nested message
+    /// likewise, the English key when no translation is found.
+    /// </summary>
+    public static string Localize(Hearsay.Core.ILocalizedMessage message)
+    {
+        ArgumentNullException.ThrowIfNull(message);
+        object Resolve(object value) => value is Hearsay.Core.ILocalizedMessage nested ? Localize(nested) : value;
+        var arguments = message.MessageArguments.Select(Resolve).ToArray();
+        var head = CoreMessageInAppCatalog(message.MessageKey, arguments)
+            ?? Hearsay.Core.LocalizedMessage.Format(new Hearsay.Core.LocalizedMessage(message.MessageKey, arguments, []),
+                key => Lookup("core", key, required: false) ?? Lookup("windows", key, required: false), Culture);
+        return head + string.Concat(message.MessageTail.Select(part => part.Separator + Resolve(part.Content)));
+    }
+
+    /// <summary>
+    /// The Core texts whose Mac key is in the app catalog (WhisperEngine.swift,
+    /// UpdatePackage.swift live in the Mac's app target), named here so
+    /// import-strings.py puts them in the .resw; null for any other key.
+    /// </summary>
+    private static string? CoreMessageInAppCatalog(string key, object[] arguments) => key switch
+    {
+        "No model installed. Choose a model in Models." => App("No model installed. Choose a model in Models."),
+        "The model %@ is not fully downloaded. Finish the download in Models." =>
+            App("The model %@ is not fully downloaded. Finish the download in Models.", arguments),
+        "The release's checksum list has no entry for %@." => App("The release's checksum list has no entry for %@.", arguments),
+        "The checksum of %@ does not match the release's checksum list." =>
+            App("The checksum of %@ does not match the release's checksum list.", arguments),
+        "The code signature of the new version is not valid: %@" =>
+            App("The code signature of the new version is not valid: %@", arguments),
+        "The new app is version %@, not %@." => App("The new app is version %@, not %@.", arguments),
+        "The download failed: %@" => App("The download failed: %@", arguments),
+        _ => null,
     };
 
     private static string Describe(MicrophoneRecorderException error) => error.Kind switch
@@ -622,4 +663,17 @@ internal static partial class Strings
     public static string QuitHearsay => App("Quit Hearsay");
     /// <summary>Tooltip of the tray icon: "Hearsay" plus the state line (Windows only).</summary>
     public static string TrayTooltip(string state) => Win("Hearsay: %@", state);
+
+    #region Polish (PLAN.md 18.9): app-side keys; appended here only, the rest of the file is edited elsewhere
+
+    // Settings > General > Acknowledgements (mac/Hearsay/Features/Settings/AcknowledgementsView.swift).
+    public static string SectionAcknowledgements => App("Acknowledgements");
+    public static string AcknowledgementsText => App("Hearsay is MIT licensed and includes open-source software.");
+    public static string ShowLicenses => App("Show Licenses…");
+
+    /// <summary>Record tab, before the first recording on whisper.cpp's CPU runtime (PLAN.md 18.4, "Speed"; Windows only).</summary>
+    public static string CpuFinalPassNotice =>
+        Win("This computer transcribes on its processor (CPU): after you stop, the transcript takes about 1.5 to 3.5 times as long as the recording.");
+
+    #endregion
 }

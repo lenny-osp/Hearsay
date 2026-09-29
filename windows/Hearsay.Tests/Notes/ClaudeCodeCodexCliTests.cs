@@ -1,3 +1,4 @@
+using Hearsay.Core;
 using Hearsay.Core.Notes;
 using static Hearsay.Tests.Notes.CliFixtures;
 
@@ -215,7 +216,11 @@ public sealed class ClaudeCodeCliTests
         var pipeline = new NotesPipeline(cliClient: Client(fake, CliLocator()));
         var installation = await pipeline.CheckInstallationAsync(ClaudeConfiguration());
         Assert.Equal(new CliInstallation(CliTool.ClaudeCode, ClaudePath, "2.1.278 (Claude Code)",
-            "Logged in via claude.ai (max plan)", true), installation);
+            "Logged in via claude.ai (max plan)", true)
+        {
+            LocalizedLoginStatus = new LocalizedMessage("Logged in via %@", "claude.ai")
+                .Appending(" ", new LocalizedMessage("(%@ plan)", "max")),
+        }, installation);
         Assert.Equal([[ClaudePath, "--version"], [ClaudePath, "auth", "status"]], fake.Calls.Select(call => call.Argv.ToArray()));
     }
 

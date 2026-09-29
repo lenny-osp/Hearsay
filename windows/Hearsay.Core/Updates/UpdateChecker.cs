@@ -107,10 +107,20 @@ public abstract record UpdateCheckError
         Parse => "GitHub sent a release description Hearsay could not read.",
         _ => throw new InvalidOperationException("Unknown UpdateCheckError."),
     };
+
+    /// <summary><see cref="Description"/> as its catalog key and values, for the app to translate.</summary>
+    public LocalizedMessage Localized => this switch
+    {
+        Offline => new LocalizedMessage("Could not reach GitHub. Check your internet connection and try again."),
+        HttpStatus e => new LocalizedMessage("GitHub answered the update check with HTTP status %lld.", e.Status),
+        NoRelease => new LocalizedMessage("No releases have been published yet."),
+        Parse => new LocalizedMessage("GitHub sent a release description Hearsay could not read."),
+        _ => throw new InvalidOperationException("Unknown UpdateCheckError."),
+    };
 }
 
 /// <summary>Thrown by <see cref="UpdateChecker"/>; <see cref="Error"/> says what failed.</summary>
-public sealed class UpdateCheckException : Exception
+public sealed class UpdateCheckException : Exception, ILocalizedError
 {
     public UpdateCheckException(UpdateCheckError error)
         : base(error?.Description)
@@ -127,6 +137,8 @@ public sealed class UpdateCheckException : Exception
     }
 
     public UpdateCheckError Error { get; }
+
+    public ILocalizedMessage LocalizedMessage => Error.Localized;
 }
 
 /// <summary>What one check found (the Mac's <c>UpdateService.Outcome</c>).</summary>
@@ -141,7 +153,11 @@ public abstract record UpdateCheckOutcome
     public sealed record UpToDate : UpdateCheckOutcome;
 
     /// <param name="Message">The text for the alert or the Settings line.</param>
-    public sealed record Failed(string Message) : UpdateCheckOutcome;
+    /// <param name="Localized"><paramref name="Message"/> as its catalog key and values, for the app to translate.</param>
+    public sealed record Failed(string Message, ILocalizedMessage? Localized = null) : UpdateCheckOutcome, ILocalizedError
+    {
+        ILocalizedMessage? ILocalizedError.LocalizedMessage => Localized;
+    }
 }
 
 /// <summary>
@@ -276,11 +292,11 @@ public sealed class UpdateChecker : IDisposable
         {
             // The check itself worked; there is just nothing to offer.
             settings.LastUpdateCheck = now.GetUtcNow();
-            return new UpdateCheckOutcome.Failed(error.Error.Description);
+            return new UpdateCheckOutcome.Failed(error.Error.Description, error.Error.Localized);
         }
         catch (UpdateCheckException error)
         {
-            return new UpdateCheckOutcome.Failed(error.Error.Description);
+            return new UpdateCheckOutcome.Failed(error.Error.Description, error.Error.Localized);
         }
     }
 

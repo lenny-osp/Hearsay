@@ -90,7 +90,7 @@ public sealed class ModelStore : INotifyPropertyChanged, IDisposable
     {
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentException.ThrowIfNullOrEmpty(rootPath);
-        string? loadError = null;
+        LocalizedMessage? loadError = null;
         ModelCatalog resolved;
         if (catalog is not null)
         {
@@ -104,12 +104,13 @@ public sealed class ModelStore : INotifyPropertyChanged, IDisposable
             }
             catch (ModelCatalogException error)
             {
-                loadError = $"The built-in model list could not be read: {error.Message}";
+                loadError = CatalogLoadError(error.Message);
                 resolved = new ModelCatalog([], new TokenizerSource { Repo = "ggerganov/whisper.cpp", Files = [] });
             }
         }
         Catalog = resolved;
-        CatalogError = loadError;
+        CatalogError = loadError?.English;
+        CatalogErrorMessage = loadError;
         RootPath = Path.GetFullPath(rootPath);
         this.settings = settings;
         downloader = new ModelDownloader(RootPath, resolved.Tokenizer, handler, baseUri);
@@ -131,6 +132,13 @@ public sealed class ModelStore : INotifyPropertyChanged, IDisposable
 
     /// <summary>Set when the embedded catalog could not be read.</summary>
     public string? CatalogError { get; }
+
+    /// <summary><see cref="CatalogError"/> as its catalog key and detail, for the app to translate.</summary>
+    public ILocalizedMessage? CatalogErrorMessage { get; }
+
+    /// <summary>The text of <see cref="CatalogError"/> for a catalog that could not be read.</summary>
+    internal static LocalizedMessage CatalogLoadError(string detail) =>
+        new("The built-in model list could not be read: %@", detail);
 
     public IReadOnlyList<InstalledModel> Installed
     {

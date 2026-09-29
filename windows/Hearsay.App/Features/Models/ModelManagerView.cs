@@ -34,7 +34,7 @@ internal sealed partial class ModelManagerView : UserControl
     private readonly AppShell shell;
     private readonly ModelStore store;
     private readonly Dictionary<string, ModelRowView> rows = new(StringComparer.Ordinal);
-    private readonly TextBlock rootPath;
+    private readonly MiddleTrimmedText rootPath;
     private readonly TextBlock sizeOnDisk;
     private readonly Button showInExplorer;
     private ModelsSample? sample;
@@ -54,15 +54,10 @@ internal sealed partial class ModelManagerView : UserControl
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var location = new StackPanel { Spacing = 2 };
         location.Children.Add(Caption(Strings.ModelsStoredIn));
-        rootPath = new TextBlock
-        {
-            Text = store.RootPath,
-            FontFamily = new FontFamily("Cascadia Mono, Consolas"),
-            FontSize = 12,
-            IsTextSelectionEnabled = true,
-            TextTrimming = TextTrimming.CharacterEllipsis,
-        };
-        ToolTipService.SetToolTip(rootPath, store.RootPath);
+        // Shortened in the middle with the full path in a tooltip, as the
+        // Mac's .truncationMode(.middle); the button's Auto column keeps it
+        // in view however long the path is.
+        rootPath = new MiddleTrimmedText(new FontFamily("Cascadia Mono, Consolas"), 12) { Text = store.RootPath };
         location.Children.Add(rootPath);
         sizeOnDisk = Caption("");
         location.Children.Add(sizeOnDisk);

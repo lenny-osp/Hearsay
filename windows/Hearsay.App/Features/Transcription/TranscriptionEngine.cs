@@ -18,6 +18,7 @@ internal sealed class TranscriptionEngine : IDisposable
 {
     private readonly Dictionary<string, Task<SpeedProbeResult>> probes = new(StringComparer.OrdinalIgnoreCase);
     private readonly Lock gate = new();
+    private Task<bool>? cpuCheck;
 
     public TranscriptionEngine()
     {
@@ -65,6 +66,33 @@ internal sealed class TranscriptionEngine : IDisposable
             });
             probes[modelPath] = probe;
             return probe;
+        }
+    }
+
+    /// <summary>
+    /// True when whisper.cpp runs on its CPU runtime (no Vulkan GPU), for the
+    /// Record tab's notice before the first recording (PLAN.md 18.4, "Speed").
+    /// Loads the runtime library once, on the thread pool, without a model;
+    /// false when no runtime loads (the first transcription reports that).
+    /// </summary>
+    public Task<bool> IsCpuRuntimeAsync()
+    {
+        lock (gate)
+        {
+            return cpuCheck ??= Task.Run(() =>
+            {
+                try
+                {
+                    var library = WhisperRuntime.EnsureLoaded();
+                    AppLog.Write($"whisper: runtime {library}{(WhisperRuntime.IsCpu ? " (CPU: the final pass takes about 1.5 to 3.5x the recording)" : "")}");
+                    return WhisperRuntime.IsCpu;
+                }
+                catch (PlatformNotSupportedException error)
+                {
+                    AppLog.Write($"whisper: no runtime loaded: {error.Message}");
+                    return false;
+                }
+            });
         }
     }
 

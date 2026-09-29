@@ -3832,5 +3832,12 @@
     "english": "wav, m4a, mp3, aac, wma, flac, or the audio track of mp4 / mov",
     "comment": "File tab: the file types the drop target accepts, the Mac's list with what Windows can read. Keep the extensions as they are. Windows only.",
     "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "This computer transcribes on its processor (CPU): after you stop, the transcript takes about 1.5 to 3.5 times as long as the recording.",
+    "english": "This computer transcribes on its processor (CPU): after you stop, the transcript takes about 1.5 to 3.5 times as long as the recording.",
+    "comment": "Record tab notice before the first recording when transcription runs on the processor (no Vulkan graphics). Windows only.",
+    "placeholders": []
   }
 ]

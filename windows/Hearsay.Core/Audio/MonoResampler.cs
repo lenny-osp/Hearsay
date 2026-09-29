@@ -15,7 +15,7 @@ public enum AudioConversionErrorKind
 /// mac/HearsayCore/Sources/HearsayCore/Audio/MonoResampler.swift. The messages
 /// are the English catalog keys; the detail is technical English.
 /// </summary>
-public sealed class AudioConversionException : Exception
+public sealed class AudioConversionException : Exception, ILocalizedError
 {
     public AudioConversionException()
         : this(AudioConversionErrorKind.ConversionFailed, "unknown error")
@@ -41,11 +41,16 @@ public sealed class AudioConversionException : Exception
     {
         Kind = kind;
         Detail = detail;
+        LocalizedMessage = new LocalizedMessage(
+            kind == AudioConversionErrorKind.UnsupportedFormat ? "Unsupported audio format: %@" : "Audio conversion failed: %@", detail);
     }
 
     public AudioConversionErrorKind Kind { get; }
 
     public string Detail { get; } = "";
+
+    /// <summary>The message as its catalog key and detail; null when made from a bare message.</summary>
+    public ILocalizedMessage? LocalizedMessage { get; }
 }
 
 /// <summary>

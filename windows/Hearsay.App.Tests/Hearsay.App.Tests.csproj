@@ -1,0 +1,66 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Unit tests of the app's pure logic (PLAN.md 18.9, "App-side unit
+       tests"): help navigation, the tray icon rule, byte sizes, the
+       command-line check, the notes flow's phases, the string lookup. It
+       references the WinUI app itself, so it takes the app's Windows target
+       framework and runtime identifier. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <RootNamespace>Hearsay.App.Tests</RootNamespace>
+    <HearsayTestSharedDir>$(HearsaySharedDir)</HearsayTestSharedDir>
+    <!-- As the app: unpackaged, with the Windows App SDK runtime beside the
+         test assembly, so MRT Core (Strings) loads without package identity. -->
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <!-- The Windows App SDK compiles its auto-initializers (reg-free WinRT,
+         runtime load) into this assembly as into the app, and the app's
+         internals are visible here (InternalsVisibleTo), so the two copies
+         of those internal types meet: CS0436, and the local copy is the one
+         wanted (it initializes the test host). -->
+    <NoWarn>$(NoWarn);CS0436</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <!-- The app's prunes (Hearsay.App.csproj), which do not flow through a
+         project reference. -->
+    <PrunePackageReference Include="Microsoft.WindowsAppSDK" Version="2.5.1" />
+    <PrunePackageReference Include="Whisper.net.Runtime.Metal" Version="1.9.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="Hearsay.Tests" />
+    <ProjectReference Include="..\Hearsay.App\Hearsay.App.csproj" />
+    <!-- The shared/ locator of the core tests (reads the translations). -->
+    <Compile Include="..\Hearsay.Tests\SharedFiles.cs" Link="SharedFiles.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>HearsaySharedDir</_Parameter1>
+      <_Parameter2>$(HearsayTestSharedDir)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <!-- Strings.Apply uses MRT Core's default ResourceManager, which in an
+       unpackaged process reads resources.pri, else <exe name>.pri, beside the
+       executable: Hearsay.pri for Hearsay.exe, but the test host is
+       testhost.exe, which finds only an empty map. The app's Hearsay.pri
+       (copied here through the project reference) is copied again as
+       resources.pri so the app code runs unchanged. -->
+  <Target Name="CopyAppPriAsResourcesPri" AfterTargets="Build">
+    <Copy SourceFiles="$(OutDir)Hearsay.pri" DestinationFiles="$(OutDir)resources.pri" SkipUnchangedFiles="true"
+          Condition="Exists('$(OutDir)Hearsay.pri')" />
+    <Error Text="Hearsay.pri is missing from $(OutDir); the string tests need the app's resources."
+           Condition="!Exists('$(OutDir)Hearsay.pri')" />
+  </Target>
+
+</Project>

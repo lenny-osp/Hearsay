@@ -92,6 +92,7 @@ application development").
 ```powershell
 dotnet build windows\Hearsay.slnx -c Release         # build
 dotnet test windows\Hearsay.Tests -c Release          # core tests, fast
+dotnet test windows\Hearsay.App.Tests -c Release      # app logic and string lookup, fast
 ```
 
 - The solution is `Hearsay.slnx` (the XML format .NET 10 creates).

@@ -47,6 +47,15 @@ internal static class RecordingSnapshots
         await tools.Settle().ConfigureAwait(true);
         await tools.Render("30-record-idle", window.RenderRoot).ConfigureAwait(true);
 
+        // On the CPU runtime, before the first recording: how long the final pass takes (PLAN.md 18.4, "Speed").
+        controller.ShowSample(new RecordingSample(ControllerPhase.IdleState, new SessionLanguageTracker(LanguageChoice.Auto, TranscriptLanguage.English))
+        {
+            CpuRuntime = true,
+        });
+        await tools.Settle().ConfigureAwait(true);
+        tools.Check(controller.CpuSpeedNotice == Strings.CpuFinalPassNotice, "the CPU final-pass notice shows before the first recording");
+        await tools.Render("56-record-cpu-notice", window.RenderRoot).ConfigureAwait(true);
+
         var recording = new RecordingSample(new ControllerPhase.Recording(), new SessionLanguageTracker(english, TranscriptLanguage.English))
         {
             Elapsed = 754.2,

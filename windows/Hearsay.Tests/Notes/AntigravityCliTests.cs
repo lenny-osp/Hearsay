@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using Hearsay.Core;
 using Hearsay.Core.Notes;
 using static Hearsay.Tests.Notes.CliFixtures;
 
@@ -379,7 +380,10 @@ public sealed class AntigravityCliTests
         });
         var pipeline = new NotesPipeline(cliClient: AgyClient(fake));
         var installation = await pipeline.CheckInstallationAsync(AgyConfiguration());
-        Assert.Equal(new CliInstallation(CliTool.Antigravity, AgyPath, "1.2.12", "Logged in; 3 models available", true), installation);
+        Assert.Equal(new CliInstallation(CliTool.Antigravity, AgyPath, "1.2.12", "Logged in; 3 models available", true)
+        {
+            LocalizedLoginStatus = new LocalizedMessage("Logged in; %lld models available", 3),
+        }, installation);
         Assert.Equal(2, fake.Calls.Count);
         Assert.Equal([AgyPath, "--version"], fake.Calls[0].Argv);
         var models = fake.Calls[^1];

@@ -115,10 +115,21 @@ public abstract record ModelDownloadError
         InvalidResponse e => $"The server sent an unexpected response for {e.File}.",
         _ => throw new InvalidOperationException("Unknown ModelDownloadError."),
     };
+
+    /// <summary><see cref="Description"/> as its catalog key and values, for the app to translate.</summary>
+    public LocalizedMessage Localized => this switch
+    {
+        HttpStatus e => new LocalizedMessage("Downloading %@ failed with HTTP status %lld.", e.File, e.Status),
+        SizeMismatch e => new LocalizedMessage(
+            "%@ is %lld bytes but the server announced %lld. The file was discarded; try again.", e.File, e.Actual, e.Expected),
+        RangeNotSatisfiable e => new LocalizedMessage("The server refused to resume %@.", e.File),
+        InvalidResponse e => new LocalizedMessage("The server sent an unexpected response for %@.", e.File),
+        _ => throw new InvalidOperationException("Unknown ModelDownloadError."),
+    };
 }
 
 /// <summary>Thrown by <see cref="ModelDownloader"/>; <see cref="Error"/> says what failed.</summary>
-public sealed class ModelDownloadException : Exception
+public sealed class ModelDownloadException : Exception, ILocalizedError
 {
     public ModelDownloadException(ModelDownloadError error)
         : base(error?.Description)
@@ -128,6 +139,8 @@ public sealed class ModelDownloadException : Exception
     }
 
     public ModelDownloadError Error { get; }
+
+    public ILocalizedMessage LocalizedMessage => Error.Localized;
 }
 
 /// <summary>

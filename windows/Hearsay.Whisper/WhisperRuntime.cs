@@ -51,6 +51,14 @@ public static class WhisperRuntime
     /// <summary>True when the loaded runtime computes on the CPU only.</summary>
     public static bool IsCpu => loaded?.Library is RuntimeLibrary.Cpu or RuntimeLibrary.CpuNoAvx;
 
+    /// <summary>
+    /// Loads the runtime library now, without a model, and returns the
+    /// runtime in use, so the app can tell before the first recording that it
+    /// will transcribe on the CPU (PLAN.md 18.4, "Speed"). Later loads reuse it.
+    /// </summary>
+    /// <exception cref="PlatformNotSupportedException">No runtime could be loaded, or its whisper.dll lacks an export.</exception>
+    public static RuntimeLibrary EnsureLoaded() => Load().Library;
+
     /// <summary>Loads the library once per process and returns the bound API.</summary>
     /// <exception cref="PlatformNotSupportedException">No runtime could be loaded, or its whisper.dll lacks an export.</exception>
     internal static LoadedRuntime Load()

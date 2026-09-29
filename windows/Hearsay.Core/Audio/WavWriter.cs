@@ -15,7 +15,7 @@ public enum WavErrorKind
 /// the English catalog keys; localization comes with the Windows string
 /// resources.
 /// </summary>
-public sealed class WavException : Exception
+public sealed class WavException : Exception, ILocalizedError
 {
     public WavException()
         : this(WavErrorKind.Closed, null)
@@ -37,12 +37,18 @@ public sealed class WavException : Exception
     {
         Kind = kind;
         FilePath = path;
+        LocalizedMessage = kind == WavErrorKind.NotAWavFile
+            ? new LocalizedMessage("Not a readable WAV file: %@", path ?? string.Empty)
+            : new LocalizedMessage("The WAV file is already closed.");
     }
 
     public WavErrorKind Kind { get; }
 
     /// <summary>The file for <see cref="WavErrorKind.NotAWavFile"/>.</summary>
     public string? FilePath { get; }
+
+    /// <summary>The message as its catalog key and path; null when made from a bare message.</summary>
+    public ILocalizedMessage? LocalizedMessage { get; }
 
     private static string Describe(WavErrorKind kind, string? path) => kind switch
     {

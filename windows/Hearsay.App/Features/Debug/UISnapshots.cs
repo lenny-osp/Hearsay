@@ -50,7 +50,7 @@ namespace Hearsay.App.Features.Debug;
 /// </para>
 /// <para>
 /// Runs in the interface language of <c>HEARSAY_UI_LANGUAGE</c> (default the
-/// stored choice; strings are English until W7, the help page follows it).
+/// stored choice); the strings and the help page follow it.
 /// Settings live in the throwaway folder <see cref="DebugEnvironment"/>
 /// makes under the temp folder, the output folder is a sample folder there,
 /// and launch at login is in memory, so <c>%APPDATA%\Hearsay</c>, the Run
@@ -60,7 +60,7 @@ namespace Hearsay.App.Features.Debug;
 /// </para>
 /// <code>
 /// $env:HEARSAY_UI_SNAPSHOTS="$env:TEMP\hearsay-ui"; $env:HEARSAY_UI_LANGUAGE="de"
-/// windows\Hearsay.App\bin\Release\net10.0-windows10.0.26100.0\win-x64\Hearsay.exe
+/// windows\Hearsay.App\bin\x64\Release\net10.0-windows10.0.26100.0\win-x64\Hearsay.exe
 /// </code>
 /// </summary>
 internal static class UISnapshots
@@ -127,7 +127,13 @@ internal static class UISnapshots
             }
         }
 
-        // Sample data for the Models and History tabs.
+        // Sample data for the Models and History tabs. The (empty) models
+        // folder is created when it lies in the throwaway settings folder, so
+        // the header shows "Show in Explorer" beside the long path.
+        if (Path.GetFullPath(shell.Models.RootPath).StartsWith(Path.GetFullPath(shell.SettingsFile.Folder), StringComparison.OrdinalIgnoreCase))
+        {
+            Directory.CreateDirectory(shell.Models.RootPath);
+        }
         window.ModelsView.ShowSample(SampleModels(shell.Models.Catalog));
         var samples = WriteHistorySamples(sampleOutput);
 
@@ -303,6 +309,23 @@ internal static class UISnapshots
             }
         }
 
+        // Settings > General > Acknowledgements > Show Licenses…: the licenses page.
+        var licenses = shell.ShowLicenses();
+        var licensesPng = Path.Combine(directory, "57-licenses.png");
+        var licensesText = File.Exists(licenses.HelpFile) ? File.ReadAllText(licenses.HelpFile) : "";
+        Check(licensesText.Contains("MIT License", StringComparison.Ordinal) && licensesText.Contains("Whisper.net", StringComparison.Ordinal),
+            $"the licenses page {licenses.HelpFile} holds the LICENSE and the notices");
+        if (await licenses.CaptureAsync(null, licensesPng).ConfigureAwait(true))
+        {
+            Say($"wrote {licensesPng}");
+        }
+        else
+        {
+            Say($"could not write {licensesPng}");
+            failed = true;
+        }
+        licenses.Close();
+
         // A hearsay://open link in the help page switches the main window.
         shell.Tabs.Tab = MainTab.Record;
         await help.FollowLinkAsync("hearsay://open/settings-output").ConfigureAwait(true);
@@ -329,11 +352,11 @@ internal static class UISnapshots
         var tray = shell.Tray;
         var recording = shell.Recording;
         tray.SetVisible(true);
-        void Expect(string step, string icon)
+        void Expect(string step, string icon, string? tooltip = null)
         {
-            var good = tray.IsVisible && tray.CurrentIconName == icon;
+            var good = tray.IsVisible && tray.CurrentIconName == icon && (tooltip is null || tray.CurrentTooltip == tooltip);
             ok &= good;
-            Say($"tray {step}: icon {tray.CurrentIconName}, tooltip \"{tray.CurrentTooltip}\"{(good ? "" : $" (expected {icon})")}");
+            Say($"tray {step}: icon {tray.CurrentIconName}, tooltip \"{tray.CurrentTooltip}\"{(good ? "" : $" (expected {icon}, \"{tooltip}\")")}");
         }
         Expect("idle", "Hearsay.ico");
         // Stubbed states: the real Start would open the microphone (W5).
@@ -348,12 +371,15 @@ internal static class UISnapshots
         shell.Settings.MenuBarShowsStatus = true;
         recording.Update(RecordingPhase.Transcribing, TimeSpan.FromSeconds(754), 0.42);
         await Task.Delay(500).ConfigureAwait(true);
-        Expect("transcribing", "Hearsay.ico");
+        Expect("transcribing", "Hearsay.ico", Strings.TrayTooltip(Strings.StateTranscribing(42)));
         ok &= recording.StateText == Strings.StateTranscribing(42);
         Say($"tray transcribing state line \"{recording.StateText}\"");
+        shell.Settings.MenuBarShowsStatus = false;
+        Expect("transcribing, status off", "Hearsay.ico", "Hearsay");
+        shell.Settings.MenuBarShowsStatus = true;
         recording.Update(RecordingPhase.Idle, TimeSpan.Zero, null);
         await Task.Delay(500).ConfigureAwait(true);
-        Expect("stopped", "Hearsay.ico");
+        Expect("stopped", "Hearsay.ico", "Hearsay");
         tray.SetVisible(false);
         ok &= !tray.IsVisible;
 

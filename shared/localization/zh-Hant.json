@@ -4330,5 +4330,13 @@
     "comment": "File tab: the file types the drop target accepts, the Mac's list with what Windows can read. Keep the extensions as they are. Windows only.",
     "placeholders": [],
     "translation": "wav、m4a、mp3、aac、wma、flac，或 mp4／mov 的音軌"
+  },
+  {
+    "catalog": "windows",
+    "key": "This computer transcribes on its processor (CPU): after you stop, the transcript takes about 1.5 to 3.5 times as long as the recording.",
+    "english": "This computer transcribes on its processor (CPU): after you stop, the transcript takes about 1.5 to 3.5 times as long as the recording.",
+    "comment": "Record tab notice before the first recording when transcription runs on the processor (no Vulkan graphics). Windows only.",
+    "placeholders": [],
+    "translation": "這台電腦使用處理器（CPU）轉錄：停止後，逐字稿約需錄音長度的 1.5 到 3.5 倍時間。"
   }
 ]

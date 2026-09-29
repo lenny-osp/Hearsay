@@ -532,7 +532,11 @@ public sealed class CliClient : IChatCompleting
             catch (Exception error) when (error is IOException or UnauthorizedAccessException or AntigravityWriteException)
             {
                 throw new CliProviderException(new CliProviderError.LaunchFailed(tool,
-                    $"Could not set up the {CliArguments.AntigravityProjectName} project in {antigravity.ProjectsFolder}: {error.Message}"));
+                    $"Could not set up the {CliArguments.AntigravityProjectName} project in {antigravity.ProjectsFolder}: {error.Message}")
+                {
+                    LocalizedDetail = new LocalizedMessage("Could not set up the %@ project in %@: %@",
+                        CliArguments.AntigravityProjectName, antigravity.ProjectsFolder, error.Message),
+                });
             }
         }
         return await RunAsync(tool, executable, Timeout,
@@ -693,9 +697,9 @@ public sealed class CliClient : IChatCompleting
                     // ~/.gemini/antigravity-cli/log unless told otherwise.
                     ? [executable, "--log-file", Path.Combine(directory, CliArguments.AntigravityLogFileName), .. statusArguments]
                     : (IReadOnlyList<string>)[executable, .. statusArguments], null),
-                (result, _) => LoginStatus(tool, result),
+                (result, _) => LoginStatusMessage(tool, result),
                 cancellationToken).ConfigureAwait(false);
-            installation = installation with { LoginStatus = text, LoggedIn = loggedIn };
+            installation = installation with { LoginStatus = text.English, LoggedIn = loggedIn, LocalizedLoginStatus = text.Localized };
         }
         return installation;
     }
@@ -707,10 +711,21 @@ public sealed class CliClient : IChatCompleting
     /// </summary>
     internal static (string Text, bool LoggedIn) LoginStatus(CliTool tool, CliRunResult result)
     {
-        var advice = $"Run `{tool.LoginCommand()}` once in Terminal to log in.";
-        var notLoggedIn = $"Not logged in. {advice}";
-        const string loggedInText = "Logged in";
-        if (result.TimedOut) return ("The login status check did not answer.", false);
+        var (text, loggedIn) = LoginStatusMessage(tool, result);
+        return (text.English, loggedIn);
+    }
+
+    /// <summary>
+    /// <see cref="LoginStatus"/> with the catalog key of the line
+    /// (<see cref="StatusLine.Localized"/>), null for a line taken from the
+    /// CLI's own output.
+    /// </summary>
+    internal static (StatusLine Text, bool LoggedIn) LoginStatusMessage(CliTool tool, CliRunResult result)
+    {
+        var advice = new LocalizedMessage("Run `%@` once in Terminal to log in.", tool.LoginCommand());
+        var notLoggedIn = new StatusLine(new LocalizedMessage("Not logged in. %@", advice));
+        var loggedInText = new StatusLine(new LocalizedMessage("Logged in"));
+        if (result.TimedOut) return (new StatusLine(new LocalizedMessage("The login status check did not answer.")), false);
         switch (tool)
         {
             case CliTool.ClaudeCode:
@@ -727,10 +742,13 @@ public sealed class CliClient : IChatCompleting
                     if (status?["loggedIn"] is JsonValue flag && flag.TryGetValue<bool>(out var loggedIn))
                     {
                         if (!loggedIn) return (notLoggedIn, false);
-                        var text = loggedInText;
-                        if (StringValue(status["authMethod"]) is { Length: > 0 } method) text = $"Logged in via {method}";
-                        if (StringValue(status["subscriptionType"]) is { Length: > 0 } plan) text += " " + $"({plan} plan)";
-                        return (text, true);
+                        var text = new LocalizedMessage("Logged in");
+                        if (StringValue(status["authMethod"]) is { Length: > 0 } method) text = new LocalizedMessage("Logged in via %@", method);
+                        if (StringValue(status["subscriptionType"]) is { Length: > 0 } plan)
+                        {
+                            text = text.Appending(" ", new LocalizedMessage("(%@ plan)", plan));
+                        }
+                        return (new StatusLine(text), true);
                     }
                     break;
                 }
@@ -739,15 +757,15 @@ public sealed class CliClient : IChatCompleting
                 {
                     // One "<id>\t<label>" line per model after "Fetching available models...".
                     var count = Lines(result.Stdout).Count(line => line.Contains('\t', StringComparison.Ordinal));
-                    return (count == 1
-                        ? "Logged in; 1 model available"
-                        : $"Logged in; {count.ToString(CultureInfo.InvariantCulture)} models available", true);
+                    return (new StatusLine(count == 1
+                        ? new LocalizedMessage("Logged in; 1 model available")
+                        : new LocalizedMessage("Logged in; %lld models available", count)), true);
                 }
                 if (CliProviderError.IndicatesLoggedOut(result.Stdout + "\n" + result.Stderr, tool))
                 {
                     return (notLoggedIn, false);
                 }
-                return ($"`agy models` failed (exit code {result.ExitCode.ToString(CultureInfo.InvariantCulture)}). {advice}", false);
+                return (new StatusLine(new LocalizedMessage("`agy models` failed (exit code %d). %@", result.ExitCode, advice)), false);
             default:
                 break;
         }
@@ -757,9 +775,19 @@ public sealed class CliClient : IChatCompleting
         var line = TextElements.Prefix(output, ChatCompletionsError.ExcerptLength);
         if (result.ExitCode == 0 && !output.Contains("not logged in", StringComparison.OrdinalIgnoreCase))
         {
-            return (line.Length == 0 ? loggedInText : line, true);
+            return (line.Length == 0 ? loggedInText : new StatusLine(line, null), true);
         }
-        return (line.Length == 0 ? notLoggedIn : $"{line}. {advice}", false);
+        // The CLI's own line, then the advice: no key for the whole.
+        return (line.Length == 0 ? notLoggedIn : new StatusLine($"{line}. {advice.English}", null), false);
+    }
+
+    /// <summary>A login status line in English and, when Hearsay wrote it, as its catalog key.</summary>
+    internal sealed record StatusLine(string English, LocalizedMessage? Localized)
+    {
+        public StatusLine(LocalizedMessage localized)
+            : this(localized.English, localized)
+        {
+        }
     }
 
     /// <summary>

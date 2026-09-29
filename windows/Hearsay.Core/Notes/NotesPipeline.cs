@@ -27,10 +27,21 @@ public abstract record NotesPipelineError
         SrtUnreadable e => $"Error: SRT file not found or unreadable ({e.Path}): {e.Reason}",
         _ => throw new InvalidOperationException("Unknown NotesPipelineError."),
     };
+
+    /// <summary>
+    /// <see cref="Description"/> as its catalog key, for the app to
+    /// translate; null for <see cref="SrtUnreadable"/>, which has no key in
+    /// shared/localization (the Mac's flow reports the read error itself).
+    /// </summary>
+    public LocalizedMessage? Localized => this switch
+    {
+        EmptyTranscript => new LocalizedMessage("Error: The SRT contains no transcript content to summarize."),
+        _ => null,
+    };
 }
 
 /// <summary>Thrown by <see cref="NotesPipeline"/>; <see cref="Error"/> says what failed.</summary>
-public sealed class NotesPipelineException : Exception
+public sealed class NotesPipelineException : Exception, ILocalizedError
 {
     public NotesPipelineException(NotesPipelineError error, Exception? innerException = null)
         : base(error?.Description, innerException)
@@ -40,6 +51,8 @@ public sealed class NotesPipelineException : Exception
     }
 
     public NotesPipelineError Error { get; }
+
+    public ILocalizedMessage? LocalizedMessage => Error.Localized;
 }
 
 /// <summary>

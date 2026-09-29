@@ -15,11 +15,13 @@ namespace Hearsay.App.Features.Settings;
 /// <c>LaunchAtLoginSection</c> and <c>PreferredLanguagePicker</c> in
 /// mac/Hearsay/Features/Settings/SettingsView.swift,
 /// <c>InterfaceLanguagePicker</c> in InterfaceLanguageSupport.swift, and
-/// <c>HotkeySettingsSection</c> in Features/Hotkeys/HotkeyRecorderView.swift.
+/// <c>HotkeySettingsSection</c> in Features/Hotkeys/HotkeyRecorderView.swift,
+/// then Acknowledgements (<c>AcknowledgementsSection</c> in
+/// Features/Settings/AcknowledgementsView.swift), whose Show Licenses… opens
+/// the licenses page in a help window (<see cref="AppShell.ShowLicenses"/>).
 /// <para>
 /// Not here yet: the shortcut recorder (the bindings are shown and can be
-/// reset; recording new ones is later work), Software updates (W7) and
-/// Acknowledgements (W7, with the notices).
+/// reset; recording new ones is later work) and Software updates (W7).
 /// </para>
 /// </summary>
 internal sealed partial class GeneralSettingsView : UserControl
@@ -114,6 +116,12 @@ internal sealed partial class GeneralSettingsView : UserControl
             Labeled(Strings.ShortcutPause, pauseShortcut),
             captionRow,
             shortcutError));
+
+        // Acknowledgements.
+        var showLicenses = new Button { Content = Strings.ShowLicenses };
+        showLicenses.Click += (_, _) => shell.ShowLicenses();
+        page.Children.Add(Header(Strings.SectionAcknowledgements));
+        page.Children.Add(Card(Labeled(Strings.AcknowledgementsText, showLicenses)));
 
         Content = page;
         Refresh();

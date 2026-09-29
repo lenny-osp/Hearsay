@@ -1,0 +1,28 @@
+<Project>
+
+  <!-- Whisper.net.Runtime and Whisper.net.Runtime.Vulkan mark every native
+       build they carry (linux, macOS, win-arm64, win-x86 and win-x64) as
+       None items copied to the output under runtimes/<rid>/ (and
+       runtimes/vulkan/<rid>/), and the packages have no RID filtering of
+       their own. Hearsay ships win-x64 only (PLAN.md 18.4, "Package
+       weight"), so the other folders are dropped before target paths are
+       assigned: nothing else is copied, and a project reference gets the
+       same trimmed list. Imported by Hearsay.Whisper.csproj (whose output
+       the app gets through the project reference) and Hearsay.App.csproj
+       (which imports the package targets itself, as a transitive
+       reference). -->
+  <PropertyGroup>
+    <HearsayWhisperRid>win-x64</HearsayWhisperRid>
+  </PropertyGroup>
+
+  <Target Name="HearsayTrimWhisperRuntimes" BeforeTargets="AssignTargetPaths">
+    <ItemGroup>
+      <_HearsayForeignWhisperRuntime Include="@(None)"
+          Condition="$([System.String]::Copy('%(None.TargetPath)').Replace('\', '/').StartsWith('runtimes/'))
+                     and !$([System.String]::Copy('%(None.TargetPath)').Replace('\', '/').StartsWith('runtimes/$(HearsayWhisperRid)/'))
+                     and !$([System.String]::Copy('%(None.TargetPath)').Replace('\', '/').StartsWith('runtimes/vulkan/$(HearsayWhisperRid)/'))" />
+      <None Remove="@(_HearsayForeignWhisperRuntime)" />
+    </ItemGroup>
+  </Target>
+
+</Project>

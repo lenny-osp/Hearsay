@@ -959,7 +959,7 @@ once after pulling this.
 | Settings and state | `%APPDATA%\Hearsay\settings.json`; models in `%LOCALAPPDATA%\Hearsay\Models`; spool in `%LOCALAPPDATA%\Hearsay\Recording`; output default `%USERPROFILE%\Documents\Hearsay` | |
 | Hotkeys, login, window modes | `RegisterHotKey`; `HKCU\...\Run` for launch at login; tray-only vs taskbar | |
 | Tray status | Same setting as the Mac (`menuBarShowsStatus`, default on): the tray icon swaps to a red variant while recording and a pause variant while paused. The Windows notification area cannot show text next to an icon, so the elapsed time goes in the tooltip. Label is Windows-only ("Show recording status in the notification area"); add it to `shared/localization` | added 2026-09-29 |
-| Localization | `windows/scripts/import-strings.py` generates `windows/Hearsay.App/Strings/<lang>/Resources.resw` (committed, so a build needs no Python; `--check` in CI) from `shared/localization/*.json`; `Strings.cs` is the single lookup over MRT Core (`ResourceManager` without package identity, language from `InterfaceLanguage.ResolveAtLaunch`); Restart Now relaunches. | Done 2026-09-30: 261 Mac keys reused (246 app, 15 core; all 96 core entries are also in the resw so `Strings.CoreText` translates Core's English), 40 Windows-only keys added under catalog `windows` with translations in all four languages; resw names are `<catalog>_` + 16 hex digits of the key's SHA-256 (keys are sentences). The Mac scripts skip catalog `windows` (`merge-translations.py validate`) and keep those entries on export (`export-strings.py`). Placeholders `%@` become `{0}`. Still English: Core error texts that carry no key (CLI, provider, pipeline, download, engine, updates) and hotkey key names (18.9). |
+| Localization | `windows/scripts/import-strings.py` generates `windows/Hearsay.App/Strings/<lang>/Resources.resw` (committed, so a build needs no Python; `--check` in CI) from `shared/localization/*.json`; `Strings.cs` is the single lookup over MRT Core (`ResourceManager` without package identity, language from `InterfaceLanguage.ResolveAtLaunch`); Restart Now relaunches. | Done 2026-09-30: 261 Mac keys reused (246 app, 15 core; all 96 core entries are also in the resw so `Strings.CoreText` translates Core's English), 40 Windows-only keys added under catalog `windows` with translations in all four languages; resw names are `<catalog>_` + 16 hex digits of the key's SHA-256 (keys are sentences). The Mac scripts skip catalog `windows` (`merge-translations.py validate`) and keep those entries on export (`export-strings.py`). Placeholders `%@` become `{0}`. Core errors carry their Mac key and values (`ILocalizedMessage` / `ILocalizedError`, `LocalizedMessage` in Core; `Strings.Localize` in the app), so formatted messages translate too; a test per type proves key plus values equal the English `Message`. Still English: the Core texts with no Mac key (listed in 18.9) and hotkey key names. `windows/Hearsay.App.Tests` (net10.0-windows, references the app; copies `Hearsay.pri` to `resources.pri` so the resource manager works under testhost) covers the app-side logic. |
 | Help | WebView2 rendering `shared/help/<lang>/Help.html`; `hearsay://open/<tab>` links handled the same way. One page per language serves both platforms: a platform-specific passage carries `data-platform="mac"` or `data-platform="windows"` on the smallest enclosing `<li>`, `<p>`, `<span>` or `<section>`, and the shared CSS hides it unless `<html>` has the matching class (`html:not(.windows) [data-platform="windows"]` and `html.windows [data-platform="mac"]` are `display: none`, so a page with no class shows the Mac text). The Windows `HelpWindow` adds class `windows` at each document's DOMContentLoaded through `ExecuteScriptAsync` and keeps the view transparent until then; `AddScriptToExecuteOnDocumentCreatedAsync` does not run with `IsScriptEnabled` off (WebView2 154), and turning page scripts on was rejected. | Decided 2026-09-30 (W7). Windows passages cover only what differs: notification area and taskbar, the three window modes, Settings > Privacy & security > Microphone (system audio needs no permission), Ctrl+Alt+Win+R / P and F1, `%USERPROFILE%\Documents\Hearsay`, Reveal in Explorer and the Recycle Bin, right-click, the install commands, the Copilot and Antigravity length limit (18.4 "W6 core"), Vulkan or CPU speed and live preview off (18.4 "Speed"), the File tab's types (18.4 "W5 app wiring"), the Windows model, restart wording. The Mac page renders the same visible text as before with no class (checked by extracting each page's visible text under the CSS rule, all five languages). The Mac still sets no class (18.9). |
 | Packaging | **Proposal for the owner, 2026-09-30 (not decided):** the unpackaged, self-contained `win-x64` app it already is (18.6, "Toolchain verified"), published as `Hearsay-<version>-win-x64.zip` (one `Hearsay\` folder inside) on the same GitHub Release and `SHA256SUMS.txt` as the DMG, with the in-app update of 18.4 "Updates and packaging (proposal)": parity with the Mac's DMG plus in-app install. Signed with a self-signed code-signing identity from a repository secret, as the Mac is, so every release has the same signer and the update can check it; SmartScreen still shows "Windows protected your PC" (More info > Run anyway) on the first launch of a downloaded zip, which README and the release notes explain. If the owner buys Azure Trusted Signing, releases are signed with it instead and the prompt goes away as reputation builds; no code change (the signer rule accepts a renewed trusted certificate with the same subject). | Alternatives not chosen: **MSIX** needs a certificate the PC already trusts (a self-signed one must be imported into the machine's trusted store by an administrator, or the package sideloaded with Developer Mode, which AGENTS.md says not to ask users to change), and its App Installer updates would replace the Mac-style check. **Velopack** adds a framework (its NuGet package, CLI and release-feed layout) for delta updates and a Setup.exe, the kind of dependency 4.6 removed Sparkle to avoid. **Inno Setup** adds an installer the zip does not need. Until the owner decides there is no Windows release workflow; `windows-ci.yml` builds and tests only. |
 
@@ -1255,9 +1255,9 @@ because the SDK has no notification-icon API; WebView2 comes with the SDK):
   `TrayIcon.CurrentIconName`): `Hearsay.Tests` targets `net10.0` and cannot
   reference the Windows-targeted app; add a `Hearsay.App.Tests` project or
   move that logic into Core (W7 polish).
-- **Not yet**: Restart Now after an interface-language change, Software
-  updates and Acknowledgements sections (the quit-while-recording prompt
-  landed with the W5 app wiring).
+- **Not yet**: Restart Now after an interface-language change and the
+  Software updates section (the quit-while-recording prompt landed with the
+  W5 app wiring; Acknowledgements with the polish of 2026-09-30, below).
 
 Models and History tabs (2026-09-29; `Features/Models`, `Features/History`,
 `Features/Notes/NamingSheet.cs` as a ContentDialog in name, regenerate and
@@ -1355,8 +1355,8 @@ active or transcribing. Where Windows differs from the Mac:
   computer is too slow for it", and, as on the Mac without live preview,
   Auto detects the language at Stop over the whole recording. The first
   recording after launch therefore spends about 15 to 20 s of engine time
-  on the probe (Vulkan here) before the first live chunk. The "final pass
-  takes 1.5 to 3.5x the recording on CPU" notice is not built yet (18.9).
+  on the probe (Vulkan here) before the first live chunk. The CPU notice
+  is in "App polish" below.
 - **Starting**: there is no microphone or screen-recording permission to
   request; the capture endpoints are opened on the thread pool (MTA), so
   "Starting…" shows while WASAPI opens them. System audio that cannot start
@@ -1494,6 +1494,52 @@ for the owner's decision (18.3, Packaging). Mechanism, step by step against
   `v*` tag carries both platforms (proposed: yes, one version number); (4)
   the suggested install folder `%LOCALAPPDATA%\Programs\Hearsay` (README).
 
+App polish (2026-09-30; `windows/Hearsay.App`, the Whisper project file,
+`windows/THIRD_PARTY_NOTICES.md`):
+
+- **Package weight.** The app references the Windows App SDK's split
+  packages at the versions the 2.5.1 metapackage pins (Foundation 2.3.12,
+  WinUI 2.3.9, InteractiveExperiences 2.1.9, DWrite 2.1.0, Runtime 2.5.1;
+  Base 2.0.4 and WebView2 come through them), not the metapackage, so
+  Windows ML, `Microsoft.WindowsAppSDK.AI`, Search and Widgets drop out.
+  H.NotifyIcon.WinUI 2.4.1 depends on the metapackage (>= 1.6.250108002),
+  which would bring the 1.6 SDK back, so the app prunes it
+  (`PrunePackageReference`, NuGet package pruning in the .NET 10 SDK); the
+  tray works on the split packages. `Whisper.net.Runtime.Metal` (a macOS
+  shader file) is pruned the same way in Hearsay.Whisper and the app.
+  Whisper.net's runtime packages have no RID filtering, so
+  `Hearsay.Whisper/TrimWhisperRuntimes.targets` drops every `runtimes\<rid>`
+  item but `win-x64` and `vulkan\win-x64` before target paths are assigned
+  (imported by Hearsay.Whisper and the app). Result on a clean Release
+  build: 404 files, 306.1 MB before; 302 files, 170.3 MB after; the notices
+  list 20 packages instead of 27 (9,742 lines instead of 16,025).
+- **Models path** is shortened in the middle (`MiddleTrimmedText`, the
+  Mac's `.truncationMode(.middle)`) with the whole path in a tooltip;
+  "Show in Explorer" keeps its column. The path is no longer selectable
+  text (the Mac's is); the tooltip shows it whole.
+- **Settings > AI labels**: the label column is as wide as the widest label
+  in the interface language (150 to 230), so "Esfuerzo de razonamiento:"
+  fits and the controls stay aligned.
+- **Tray tooltip** while transcribing: "Hearsay: Transcribing… 42%" (the
+  Mac's menu bar percentage), plain "Hearsay" with the status setting off.
+- **CPU notice** (18.4 "Speed"): when the Record tab activates with a model
+  installed, the app loads the whisper.cpp runtime library (no model;
+  `WhisperRuntime.EnsureLoaded`, on the thread pool) to learn whether it is
+  the CPU one; on CPU the Record tab says "This computer transcribes on its
+  processor (CPU): after you stop, the transcript takes about 1.5 to 3.5
+  times as long as the recording." until the first recording of the run
+  starts. The Mac has no such notice. The runtime DLL is therefore loaded
+  at launch on a machine with a model, not at the first recording.
+- **Acknowledgements** in Settings > General, after Shortcuts: the Mac's
+  text and "Show Licenses…", which opens the licenses page in a help
+  window: the Mac's `LicensesSheet` text ("Hearsay", LICENSE, a rule of 72
+  "=", THIRD_PARTY_NOTICES.md) as monospaced text. The build writes it to
+  `help\Licenses.html` (an inline MSBuild task in Hearsay.App.csproj, so the
+  page follows the committed notices without a runtime copy); the Mac's
+  Done button is the window's close button.
+- **Snapshots**: 56 (Record tab with the CPU notice, stubbed) and 57 (the
+  licenses page); the tray smoke test checks the transcribing tooltip.
+
 ### 18.5 Acceptance
 
 For each `shared/fixtures/<lang>-30s.wav`, transcribed with the Windows
@@ -1573,19 +1619,22 @@ decision recorded here before the phase named.
 Like section 17, for the Windows app. Add here rather than leaving
 findings only in a chat report.
 
-- **Package weight.** `Microsoft.WindowsAppSDK` 2.5.1 is a metapackage
-  that pulls in Windows ML, `Microsoft.WindowsAppSDK.AI`, Search and
-  Widgets; the notices file carries about 12,000 lines of their notice
-  text and the output ships their DLLs. Reference the split packages
-  (`Foundation`, `WinUI`, `Runtime`, `InteractiveExperiences`,
-  `DWrite`) and re-run `scripts\make-notices.ps1`. Likewise
-  `Whisper.net.Runtime` pulls `Whisper.net.Runtime.Metal` (a `.metal`
-  file in the output); exclude it if the package allows.
-- **App-side unit tests.** `HelpNavigation.Decide`,
-  `TrayIcon.CurrentIconName`, `ByteSize` and the view models have no
-  tests because `Hearsay.Tests` targets `net10.0`; add a
-  Windows-targeted `Hearsay.App.Tests` project or move the pure logic
-  into Core.
+- **Core texts with no catalog key** (still English in every language):
+  Core errors now carry their Mac key and values (`Hearsay.Core.ILocalizedError`,
+  `LocalizedMessage`; `Strings.Describe` translates them), except the
+  Windows wording that has no `shared/localization` entry yet:
+  `CliProviderError.CommandLineTooLong`; `NotesPipelineError.SrtUnreadable`
+  ("Error: SRT file not found or unreadable (…)", no Mac key); every
+  `InstallLocationProblem`; `UpdatePackageError` `ExtractFailed`,
+  `AppNotFound`, `SignerMismatch`, `WrongIdentifier`, `NoPackage`;
+  `UpdateTexts.PreviousInstallFailed`; a CLI's own login-status line with
+  the login advice appended. Values Core inserts in English stay English
+  ("The request timed out.", "HTTP 404", "unknown", "none"), as do the
+  technical whisper.cpp and runtime errors of `Hearsay.Whisper`. The 18.3
+  Localization row's "Still English" list should then shrink to these and
+  the hotkey key names. The update texts (`UpdateTexts.*Message`) and
+  `CliInstallation.LocalizedLoginStatus`, `ModelStore.CatalogErrorMessage`
+  are ready for the app to show through `Strings.Localize`.
 - **Shortcut recorder** for the hotkeys (Settings shows and resets the
   bindings only).
 - **Recycle Bin restore** on a failed `ReplaceNamed` through
@@ -1599,8 +1648,7 @@ findings only in a chat report.
   default, which shows the Mac passages when `<html>` has no class.
 - **Help follow-ups** (W7): the Windows page has no Updates line (the Mac's
   names "the Hearsay menu"; add a Windows one when the Windows update UI
-  lands) and still names "Show Licenses…" in Settings > General >
-  Acknowledgements, which Windows does not have yet. The Windows-only
+  lands). The Windows-only
   labels the pages quote (window modes, the notification-area status
   toggle, Reveal in Explorer, Move to Recycle Bin…) use Microsoft's terms
   in each language and must match the `shared/localization` entries once
@@ -1611,13 +1659,11 @@ findings only in a chat report.
   `shared/localization` entries.
 - **Shared script-conversion vectors** (18.8, Chinese script row): a
   Mac-generated file both suites run.
-- **W5 leftovers**: the CPU "final pass takes 1.5 to 3.5x the recording"
-  notice before the first recording (18.4 "Speed"); the tray tooltip shows
-  nothing while transcribing (`TrayIcon.CurrentTooltip` only covers
-  capturing); the build copies Whisper.net's linux, macOS, arm64 and x86
-  native libraries into the win-x64 output (`runtimes\`), trim them for
-  packaging; the Mac's `HEARSAY_REPLAY_SNAPSHOTS`; the new Windows-only
-  strings (live preview too slow, accepted file types, "Transcribing…" for
-  the one live chunk, "Could not open the file", the notes-unavailable
-  tooltip, "Media Foundation returned …") need `shared/localization`
-  entries.
+- **W5 leftovers**: the Mac's `HEARSAY_REPLAY_SNAPSHOTS`.
+- **Polish follow-ups** (found 2026-09-30): `MiddleTrimmedText.Shorten`
+  (Models path) is pure and wants a test in `Hearsay.App.Tests`; the CPU
+  notice's real path (`TranscriptionEngine.IsCpuRuntimeAsync` returning
+  true) was only seen stubbed, since this machine loads Vulkan: check it
+  on a PC without a Vulkan driver; `Hearsay.App.Tests` copies
+  every Whisper.net native build into its output (it does not import
+  `TrimWhisperRuntimes.targets`), harmless for tests.

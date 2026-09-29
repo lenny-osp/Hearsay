@@ -20,6 +20,11 @@
     <PackageReference Include="Whisper.net" Version="1.9.1" />
     <PackageReference Include="Whisper.net.Runtime" Version="1.9.1" />
     <PackageReference Include="Whisper.net.Runtime.Vulkan" Version="1.9.1" />
+    <!-- Whisper.net.Runtime depends on Whisper.net.Runtime.Metal, which only
+         carries a macOS shader source (ggml-metal.metal) that its targets
+         copy to every net10.0 output; pruned from the restore graph
+         (PLAN.md 18.4, "Package weight"). Hearsay.App prunes it too. -->
+    <PrunePackageReference Include="Whisper.net.Runtime.Metal" Version="1.9.1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -40,5 +45,8 @@
                       LogicalName="Hearsay.Whisper.SpeedProbe.wav"
                       Visible="false" />
   </ItemGroup>
+
+  <!-- Only the win-x64 whisper.cpp builds reach the output. -->
+  <Import Project="TrimWhisperRuntimes.targets" />
 
 </Project>

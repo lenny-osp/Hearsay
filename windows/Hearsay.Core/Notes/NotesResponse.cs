@@ -21,7 +21,7 @@ public enum NotesResponseErrorKind
 /// mac/HearsayCore/Sources/HearsayCore/Notes/NotesResponse.swift. The texts
 /// are the English ones; the app localizes them for display.
 /// </summary>
-public sealed class NotesResponseException : Exception
+public sealed class NotesResponseException : Exception, ILocalizedError
 {
     public const string ParsingErrorPrefix = "Parsing Error: ";
 
@@ -44,6 +44,16 @@ public sealed class NotesResponseException : Exception
 
     /// <summary>The reason without the "Parsing Error: " prefix (Swift <c>message</c>).</summary>
     public string Reason { get; }
+
+    /// <summary>"Parsing Error: " and the reason as their catalog keys, for the app to translate.</summary>
+    public ILocalizedMessage LocalizedMessage => new LocalizedMessage("Parsing Error: %@", Kind switch
+    {
+        NotesResponseErrorKind.InvalidJson => new LocalizedMessage("AI output is not valid JSON: %@", Detail ?? string.Empty),
+        NotesResponseErrorKind.NotAnObject => new LocalizedMessage("AI output must be a JSON object."),
+        NotesResponseErrorKind.MissingFilename => new LocalizedMessage("AI output did not contain a usable filename."),
+        NotesResponseErrorKind.MissingMarkdown => new LocalizedMessage("AI output did not contain usable Markdown notes."),
+        _ => new LocalizedMessage("AI output did not contain a usable structured transcript."),
+    });
 
     /// <summary>The English reason text for <paramref name="kind"/>.</summary>
     public static string ReasonFor(NotesResponseErrorKind kind, string? detail = null) => kind switch

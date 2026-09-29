@@ -57,6 +57,29 @@ public abstract record OutputWriterError
     };
 
     /// <summary>
+    /// <summary><see cref="Description"/> as its catalog keys and values, for the app to translate.</summary>
+    public LocalizedMessage Localized => this switch
+    {
+        UnusableMeetingName =>
+            new LocalizedMessage("The meeting name contains no usable characters. Use English letters or digits."),
+        RenameFailed failure => new LocalizedMessage("Unable to rename %@ to %@: %@.", failure.Source,
+                System.IO.Path.GetFileName(failure.Destination), failure.Reason)
+            .Appending(" ", RestoreMessage(failure.Unrestored, "All files keep their original names.")),
+        WriteFailed failure => new LocalizedMessage("Unable to write meeting notes (%@): %@.", failure.Path, failure.Reason)
+            .Appending(" ", RestoreMessage(failure.Unrestored,
+                "The transcript, recording and any earlier notes keep their original names.")),
+        TrashFailed failure => new LocalizedMessage("Unable to move the current notes (%@) to the Trash: %@.", failure.Path,
+                failure.Reason)
+            .Appending(" ", RestoreMessage(failure.Unrestored, "The current notes are unchanged.")),
+        _ => throw new InvalidOperationException("Unknown OutputWriterError."),
+    };
+
+    private static LocalizedMessage RestoreMessage(IReadOnlyList<string> unrestored, string otherwise) =>
+        unrestored.Count == 0
+            ? new LocalizedMessage(otherwise)
+            : new LocalizedMessage("These files could not be restored: %@.", string.Join(", ", unrestored));
+
+    /// <summary>
     /// <paramref name="otherwise"/> when every file was restored, else the list
     /// of the files that were not.
     /// </summary>
@@ -65,7 +88,7 @@ public abstract record OutputWriterError
 }
 
 /// <summary>Thrown by <see cref="OutputWriter"/>; <see cref="Error"/> says what failed.</summary>
-public sealed class OutputWriterException : Exception
+public sealed class OutputWriterException : Exception, ILocalizedError
 {
     public OutputWriterException(OutputWriterError error)
         : base(error?.Description)
@@ -75,4 +98,6 @@ public sealed class OutputWriterException : Exception
     }
 
     public OutputWriterError Error { get; }
+
+    public ILocalizedMessage LocalizedMessage => Error.Localized;
 }

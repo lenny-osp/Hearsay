@@ -375,7 +375,8 @@ if (-not (Test-Path -LiteralPath $cacheFile)) {
 $whisperCppLicense = Read-Text $cacheFile
 if ((Get-LicenseName $whisperCppLicense $whisperCppUrl) -ne 'MIT') { Fail "$whisperCppUrl is not the MIT license" }
 # The runtime packages that carry whisper.cpp DLLs for Windows x64 (the Metal
-# package only carries a macOS shader source file).
+# package, which only carries a macOS shader source file, is pruned from the
+# graph by the projects and would be skipped here).
 $whisperCppPackages = @($entries | Where-Object {
         $_.Id -like 'Whisper.net.Runtime*' -and
         (Test-Path -Path (Join-Path $packagesRoot "$($_.Id.ToLowerInvariant())\$($_.Version.ToLowerInvariant())\build\win-x64\whisper.dll"))
