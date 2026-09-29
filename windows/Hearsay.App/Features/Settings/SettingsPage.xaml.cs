@@ -19,7 +19,7 @@ internal enum SettingsPane
 /// segmented picker). Every section scrolls inside the tab.
 /// Mirrors <c>SettingsView</c> in mac/Hearsay/Features/Settings/SettingsView.swift.
 /// The Mac has no Models section (models are the main window's Models tab),
-/// and neither does this page. AI is a placeholder until W6.
+/// and neither does this page.
 /// </summary>
 internal sealed partial class SettingsPage : UserControl
 {
@@ -49,7 +49,7 @@ internal sealed partial class SettingsPage : UserControl
             [SettingsPane.General] = new GeneralSettingsView(shell),
             [SettingsPane.Window] = new WindowSettingsView(shell),
             [SettingsPane.Output] = new OutputSettingsView(shell),
-            [SettingsPane.AI] = new PlaceholderView(Strings.PaneAI, Strings.PlaceholderAI),
+            [SettingsPane.AI] = new AISettingsView(shell),
         };
         Show(SettingsPane.General);
         TakeRequestedPane();

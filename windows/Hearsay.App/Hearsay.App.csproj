@@ -37,6 +37,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Hearsay.Core\Hearsay.Core.csproj" />
+    <!-- W5: the Whisper engine. Its Whisper.net runtime packages mark the
+         native whisper.cpp DLLs (runtimes/vulkan/win-x64, runtimes/win-x64)
+         CopyToOutputDirectory, so they reach this app's output through the
+         project reference, where Whisper.net's loader looks for them. -->
+    <ProjectReference Include="..\Hearsay.Whisper\Hearsay.Whisper.csproj" />
   </ItemGroup>
 
   <ItemGroup>

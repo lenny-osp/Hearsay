@@ -1,6 +1,9 @@
 using System.ComponentModel;
+using Hearsay.App.Features.FileTranscription;
 using Hearsay.App.Features.History;
 using Hearsay.App.Features.Models;
+using Hearsay.App.Features.Notes;
+using Hearsay.App.Features.Recording;
 using Hearsay.App.Features.Settings;
 using Hearsay.App.Interop;
 using Microsoft.UI;
@@ -64,16 +67,42 @@ internal sealed partial class MainWindow : Window
             [MainTab.History] = HistoryItem,
             [MainTab.Settings] = SettingsItem,
         };
-        // Record and File are placeholders until W5 fills them.
+        RecordView = new RecordView(shell);
+        FileView = new FileView(shell);
         SettingsView = new SettingsPage(shell);
         ModelsView = new ModelManagerView(shell);
         // Move to Recycle Bin needs OutputWriter's Recycle Bin call made
         // public in Hearsay.Core; until then it is off (null).
         HistoryView = new HistoryView(shell, recycle: Hearsay.Core.Naming.OutputWriter.MoveToRecycleBin);
+        // W6: the notes flow under the Record and File results, started by
+        // "Generate notes…" and, as on the Mac, for every finished transcript;
+        // cleared when the next recording or file starts.
+        RecordNotes = new NotesPanel(shell.AIProviders, RecordView);
+        FileNotes = new NotesPanel(shell.AIProviders, FileView);
+        RecordView.GenerateNotes = request => RecordNotes.Start(request.Srt, request.Language);
+        FileView.GenerateNotes = request => FileNotes.Start(request.Srt, request.Language);
+        var controller = shell.RecordingController;
+        var file = shell.FileModel;
+        controller.NotesRequested += (_, _) =>
+        {
+            if (controller.TakeNotesRequest() is { } request) RecordNotes.Start(request.Srt, request.Language);
+        };
+        file.NotesRequested += (_, _) =>
+        {
+            if (file.TakeNotesRequest() is { } request) FileNotes.Start(request.Srt, request.Language);
+        };
+        controller.PropertyChanged += (_, _) =>
+        {
+            if (controller.Phase is ControllerPhase.Starting) RecordNotes.Reset();
+        };
+        file.PropertyChanged += (_, _) =>
+        {
+            if (file.IsBusy) FileNotes.Reset();
+        };
         views = new()
         {
-            [MainTab.Record] = new PlaceholderView(Strings.TabRecord, Strings.PlaceholderRecord),
-            [MainTab.File] = new PlaceholderView(Strings.TabFile, Strings.PlaceholderFile),
+            [MainTab.Record] = RecordNotes,
+            [MainTab.File] = FileNotes,
             [MainTab.Models] = ModelsView,
             [MainTab.History] = HistoryView,
             [MainTab.Settings] = SettingsView,
@@ -99,6 +128,18 @@ internal sealed partial class MainWindow : Window
         shell.Tabs.PropertyChanged += OnTabsChanged;
         ShowTab(shell.Tabs.Tab);
     }
+
+    /// <summary>The Record tab (W5); W6's notes flow sets its <c>GenerateNotes</c> hook.</summary>
+    public RecordView RecordView { get; }
+
+    /// <summary>The File tab (W5); W6's notes flow sets its <c>GenerateNotes</c> hook.</summary>
+    public FileView FileView { get; }
+
+    /// <summary>The Record tab's notes flow (W6).</summary>
+    public NotesPanel RecordNotes { get; }
+
+    /// <summary>The File tab's notes flow (W6).</summary>
+    public NotesPanel FileNotes { get; }
 
     /// <summary>The Settings tab, for the UI snapshots.</summary>
     public SettingsPage SettingsView { get; }

@@ -1,52 +1,60 @@
 using System.ComponentModel;
-using System.Diagnostics;
+using System.Globalization;
 using Hearsay.Core.Audio;
 
 namespace Hearsay.App.Features.MenuBar;
 
-/// <summary>The recording phases the tray reflects (a subset of the Mac's <c>RecordingController.Phase</c>).</summary>
+/// <summary>The recording phases the tray reflects (the Mac's <c>RecordingController.Phase</c> as <c>MenuBarView</c> reads it).</summary>
 internal enum RecordingPhase
 {
     Idle,
     Recording,
     Paused,
+    Starting,
+    Stopping,
+    Transcribing,
 }
 
 /// <summary>
-/// A stand-in for the Mac's <c>RecordingController</c>
-/// (mac/Hearsay/Features/Recording/RecordingController.swift) until W5 wires
-/// the real recorder: Start / Stop and Pause / Resume from the tray menu and
-/// the global hotkeys only move this state and its elapsed time, and log the
-/// command. The tray icon, tooltip and menu read it the way the Mac's
-/// <c>MenuBarView</c> and <c>MenuBarLabel</c> read the controller.
-/// Use from the UI thread.
+/// What the tray icon, its menu, the global hotkeys and History read from the
+/// recording (the Mac's <c>MenuBarView</c> and <c>MenuBarLabel</c> read
+/// mac/Hearsay/Features/Recording/RecordingController.swift directly). The
+/// app's <c>RecordingController</c> pushes its state here with
+/// <see cref="Update"/> and <see cref="SetBusyFiles"/>; Start / Stop and
+/// Pause / Resume from the tray and the hotkeys go to the controller through
+/// <see cref="Connect"/>. Use from the UI thread.
 /// </summary>
 internal sealed class RecordingStatus : INotifyPropertyChanged
 {
-    private readonly Stopwatch clock = new();
+    private Action? startStop;
+    private Action? pause;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public RecordingPhase Phase { get; private set; } = RecordingPhase.Idle;
 
     /// <summary>Recorded time, paused time excluded.</summary>
-    public TimeSpan Elapsed => clock.Elapsed;
+    public TimeSpan Elapsed { get; private set; }
+
+    /// <summary>The final pass's progress, 0...1, while transcribing.</summary>
+    public double? TranscriptionProgress { get; private set; }
 
     /// <summary>Recording or paused: Stop and Pause / Resume apply.</summary>
-    public bool IsCapturing => Phase != RecordingPhase.Idle;
+    public bool IsCapturing => Phase is RecordingPhase.Recording or RecordingPhase.Paused;
 
     /// <summary>
     /// The recording's WAV and SRT while it is recorded or transcribed (the
     /// Mac's <c>finishedRecording</c> and <c>finishedTranscript</c> while
     /// <c>isSessionActive || isTranscribing</c>): History turns Rename off
-    /// for them (PLAN.md 4.8). Empty until W5 sets it with <see cref="SetBusyFiles"/>.
+    /// for them (PLAN.md 4.8).
     /// </summary>
     public IReadOnlyList<string> BusyFiles { get; private set; } = [];
 
-    /// <summary>W5: the files of the recording being captured or transcribed; empty when done.</summary>
+    /// <summary>The files of the recording being captured or transcribed; empty when done.</summary>
     public void SetBusyFiles(IReadOnlyList<string> files)
     {
         ArgumentNullException.ThrowIfNull(files);
+        if (files.SequenceEqual(BusyFiles, StringComparer.OrdinalIgnoreCase)) return;
         BusyFiles = files;
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(BusyFiles)));
     }
@@ -61,55 +69,61 @@ internal sealed class RecordingStatus : INotifyPropertyChanged
             {
                 RecordingPhase.Recording => Strings.StateRecording(elapsed),
                 RecordingPhase.Paused => Strings.StatePaused(elapsed),
+                RecordingPhase.Starting => Strings.StartingState,
+                RecordingPhase.Stopping => Strings.Saving,
+                RecordingPhase.Transcribing => Strings.StateTranscribing((int)Math.Round((TranscriptionProgress ?? 0) * 100, MidpointRounding.AwayFromZero)),
                 _ => Strings.StateIdle,
             };
         }
     }
 
+    /// <summary>Routes the tray and hotkey commands to the recording controller.</summary>
+    public void Connect(Action toggleStartStop, Action togglePause)
+    {
+        startStop = toggleStartStop;
+        pause = togglePause;
+    }
+
     /// <summary>The Start / Stop hotkey and menu command (<c>toggleStartStop()</c>).</summary>
     public void ToggleStartStop()
     {
-        if (IsCapturing)
-        {
-            clock.Reset();
-            SetPhase(RecordingPhase.Idle, "stop");
-        }
-        else
-        {
-            clock.Restart();
-            SetPhase(RecordingPhase.Recording, "start");
-        }
+        AppLog.Write($"recording: start/stop command in {Phase}");
+        startStop?.Invoke();
     }
 
     /// <summary>The Pause / Resume hotkey and menu command (<c>togglePause()</c>); nothing while idle.</summary>
     public void TogglePause()
     {
-        switch (Phase)
+        AppLog.Write($"recording: pause/resume command in {Phase}");
+        pause?.Invoke();
+    }
+
+    /// <summary>
+    /// The controller's state. Raises <see cref="Phase"/> when the phase
+    /// changed, else <see cref="Elapsed"/> when the shown second or percent
+    /// changed, else nothing.
+    /// </summary>
+    public void Update(RecordingPhase phase, TimeSpan elapsed, double? progress)
+    {
+        var before = StateText;
+        var phaseChanged = phase != Phase;
+        Phase = phase;
+        Elapsed = elapsed;
+        TranscriptionProgress = progress;
+        if (phaseChanged)
         {
-            case RecordingPhase.Recording:
-                clock.Stop();
-                SetPhase(RecordingPhase.Paused, "pause");
-                break;
-            case RecordingPhase.Paused:
-                clock.Start();
-                SetPhase(RecordingPhase.Recording, "resume");
-                break;
-            default:
-                AppLog.Write("recording: pause ignored while idle (recording arrives in W5)");
-                break;
+            AppLog.Write(string.Create(CultureInfo.InvariantCulture, $"recording: state {phase}"));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Phase)));
+        }
+        else if (StateText != before)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Elapsed)));
         }
     }
 
-    /// <summary>Called once a second while capturing so the elapsed time refreshes.</summary>
+    /// <summary>Called once a second by the shell so the tooltip stays current while capturing.</summary>
     public void Tick()
     {
         if (IsCapturing) PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Elapsed)));
-    }
-
-    private void SetPhase(RecordingPhase phase, string command)
-    {
-        Phase = phase;
-        AppLog.Write($"recording: {command} (stand-in until W5), state {phase}");
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Phase)));
     }
 }

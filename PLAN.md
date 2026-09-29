@@ -892,7 +892,7 @@ windows/
   Hearsay.Whisper/    whisper.cpp integration and model store
   Hearsay.Tests/      unit tests, driven by the shared vectors and fixtures
   Spike/              W1 spikes (WhisperSpike, TextSpike); models/ is git-ignored
-  scripts/            make-icon.ps1 (the .ico files from shared/assets); later build, translation import, notices
+  scripts/            make-icon.ps1 (the .ico files from shared/assets), make-notices.ps1 (THIRD_PARTY_NOTICES.md; -Check for CI); later build, translation import
   THIRD_PARTY_NOTICES.md
 ```
 
@@ -1078,7 +1078,7 @@ new `GenerateAndSaveAsync` that does the file part the Mac keeps in
 - **Speed probe audio**: the engine's `MeasureWindowSeconds()` embeds a
   fixture; it must be `en-30s.wav` (synthesized `say` voice), not
   `zh-30s.wav` (the owner's voice), so the product ships no personal audio.
-  The W5 engine landed with zh; the app wiring switches it.
+  The W5 engine landed with zh; the app wiring switched it (2026-09-30).
 
 Chinese script and text language (2026-09-29, after the W1 text spike):
 `ChineseScriptConverter` P/Invokes `icu.dll` (classic `DllImport`, exports
@@ -1215,7 +1215,8 @@ because the SDK has no notification-icon API; WebView2 comes with the SDK):
   reference the Windows-targeted app; add a `Hearsay.App.Tests` project or
   move that logic into Core (W7 polish).
 - **Not yet**: Restart Now after an interface-language change, Software
-  updates and Acknowledgements sections, quit-while-recording prompt (W5).
+  updates and Acknowledgements sections (the quit-while-recording prompt
+  landed with the W5 app wiring).
 
 Models and History tabs (2026-09-29; `Features/Models`, `Features/History`,
 `Features/Notes/NamingSheet.cs` as a ContentDialog in name, regenerate and
@@ -1276,9 +1277,11 @@ with the CPU and Vulkan runtimes). Where Windows differs from the Mac:
   whisper.cpp's integer percent per run, mapped to the fraction of the
   whole input (skipped windows count as done).
 - **Speed probe**: `MeasureWindowSeconds()` transcribes
-  `shared/fixtures/zh-30s.wav` (embedded at build, looped to 30 s,
-  language zh); a 4 s warm-up runs first when nothing ran since the load
-  (the clip opens with 3 s of digital silence, which the gate skips).
+  `shared/fixtures/en-30s.wav` (embedded at build, looped to 30 s,
+  language en; zh until 2026-09-30, see "Speed probe audio"); a 4 s
+  warm-up (the clip's first 4 s) runs first when nothing ran since the
+  load. With en: Vulkan 8.0 to 11.3 s per warm window, warm-up 6.0 to
+  9.5 s.
   Measured here: Vulkan 10.1 to 12.6 s per warm window (warm-up 10.1 s;
   the W1 spike measured 8.8 s, and other agents were building on the
   machine), so live preview stays on; CPU runtime at 12 threads 55.8 s
@@ -1292,6 +1295,77 @@ with the CPU and Vulkan runtimes). Where Windows differs from the Mac:
   With 45 s of digital silence appended every fixture keeps its cues
   unchanged and gets no invented cue (the spike's "Thank you." / "Vielen
   Dank." / "Gracias." / YoYo credit are gone).
+
+W5 app wiring (2026-09-30; `windows/Hearsay.App/Features/Recording`,
+`FileTranscription`, `Transcription`, `Recovery`, `Debug`): the
+`RecordingController`, the Record and File tabs, the recovery sheet, the
+quit prompt and the `HEARSAY_TRANSCRIBE_FILE`, `HEARSAY_REPLAY_FILE`,
+`HEARSAY_RECORD_SECONDS` entries, ported from the Mac files of the same
+names. `RecordingStatus` is now fed by the controller (phases Starting,
+Stopping and Transcribing added; the tray's state line shows
+"Transcribing… N%"), and `BusyFiles` is the recording's files while it is
+active or transcribing. Where Windows differs from the Mac:
+
+- **Live preview gate** (18.4 "Speed"): the first recording with a model
+  starts the speed probe (the engine's `MeasureWindowSeconds`, which loads
+  the model); live chunks queue until it answers. The result is kept per
+  model file for the process (not re-measured after an idle unload). Too
+  slow: the queue is dropped, the Record tab shows "Live preview off: this
+  computer is too slow for it", and, as on the Mac without live preview,
+  Auto detects the language at Stop over the whole recording. The first
+  recording after launch therefore spends about 15 to 20 s of engine time
+  on the probe (Vulkan here) before the first live chunk. The "final pass
+  takes 1.5 to 3.5x the recording on CPU" notice is not built yet (18.9).
+- **Starting**: there is no microphone or screen-recording permission to
+  request; the capture endpoints are opened on the thread pool (MTA), so
+  "Starting…" shows while WASAPI opens them. System audio that cannot start
+  gives "System audio off: <reason>"; there is no "permission denied" badge
+  and no Open System Settings button.
+- **File decoding**: `AudioFileLoader` uses NAudio's `MediaFoundationReader`
+  (in NAudio.Wasapi, already a Core dependency, so no package is added),
+  float output at the file's rate, then Core's `MonoResampler`, the same
+  filter capture uses. `AudioGraph` was rejected: a WinRT async graph per
+  file and a different resampler from recordings. Media Foundation reads
+  wav, m4a/aac, mp3, wma, flac, mp4/mov/m4v/3gp audio (and ogg/opus/webm
+  where the Web Media Extensions are installed); it does not read AIFF or
+  CAF, which the Mac takes. The accepted-types line reads "wav, m4a, mp3,
+  aac, wma, flac, or the audio track of mp4 / mov" (new Windows key).
+- **Result row**: "Reveal in Explorer" and "Open SRT" (through
+  `ExplorerShell`, as History), plus "Generate Notes…", the hook W6 wires
+  (`RecordView.GenerateNotes`, `FileView.GenerateNotes`); the automatic
+  start after every transcript is `NotesRequested` on the controller and
+  the File view model (the Mac's `notesRequest`).
+- **Recovery sheet** is a ContentDialog with its three buttons in the
+  content, so Escape cannot pick Delete (the Mac disables interactive
+  dismiss). "Launch date" is the process start time. The date omits the
+  weekday of .NET's long date pattern, like the Mac's `.long`.
+- **Quit** while a session is active asks "Stop recording and quit?" in a
+  dialog on the main window (shown first if hidden); while transcribing it
+  cancels without asking, saves the live preview and keeps the WAV, as the
+  Mac.
+- **Debug entries**: `HEARSAY_MODEL_DIR` may name the `ggml-*.bin` itself
+  or a folder holding it (the recommended model is used, else the only
+  one). Every output (SRT, WAV, spool) is written inside the throwaway
+  settings folder and removed with it, so `HEARSAY_TRANSCRIBE_FILE` and
+  `HEARSAY_REPLAY_FILE` also print the SRT text to stdout between
+  `--- srt ---` and `--- end ---`; debug stdout and stderr are UTF-8 when
+  redirected. `HEARSAY_RECORD_SECONDS` writes its WAV in the throwaway
+  folder (the Mac: the temp folder) and lists the devices when none
+  matches. The replay never starts the notes flow; the Mac's
+  `HEARSAY_REPLAY_SNAPSHOTS` is not ported.
+- **UI snapshots**: 30-39 render the Record tab (idle, recording with
+  meters and live text, the mismatch banner, the final pass, the Auto
+  fallback notice, the result row), the File tab (idle, transcribing,
+  finished with a suggestion) and the recovery sheet, all stubbed; the
+  tray smoke test stubs its states instead of starting a recording.
+- **Measured here** (Vulkan, turbo q5_0; `HEARSAY_TRANSCRIBE_FILE` is load
+  + decode + detect + transcribe): en 26 s, zh 22 s, de 21 s, es 21 s;
+  Auto picked en 0.9999, zh 0.9991 (ZH-TW, Traditional), de 0.9996,
+  es 0.9998; en with DE fixed gives the "This sounds like English" banner.
+  Replay of en-30s with silent system audio: one live chunk at Stop, final
+  pass 28 s after Stop; a 76 s replay in Auto cut chunks at 30 and 60 s,
+  detection at 30 s settled English, the final pass took 30 s. The live
+  microphone path is still untested on hardware (W3, section 16 item 19).
 
 ### 18.5 Acceptance
 
@@ -1337,8 +1411,8 @@ created in the IDE.
 | W2. Core | Port naming, prompt, SRT, language decision, mixer; all shared vectors pass. **Done 2026-09-29** (four parallel agents, one day): naming + OutputWriter incl. Rename, HistoryIndex, prompt + reply contract + presets, SRT, LanguageDecision + SessionLanguage + LiveChunker, AudioMixer + LevelMeter + MonoResampler + WavWriter + RecordingSpool; 271 tests, every Swift test ported one for one except those needing AVFoundation or a device (listed in the test files) | 4 to 5 days |
 | W3. Audio | WASAPI mic and loopback capture, resampling, spool WAV, no-audio watchdog. **Done 2026-09-29** except the hardware run (18.4, "Untested on hardware"); with it the settings layer (AppSettings, hotkeys, interface language, output folder, Credential Manager) and the ICU script converter and text-language detector; 487 tests | 4 to 5 days |
 | W4. Shell | WinUI window with the five tabs, tray icon, window modes, hotkeys, settings, model store and downloads. **Shell, Settings, tray, hotkeys, help window, UI snapshots and the model store core done 2026-09-29** (18.4); the Models and History tabs follow | 6 to 8 days |
-| W5. Transcription | live preview, final pass, File mode, Auto detection with banners, Chinese conversion. **Engine done 2026-09-29** (`windows/Hearsay.Whisper`: one context, detection, silence gate, speed probe; 18.4 "W5 Whisper engine"); the app wiring follows | 5 to 6 days |
-| W6. Notes | CLI providers on Windows, Ollama, Custom, confirm and naming sheets, History with regenerate and Rename (section 4.8; port `OutputWriter.renameEntry` and its tests). **Core done 2026-09-29** (18.4 "W6 core"; Rename and the naming sheet landed with W4); the AI settings tab, confirm sheet, notes flow and History regenerate follow | 4 to 5 days |
+| W5. Transcription | live preview, final pass, File mode, Auto detection with banners, Chinese conversion. **Engine done 2026-09-29** (`windows/Hearsay.Whisper`: one context, detection, silence gate, speed probe; 18.4 "W5 Whisper engine"); **app wiring done 2026-09-30** (Record and File tabs, recording controller, recovery sheet, quit prompt, debug entries; 18.4 "W5 app wiring") | 5 to 6 days |
+| W6. Notes | CLI providers on Windows, Ollama, Custom, confirm and naming sheets, History with regenerate and Rename (section 4.8; port `OutputWriter.renameEntry` and its tests). **Core done 2026-09-29, app done 2026-09-30** (18.4 "W6 core" and "W6 app"); live runs with the real CLIs are section 16 item 22 | 4 to 5 days |
 | W7. Polish and ship | interface languages from shared translations, help window, crash recovery, MSIX, signing, updates, README | 5 to 6 days |
 
 Total: about 6 to 8 weeks of agent time.
@@ -1366,3 +1440,43 @@ decision recorded here before the phase named.
 | Language detection | probabilities of the four supported languages, renormalized, averaged over up to three speech windows, plus no-speech probability | **Decided 2026-09-29:** Whisper.net's `DetectLanguageWithProbability` gives one probability per call and `SegmentData.NoSpeechProbability` is unusable, so the engine P/Invokes the bundled `whisper.dll` (`whisper_lang_auto_detect`, softmax of the SOT logits for `<|nospeech|>`), one encoder run per window; the spike's values match Whisper.net's within 1e-4 and the Python references within 0.001. Every fixture detects above 0.99. The engine owns one whisper context for both detection and transcription (the spike's prototype loaded the model twice). The Mac's RMS gate (0.001) is ported with it. | done |
 | Chinese script conversion | ICU `Hans-Hant` transform through `String.applyingTransform` | **Decided 2026-09-29:** Windows' `icu.dll` exposes the same transform and matches the Mac byte for byte on `zh-30s`; OpenCC rejected (18.3). Follow-up: a Mac-generated `shared/` vector file of Simplified↔Traditional pairs that both test suites run, so an ICU change on either OS is caught. Note `zh-30s.expected.srt` is the raw model output (mostly Simplified); the Mac's ZH-TW rendering of it equals `zh-30s.truth.srt` with 臘七→臘漆 and 裏→里. | done |
 | Transcript text language | `NLLanguageRecognizer` over the four languages, confidence at least 0.6 | **Decided 2026-09-29:** rule-based detector (18.3), implement in W6 with tests from the fixtures' SRTs and the Mac's `TranscriptTextLanguageTests` inputs; also try longer synthetic transcripts before W6 closes | done |
+
+### 18.9 Windows polish list (found during review, not yet scheduled)
+
+Like section 17, for the Windows app. Add here rather than leaving
+findings only in a chat report.
+
+- **Package weight.** `Microsoft.WindowsAppSDK` 2.5.1 is a metapackage
+  that pulls in Windows ML, `Microsoft.WindowsAppSDK.AI`, Search and
+  Widgets; the notices file carries about 12,000 lines of their notice
+  text and the output ships their DLLs. Reference the split packages
+  (`Foundation`, `WinUI`, `Runtime`, `InteractiveExperiences`,
+  `DWrite`) and re-run `scripts\make-notices.ps1`. Likewise
+  `Whisper.net.Runtime` pulls `Whisper.net.Runtime.Metal` (a `.metal`
+  file in the output); exclude it if the package allows.
+- **App-side unit tests.** `HelpNavigation.Decide`,
+  `TrayIcon.CurrentIconName`, `ByteSize` and the view models have no
+  tests because `Hearsay.Tests` targets `net10.0`; add a
+  Windows-targeted `Hearsay.App.Tests` project or move the pure logic
+  into Core.
+- **Shortcut recorder** for the hotkeys (Settings shows and resets the
+  bindings only).
+- **Recycle Bin restore** on a failed `ReplaceNamed` through
+  `IFileOperation` with a progress sink (18.4, "Recycle Bin").
+- **Windows help text**: the shared pages describe macOS; W7 decides
+  between Windows pages and conditional sections.
+- **Strings**: "press Return" vs "Enter"; "Trash" vs "Recycle Bin" in the
+  reused error text; the new Windows-only keys listed in 18.4 need
+  `shared/localization` entries.
+- **Shared script-conversion vectors** (18.8, Chinese script row): a
+  Mac-generated file both suites run.
+- **W5 leftovers**: the CPU "final pass takes 1.5 to 3.5x the recording"
+  notice before the first recording (18.4 "Speed"); the tray tooltip shows
+  nothing while transcribing (`TrayIcon.CurrentTooltip` only covers
+  capturing); the build copies Whisper.net's linux, macOS, arm64 and x86
+  native libraries into the win-x64 output (`runtimes\`), trim them for
+  packaging; the Mac's `HEARSAY_REPLAY_SNAPSHOTS`; the new Windows-only
+  strings (live preview too slow, accepted file types, "Transcribing…" for
+  the one live chunk, "Could not open the file", the notes-unavailable
+  tooltip, "Media Foundation returned …") need `shared/localization`
+  entries.

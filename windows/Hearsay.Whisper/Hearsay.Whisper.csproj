@@ -32,10 +32,11 @@
 
   <!-- The speed probe's 30 s of speech (WhisperEngine.MeasureWindowSeconds),
        embedded straight from shared/fixtures (AGENTS.md: Windows never keeps
-       a copy of a shared file). zh-30s.wav is dense speech with a plain
-       44-byte header, the window the W1 spike timed. -->
+       a copy of a shared file). en-30s.wav is synthesized speech (macOS
+       `say`), so the product ships no personal audio (PLAN.md 18.4, "Speed
+       probe audio"); PcmWav skips its Apple FLLR chunk. -->
   <ItemGroup>
-    <EmbeddedResource Include="$(HearsaySharedDir)fixtures\zh-30s.wav"
+    <EmbeddedResource Include="$(HearsaySharedDir)fixtures\en-30s.wav"
                       LogicalName="Hearsay.Whisper.SpeedProbe.wav"
                       Visible="false" />
   </ItemGroup>

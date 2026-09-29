@@ -1,7 +1,11 @@
+using System.Text;
 using Hearsay.App.Features.MenuBar;
+using Hearsay.App.Features.Notes;
 using Hearsay.Core.History;
 using Hearsay.Core.Naming;
+using Hearsay.Core.Notes;
 using Hearsay.Core.Settings;
+using Hearsay.Core.Transcription;
 
 namespace Hearsay.App.Features.History;
 
@@ -12,14 +16,14 @@ namespace Hearsay.App.Features.History;
 /// fires after anything the view shows changed. Use from the UI thread.
 /// <para>
 /// Windows differences: no security-scoped folder access to hold (a plain
-/// path); Move to Recycle Bin replaces Move to Trash; the notes flow
-/// (Generate / Regenerate Notes…) arrives in W6, so nothing is being
-/// generated and Rename is only off for the Record tab's busy recording.
+/// path); Move to Recycle Bin replaces Move to Trash; stems compare
+/// ignoring case (PLAN.md 18.4, file identity).
 /// </para>
 /// </summary>
 internal sealed class HistoryViewModel
 {
     private readonly Action<string>? recycle;
+    private bool notesWereRunning;
 
     /// <param name="recycle">
     /// Moves one file to the Recycle Bin, throwing on failure; null turns
@@ -40,6 +44,11 @@ internal sealed class HistoryViewModel
 
     /// <summary>The selected entry's stem; a renamed entry stays selected.</summary>
     public string? Selection { get; set; }
+
+    /// <summary>Notes flow started with "Generate Notes…" or "Regenerate Notes…".</summary>
+    public NotesFlowViewModel? NotesModel { get; private set; }
+
+    public bool IsGeneratingNotes => NotesModel?.IsRunning == true;
 
     /// <summary>Whether Move to Recycle Bin is available in this build.</summary>
     public bool CanMoveToRecycleBin => recycle is not null;
@@ -136,18 +145,82 @@ internal sealed class HistoryViewModel
     public static string NotesActionTitle(HistoryEntry entry) =>
         HasNotes(entry) ? Strings.RegenerateNotes : Strings.GenerateNotes;
 
+    /// <summary>
+    /// Starts the notes flow for <paramref name="entry"/>'s SRT. An older SRT
+    /// has no stored language: the default notes language is detected from
+    /// the SRT text, or, when detection is unsure, the fixed language choice
+    /// or the preferred language for Auto; the confirm sheet says which
+    /// (<see cref="StoredTranscriptLanguage.Resolve"/>). An unreadable file
+    /// skips detection; the notes flow then reports the read error. An entry
+    /// with notes regenerates them (<see cref="OutputWriter.ReplaceNamed(string, string, string, string, string, string?)"/>).
+    /// <paramref name="generate"/> replaces the pipeline (the UI snapshots).
+    /// </summary>
+    public NotesFlowViewModel? GenerateNotes(HistoryEntry entry, AIProviderStore store, AppSettings settings,
+        NotesGenerator? generate = null)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+        ArgumentNullException.ThrowIfNull(store);
+        ArgumentNullException.ThrowIfNull(settings);
+        if (!CanGenerateNotes(entry) || entry.Srt is not { } srt || IsGeneratingNotes) return null;
+        string srtText;
+        try
+        {
+            srtText = File.ReadAllText(srt, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            srtText = "";
+        }
+        var (language, note) = StoredTranscriptLanguage.Resolve(srtText, settings.LanguageChoice, settings.PreferredLanguage);
+        if (NotesModel is { } previous) previous.Changed -= OnNotesChanged;
+        var model = new NotesFlowViewModel(store, generate);
+        NotesModel = model;
+        notesWereRunning = true;
+        model.Changed += OnNotesChanged;
+        model.Run(srt, language, note, replacingNotes: HasNotes(entry));
+        OnNotesChanged(model, EventArgs.Empty);
+        return model;
+    }
+
+    /// <summary>"Done" under a finished notes flow: removes the panel and rescans.</summary>
+    public void DismissNotes()
+    {
+        if (IsGeneratingNotes) return;
+        if (NotesModel is { } model) model.Changed -= OnNotesChanged;
+        NotesModel = null;
+        Rescan();
+    }
+
+    /// <summary>Rescans when the notes flow ends, since it renames and writes files; always re-renders (Rename's state).</summary>
+    private void OnNotesChanged(object? sender, EventArgs e)
+    {
+        var running = IsGeneratingNotes;
+        var ended = notesWereRunning && !running;
+        notesWereRunning = running;
+        if (ended)
+        {
+            Rescan();
+        }
+        else
+        {
+            OnChanged();
+        }
+    }
+
     // Rename
 
     /// <summary>
-    /// Rename is off for the recording the Record tab is recording or
-    /// transcribing (<paramref name="busyStems"/>). The Mac also turns it off
-    /// for the meeting whose notes History is generating; that flow is W6.
+    /// Rename is off for the meeting whose notes are being generated (the
+    /// notes flow renames and writes its files) and for the recording the
+    /// Record tab is recording or transcribing (<paramref name="busyStems"/>).
     /// </summary>
-    public static bool CanRename(HistoryEntry entry, IReadOnlySet<string> busyStems)
+    public bool CanRename(HistoryEntry entry, IReadOnlySet<string> busyStems)
     {
         ArgumentNullException.ThrowIfNull(entry);
         ArgumentNullException.ThrowIfNull(busyStems);
-        return !busyStems.Contains(entry.Stem);
+        if (busyStems.Contains(entry.Stem)) return false;
+        if (!IsGeneratingNotes || NotesModel?.SrtPath is not { } srt) return true;
+        return !string.Equals(Path.GetFileNameWithoutExtension(srt), entry.Stem, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>Stems of the files the Record tab is capturing or transcribing (the Mac's <c>busyStems(of:)</c>).</summary>

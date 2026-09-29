@@ -36,6 +36,7 @@ internal sealed partial class NamingSheet : ContentDialog
     private readonly TextBlock fileName;
     private readonly StackPanel fileNameRow;
     private readonly TextBlock rejected;
+    private bool accepted;
 
     public NamingSheet(XamlRoot root, string? suggestion, string? currentName = null, bool replacesNotes = false,
         bool renames = false)
@@ -126,7 +127,15 @@ internal sealed partial class NamingSheet : ContentDialog
     public async Task<string?> AskAsync()
     {
         var result = await Alert.PresentAsync(this).ConfigureAwait(true);
-        return result == ContentDialogResult.Primary && Slug is not null ? nameField.Text : null;
+        return (result == ContentDialogResult.Primary || accepted) && Slug is not null ? nameField.Text : null;
+    }
+
+    /// <summary>Closes the sheet as its Save (or Rename) button does, when the name is usable (the UI snapshots).</summary>
+    public void Accept()
+    {
+        if (Slug is null) return;
+        accepted = true;
+        Hide();
     }
 
     /// <summary>The AI suggestion offered beside a prefilled current name.</summary>

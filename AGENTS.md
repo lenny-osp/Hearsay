@@ -125,6 +125,12 @@ dotnet test windows\Hearsay.Tests -c Release          # core tests, fast
   names and meaning) with a throwaway settings folder instead of
   `%APPDATA%\Hearsay`. Delete every SRT a debug run writes into the owner's
   output folder (`%USERPROFILE%\Documents\Hearsay`).
+- Third-party notices: after a dependency change (and a restore) run
+  `windows\scripts\make-notices.ps1`; it rewrites
+  `windows/THIRD_PARTY_NOTICES.md` from the restored packages and fails
+  loudly, naming the package, if a license text cannot be found.
+  `make-notices.ps1 -Check` is the CI form: it fails if the committed
+  file is out of date.
 
 ## Parity with the Python tool
 

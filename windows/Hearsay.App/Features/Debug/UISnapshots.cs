@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices.WindowsRuntime;
 using Hearsay.App.Features.History;
+using Hearsay.App.Features.MenuBar;
 using Hearsay.App.Features.Main;
 using Hearsay.App.Features.Models;
 using Hearsay.App.Features.Notes;
@@ -263,6 +264,21 @@ internal static class UISnapshots
             Check(false, "the sample meeting is listed");
         }
 
+        #region W6 notes (Features/Notes/NotesSnapshots.cs)
+        // Settings > AI per preset, the template editor, the confirm and
+        // naming sheets, the notes flow while generating, its result and an
+        // error; a stub generator, so no provider is ever called.
+        await NotesSnapshots.RunAsync(shell, sampleOutput,
+            new NotesSnapshots.Tools(Render, Check, Settle, DialogBox)).ConfigureAwait(true);
+        #endregion
+
+        #region W5 recording (Features/Debug/RecordingSnapshots.cs)
+        // The Record tab in each state, the File tab, the recovery sheet; all
+        // stubbed, nothing is recorded or transcribed.
+        await RecordingSnapshots.RunAsync(shell, sampleOutput,
+            new RecordingSnapshots.Tools(Render, Check, Settle, DialogBox)).ConfigureAwait(true);
+        #endregion
+
         // The settings warning (PLAN.md 18.4), with a sample backup path.
         window.ResizeClient(MainWindow.DefaultWidth, 560);
         shell.Tabs.Tab = MainTab.Record;
@@ -301,9 +317,9 @@ internal static class UISnapshots
 
     /// <summary>
     /// A smoke test of the tray icon and the hotkeys, which XAML cannot
-    /// render: shows the icon for about two seconds, runs the stand-in
-    /// Start, Pause, Resume and Stop commands and checks the icon and tooltip
-    /// of each state, then registers and unregisters the global shortcuts
+    /// render: shows the icon for about two seconds, stubs the recording,
+    /// paused, transcribing and idle states and checks the icon and tooltip
+    /// of each, then registers and unregisters the global shortcuts
     /// once (a shortcut another app holds is reported, not a failure).
     /// </summary>
     private static async Task<bool> CheckTrayAndHotkeysAsync(AppShell shell)
@@ -319,17 +335,22 @@ internal static class UISnapshots
             Say($"tray {step}: icon {tray.CurrentIconName}, tooltip \"{tray.CurrentTooltip}\"{(good ? "" : $" (expected {icon})")}");
         }
         Expect("idle", "Hearsay.ico");
-        recording.ToggleStartStop();
+        // Stubbed states: the real Start would open the microphone (W5).
+        recording.Update(RecordingPhase.Recording, TimeSpan.FromSeconds(754), null);
         await Task.Delay(500).ConfigureAwait(true);
         Expect("recording", "Hearsay-recording.ico");
-        recording.TogglePause();
+        recording.Update(RecordingPhase.Paused, TimeSpan.FromSeconds(754), null);
         await Task.Delay(500).ConfigureAwait(true);
         Expect("paused", "Hearsay-paused.ico");
         shell.Settings.MenuBarShowsStatus = false;
         Expect("paused, status off", "Hearsay.ico");
         shell.Settings.MenuBarShowsStatus = true;
-        recording.TogglePause();
-        recording.ToggleStartStop();
+        recording.Update(RecordingPhase.Transcribing, TimeSpan.FromSeconds(754), 0.42);
+        await Task.Delay(500).ConfigureAwait(true);
+        Expect("transcribing", "Hearsay.ico");
+        ok &= recording.StateText == Strings.StateTranscribing(42);
+        Say($"tray transcribing state line \"{recording.StateText}\"");
+        recording.Update(RecordingPhase.Idle, TimeSpan.Zero, null);
         await Task.Delay(500).ConfigureAwait(true);
         Expect("stopped", "Hearsay.ico");
         tray.SetVisible(false);

@@ -1,12 +1,20 @@
 using System.ComponentModel;
 using System.Globalization;
 using Hearsay.App.Features.Debug;
+using Hearsay.App.Features.FileTranscription;
 using Hearsay.App.Features.Help;
+using Hearsay.App.Features.History;
 using Hearsay.App.Features.Hotkeys;
 using Hearsay.App.Features.Main;
 using Hearsay.App.Features.MenuBar;
+using Hearsay.App.Features.Notes;
+using Hearsay.App.Features.Recording;
+using Hearsay.App.Features.Recovery;
 using Hearsay.App.Features.Settings;
+using Hearsay.App.Features.Transcription;
+using Hearsay.Core.Audio;
 using Hearsay.Core.ModelStore;
+using Hearsay.Core.Notes;
 using Hearsay.Core.Settings;
 using Microsoft.UI.Dispatching;
 
@@ -60,6 +68,13 @@ internal sealed class AppShell
         // stores (AI providers, prompt templates) take this same instance.
         SettingsFile = new SettingsFile(folder);
         Settings = new AppSettings(SettingsFile);
+        // One provider store on the same SettingsFile, tokens in Credential
+        // Manager; debug runs keep tokens in memory and start from the
+        // default preset (the Mac's UI snapshots do the same).
+        Secrets = IsDebugRun ? new InMemorySecretStore() : new CredentialManagerSecretStore();
+        AIProviders = IsDebugRun
+            ? new AIProviderStore(SettingsFile, Secrets, installedCli: () => null)
+            : new AIProviderStore(SettingsFile, Secrets);
         RunningLanguage = InterfaceLanguages.ResolveAtLaunch(Settings.InterfaceLanguage, DebugEnvironment.Environment);
         // Strings are English until W7 wires .resw; dates and numbers follow
         // the interface language already, as the Mac's \.locale does.
@@ -74,8 +89,29 @@ internal sealed class AppShell
         Models = new ModelStore(Settings, scratchFolder is not null ? Path.Combine(scratchFolder, "Models") : ModelStore.DefaultRootPath);
         Hotkeys = new HotkeyManager(Settings, OnHotkey);
         Tray = new TrayIcon(Settings, Recording, () => ShowMain(), Quit);
+        // W5: the one Whisper engine, recording controller and File flow (the
+        // Mac's AppDelegate owns the same three); the spool is
+        // %LOCALAPPDATA%\Hearsay\Recording, debug runs use the scratch folder.
+        Engine = new TranscriptionEngine();
+        Spool = new RecordingSpool(scratchFolder is not null ? Path.Combine(scratchFolder, "Recording") : RecordingSpool.DefaultRoot());
+        RecordingController = new RecordingController(Settings, Models, Engine, Spool);
+        FileModel = new FileViewModel(Settings, Models, Engine);
+        Recording.Connect(RecordingController.ToggleStartStop, RecordingController.TogglePause);
+        RecordingController.PropertyChanged += (_, _) => SyncRecordingStatus();
         MainWindow = new MainWindow(this);
     }
+
+    /// <summary>The app's one Whisper engine.</summary>
+    public TranscriptionEngine Engine { get; }
+
+    /// <summary>Where recordings are written while they are made (PLAN.md 4.5).</summary>
+    public RecordingSpool Spool { get; }
+
+    /// <summary>The one recording session (the Mac's <c>RecordingController</c>).</summary>
+    public RecordingController RecordingController { get; }
+
+    /// <summary>The File tab's flow, shared with the recovery sheet and "Transcribe this file".</summary>
+    public FileViewModel FileModel { get; }
 
     /// <summary>The interface language of this run (the setting, or <c>HEARSAY_UI_LANGUAGE</c>), fixed at launch.</summary>
     public InterfaceLanguage RunningLanguage { get; }
@@ -85,6 +121,12 @@ internal sealed class AppShell
     public SettingsFile SettingsFile { get; }
 
     public AppSettings Settings { get; }
+
+    /// <summary>Where API tokens live: Credential Manager, or memory in a debug run.</summary>
+    public ISecretStore Secrets { get; }
+
+    /// <summary>The one meeting-notes provider store (the Mac's <c>AIProviderStore</c> environment object).</summary>
+    public AIProviderStore AIProviders { get; }
 
     public MainTabSelection Tabs { get; } = new();
 
@@ -112,6 +154,7 @@ internal sealed class AppShell
     {
         AppLog.Write($"settings {SettingsFile.FilePath}, interface language {RunningLanguage.Code()}");
         Settings.SaveFailed += (_, e) => MainWindow.ShowSettingsProblem(Strings.SettingsSaveFailed(e.Error.Message));
+        AIProviders.SaveFailed += (_, e) => MainWindow.ShowSettingsProblem(Strings.SettingsSaveFailed(e.Error.Message));
         if (SettingsFile.CorruptFileBackup is { } backup)
         {
             MainWindow.ShowSettingsProblem(Strings.SettingsCorrupt(backup));
@@ -124,6 +167,13 @@ internal sealed class AppShell
         {
             return;
         }
+        // Debug only (W5): transcribe one file, replay a WAV through the
+        // recording pipeline, or record from one device, print, and quit.
+        if (FileTranscriptionDebug.RunIfRequested(this) || RecordingReplay.RunIfRequested(this)
+            || RecordingDebug.RunIfRequested(this))
+        {
+            return;
+        }
 
         ticker = dispatcher.CreateTimer();
         ticker.Interval = TimeSpan.FromSeconds(1);
@@ -132,7 +182,66 @@ internal sealed class AppShell
         ApplyWindowMode(Settings.WindowMode);
         Settings.PropertyChanged += OnSettingsChanged;
         Hotkeys.Start();
+        RecordingController.Activate();
         MainWindow.Activate();
+        // PLAN.md 4.5: unfinished spool recordings, once the window can show a sheet.
+        dispatcher.TryEnqueue(DispatcherQueuePriority.Low, () => _ = OfferRecoveryAsync());
+    }
+
+    /// <summary>
+    /// The recovery sheet for spool recordings a crash left behind (the Mac's
+    /// <c>UnfinishedRecordingQueue.checkOnce()</c> in MainView.swift).
+    /// Transcribe moves the WAV into the output folder and runs the File flow.
+    /// </summary>
+    private async Task OfferRecoveryAsync()
+    {
+        if (UnfinishedRecordingQueue.CheckOnce(Spool) is not { } queue) return;
+        if (MainWindow.RenderRoot.XamlRoot is not { } root) return;
+        AppLog.Write($"recovery: {queue.Pending.Count} unfinished recording(s)");
+        var sheet = new UnfinishedRecordingSheet(root, queue, () => TranscriptOutput.ResolveFolder(Settings), TranscribeRecovered);
+        await sheet.RunAsync().ConfigureAwait(true);
+    }
+
+    /// <summary>Recovery "Transcribe": the sheet repaired the header; the WAV moves into the output folder (kept) and runs through the File flow.</summary>
+    private void TranscribeRecovered(string spoolWav)
+    {
+        try
+        {
+            if (RecordingSpool.Finalize(spoolWav, keep: true, TranscriptOutput.ResolveFolder(Settings)) is not { } kept) return;
+            Tabs.Tab = MainTab.File;
+            FileModel.Transcribe(kept);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            if (MainWindow.RenderRoot.XamlRoot is { } root)
+            {
+                _ = Alert.ShowAsync(root, Strings.CouldNotTranscribeRecording, Strings.RecoveryStaysAt(error.Message, spoolWav));
+            }
+        }
+    }
+
+    /// <summary>Mirrors the controller into the tray and hotkeys' <see cref="Recording"/>, and hands "Transcribe this file" to the File tab.</summary>
+    private void SyncRecordingStatus()
+    {
+        var controller = RecordingController;
+        var phase = controller.Phase switch
+        {
+            ControllerPhase.Starting => RecordingPhase.Starting,
+            ControllerPhase.Recording => RecordingPhase.Recording,
+            ControllerPhase.Paused => RecordingPhase.Paused,
+            ControllerPhase.Stopping => RecordingPhase.Stopping,
+            ControllerPhase.Transcribing => RecordingPhase.Transcribing,
+            _ => RecordingPhase.Idle,
+        };
+        Recording.Update(phase, TimeSpan.FromSeconds(controller.Elapsed), controller.TranscriptionProgress);
+        Recording.SetBusyFiles(controller.BusyFiles);
+        if (controller.TranscribeFileRequest is { } file && !FileModel.IsBusy)
+        {
+            // "Transcribe this file" on the Record tab (the Mac's MainView.takeTranscribeFileRequest).
+            controller.TranscribeFileRequest = null;
+            Tabs.Tab = MainTab.File;
+            FileModel.Transcribe(file);
+        }
     }
 
     /// <summary>Brings the one main window forward, optionally on <paramref name="tab"/> (the Mac's <c>MainWindowOpener.show(tab:)</c>).</summary>
@@ -156,8 +265,50 @@ internal sealed class AppShell
         return window;
     }
 
-    /// <summary>Quits Hearsay (tray menu, or closing the window in taskbar-only mode). Recording arrives in W5, so nothing asks first yet.</summary>
+    /// <summary>
+    /// Quits Hearsay (tray menu, or closing the window in taskbar-only mode).
+    /// While a recording is active it asks first, then stops and saves it;
+    /// while the final pass runs it is cancelled and the live preview saved,
+    /// the WAV kept (the Mac's <c>applicationShouldTerminate</c>, PLAN.md 4.4).
+    /// </summary>
     public void Quit()
+    {
+        if (IsQuitting || isStoppingForQuit) return;
+        if (RecordingController.IsSessionActive || RecordingController.IsTranscribing)
+        {
+            _ = QuitAfterRecordingAsync();
+            return;
+        }
+        QuitNow();
+    }
+
+    private bool isStoppingForQuit;
+
+    private async Task QuitAfterRecordingAsync()
+    {
+        var controller = RecordingController;
+        if (controller.IsSessionActive)
+        {
+            ShowMain();
+            if (MainWindow.RenderRoot.XamlRoot is not { } root) return;
+            var dialog = Alert.Make(root, Strings.StopRecordingAndQuit, Alert.Message(Strings.RecordingSavedBeforeQuit));
+            dialog.PrimaryButtonText = Strings.StopAndQuit;
+            dialog.CloseButtonText = Strings.Cancel;
+            if (await Alert.PresentAsync(dialog).ConfigureAwait(true) != Microsoft.UI.Xaml.Controls.ContentDialogResult.Primary) return;
+            if (isStoppingForQuit || IsQuitting) return;
+            isStoppingForQuit = true;
+            await controller.StopAsync().ConfigureAwait(true);
+        }
+        else
+        {
+            isStoppingForQuit = true;
+        }
+        // Stopping starts the final pass; do not wait for it.
+        await controller.CancelTranscriptionForQuitAsync().ConfigureAwait(true);
+        QuitNow();
+    }
+
+    private void QuitNow()
     {
         if (IsQuitting) return;
         IsQuitting = true;
@@ -167,6 +318,8 @@ internal sealed class AppShell
         Hotkeys.Dispose();
         Tray.Dispose();
         Models.Dispose();
+        RecordingController.Dispose();
+        Engine.Dispose();
         HelpWindow?.Close();
         MainWindow.CloseForQuit();
         app.Exit();

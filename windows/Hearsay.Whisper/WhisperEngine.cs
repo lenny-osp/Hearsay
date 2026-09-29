@@ -275,9 +275,10 @@ public sealed unsafe class WhisperEngine : IDisposable
 
     /// <summary>
     /// The speed probe (PLAN.md 18.4, "Speed"): times one warm 30 s window of
-    /// dense speech (shared/fixtures/zh-30s.wav, embedded, looped to 30 s,
-    /// language zh) with the loaded model and the default threads. When no
-    /// job has run since the load, a short warm-up (4 s of speech from the clip)
+    /// speech (shared/fixtures/en-30s.wav, synthesized, embedded, looped to
+    /// 30 s, language en; PLAN.md 18.4 "Speed probe audio": no personal audio
+    /// in the product) with the loaded model and the default threads. When no
+    /// job has run since the load, a short warm-up (the clip's first 4 s)
     /// runs first, so graph allocation and Vulkan pipeline compilation are not
     /// charged to the window. The app turns live preview off when
     /// <see cref="SpeedProbeResult.WindowSeconds"/> is over
@@ -287,7 +288,7 @@ public sealed unsafe class WhisperEngine : IDisposable
     public SpeedProbeResult MeasureWindowSeconds(CancellationToken cancellationToken = default)
     {
         var window = SpeedProbeWindow();
-        var options = TranscriptionOptions.App(TranscriptLanguage.ChineseTaiwan);
+        var options = TranscriptionOptions.App(TranscriptLanguage.English);
         BeginJob();
         try
         {
@@ -298,8 +299,8 @@ public sealed unsafe class WhisperEngine : IDisposable
                 if (!warm)
                 {
                     var watch = Stopwatch.StartNew();
-                    // The clip opens with 3 s of digital silence, which the gate would skip.
-                    TranscribeLocked(window.AsMemory(4 * SilenceGate.SampleRate, 4 * SilenceGate.SampleRate), options, null, cancellationToken);
+                    // The clip's speech starts at once, so its first 4 s are never gated.
+                    TranscribeLocked(window.AsMemory(0, 4 * SilenceGate.SampleRate), options, null, cancellationToken);
                     warmUp = watch.Elapsed.TotalSeconds;
                 }
                 var timer = Stopwatch.StartNew();

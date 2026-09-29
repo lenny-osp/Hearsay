@@ -3,6 +3,7 @@ using System.Globalization;
 using Hearsay.App.Features.MenuBar;
 using Hearsay.App.Features.Notes;
 using Hearsay.Core.History;
+using Hearsay.Core.Notes;
 using Hearsay.Core.Settings;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
@@ -21,15 +22,19 @@ namespace Hearsay.App.Features.History;
 /// error line; the list, newest first, one row per meeting with name, date
 /// and time, duration, file badges and icon buttons, and the same actions
 /// in the row's context menu; the Rename sheet and its error alert; the
-/// Move to Recycle Bin confirmation.
-/// <para>
-/// Generate / Regenerate Notes… is shown disabled until the notes flow
-/// arrives in W6 (the Mac's notes panel under the list comes with it).
-/// </para>
+/// Move to Recycle Bin confirmation; Generate / Regenerate Notes… and the
+/// notes panel under the list (<see cref="NotesFlowView"/>, with Done once
+/// the flow has ended). Rename is off for the entry whose notes are being
+/// generated (PLAN.md 4.8).
 /// </summary>
 internal sealed partial class HistoryView : UserControl
 {
     private readonly AppSettings settings;
+    private readonly AIProviderStore store;
+    private readonly Border notesPanel;
+    private readonly ContentControl notesHost;
+    private readonly Button notesDone;
+    private NotesFlowViewModel? shownNotesModel;
     private readonly RecordingStatus recording;
     private readonly HistoryViewModel model;
     private readonly TextBlock folderText;
@@ -45,6 +50,7 @@ internal sealed partial class HistoryView : UserControl
     {
         ArgumentNullException.ThrowIfNull(shell);
         settings = shell.Settings;
+        store = shell.AIProviders;
         recording = shell.Recording;
         model = new HistoryViewModel(recycle);
 
@@ -52,6 +58,7 @@ internal sealed partial class HistoryView : UserControl
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
         // Header
         var header = new Grid { ColumnSpacing = 8 };
@@ -100,6 +107,28 @@ internal sealed partial class HistoryView : UserControl
         Grid.SetRow(empty, 2);
         grid.Children.Add(empty);
 
+        // Notes panel: the flow, and Done once it has ended (while running,
+        // NotesFlowView shows its own Cancel, so there is always a way out).
+        notesHost = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Stretch };
+        notesDone = new Button { Content = Strings.NotesDone, VerticalAlignment = VerticalAlignment.Top };
+        notesDone.Click += (_, _) => model.DismissNotes();
+        var notesRow = new Grid { ColumnSpacing = 12 };
+        notesRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        notesRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        notesRow.Children.Add(notesHost);
+        Grid.SetColumn(notesDone, 1);
+        notesRow.Children.Add(notesDone);
+        notesPanel = new Border
+        {
+            BorderBrush = Resource<Brush>("DividerStrokeColorDefaultBrush"),
+            BorderThickness = new Thickness(0, 1, 0, 0),
+            Padding = new Thickness(0, 8, 0, 0),
+            Child = notesRow,
+            Visibility = Visibility.Collapsed,
+        };
+        Grid.SetRow(notesPanel, 3);
+        grid.Children.Add(notesPanel);
+
         Content = grid;
         model.Changed += (_, _) => Render();
         settings.PropertyChanged += OnSettingsChanged;
@@ -115,6 +144,19 @@ internal sealed partial class HistoryView : UserControl
     /// <summary>The view model, for the UI snapshots.</summary>
     public HistoryViewModel Model => model;
 
+    /// <summary>Debug only: replaces the notes pipeline (the UI snapshots never call a real provider).</summary>
+    public NotesGenerator? NotesGeneratorOverride { get; set; }
+
+    /// <summary>The notes panel's view while it is shown, for the UI snapshots.</summary>
+    public NotesFlowView? NotesView => notesHost.Content as NotesFlowView;
+
+    /// <summary>History > Generate / Regenerate Notes…: the notes flow in the panel under the list.</summary>
+    public NotesFlowViewModel? GenerateNotes(HistoryEntry entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+        return model.GenerateNotes(entry, store, settings, NotesGeneratorOverride);
+    }
+
     /// <summary>The Rename sheet while it is open, for the UI snapshots.</summary>
     public NamingSheet? PendingRename { get; private set; }
 
@@ -122,7 +164,7 @@ internal sealed partial class HistoryView : UserControl
     public async Task RenameAsync(HistoryEntry entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
-        if (XamlRoot is not { } root || !HistoryViewModel.CanRename(entry, HistoryViewModel.BusyStems(recording))) return;
+        if (XamlRoot is not { } root || !model.CanRename(entry, HistoryViewModel.BusyStems(recording))) return;
         var sheet = new NamingSheet(root, suggestion: null, currentName: entry.MeetingName, renames: true);
         PendingRename = sheet;
         var name = await sheet.AskAsync().ConfigureAwait(true);
@@ -168,7 +210,7 @@ internal sealed partial class HistoryView : UserControl
         for (var index = 0; index < model.Entries.Count; index++)
         {
             var entry = model.Entries[index];
-            list.Items.Add(Row(entry, HistoryViewModel.CanRename(entry, busy)));
+            list.Items.Add(Row(entry, model.CanRename(entry, busy)));
             if (entry.Stem == model.Selection) selectedIndex = index;
         }
         list.SelectedIndex = selectedIndex;
@@ -177,6 +219,19 @@ internal sealed partial class HistoryView : UserControl
         empty.Visibility = hasEntries || model.FolderPath is null ? Visibility.Collapsed : Visibility.Visible;
         rendering = false;
         if (selectedIndex >= 0) list.ScrollIntoView(list.Items[selectedIndex]);
+        RenderNotesPanel();
+    }
+
+    private void RenderNotesPanel()
+    {
+        var notesModel = model.NotesModel;
+        if (!ReferenceEquals(notesModel, shownNotesModel))
+        {
+            shownNotesModel = notesModel;
+            notesHost.Content = notesModel is null ? null : new NotesFlowView(notesModel);
+        }
+        notesPanel.Visibility = notesModel is null ? Visibility.Collapsed : Visibility.Visible;
+        notesDone.Visibility = notesModel is { IsRunning: false } ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -224,14 +279,14 @@ internal sealed partial class HistoryView : UserControl
         row.Children.Add(text);
 
         var notesTitle = HistoryViewModel.NotesActionTitle(entry);
+        var canGenerate = HistoryViewModel.CanGenerateNotes(entry) && !model.IsGeneratingNotes;
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
         buttons.Children.Add(IconButton(Strings.OpenNotesTooltip, "", entry.Notes is not null, () => model.OpenFile(entry.Notes)));
         buttons.Children.Add(IconButton(Strings.OpenTranscriptTooltip, "", entry.Transcript is not null, () => model.OpenFile(entry.Transcript)));
         buttons.Children.Add(IconButton(Strings.OpenSrt, "", entry.Srt is not null, () => model.OpenFile(entry.Srt)));
         buttons.Children.Add(IconButton(Strings.RevealInExplorer, "", true, () => model.Reveal(entry)));
         buttons.Children.Add(IconButton(Strings.Rename, "", canRename, () => _ = RenameAsync(entry)));
-        // Notes arrive in W6: disabled, and the tooltip says so.
-        buttons.Children.Add(IconButton(notesTitle, "", false, () => { }, disabledTooltip: Strings.ComingInW6));
+        buttons.Children.Add(IconButton(notesTitle, "", canGenerate, () => GenerateNotes(entry)));
         buttons.Children.Add(IconButton(Strings.MoveToRecycleBin, "", model.CanMoveToRecycleBin, () => _ = MoveToRecycleBinAsync(entry)));
         Grid.SetColumn(buttons, 1);
         row.Children.Add(buttons);
@@ -243,7 +298,7 @@ internal sealed partial class HistoryView : UserControl
         menu.Items.Add(MenuItem(Strings.RevealInExplorer, true, () => model.Reveal(entry)));
         menu.Items.Add(new MenuFlyoutSeparator());
         menu.Items.Add(MenuItem(Strings.Rename, canRename, () => _ = RenameAsync(entry)));
-        menu.Items.Add(MenuItem(notesTitle, false, () => { }));
+        menu.Items.Add(MenuItem(notesTitle, canGenerate, () => GenerateNotes(entry)));
         menu.Items.Add(new MenuFlyoutSeparator());
         menu.Items.Add(MenuItem(Strings.MoveToRecycleBin, model.CanMoveToRecycleBin, () => _ = MoveToRecycleBinAsync(entry)));
         row.ContextFlyout = menu;
