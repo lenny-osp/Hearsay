@@ -28,6 +28,9 @@ public partial class App : Application
     /// <summary>The process exit code (the UI snapshots report failure through it).</summary>
     internal static int ExitCode { get; set; }
 
+    /// <summary>Restart Now: <see cref="Program"/> starts Hearsay again after the message loop ends.</summary>
+    internal static bool RelaunchRequested { get; set; }
+
     /// <summary>A debug run's throwaway settings folder, removed by <see cref="Program"/> after the message loop ends.</summary>
     internal static string? ScratchFolder { get; set; }
 

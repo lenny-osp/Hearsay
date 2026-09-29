@@ -6,7 +6,12 @@
   - Text inside <span class="ui"> is a label the app shows. Use the exact
     translated label from the app's string catalogs, not a new translation.
   - macOS locations (System Settings > ...) use Apple's wording in your
-    language; see shared/localization/GLOSSARY.md.
+    language, Windows locations (Settings > Privacy & security > ...)
+    Microsoft's; see shared/localization/GLOSSARY.md.
+  - Keep every data-platform attribute. One page serves both apps:
+    data-platform="mac" text shows only on the Mac, data-platform="windows"
+    text only on Windows (the app sets class "mac" or "windows" on <html>;
+    without a class the page shows the Mac text).
 -->
 <html lang="zh-Hans-CN">
 <head>
@@ -72,7 +77,7 @@
     background: var(--panel);
   }
   code {
-    font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace;
+    font: 12.5px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     background: var(--panel); padding: 1px 4px; border-radius: 4px;
   }
   table { border-collapse: collapse; margin: 6px 0 12px; width: 100%; }
@@ -81,12 +86,14 @@
   td:first-child { white-space: nowrap; width: 1%; padding-right: 20px; }
   .note { color: var(--secondary); }
   .problem { font-weight: 600; }
+  html:not(.windows) [data-platform="windows"],
+  html.windows [data-platform="mac"] { display: none; }
 </style>
 </head>
 <body>
 
 <h1>Hearsay 帮助</h1>
-<p class="lead">在 Mac 上录制会议，并将其转换为转录稿和笔记。</p>
+<p class="lead">在 <span data-platform="mac">Mac</span><span data-platform="windows">PC</span> 上录制会议，并将其转换为转录稿和笔记。</p>
 
 <nav>
 <ol>
@@ -95,7 +102,7 @@
   <li><a href="#file-mode">转录文件</a></li>
   <li><a href="#meeting-notes">会议笔记</a></li>
   <li><a href="#history">历史记录</a></li>
-  <li><a href="#menu-bar">菜单栏和快捷键</a></li>
+  <li><a href="#menu-bar"><span data-platform="mac">菜单栏和快捷键</span><span data-platform="windows">通知区域和快捷键</span></a></li>
   <li><a href="#settings">设置及其他</a></li>
   <li><a href="#troubleshooting">故障排除</a></li>
   <li><a href="#about">关于</a></li>
@@ -103,12 +110,15 @@
 </nav>
 
 <h2 id="getting-started">入门</h2>
-<p>Hearsay 会录制你的麦克风和通话声音，并在 Mac 上完成转录。除非你将转录稿发送给 AI 提供方以生成会议笔记，否则任何内容都不会离开你的 Mac。需要配备 Apple 芯片且运行 macOS 14 或更高版本的 Mac。</p>
+<p data-platform="mac">Hearsay 会录制你的麦克风和通话声音，并在 Mac 上完成转录。除非你将转录稿发送给 AI 提供方以生成会议笔记，否则任何内容都不会离开你的 Mac。需要配备 Apple 芯片且运行 macOS 14 或更高版本的 Mac。</p>
+<p data-platform="windows">Hearsay 会录制你的麦克风和通话声音，并在 PC 上完成转录。除非你将转录稿发送给 AI 提供方以生成会议笔记，否则任何内容都不会离开你的 PC。需要 64 位的 Windows 10（2004 版或更高版本）或 Windows 11。</p>
 <ol>
-  <li>在<a href="hearsay://open/settings-output"><span class="ui">设置</span> &gt; <span class="ui">输出</span></a>中选择文件的保存位置。默认位置是“文稿”文件夹中的 Hearsay 文件夹。</li>
-  <li>打开<a href="hearsay://open/models"><span class="ui">模型</span>标签页</a>，点按模型旁边的<span class="ui">下载</span>。推荐使用 whisper-large-v3-turbo（1.61 GB）；whisper-large-v3-turbo-4bit（463 MB）是体积最小的可靠选择。如果该模型不是<span class="ui">当前模型</span>，请点按<span class="ui">使用</span>。</li>
-  <li>点按<span class="ui">开始</span>（位于<a href="hearsay://open/record"><span class="ui">录音</span>标签页</a>）。macOS 询问时，请允许访问麦克风以及录屏与系统录音（Hearsay 只使用音频）。之后可以在系统设置 &gt; 隐私与安全性中更改这两项。</li>
-  <li>如果允许后仍然录不到系统声音，请退出并重新打开 Hearsay。</li>
+  <li>在<a href="hearsay://open/settings-output"><span class="ui">设置</span> &gt; <span class="ui">输出</span></a>中选择文件的保存位置。默认位置是“<span data-platform="mac">文稿</span><span data-platform="windows">文档</span>”文件夹中的 Hearsay 文件夹<span data-platform="windows">（<code>%USERPROFILE%\Documents\Hearsay</code>）</span>。</li>
+  <li data-platform="mac">打开<a href="hearsay://open/models"><span class="ui">模型</span>标签页</a>，点按模型旁边的<span class="ui">下载</span>。推荐使用 whisper-large-v3-turbo（1.61 GB）；whisper-large-v3-turbo-4bit（463 MB）是体积最小的可靠选择。如果该模型不是<span class="ui">当前模型</span>，请点按<span class="ui">使用</span>。</li>
+  <li data-platform="windows">打开<a href="hearsay://open/models"><span class="ui">模型</span>标签页</a>，单击模型旁边的<span class="ui">下载</span>。推荐使用 Whisper Large v3 Turbo (5-bit)（574 MB）。如果该模型不是<span class="ui">当前模型</span>，请单击<span class="ui">使用</span>。</li>
+  <li data-platform="mac">点按<span class="ui">开始</span>（位于<a href="hearsay://open/record"><span class="ui">录音</span>标签页</a>）。macOS 询问时，请允许访问麦克风以及录屏与系统录音（Hearsay 只使用音频）。之后可以在系统设置 &gt; 隐私与安全性中更改这两项。</li>
+  <li data-platform="windows">单击<span class="ui">开始</span>（位于<a href="hearsay://open/record"><span class="ui">录音</span>标签页</a>）。在 Windows 上，录制系统声音不需要权限。如果麦克风录不到声音，请在设置 &gt; 隐私和安全性 &gt; 麦克风中允许桌面应用访问麦克风。</li>
+  <li data-platform="mac">如果允许后仍然录不到系统声音，请退出并重新打开 Hearsay。</li>
 </ol>
 
 <h2 id="recording">录音</h2>
@@ -117,7 +127,7 @@
   <li>选择<span class="ui">麦克风</span>。保持打开<span class="ui">同时录制系统声音</span>，即可录入通话另一方的声音。</li>
   <li>选择<span class="ui">语言</span>：<span class="ui">自动</span>会自动检测语言，也可以选择 EN、DE 或 ES。ZH-TW 以繁体字输出中文，ZH-CN 以简体字输出中文。</li>
   <li>点按<span class="ui">开始</span>。电平表显示麦克风和系统声音是否收到声音；静音 5 秒后会出现警告。<span class="ui">暂停</span>期间的内容不会计入转录稿。</li>
-  <li>新文字大约每 30 秒出现在<span class="ui">实时预览</span>中。</li>
+  <li>新文字大约每 30 秒出现在<span class="ui">实时预览</span>中。<span data-platform="windows">如果这台 PC 太慢，标签页会显示实时预览已关闭，只生成最终转录稿（参见<a href="#troubleshooting">故障排除</a>）。</span></li>
   <li>点按<span class="ui">停止</span>。Hearsay 会再次转录整段录音，生成最终转录稿。如要跳过此步骤，请点按<span class="ui">改用实时预览</span>。</li>
 </ol>
 <p>转录稿（SRT）和录音（WAV）保存在输出文件夹中，以开始时间命名，例如 <code>2026-09-28_14-05-00.srt</code>。</p>
@@ -129,7 +139,7 @@
 <h2 id="file-mode">转录文件</h2>
 <p>使用<a href="hearsay://open/file"><span class="ui">文件</span>标签页</a>转录已有的音频或视频文件。</p>
 <ol>
-  <li>将文件拖到<span class="ui">文件</span>标签页，或点按<span class="ui">选取…</span>。Hearsay 可读取 wav、m4a、mp3、aac、aiff、caf，以及 mp4 和 mov 文件中的音频。</li>
+  <li>将文件拖到<span class="ui">文件</span>标签页，或点按<span class="ui">选取…</span>。<span data-platform="mac">Hearsay 可读取 wav、m4a、mp3、aac、aiff、caf，以及 mp4 和 mov 文件中的音频。</span><span data-platform="windows">Hearsay 可读取 wav、m4a、mp3、aac、wma、flac，以及 mp4 和 mov 文件中的音频。</span></li>
   <li>选择<span class="ui">语言</span>，方法与<span class="ui">录音</span>标签页相同。</li>
   <li>如要停止，请点按<span class="ui">取消</span>。不会保存任何内容。</li>
 </ol>
@@ -140,8 +150,9 @@
 <ol>
   <li>在<a href="hearsay://open/settings-ai"><span class="ui">设置</span> &gt; <span class="ui">AI</span></a>中，从<span class="ui">预设：</span>选择提供方。
     <ul>
-      <li>GitHub Copilot CLI、Claude Code CLI、Codex CLI 和 Antigravity CLI 使用 Mac 上安装的程序及其中已登录的账户。请求会计入该订阅的用量限制。其检查按钮（例如<span class="ui">检查 Claude Code</span>）会显示是否找到该程序以及是否已登录。</li>
-      <li>Ollama / LM Studio 在你的 Mac 上运行。</li>
+      <li>GitHub Copilot CLI、Claude Code CLI、Codex CLI 和 Antigravity CLI 使用 <span data-platform="mac">Mac</span><span data-platform="windows">PC</span> 上安装的程序及其中已登录的账户。请求会计入该订阅的用量限制。其检查按钮（例如<span class="ui">检查 Claude Code</span>）会显示是否找到该程序以及是否已登录。<span data-platform="windows">每个程序的安装命令显示在其预设下方。</span></li>
+      <li data-platform="windows">在 Windows 上，Copilot 和 Antigravity 无法处理很长的转录稿（约 20 分钟以上的会议）；这类会议请改用 Claude Code、Codex、Ollama 或<span class="ui">自定义</span>。</li>
+      <li>Ollama / LM Studio 在你的 <span data-platform="mac">Mac</span><span data-platform="windows">PC</span> 上运行。</li>
       <li><span class="ui">自定义</span>适用于任何兼容 OpenAI 的服务。请输入其 URL、模型和令牌。</li>
     </ul>
   </li>
@@ -158,43 +169,54 @@
 </table>
 
 <h2 id="history">历史记录</h2>
-<p><a href="hearsay://open/history"><span class="ui">历史记录</span>标签页</a>列出输出文件夹中的会议。可以使用某一行上的按钮，或按住 Control 键点按该行。</p>
+<p><a href="hearsay://open/history"><span class="ui">历史记录</span>标签页</a>列出输出文件夹中的会议。可以使用某一行上的按钮，<span data-platform="mac">或按住 Control 键点按该行。</span><span data-platform="windows">或右键单击该行。</span></p>
 <ul>
-  <li><span class="ui">打开 SRT</span>、<span class="ui">打开笔记</span>和<span class="ui">打开转录稿</span>用于打开文件；<span class="ui">在访达中显示</span>会在访达中显示文件。</li>
-  <li><span class="ui">生成笔记…</span>为已保存的转录稿生成笔记。<span class="ui">重新生成笔记…</span>会替换现有笔记；新笔记保存后，旧笔记会移到废纸篓。</li>
-  <li><span class="ui">重命名…</span>会重命名某个会议的所有文件；<span class="ui">移到废纸篓…</span>会将它们全部移到废纸篓。</li>
+  <li data-platform="mac"><span class="ui">打开 SRT</span>、<span class="ui">打开笔记</span>和<span class="ui">打开转录稿</span>用于打开文件；<span class="ui">在访达中显示</span>会在访达中显示文件。</li>
+  <li data-platform="windows"><span class="ui">打开 SRT</span>、<span class="ui">打开笔记</span>和<span class="ui">打开转录稿</span>用于打开文件；<span class="ui">在文件资源管理器中显示</span>会在文件资源管理器中显示文件。</li>
+  <li><span class="ui">生成笔记…</span>为已保存的转录稿生成笔记。<span class="ui">重新生成笔记…</span>会替换现有笔记；新笔记保存后，旧笔记会移到<span data-platform="mac">废纸篓</span><span data-platform="windows">回收站</span>。</li>
+  <li data-platform="mac"><span class="ui">重命名…</span>会重命名某个会议的所有文件；<span class="ui">移到废纸篓…</span>会将它们全部移到废纸篓。</li>
+  <li data-platform="windows"><span class="ui">重命名…</span>会重命名某个会议的所有文件；<span class="ui">移到回收站…</span>会将它们全部移到回收站。</li>
 </ul>
 
-<h2 id="menu-bar">菜单栏和快捷键</h2>
+<h2 id="menu-bar"><span data-platform="mac">菜单栏和快捷键</span><span data-platform="windows">通知区域和快捷键</span></h2>
 <p>无需打开窗口也可以控制 Hearsay。关闭窗口后录音会继续进行。</p>
 <ul>
-  <li>通过<span class="ui">Hearsay 显示位置：</span>选择 Hearsay 的显示位置（在<a href="hearsay://open/settings-window"><span class="ui">设置</span> &gt; <span class="ui">窗口</span></a>中）：<span class="ui">菜单栏和程序坞</span>、<span class="ui">仅菜单栏</span>或<span class="ui">仅程序坞</span>。</li>
-  <li>点按菜单栏图标可查看状态，并开始、暂停或停止录音。录音时图标会变成红色并显示已录时间；若要保持不变，请在<a href="hearsay://open/settings-window"><span class="ui">设置</span> &gt; <span class="ui">窗口</span></a>中关闭<span class="ui">在菜单栏显示录音状态</span>。</li>
-  <li>在任何应用中，按下 <kbd>⌃⌥⌘R</kbd> 可开始或停止录音，按下 <kbd>⌃⌥⌘P</kbd> 可暂停或继续。如要更改，请前往<a href="hearsay://open/settings-general"><span class="ui">设置</span> &gt; <span class="ui">通用</span></a> &gt; <span class="ui">快捷键</span>，点按一个快捷键，然后按下新的组合键。</li>
-  <li>按下 <kbd>⌘,</kbd> 打开<span class="ui">设置</span>，按下 <kbd>⌘?</kbd> 打开本帮助。</li>
+  <li data-platform="mac">通过<span class="ui">Hearsay 显示位置：</span>选择 Hearsay 的显示位置（在<a href="hearsay://open/settings-window"><span class="ui">设置</span> &gt; <span class="ui">窗口</span></a>中）：<span class="ui">菜单栏和程序坞</span>、<span class="ui">仅菜单栏</span>或<span class="ui">仅程序坞</span>。</li>
+  <li data-platform="windows">通过<span class="ui">Hearsay 显示位置：</span>选择 Hearsay 的显示位置（在<a href="hearsay://open/settings-window"><span class="ui">设置</span> &gt; <span class="ui">窗口</span></a>中）：<span class="ui">通知区域和任务栏</span>、<span class="ui">仅通知区域</span>或<span class="ui">仅任务栏</span>。选择<span class="ui">仅任务栏</span>时，关闭窗口会退出 Hearsay。</li>
+  <li data-platform="windows">单击通知区域中的 Hearsay 图标可打开窗口；右键单击可查看状态，并开始、暂停或停止录音。录音时图标会变成红色，其工具提示会显示已录时间；若要保持不变，请在<a href="hearsay://open/settings-window"><span class="ui">设置</span> &gt; <span class="ui">窗口</span></a>中关闭<span class="ui">在通知区域显示录音状态</span>。</li>
+  <li data-platform="mac">点按菜单栏图标可查看状态，并开始、暂停或停止录音。录音时图标会变成红色并显示已录时间；若要保持不变，请在<a href="hearsay://open/settings-window"><span class="ui">设置</span> &gt; <span class="ui">窗口</span></a>中关闭<span class="ui">在菜单栏显示录音状态</span>。</li>
+  <li data-platform="mac">在任何应用中，按下 <kbd>⌃⌥⌘R</kbd> 可开始或停止录音，按下 <kbd>⌃⌥⌘P</kbd> 可暂停或继续。如要更改，请前往<a href="hearsay://open/settings-general"><span class="ui">设置</span> &gt; <span class="ui">通用</span></a> &gt; <span class="ui">快捷键</span>，点按一个快捷键，然后按下新的组合键。</li>
+  <li data-platform="windows">在任何应用中，按下 <kbd>Ctrl+Alt+Win+R</kbd> 可开始或停止录音，按下 <kbd>Ctrl+Alt+Win+P</kbd> 可暂停或继续。快捷键显示在<a href="hearsay://open/settings-general"><span class="ui">设置</span> &gt; <span class="ui">通用</span></a> &gt; <span class="ui">快捷键</span>中；<span class="ui">重置</span>可恢复默认值。</li>
+  <li data-platform="mac">按下 <kbd>⌘,</kbd> 打开<span class="ui">设置</span>，按下 <kbd>⌘?</kbd> 打开本帮助。</li>
+  <li data-platform="windows">按下 <kbd>F1</kbd> 打开本帮助。</li>
 </ul>
 
 <h2 id="settings">设置及其他</h2>
 <ul>
-  <li><strong><span class="ui">界面语言</span>：</strong>在<a href="hearsay://open/settings-general"><span class="ui">设置</span> &gt; <span class="ui">通用</span></a>中选择。Hearsay 需要重新启动；请点按<span class="ui">立即重新启动</span>。</li>
+  <li><strong><span class="ui">界面语言</span>：</strong>在<a href="hearsay://open/settings-general"><span class="ui">设置</span> &gt; <span class="ui">通用</span></a>中选择。<span data-platform="mac">Hearsay 需要重新启动；请点按<span class="ui">立即重新启动</span>。</span><span data-platform="windows">更改会在 Hearsay 下次启动时生效。</span></li>
   <li><strong>启动：</strong>在同一位置打开<span class="ui">登录时打开 Hearsay</span>。</li>
-  <li><strong>更新：</strong>Hearsay 菜单中的<span class="ui">检查更新…</span>提供<span class="ui">安装更新</span>（下载、验证并安装新版本，然后重新启动 Hearsay）或<span class="ui">在 GitHub 上查看</span>（打开版本页面）。</li>
+  <li data-platform="mac"><strong>更新：</strong>Hearsay 菜单中的<span class="ui">检查更新…</span>提供<span class="ui">安装更新</span>（下载、验证并安装新版本，然后重新启动 Hearsay）或<span class="ui">在 GitHub 上查看</span>（打开版本页面）。</li>
   <li><strong>录音：</strong>如要在转录成功后删除 WAV，请关闭<span class="ui">转录成功后保留录音（WAV）</span>（位于<a href="hearsay://open/settings-output"><span class="ui">设置</span> &gt; <span class="ui">输出</span></a>）。</li>
-  <li><strong>未完成的录音：</strong>如果 Hearsay 或 Mac 在录音过程中停止运行，下次启动时会询问如何处理该录音。<span class="ui">转录</span>会生成转录稿，<span class="ui">保留</span>会将 WAV 移到输出文件夹，<span class="ui">删除</span>则会将其删除。</li>
+  <li><strong>未完成的录音：</strong>如果 Hearsay 或 <span data-platform="mac">Mac</span><span data-platform="windows">PC</span> 在录音过程中停止运行，下次启动时会询问如何处理该录音。<span class="ui">转录</span>会生成转录稿，<span class="ui">保留</span>会将 WAV 移到输出文件夹，<span class="ui">删除</span>则会将其删除。</li>
 </ul>
 
 <h2 id="troubleshooting">故障排除</h2>
 <ul>
   <li><span class="problem">未安装模型</span> — 打开<a href="hearsay://open/models"><span class="ui">模型</span>标签页</a>，下载一个模型，然后点按<span class="ui">使用</span>。</li>
-  <li><span class="problem">没有麦克风访问权限</span> — 在系统设置 &gt; 隐私与安全性 &gt; 麦克风中打开 Hearsay。</li>
-  <li><span class="problem"><span class="ui">系统声音已关闭：权限被拒绝</span></span> — 在系统设置 &gt; 隐私与安全性 &gt; 录屏与系统录音中打开 Hearsay，然后开始新的录音。</li>
-  <li><span class="problem">允许后仍然录不到系统声音</span> — 退出并重新打开 Hearsay。</li>
-  <li><span class="problem">更新后系统声音无法录制</span> — 这个 Hearsay 版本没有使用 Developer ID 签名，因此 macOS 会忘记权限。在<a href="hearsay://open/record"><span class="ui">录音</span>标签页</a>点按<span class="ui">修复…</span>，然后在系统设置 &gt; 隐私与安全性 &gt; 录屏与系统录音中重新打开 Hearsay。</li>
+  <li data-platform="mac"><span class="problem">没有麦克风访问权限</span> — 在系统设置 &gt; 隐私与安全性 &gt; 麦克风中打开 Hearsay。</li>
+  <li data-platform="windows"><span class="problem">没有麦克风访问权限</span> — 在设置 &gt; 隐私和安全性 &gt; 麦克风中打开麦克风访问权限，以及桌面应用的访问权限。</li>
+  <li data-platform="windows"><span class="problem">系统声音已关闭</span> — 在 Windows 上，录制系统声音不需要权限。请检查扬声器或耳机输出是否已连接并打开，然后开始新的录音。</li>
+  <li data-platform="mac"><span class="problem"><span class="ui">系统声音已关闭：权限被拒绝</span></span> — 在系统设置 &gt; 隐私与安全性 &gt; 录屏与系统录音中打开 Hearsay，然后开始新的录音。</li>
+  <li data-platform="mac"><span class="problem">允许后仍然录不到系统声音</span> — 退出并重新打开 Hearsay。</li>
+  <li data-platform="mac"><span class="problem">更新后系统声音无法录制</span> — 这个 Hearsay 版本没有使用 Developer ID 签名，因此 macOS 会忘记权限。在<a href="hearsay://open/record"><span class="ui">录音</span>标签页</a>点按<span class="ui">修复…</span>，然后在系统设置 &gt; 隐私与安全性 &gt; 录屏与系统录音中重新打开 Hearsay。</li>
   <li><span class="problem">某个设备“没有音频”</span> — 检查设备是否已连接且未静音，或选择其他<span class="ui">麦克风</span>。</li>
-  <li><span class="problem">AirPods 或其他蓝牙耳机的音质较差</span> — 录音时，macOS 会将其切换到低音质的通话模式。在嘈杂的房间里，请使用 Mac 的内建麦克风。</li>
-  <li><span class="problem">找不到 AI 程序</span> — 安装该程序，或在<a href="hearsay://open/settings-ai"><span class="ui">设置</span> &gt; <span class="ui">AI</span></a>中输入其路径。</li>
+  <li><span class="problem">AirPods 或其他蓝牙耳机的音质较差</span> — 录音时，<span data-platform="mac">macOS</span><span data-platform="windows">Windows</span> 会将其切换到低音质的通话模式。在嘈杂的房间里，请使用 <span data-platform="mac">Mac</span><span data-platform="windows">PC</span> 的内建麦克风。</li>
+  <li data-platform="mac"><span class="problem">找不到 AI 程序</span> — 安装该程序，或在<a href="hearsay://open/settings-ai"><span class="ui">设置</span> &gt; <span class="ui">AI</span></a>中输入其路径。</li>
+  <li data-platform="windows"><span class="problem">找不到 AI 程序</span> — 使用<a href="hearsay://open/settings-ai"><span class="ui">设置</span> &gt; <span class="ui">AI</span></a>中该预设下方显示的命令安装（例如 Claude Code 为在 PowerShell 中运行 <code>irm https://claude.ai/install.ps1 | iex</code>），或在该处输入其路径。</li>
   <li><span class="problem">AI 程序未登录</span> — 在终端中运行一次 <code>copilot</code>、<code>claude</code>、<code>codex login</code> 或 <code>agy</code>，然后在<span class="ui">设置</span> &gt; <span class="ui">AI</span>中点按其检查按钮。</li>
-  <li><span class="problem">找不到文件</span> — 文件夹显示在<a href="hearsay://open/settings-output"><span class="ui">设置</span> &gt; <span class="ui">输出</span></a>中。在<span class="ui">历史记录</span>标签页中，点按<span class="ui">在访达中显示</span>。</li>
+  <li data-platform="mac"><span class="problem">找不到文件</span> — 文件夹显示在<a href="hearsay://open/settings-output"><span class="ui">设置</span> &gt; <span class="ui">输出</span></a>中。在<span class="ui">历史记录</span>标签页中，点按<span class="ui">在访达中显示</span>。</li>
+  <li data-platform="windows"><span class="problem">找不到文件</span> — 文件夹显示在<a href="hearsay://open/settings-output"><span class="ui">设置</span> &gt; <span class="ui">输出</span></a>中，默认为 <code>%USERPROFILE%\Documents\Hearsay</code>。在<span class="ui">历史记录</span>标签页中，单击<span class="ui">在文件资源管理器中显示</span>。</li>
+  <li data-platform="windows"><span class="problem">转录很慢，或实时预览已关闭</span> — Hearsay 会尽量通过 Vulkan 使用显卡芯片，否则使用处理器（CPU）。使用 CPU 时，最终转录稿约需录音时长的 1.5 到 3.5 倍，并且实时预览会保持关闭。配备 Intel、AMD 或 NVIDIA 显卡芯片的 PC 会快很多。</li>
 </ul>
 
 <h2 id="about">关于</h2>

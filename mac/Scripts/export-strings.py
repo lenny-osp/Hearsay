@@ -165,6 +165,12 @@ def export(sources):
         "comment": CREDITS_COMMENT,
         "placeholders": placeholders(english),
     })
+    # Windows-only entries (catalog "windows") are owned by
+    # windows/scripts/import-strings.py and live at the end of the file;
+    # keep them as they are.
+    if EXPORT.exists():
+        entries += [e for e in json.loads(EXPORT.read_text(encoding="utf-8"))
+                    if isinstance(e, dict) and e.get("catalog") == "windows"]
     EXPORT.parent.mkdir(parents=True, exist_ok=True)
     EXPORT.write_text(json.dumps(entries, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     counts = {}

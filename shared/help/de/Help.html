@@ -6,7 +6,12 @@
   - Text inside <span class="ui"> is a label the app shows. Use the exact
     translated label from the app's string catalogs, not a new translation.
   - macOS locations (System Settings > ...) use Apple's wording in your
-    language; see shared/localization/GLOSSARY.md.
+    language, Windows locations (Settings > Privacy & security > ...)
+    Microsoft's; see shared/localization/GLOSSARY.md.
+  - Keep every data-platform attribute. One page serves both apps:
+    data-platform="mac" text shows only on the Mac, data-platform="windows"
+    text only on Windows (the app sets class "mac" or "windows" on <html>;
+    without a class the page shows the Mac text).
 -->
 <html lang="de">
 <head>
@@ -72,7 +77,7 @@
     background: var(--panel);
   }
   code {
-    font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace;
+    font: 12.5px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     background: var(--panel); padding: 1px 4px; border-radius: 4px;
   }
   table { border-collapse: collapse; margin: 6px 0 12px; width: 100%; }
@@ -81,12 +86,14 @@
   td:first-child { white-space: nowrap; width: 1%; padding-right: 20px; }
   .note { color: var(--secondary); }
   .problem { font-weight: 600; }
+  html:not(.windows) [data-platform="windows"],
+  html.windows [data-platform="mac"] { display: none; }
 </style>
 </head>
 <body>
 
 <h1>Hearsay-Hilfe</h1>
-<p class="lead">Besprechungen auf dem Mac aufnehmen und daraus Transkripte und Notizen machen.</p>
+<p class="lead">Besprechungen auf dem <span data-platform="mac">Mac</span><span data-platform="windows">PC</span> aufnehmen und daraus Transkripte und Notizen machen.</p>
 
 <nav>
 <ol>
@@ -95,7 +102,7 @@
   <li><a href="#file-mode">Datei transkribieren</a></li>
   <li><a href="#meeting-notes">Besprechungsnotizen</a></li>
   <li><a href="#history">Verlauf</a></li>
-  <li><a href="#menu-bar">Menüleiste und Tastaturkurzbefehle</a></li>
+  <li><a href="#menu-bar"><span data-platform="mac">Menüleiste und Tastaturkurzbefehle</span><span data-platform="windows">Infobereich und Tastaturkurzbefehle</span></a></li>
   <li><a href="#settings">Einstellungen und mehr</a></li>
   <li><a href="#troubleshooting">Fehlerbehebung</a></li>
   <li><a href="#about">Über</a></li>
@@ -103,12 +110,15 @@
 </nav>
 
 <h2 id="getting-started">Erste Schritte</h2>
-<p>Hearsay nimmt das Mikrofon und den Ton von Anrufen auf und transkribiert beides auf dem Mac. Nichts verlässt den Mac, außer ein Transkript wird für Besprechungsnotizen an einen KI-Anbieter gesendet. Erforderlich sind ein Mac mit Apple Silicon und macOS 14 oder neuer.</p>
+<p data-platform="mac">Hearsay nimmt das Mikrofon und den Ton von Anrufen auf und transkribiert beides auf dem Mac. Nichts verlässt den Mac, außer ein Transkript wird für Besprechungsnotizen an einen KI-Anbieter gesendet. Erforderlich sind ein Mac mit Apple Silicon und macOS 14 oder neuer.</p>
+<p data-platform="windows">Hearsay nimmt das Mikrofon und den Ton von Anrufen auf und transkribiert beides auf dem PC. Nichts verlässt den PC, außer ein Transkript wird für Besprechungsnotizen an einen KI-Anbieter gesendet. Erforderlich ist 64-Bit-Windows 10 (ab Version 2004) oder Windows 11.</p>
 <ol>
-  <li>Speicherort in <a href="hearsay://open/settings-output"><span class="ui">Einstellungen</span> &gt; <span class="ui">Ausgabe</span></a> auswählen. Standard ist der Ordner „Hearsay“ im Ordner „Dokumente“.</li>
-  <li>Den <a href="hearsay://open/models">Tab <span class="ui">Modelle</span></a> öffnen und neben einem Modell auf <span class="ui">Laden</span> klicken. Empfohlen ist whisper-large-v3-turbo (1,61 GB); whisper-large-v3-turbo-4bit (463 MB) ist die kleinste gute Wahl. Steht beim Modell nicht <span class="ui">Aktives Modell</span>, auf <span class="ui">Verwenden</span> klicken.</li>
-  <li>Auf <span class="ui">Starten</span> im <a href="hearsay://open/record">Tab <span class="ui">Aufnahme</span></a> klicken. Wenn macOS fragt, den Zugriff auf das Mikrofon und auf „Bildschirm- &amp; Systemaudioaufnahme“ erlauben (Hearsay nutzt nur den Ton). Beides lässt sich später in Systemeinstellungen &gt; Datenschutz &amp; Sicherheit ändern.</li>
-  <li>Bleibt das Systemaudio nach dem Erlauben stumm, Hearsay beenden und neu öffnen.</li>
+  <li>Speicherort in <a href="hearsay://open/settings-output"><span class="ui">Einstellungen</span> &gt; <span class="ui">Ausgabe</span></a> auswählen. Standard ist der Ordner „Hearsay“ im Ordner „Dokumente“<span data-platform="windows"> (<code>%USERPROFILE%\Documents\Hearsay</code>)</span>.</li>
+  <li data-platform="mac">Den <a href="hearsay://open/models">Tab <span class="ui">Modelle</span></a> öffnen und neben einem Modell auf <span class="ui">Laden</span> klicken. Empfohlen ist whisper-large-v3-turbo (1,61 GB); whisper-large-v3-turbo-4bit (463 MB) ist die kleinste gute Wahl. Steht beim Modell nicht <span class="ui">Aktives Modell</span>, auf <span class="ui">Verwenden</span> klicken.</li>
+  <li data-platform="windows">Den <a href="hearsay://open/models">Tab <span class="ui">Modelle</span></a> öffnen und neben einem Modell auf <span class="ui">Laden</span> klicken. Empfohlen ist Whisper Large v3 Turbo (5-bit) mit 574 MB. Steht beim Modell nicht <span class="ui">Aktives Modell</span>, auf <span class="ui">Verwenden</span> klicken.</li>
+  <li data-platform="mac">Auf <span class="ui">Starten</span> im <a href="hearsay://open/record">Tab <span class="ui">Aufnahme</span></a> klicken. Wenn macOS fragt, den Zugriff auf das Mikrofon und auf „Bildschirm- &amp; Systemaudioaufnahme“ erlauben (Hearsay nutzt nur den Ton). Beides lässt sich später in Systemeinstellungen &gt; Datenschutz &amp; Sicherheit ändern.</li>
+  <li data-platform="windows">Auf <span class="ui">Starten</span> im <a href="hearsay://open/record">Tab <span class="ui">Aufnahme</span></a> klicken. Systemaudio braucht unter Windows keine Berechtigung. Bleibt das Mikrofon stumm, in Einstellungen &gt; Datenschutz und Sicherheit &gt; Mikrofon den Mikrofonzugriff für Desktop-Apps erlauben.</li>
+  <li data-platform="mac">Bleibt das Systemaudio nach dem Erlauben stumm, Hearsay beenden und neu öffnen.</li>
 </ol>
 
 <h2 id="recording">Aufnehmen</h2>
@@ -117,7 +127,7 @@
   <li>Das <span class="ui">Mikrofon</span> auswählen. <span class="ui">Auch Systemaudio aufnehmen</span> eingeschaltet lassen, um die Gegenseite eines Anrufs mit aufzunehmen.</li>
   <li>Die <span class="ui">Sprache</span> auswählen: <span class="ui">Automatisch</span> erkennt sie, sonst EN, DE oder ES wählen. ZH-TW schreibt Chinesisch in traditionellen Schriftzeichen, ZH-CN in vereinfachten.</li>
   <li>Auf <span class="ui">Starten</span> klicken. Die Pegelanzeigen zeigen, ob Mikrofon und Systemaudio Ton empfangen; nach 5 Sekunden Stille erscheint eine Warnung. <span class="ui">Pausieren</span> lässt diese Zeit im Transkript aus.</li>
-  <li>Neuer Text erscheint etwa alle 30 Sekunden in der <span class="ui">Live-Vorschau</span>.</li>
+  <li>Neuer Text erscheint etwa alle 30 Sekunden in der <span class="ui">Live-Vorschau</span>.<span data-platform="windows"> Ist der PC dafür zu langsam, meldet der Tab, dass die Live-Vorschau aus ist, und es entsteht nur das endgültige Transkript (siehe <a href="#troubleshooting">Fehlerbehebung</a>).</span></li>
   <li>Auf <span class="ui">Stoppen</span> klicken. Hearsay transkribiert die ganze Aufnahme für das endgültige Transkript noch einmal. Um das zu überspringen, auf <span class="ui">Stattdessen Live-Vorschau verwenden</span> klicken.</li>
 </ol>
 <p>Transkript (SRT) und Aufnahme (WAV) werden im Ausgabeordner gesichert und nach der Startzeit benannt, zum Beispiel <code>2026-09-28_14-05-00.srt</code>.</p>
@@ -129,7 +139,7 @@
 <h2 id="file-mode">Datei transkribieren</h2>
 <p>Im <a href="hearsay://open/file">Tab <span class="ui">Datei</span></a> wird eine vorhandene Audio- oder Videodatei transkribiert.</p>
 <ol>
-  <li>Die Datei auf den Tab <span class="ui">Datei</span> ziehen oder auf <span class="ui">Auswählen …</span> klicken. Hearsay liest wav, m4a, mp3, aac, aiff, caf und den Ton von mp4- und mov-Dateien.</li>
+  <li>Die Datei auf den Tab <span class="ui">Datei</span> ziehen oder auf <span class="ui">Auswählen …</span> klicken. <span data-platform="mac">Hearsay liest wav, m4a, mp3, aac, aiff, caf und den Ton von mp4- und mov-Dateien.</span><span data-platform="windows">Hearsay liest wav, m4a, mp3, aac, wma, flac und den Ton von mp4- und mov-Dateien.</span></li>
   <li>Die <span class="ui">Sprache</span> wie im Tab <span class="ui">Aufnahme</span> auswählen.</li>
   <li>Zum Stoppen auf <span class="ui">Abbrechen</span> klicken. Dann wird nichts gesichert.</li>
 </ol>
@@ -140,8 +150,9 @@
 <ol>
   <li>In <a href="hearsay://open/settings-ai"><span class="ui">Einstellungen</span> &gt; <span class="ui">KI</span></a> unter <span class="ui">Voreinstellung:</span> einen Anbieter auswählen:
     <ul>
-      <li>GitHub Copilot CLI, Claude Code CLI, Codex CLI und Antigravity CLI verwenden das auf dem Mac installierte Programm und die darin bestehende Anmeldung. Anfragen zählen zu den Limits dieses Abos. Die zugehörige Prüftaste (zum Beispiel <span class="ui">Claude Code prüfen</span>) zeigt, ob das Programm gefunden wird und angemeldet ist.</li>
-      <li>Ollama / LM Studio läuft auf dem Mac.</li>
+      <li>GitHub Copilot CLI, Claude Code CLI, Codex CLI und Antigravity CLI verwenden das auf dem <span data-platform="mac">Mac</span><span data-platform="windows">PC</span> installierte Programm und die darin bestehende Anmeldung. Anfragen zählen zu den Limits dieses Abos. Die zugehörige Prüftaste (zum Beispiel <span class="ui">Claude Code prüfen</span>) zeigt, ob das Programm gefunden wird und angemeldet ist.<span data-platform="windows"> Der Installationsbefehl jedes Programms steht unter seiner Voreinstellung.</span></li>
+      <li data-platform="windows">Unter Windows können Copilot und Antigravity kein sehr langes Transkript annehmen (ab etwa 20 Minuten Besprechung); dafür Claude Code, Codex, Ollama oder <span class="ui">Benutzerdefiniert</span> verwenden.</li>
+      <li>Ollama / LM Studio läuft auf dem <span data-platform="mac">Mac</span><span data-platform="windows">PC</span>.</li>
       <li><span class="ui">Benutzerdefiniert</span> funktioniert mit jedem OpenAI-kompatiblen Dienst. Dessen URL, Modell und Token eingeben.</li>
     </ul>
   </li>
@@ -158,43 +169,54 @@
 </table>
 
 <h2 id="history">Verlauf</h2>
-<p>Der <a href="hearsay://open/history">Tab <span class="ui">Verlauf</span></a> listet die Besprechungen im Ausgabeordner auf. Die Tasten in einer Zeile verwenden oder bei gedrückter Taste „ctrl“ auf die Zeile klicken.</p>
+<p>Der <a href="hearsay://open/history">Tab <span class="ui">Verlauf</span></a> listet die Besprechungen im Ausgabeordner auf. Die Tasten in einer Zeile verwenden <span data-platform="mac">oder bei gedrückter Taste „ctrl“ auf die Zeile klicken.</span><span data-platform="windows">oder mit der rechten Maustaste auf die Zeile klicken.</span></p>
 <ul>
-  <li><span class="ui">SRT öffnen</span>, <span class="ui">Notizen öffnen</span> und <span class="ui">Transkript öffnen</span> öffnen eine Datei; <span class="ui">Im Finder zeigen</span> zeigt sie im Finder.</li>
+  <li data-platform="mac"><span class="ui">SRT öffnen</span>, <span class="ui">Notizen öffnen</span> und <span class="ui">Transkript öffnen</span> öffnen eine Datei; <span class="ui">Im Finder zeigen</span> zeigt sie im Finder.</li>
+  <li data-platform="windows"><span class="ui">SRT öffnen</span>, <span class="ui">Notizen öffnen</span> und <span class="ui">Transkript öffnen</span> öffnen eine Datei; <span class="ui">Im Explorer zeigen</span> zeigt sie im Datei-Explorer.</li>
   <li><span class="ui">Notizen erstellen …</span> erstellt Notizen zu einem gesicherten Transkript. <span class="ui">Notizen neu erstellen …</span> ersetzt sie; die alten Notizen kommen in den Papierkorb, sobald die neuen gesichert sind.</li>
-  <li><span class="ui">Umbenennen …</span> benennt alle Dateien einer Besprechung um; <span class="ui">In den Papierkorb legen …</span> legt sie alle in den Papierkorb.</li>
+  <li data-platform="mac"><span class="ui">Umbenennen …</span> benennt alle Dateien einer Besprechung um; <span class="ui">In den Papierkorb legen …</span> legt sie alle in den Papierkorb.</li>
+  <li data-platform="windows"><span class="ui">Umbenennen …</span> benennt alle Dateien einer Besprechung um; <span class="ui">In den Papierkorb verschieben …</span> verschiebt sie alle in den Papierkorb.</li>
 </ul>
 
-<h2 id="menu-bar">Menüleiste und Tastaturkurzbefehle</h2>
+<h2 id="menu-bar"><span data-platform="mac">Menüleiste und Tastaturkurzbefehle</span><span data-platform="windows">Infobereich und Tastaturkurzbefehle</span></h2>
 <p>Hearsay lässt sich ohne sein Fenster steuern. Die Aufnahme läuft weiter, wenn das Fenster geschlossen ist.</p>
 <ul>
-  <li>Wo Hearsay erscheint, legt <span class="ui">Hearsay anzeigen in:</span> in <a href="hearsay://open/settings-window"><span class="ui">Einstellungen</span> &gt; <span class="ui">Fenster</span></a> fest: <span class="ui">Menüleiste und Dock</span>, <span class="ui">Nur Menüleiste</span> oder <span class="ui">Nur Dock</span>.</li>
-  <li>Ein Klick auf das Symbol in der Menüleiste zeigt den Status und startet, pausiert oder stoppt eine Aufnahme. Während der Aufnahme ist das Symbol rot und zeigt die verstrichene Zeit; damit es unverändert bleibt, <span class="ui">Aufnahmestatus in der Menüleiste anzeigen</span> in <a href="hearsay://open/settings-window"><span class="ui">Einstellungen</span> &gt; <span class="ui">Fenster</span></a> ausschalten.</li>
-  <li><kbd>⌃⌥⌘R</kbd> startet oder stoppt, <kbd>⌃⌥⌘P</kbd> pausiert oder setzt fort, in jeder App. Zum Ändern in <a href="hearsay://open/settings-general"><span class="ui">Einstellungen</span> &gt; <span class="ui">Allgemein</span></a> &gt; <span class="ui">Tastaturkurzbefehle</span> auf einen Kurzbefehl klicken und einen neuen drücken.</li>
-  <li><kbd>⌘,</kbd> öffnet die <span class="ui">Einstellungen</span>, <kbd>⌘?</kbd> diese Hilfe.</li>
+  <li data-platform="mac">Wo Hearsay erscheint, legt <span class="ui">Hearsay anzeigen in:</span> in <a href="hearsay://open/settings-window"><span class="ui">Einstellungen</span> &gt; <span class="ui">Fenster</span></a> fest: <span class="ui">Menüleiste und Dock</span>, <span class="ui">Nur Menüleiste</span> oder <span class="ui">Nur Dock</span>.</li>
+  <li data-platform="windows">Wo Hearsay erscheint, legt <span class="ui">Hearsay anzeigen in:</span> in <a href="hearsay://open/settings-window"><span class="ui">Einstellungen</span> &gt; <span class="ui">Fenster</span></a> fest: <span class="ui">Infobereich und Taskleiste</span>, <span class="ui">Nur Infobereich</span> oder <span class="ui">Nur Taskleiste</span>. Bei <span class="ui">Nur Taskleiste</span> beendet das Schließen des Fensters Hearsay.</li>
+  <li data-platform="windows">Ein Klick auf das Hearsay-Symbol im Infobereich öffnet das Fenster; ein Rechtsklick zeigt den Status und startet, pausiert oder stoppt eine Aufnahme. Während der Aufnahme ist das Symbol rot und seine QuickInfo zeigt die verstrichene Zeit; damit es unverändert bleibt, <span class="ui">Aufnahmestatus im Infobereich anzeigen</span> in <a href="hearsay://open/settings-window"><span class="ui">Einstellungen</span> &gt; <span class="ui">Fenster</span></a> ausschalten.</li>
+  <li data-platform="mac">Ein Klick auf das Symbol in der Menüleiste zeigt den Status und startet, pausiert oder stoppt eine Aufnahme. Während der Aufnahme ist das Symbol rot und zeigt die verstrichene Zeit; damit es unverändert bleibt, <span class="ui">Aufnahmestatus in der Menüleiste anzeigen</span> in <a href="hearsay://open/settings-window"><span class="ui">Einstellungen</span> &gt; <span class="ui">Fenster</span></a> ausschalten.</li>
+  <li data-platform="mac"><kbd>⌃⌥⌘R</kbd> startet oder stoppt, <kbd>⌃⌥⌘P</kbd> pausiert oder setzt fort, in jeder App. Zum Ändern in <a href="hearsay://open/settings-general"><span class="ui">Einstellungen</span> &gt; <span class="ui">Allgemein</span></a> &gt; <span class="ui">Tastaturkurzbefehle</span> auf einen Kurzbefehl klicken und einen neuen drücken.</li>
+  <li data-platform="windows"><kbd>Strg+Alt+Win+R</kbd> startet oder stoppt, <kbd>Strg+Alt+Win+P</kbd> pausiert oder setzt fort, in jeder App. Sie stehen in <a href="hearsay://open/settings-general"><span class="ui">Einstellungen</span> &gt; <span class="ui">Allgemein</span></a> &gt; <span class="ui">Tastaturkurzbefehle</span>; <span class="ui">Zurücksetzen</span> stellt sie wieder her.</li>
+  <li data-platform="mac"><kbd>⌘,</kbd> öffnet die <span class="ui">Einstellungen</span>, <kbd>⌘?</kbd> diese Hilfe.</li>
+  <li data-platform="windows"><kbd>F1</kbd> öffnet diese Hilfe.</li>
 </ul>
 
 <h2 id="settings">Einstellungen und mehr</h2>
 <ul>
-  <li><strong><span class="ui">Sprache der Benutzeroberfläche</span>:</strong> in <a href="hearsay://open/settings-general"><span class="ui">Einstellungen</span> &gt; <span class="ui">Allgemein</span></a> auswählen. Hearsay muss neu starten; auf <span class="ui">Jetzt neu starten</span> klicken.</li>
+  <li><strong><span class="ui">Sprache der Benutzeroberfläche</span>:</strong> in <a href="hearsay://open/settings-general"><span class="ui">Einstellungen</span> &gt; <span class="ui">Allgemein</span></a> auswählen. <span data-platform="mac">Hearsay muss neu starten; auf <span class="ui">Jetzt neu starten</span> klicken.</span><span data-platform="windows">Die Änderung gilt ab dem nächsten Start von Hearsay.</span></li>
   <li><strong>Start:</strong> an derselben Stelle <span class="ui">Hearsay beim Anmelden öffnen</span> einschalten.</li>
-  <li><strong>Updates:</strong> <span class="ui">Nach Updates suchen …</span> im Menü „Hearsay“ bietet <span class="ui">Update installieren</span> an, das die neue Version lädt, prüft, installiert und Hearsay neu startet, oder <span class="ui">Auf GitHub ansehen</span>, das die Releaseseite öffnet.</li>
+  <li data-platform="mac"><strong>Updates:</strong> <span class="ui">Nach Updates suchen …</span> im Menü „Hearsay“ bietet <span class="ui">Update installieren</span> an, das die neue Version lädt, prüft, installiert und Hearsay neu startet, oder <span class="ui">Auf GitHub ansehen</span>, das die Releaseseite öffnet.</li>
   <li><strong>Aufnahmen:</strong> Um die WAV-Datei nach erfolgreicher Transkription zu löschen, <span class="ui">Aufnahme (WAV) nach erfolgreicher Transkription behalten</span> in <a href="hearsay://open/settings-output"><span class="ui">Einstellungen</span> &gt; <span class="ui">Ausgabe</span></a> ausschalten.</li>
-  <li><strong>Unvollständige Aufnahmen:</strong> Stoppen Hearsay oder der Mac während einer Aufnahme, fragt der nächste Start, was damit geschehen soll. <span class="ui">Transkribieren</span> erstellt das Transkript, <span class="ui">Behalten</span> legt die WAV-Datei in den Ausgabeordner und <span class="ui">Löschen</span> entfernt sie.</li>
+  <li><strong>Unvollständige Aufnahmen:</strong> Stoppen Hearsay oder der <span data-platform="mac">Mac</span><span data-platform="windows">PC</span> während einer Aufnahme, fragt der nächste Start, was damit geschehen soll. <span class="ui">Transkribieren</span> erstellt das Transkript, <span class="ui">Behalten</span> legt die WAV-Datei in den Ausgabeordner und <span class="ui">Löschen</span> entfernt sie.</li>
 </ul>
 
 <h2 id="troubleshooting">Fehlerbehebung</h2>
 <ul>
   <li><span class="problem">Kein Modell installiert</span> – Den <a href="hearsay://open/models">Tab <span class="ui">Modelle</span></a> öffnen, ein Modell laden und auf <span class="ui">Verwenden</span> klicken.</li>
-  <li><span class="problem">Kein Zugriff auf das Mikrofon</span> – Hearsay in Systemeinstellungen &gt; Datenschutz &amp; Sicherheit &gt; Mikrofon einschalten.</li>
-  <li><span class="problem"><span class="ui">Systemaudio aus: Zugriff verweigert</span></span> – Hearsay in Systemeinstellungen &gt; Datenschutz &amp; Sicherheit &gt; Bildschirm- &amp; Systemaudioaufnahme einschalten, dann eine neue Aufnahme starten.</li>
-  <li><span class="problem">Systemaudio nach dem Erlauben stumm</span> – Hearsay beenden und neu öffnen.</li>
-  <li><span class="problem">Systemaudio funktioniert nach einem Update nicht mehr</span> – Dieser Hearsay-Build ist nicht mit einer Developer ID signiert, deshalb vergisst macOS die Berechtigung. Im <a href="hearsay://open/record">Tab <span class="ui">Aufnahme</span></a> auf <span class="ui">Beheben …</span> klicken und Hearsay in Systemeinstellungen &gt; Datenschutz &amp; Sicherheit &gt; Bildschirm- &amp; Systemaudioaufnahme wieder einschalten.</li>
+  <li data-platform="mac"><span class="problem">Kein Zugriff auf das Mikrofon</span> – Hearsay in Systemeinstellungen &gt; Datenschutz &amp; Sicherheit &gt; Mikrofon einschalten.</li>
+  <li data-platform="windows"><span class="problem">Kein Zugriff auf das Mikrofon</span> – In Einstellungen &gt; Datenschutz und Sicherheit &gt; Mikrofon den Mikrofonzugriff und den Zugriff für Desktop-Apps einschalten.</li>
+  <li data-platform="windows"><span class="problem">Systemaudio ist aus</span> – Systemaudio braucht unter Windows keine Berechtigung. Prüfen, ob ein Lautsprecher- oder Kopfhörerausgang verbunden und eingeschaltet ist, dann eine neue Aufnahme starten.</li>
+  <li data-platform="mac"><span class="problem"><span class="ui">Systemaudio aus: Zugriff verweigert</span></span> – Hearsay in Systemeinstellungen &gt; Datenschutz &amp; Sicherheit &gt; Bildschirm- &amp; Systemaudioaufnahme einschalten, dann eine neue Aufnahme starten.</li>
+  <li data-platform="mac"><span class="problem">Systemaudio nach dem Erlauben stumm</span> – Hearsay beenden und neu öffnen.</li>
+  <li data-platform="mac"><span class="problem">Systemaudio funktioniert nach einem Update nicht mehr</span> – Dieser Hearsay-Build ist nicht mit einer Developer ID signiert, deshalb vergisst macOS die Berechtigung. Im <a href="hearsay://open/record">Tab <span class="ui">Aufnahme</span></a> auf <span class="ui">Beheben …</span> klicken und Hearsay in Systemeinstellungen &gt; Datenschutz &amp; Sicherheit &gt; Bildschirm- &amp; Systemaudioaufnahme wieder einschalten.</li>
   <li><span class="problem">„Kein Audio von“ einem Gerät</span> – Prüfen, ob das Gerät verbunden und nicht stummgeschaltet ist, oder ein anderes <span class="ui">Mikrofon</span> auswählen.</li>
-  <li><span class="problem">Schlechter Ton mit AirPods oder einem anderen Bluetooth-Headset</span> – Während der Aufnahme schaltet macOS sie in einen Anrufmodus mit geringer Qualität. In lauter Umgebung das integrierte Mikrofon des Mac verwenden.</li>
-  <li><span class="problem">Ein KI-Programm wird nicht gefunden</span> – Das Programm installieren oder seinen Pfad in <a href="hearsay://open/settings-ai"><span class="ui">Einstellungen</span> &gt; <span class="ui">KI</span></a> eingeben.</li>
-  <li><span class="problem">Ein KI-Programm ist nicht angemeldet</span> – Im Terminal einmal <code>copilot</code>, <code>claude</code>, <code>codex login</code> oder <code>agy</code> ausführen, dann in <span class="ui">Einstellungen</span> &gt; <span class="ui">KI</span> auf die zugehörige Prüftaste klicken.</li>
-  <li><span class="problem">Dateien nicht auffindbar</span> – Der Ordner steht in <a href="hearsay://open/settings-output"><span class="ui">Einstellungen</span> &gt; <span class="ui">Ausgabe</span></a>. Im Tab <span class="ui">Verlauf</span> auf <span class="ui">Im Finder zeigen</span> klicken.</li>
+  <li><span class="problem">Schlechter Ton mit AirPods oder einem anderen Bluetooth-Headset</span> – Während der Aufnahme schaltet <span data-platform="mac">macOS</span><span data-platform="windows">Windows</span> sie in einen Anrufmodus mit geringer Qualität. In lauter Umgebung das integrierte Mikrofon des <span data-platform="mac">Mac</span><span data-platform="windows">PCs</span> verwenden.</li>
+  <li data-platform="mac"><span class="problem">Ein KI-Programm wird nicht gefunden</span> – Das Programm installieren oder seinen Pfad in <a href="hearsay://open/settings-ai"><span class="ui">Einstellungen</span> &gt; <span class="ui">KI</span></a> eingeben.</li>
+  <li data-platform="windows"><span class="problem">Ein KI-Programm wird nicht gefunden</span> – Das Programm mit dem Befehl unter seiner Voreinstellung in <a href="hearsay://open/settings-ai"><span class="ui">Einstellungen</span> &gt; <span class="ui">KI</span></a> installieren (für Claude Code zum Beispiel <code>irm https://claude.ai/install.ps1 | iex</code> in PowerShell) oder dort seinen Pfad eingeben.</li>
+  <li><span class="problem">Ein KI-Programm ist nicht angemeldet</span> – <span data-platform="mac">Im Terminal</span><span data-platform="windows">In einem Terminal</span> einmal <code>copilot</code>, <code>claude</code>, <code>codex login</code> oder <code>agy</code> ausführen, dann in <span class="ui">Einstellungen</span> &gt; <span class="ui">KI</span> auf die zugehörige Prüftaste klicken.</li>
+  <li data-platform="mac"><span class="problem">Dateien nicht auffindbar</span> – Der Ordner steht in <a href="hearsay://open/settings-output"><span class="ui">Einstellungen</span> &gt; <span class="ui">Ausgabe</span></a>. Im Tab <span class="ui">Verlauf</span> auf <span class="ui">Im Finder zeigen</span> klicken.</li>
+  <li data-platform="windows"><span class="problem">Dateien nicht auffindbar</span> – Der Ordner steht in <a href="hearsay://open/settings-output"><span class="ui">Einstellungen</span> &gt; <span class="ui">Ausgabe</span></a>; Standard ist <code>%USERPROFILE%\Documents\Hearsay</code>. Im Tab <span class="ui">Verlauf</span> auf <span class="ui">Im Explorer zeigen</span> klicken.</li>
+  <li data-platform="windows"><span class="problem">Transkription langsam oder Live-Vorschau aus</span> – Hearsay nutzt den Grafikchip über Vulkan, wenn möglich, sonst den Prozessor (CPU). Auf der CPU dauert das endgültige Transkript etwa 1,5- bis 3,5-mal so lange wie die Aufnahme, und die Live-Vorschau bleibt aus. Ein PC mit Grafikchip von Intel, AMD oder NVIDIA ist viel schneller.</li>
 </ul>
 
 <h2 id="about">Über</h2>

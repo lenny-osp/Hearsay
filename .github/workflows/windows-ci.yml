@@ -1,0 +1,75 @@
+# Builds and tests the Windows version on every pull request and every push
+# to main (PLAN.md 4.7 and 18.4, "Updates and packaging"). No step needs or
+# downloads a speech model: the Whisper integration tests skip themselves
+# without TEST_RUNNER_HEARSAY_MODEL_DIR, and the capture tests skip on a
+# runner without audio devices. There is no Windows release workflow yet;
+# it waits for the owner's packaging decision (PLAN.md 18.3, Packaging).
+name: Windows CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build, core tests, notices, strings
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      DOTNET_NOLOGO: "1"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      NUGET_PACKAGES: ${{ github.workspace }}\.nuget\packages
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      # Keyed by every project file and the shared build props: package
+      # versions live there (no lock files).
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}\.nuget\packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('windows/**/*.csproj', 'windows/Directory.Build.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      # Warnings are errors through windows/Directory.Build.props.
+      - name: Build Release
+        run: dotnet build windows\Hearsay.slnx -c Release
+
+      - name: Core tests (no model; integration and device tests skip)
+        run: |
+          Remove-Item Env:TEST_RUNNER_HEARSAY_MODEL_DIR -ErrorAction SilentlyContinue
+          dotnet test windows\Hearsay.Tests -c Release --no-build --logger trx --results-directory windows\Hearsay.Tests\TestResults
+
+      - name: Third-party notices are current
+        shell: powershell
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File windows\scripts\make-notices.ps1 -Check
+          if ($LASTEXITCODE -ne 0) { Write-Output "::error::windows/THIRD_PARTY_NOTICES.md is out of date: run windows\scripts\make-notices.ps1 and commit"; exit 1 }
+
+      - name: Strings are current in every language
+        run: |
+          python windows\scripts\import-strings.py --check
+          if ($LASTEXITCODE -ne 0) { Write-Output "::error::the .resw files or shared/localization are out of date: run python windows\scripts\import-strings.py, translate, and commit"; exit 1 }
+
+      - name: Upload the test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-test-results
+          path: windows/Hearsay.Tests/TestResults/
+          if-no-files-found: ignore

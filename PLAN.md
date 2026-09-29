@@ -800,6 +800,16 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
     Windows (18.4 "W6 core"); confirm both produce notes. Then try a
     transcript over about 32,000 characters with Copilot: the run must
     refuse before starting with the message naming the other providers.
+23. Windows, interface language and Restart Now (added 2026-09-30): in
+    Settings > General change the interface language to Deutsch, press
+    Restart Now (it asks first while recording); Hearsay quits and comes
+    back in German with one instance. Then set it back. The relaunch was
+    never run by an agent (it would start a second instance).
+24. Windows, update install (added 2026-09-30, after the packaging
+    decision): with a release zip, run the `HEARSAY_INSTALL_UPDATE` entry
+    against a scratch copy of the install folder, then a real in-app
+    update; the helper swaps the folder after quit and relaunches, log in
+    `%LOCALAPPDATA%\Hearsay\Updates\install.log`.
 
 ## 17. Polish list (found during review, not yet scheduled)
 
@@ -949,9 +959,9 @@ once after pulling this.
 | Settings and state | `%APPDATA%\Hearsay\settings.json`; models in `%LOCALAPPDATA%\Hearsay\Models`; spool in `%LOCALAPPDATA%\Hearsay\Recording`; output default `%USERPROFILE%\Documents\Hearsay` | |
 | Hotkeys, login, window modes | `RegisterHotKey`; `HKCU\...\Run` for launch at login; tray-only vs taskbar | |
 | Tray status | Same setting as the Mac (`menuBarShowsStatus`, default on): the tray icon swaps to a red variant while recording and a pause variant while paused. The Windows notification area cannot show text next to an icon, so the elapsed time goes in the tooltip. Label is Windows-only ("Show recording status in the notification area"); add it to `shared/localization` | added 2026-09-29 |
-| Localization | `.resw` generated from `shared/localization` by a script; interface language setting applies at next launch | |
-| Help | WebView2 rendering `shared/help/<lang>/Help.html`; `hearsay://open/<tab>` links handled the same way | |
-| Packaging | MSIX (or Inno Setup) with code signing through Azure Trusted Signing; updates through MSIX or Velopack | unsigned builds trigger SmartScreen |
+| Localization | `windows/scripts/import-strings.py` generates `windows/Hearsay.App/Strings/<lang>/Resources.resw` (committed, so a build needs no Python; `--check` in CI) from `shared/localization/*.json`; `Strings.cs` is the single lookup over MRT Core (`ResourceManager` without package identity, language from `InterfaceLanguage.ResolveAtLaunch`); Restart Now relaunches. | Done 2026-09-30: 261 Mac keys reused (246 app, 15 core; all 96 core entries are also in the resw so `Strings.CoreText` translates Core's English), 40 Windows-only keys added under catalog `windows` with translations in all four languages; resw names are `<catalog>_` + 16 hex digits of the key's SHA-256 (keys are sentences). The Mac scripts skip catalog `windows` (`merge-translations.py validate`) and keep those entries on export (`export-strings.py`). Placeholders `%@` become `{0}`. Still English: Core error texts that carry no key (CLI, provider, pipeline, download, engine, updates) and hotkey key names (18.9). |
+| Help | WebView2 rendering `shared/help/<lang>/Help.html`; `hearsay://open/<tab>` links handled the same way. One page per language serves both platforms: a platform-specific passage carries `data-platform="mac"` or `data-platform="windows"` on the smallest enclosing `<li>`, `<p>`, `<span>` or `<section>`, and the shared CSS hides it unless `<html>` has the matching class (`html:not(.windows) [data-platform="windows"]` and `html.windows [data-platform="mac"]` are `display: none`, so a page with no class shows the Mac text). The Windows `HelpWindow` adds class `windows` at each document's DOMContentLoaded through `ExecuteScriptAsync` and keeps the view transparent until then; `AddScriptToExecuteOnDocumentCreatedAsync` does not run with `IsScriptEnabled` off (WebView2 154), and turning page scripts on was rejected. | Decided 2026-09-30 (W7). Windows passages cover only what differs: notification area and taskbar, the three window modes, Settings > Privacy & security > Microphone (system audio needs no permission), Ctrl+Alt+Win+R / P and F1, `%USERPROFILE%\Documents\Hearsay`, Reveal in Explorer and the Recycle Bin, right-click, the install commands, the Copilot and Antigravity length limit (18.4 "W6 core"), Vulkan or CPU speed and live preview off (18.4 "Speed"), the File tab's types (18.4 "W5 app wiring"), the Windows model, restart wording. The Mac page renders the same visible text as before with no class (checked by extracting each page's visible text under the CSS rule, all five languages). The Mac still sets no class (18.9). |
+| Packaging | **Proposal for the owner, 2026-09-30 (not decided):** the unpackaged, self-contained `win-x64` app it already is (18.6, "Toolchain verified"), published as `Hearsay-<version>-win-x64.zip` (one `Hearsay\` folder inside) on the same GitHub Release and `SHA256SUMS.txt` as the DMG, with the in-app update of 18.4 "Updates and packaging (proposal)": parity with the Mac's DMG plus in-app install. Signed with a self-signed code-signing identity from a repository secret, as the Mac is, so every release has the same signer and the update can check it; SmartScreen still shows "Windows protected your PC" (More info > Run anyway) on the first launch of a downloaded zip, which README and the release notes explain. If the owner buys Azure Trusted Signing, releases are signed with it instead and the prompt goes away as reputation builds; no code change (the signer rule accepts a renewed trusted certificate with the same subject). | Alternatives not chosen: **MSIX** needs a certificate the PC already trusts (a self-signed one must be imported into the machine's trusted store by an administrator, or the package sideloaded with Developer Mode, which AGENTS.md says not to ask users to change), and its App Installer updates would replace the Mac-style check. **Velopack** adds a framework (its NuGet package, CLI and release-feed layout) for delta updates and a Setup.exe, the kind of dependency 4.6 removed Sparkle to avoid. **Inno Setup** adds an installer the zip does not need. Until the owner decides there is no Windows release workflow; `windows-ci.yml` builds and tests only. |
 
 ### 18.4 Differences to accept
 
@@ -1234,7 +1244,8 @@ because the SDK has no notification-icon API; WebView2 comes with the SDK):
 - **Single instance** through `AppInstance.FindOrRegisterForKey`; debug
   runs skip it. WebView2 profile in `%LOCALAPPDATA%\Hearsay\WebView2`.
 - **Help**: the shared pages copied at build time; they describe macOS
-  (Menu bar, System Settings), so W7 needs Windows text or conditional
+  (Menu bar, System Settings); resolved 2026-09-30 with `data-platform`
+  passages (18.3 Help row), so this bullet is history: W7 needed Windows text or conditional
   sections.
 - **Debug entry** `HEARSAY_UI_SNAPSHOTS` renders 14 PNGs (tabs, Settings
   sections, the settings-problem banner, the help window, a help-link
@@ -1397,6 +1408,92 @@ active or transcribing. Where Windows differs from the Mac:
   detection at 30 s settled English, the final pass took 30 s. The live
   microphone path is still untested on hardware (W3, section 16 item 19).
 
+Updates and packaging (proposal, 2026-09-30; W7). The core is done and
+tested in `windows/Hearsay.Core/Updates` against scratch folders and fake
+zips; the dialogs, the Settings section and a Windows release workflow wait
+for the owner's decision (18.3, Packaging). Mechanism, step by step against
+4.6:
+
+- **Check** (`UpdateChecker`): the Mac's request, 15 s timeout, version
+  rule, errors and texts on `HttpClient`, plus a `User-Agent` header, which
+  GitHub's API requires (URLSession adds one by itself). Same settings
+  (`automaticUpdateChecks`, `lastUpdateCheck`) and schedule (10 s after
+  launch, then hourly, due after 24 h); `CheckAsync` stores the time after
+  a success or a 404, as the Mac's `UpdateService.fetchOutcome`. The slug
+  is `UpdateChecker.HearsayRepository`, tested equal to
+  `HEARSAY_UPDATE_REPOSITORY` in `mac/project.yml`: both platforms read the
+  same "latest" release, so one tag should carry both the DMG and the zip.
+  A Mac-only release appears on Windows as available with "The release has
+  no Windows zip file or checksum list." and Download (release page).
+- **Asset**: `Hearsay-<version>-win-x64.zip`, else the only asset ending in
+  `-win-x64.zip` (no plain `.zip` fallback, which a macOS or source archive
+  would match); `SHA256SUMS.txt` is the same file with one more line.
+- **Location** (4.6 step 1): refused when Hearsay runs from inside the zip
+  (Explorer's `Temp1_*.zip`, 7-Zip's `7zO*`, WinRAR's `Rar$*` folders; the
+  Mac's translocation), when its folder has no `Hearsay.exe` (the Mac's "not
+  an app bundle"), or when the folder or its parent cannot be written (a
+  probe file, so ACLs decide; for example under Program Files). There is no
+  disk-image case.
+- **Download and verify** (steps 3, 4): into
+  `%LOCALAPPDATA%\Hearsay\Updates\<version>\` (other versions removed, a
+  cached zip whose checksum matches is reused), SHA-256 against its line in
+  `SHA256SUMS.txt` (no line = failure), extracted with `ZipFile` (entries
+  outside the folder refused; the Mac mounts the DMG), exactly one
+  `Hearsay.exe`, at the root or in one top folder.
+- **Identity and signer** (step 5): ProductName `Hearsay` (the Mac's bundle
+  identifier) and ProductVersion without the `+<commit>` suffix equal to the
+  release version, from the version resource; Authenticode through
+  WinVerifyTrust (no revocation check, no network). When the running exe is
+  signed, the new one must be intact and signed by the same certificate
+  (SHA-256 thumbprint) or, when both chain to a trusted root, by a
+  certificate with the same subject (Trusted Signing renews its short-lived
+  certificates). When the running build is unsigned (local and CI builds),
+  only an intact signature is required if the new one is signed at all (the
+  Mac's ad-hoc case). Failures delete the cache folder.
+- **Stage** (step 6): copied to `<parent of install>\.Hearsay-update-<v>`
+  (hidden, same volume), `Zone.Identifier` streams removed (the Mac's
+  quarantine), checked again.
+- **Install** (step 7): Windows cannot replace a running exe, so instead of
+  `replaceItemAt` the app starts `UpdateSwapHelper`, a Windows PowerShell 5.1
+  script passed with `-EncodedCommand` (no script file, so the execution
+  policy is not involved; hidden; working folder outside the install), and
+  quits. The helper waits up to 120 s for the app's process (id and start
+  time, so a reused id is not waited for), renames the install folder to
+  `.Hearsay-previous` and the staged folder into its place (each retried
+  for 30 s), clears the hidden attribute, deletes the old folder and the
+  cache, and relaunches `Hearsay.exe`. On a failure nothing changes, or the
+  old folder is renamed back; the old version is relaunched and
+  `%LOCALAPPDATA%\Hearsay\Updates\install.log` (`SwapPlan.LogFileIn`) says
+  why; exit codes 3 to 6. The install path stays the same, so
+  shortcuts and the Run key keep working. Tested with the real script on
+  scratch folders (swap, locked old and new folders with rollback, waiting
+  for a process, a process that does not quit, a reused id); not tested
+  with a signed build or a real relaunch, since no release exists. Risk: a
+  launcher that runs Hearsay in a kill-on-close job object would end the
+  helper with the app; Explorer and the Run key do not.
+- **Debug**: `UpdateInstallDebug.RunAsync` is the core of
+  `HEARSAY_INSTALL_UPDATE=<zip> HEARSAY_INSTALL_TARGET=<folder>
+  [HEARSAY_INSTALL_VERSION=<v>]`: the steps above against a scratch folder,
+  the swap through the real helper with no process to wait for and no
+  relaunch; the running app's folder is refused. The App wires the variable.
+- **Texts**: the Mac's keys where the text is the same (`UpdateTexts`,
+  `UpdateCheckError`, most of `UpdatePackageError`). Windows-only keys for
+  `shared/localization`: "Windows is running Hearsay straight from the zip
+  file. …", "This copy of Hearsay is not in its own app folder, so it cannot
+  update itself. …", "Hearsay cannot write to the folder %@. Move the
+  Hearsay folder …", "The zip file could not be extracted: %@", "The zip
+  file should contain one Hearsay.exe but contains %lld.", "The new version
+  is signed by %1$@, not by %2$@ like this copy of Hearsay.", "The new app
+  has the product name %@, not Hearsay.", "The release has no Windows zip
+  file or checksum list.", "The last update could not be installed. Hearsay
+  is still the previous version."
+- **The owner decides**: (1) packaging as proposed in 18.3 (zip plus in-app
+  update) or MSIX/Velopack; (2) signing: create a self-signed Windows
+  code-signing certificate once and store it as a repository secret (as
+  `MACOS_CERTIFICATE_P12`), or buy Azure Trusted Signing; (3) whether every
+  `v*` tag carries both platforms (proposed: yes, one version number); (4)
+  the suggested install folder `%LOCALAPPDATA%\Programs\Hearsay` (README).
+
 ### 18.5 Acceptance
 
 For each `shared/fixtures/<lang>-30s.wav`, transcribed with the Windows
@@ -1443,7 +1540,7 @@ created in the IDE.
 | W4. Shell | WinUI window with the five tabs, tray icon, window modes, hotkeys, settings, model store and downloads. **Shell, Settings, tray, hotkeys, help window, UI snapshots and the model store core done 2026-09-29** (18.4); the Models and History tabs follow | 6 to 8 days |
 | W5. Transcription | live preview, final pass, File mode, Auto detection with banners, Chinese conversion. **Engine done 2026-09-29** (`windows/Hearsay.Whisper`: one context, detection, silence gate, speed probe; 18.4 "W5 Whisper engine"); **app wiring done 2026-09-30** (Record and File tabs, recording controller, recovery sheet, quit prompt, debug entries; 18.4 "W5 app wiring") | 5 to 6 days |
 | W6. Notes | CLI providers on Windows, Ollama, Custom, confirm and naming sheets, History with regenerate and Rename (section 4.8; port `OutputWriter.renameEntry` and its tests). **Core done 2026-09-29, app done 2026-09-30** (18.4 "W6 core" and "W6 app"); live runs with the real CLIs are section 16 item 22 | 4 to 5 days |
-| W7. Polish and ship | interface languages from shared translations, help window, crash recovery, MSIX, signing, updates, README | 5 to 6 days |
+| W7. Polish and ship | interface languages from shared translations, help window, crash recovery, MSIX, signing, updates, README. **2026-09-30: interface languages, Windows help passages, crash recovery (with W5), the update check and install in Core, third-party notices, Windows CI and the README section are done.** Open: the packaging and signing decision (18.4 "Updates and packaging (proposal)"), the app-side update UI and `HEARSAY_INSTALL_UPDATE` entry, the Windows release workflow, and the 18.9 list | 5 to 6 days |
 
 Total: about 6 to 8 weeks of agent time.
 
@@ -1493,8 +1590,22 @@ findings only in a chat report.
   bindings only).
 - **Recycle Bin restore** on a failed `ReplaceNamed` through
   `IFileOperation` with a progress sink (18.4, "Recycle Bin").
-- **Windows help text**: the shared pages describe macOS; W7 decides
-  between Windows pages and conditional sections.
+- **Mac help platform class** (18.3, Help row): `HelpWebView.makeWebView()`
+  in `mac/Hearsay/Features/Help/HelpView.swift` should add one user script,
+  `configuration.userContentController.addUserScript(WKUserScript(source:
+  "document.documentElement.classList.add('mac')", injectionTime:
+  .atDocumentStart, forMainFrameOnly: true))` (app scripts run with
+  `allowsContentJavaScript` off). Until then the Mac relies on the CSS
+  default, which shows the Mac passages when `<html>` has no class.
+- **Help follow-ups** (W7): the Windows page has no Updates line (the Mac's
+  names "the Hearsay menu"; add a Windows one when the Windows update UI
+  lands) and still names "Show Licenses…" in Settings > General >
+  Acknowledgements, which Windows does not have yet. The Windows-only
+  labels the pages quote (window modes, the notification-area status
+  toggle, Reveal in Explorer, Move to Recycle Bin…) use Microsoft's terms
+  in each language and must match the `shared/localization` entries once
+  they are added. A test that the five pages keep identical `<style>`
+  blocks, ids and hrefs would catch drift (today a script run by hand).
 - **Strings**: "press Return" vs "Enter"; "Trash" vs "Recycle Bin" in the
   reused error text; the new Windows-only keys listed in 18.4 need
   `shared/localization` entries.

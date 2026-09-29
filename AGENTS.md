@@ -161,6 +161,14 @@ byte-identical to the Python tool (tests in `NotesTests.swift`).
   quoted in the help pages must match the catalogs. Help pages are edited
   only in `shared/help/<lang>/Help.html`; `Scripts/sync-shared.sh` copies
   them to the git-ignored `Hearsay/Resources/<lang>.lproj/Help.html`.
+  Windows: every user-facing string goes through
+  `windows/Hearsay.App/Strings.cs` (`App("…")`, `Core("…")` for the Mac's
+  catalogs, `Win("…")` for Windows-only keys, which are catalog `windows`
+  entries in the same JSON files). After changing Strings.cs or the JSON,
+  run `python windows/scripts/import-strings.py` (CI: `--check`); it writes
+  `windows/Hearsay.App/Strings/<lang>/Resources.resw`, which are committed
+  so a build needs no Python, and fails if a key is missing in any language.
+  The Mac's export and merge scripts must keep the `windows` entries.
 - Third-party notices: after a dependency change run
   `mac/Scripts/make-notices.sh`; it fails loudly if a license file moved.
 - C# (Windows): nullable reference types on, warnings are errors, no `!`

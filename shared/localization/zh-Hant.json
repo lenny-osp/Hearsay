@@ -3982,5 +3982,353 @@
     "comment": "Update install error: the app is translocated by Gatekeeper",
     "placeholders": [],
     "translation": "macOS 正從暫時位置執行 Hearsay。請將 Hearsay 移到「應用程式」資料夾，從那裡打開後再檢查更新。"
+  },
+  {
+    "catalog": "windows",
+    "key": "%@ byte",
+    "english": "%@ byte",
+    "comment": "Models tab: a size under 1 KB, exactly one byte. %@ is the number. Windows only (the Mac uses the system's ByteCountFormatter).",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "%@ 位元組"
+  },
+  {
+    "catalog": "windows",
+    "key": "%@ bytes",
+    "english": "%@ bytes",
+    "comment": "Models tab: a size under 1 KB. %@ is the number. Windows only (the Mac uses the system's ByteCountFormatter).",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "%@ 位元組"
+  },
+  {
+    "catalog": "windows",
+    "key": "%@ does not exist.",
+    "english": "%@ does not exist.",
+    "comment": "File tab error. %@ is a file name. Windows only.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "%@ 不存在。"
+  },
+  {
+    "catalog": "windows",
+    "key": "Could not open the file",
+    "english": "Could not open the file",
+    "comment": "Alert title when File Explorer or the default app cannot open a file. Windows only.",
+    "placeholders": [],
+    "translation": "無法打開檔案"
+  },
+  {
+    "catalog": "windows",
+    "key": "Could not save the settings: %@ The change holds until Hearsay quits.",
+    "english": "Could not save the settings: %@ The change holds until Hearsay quits.",
+    "comment": "Settings problem banner. %@ is the system error message. Windows only.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "無法儲存設定：%@ 此變更在 Hearsay 結束前有效。"
+  },
+  {
+    "catalog": "windows",
+    "key": "Could not show the files in File Explorer: %@",
+    "english": "Could not show the files in File Explorer: %@",
+    "comment": "History error. %@ is the system error message. File Explorer is the Windows file manager (the Mac's Finder). Windows only.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "無法在檔案總管中顯示檔案：%@"
+  },
+  {
+    "catalog": "windows",
+    "key": "Credential Manager error: %@",
+    "english": "Credential Manager error: %@",
+    "comment": "Settings > AI token error, the Mac's \"Keychain error: %@\". Credential Manager is the Windows name of the password store: use the name Windows shows in this language. %@ is the system error message. Windows only.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "認證管理員錯誤：%@"
+  },
+  {
+    "catalog": "windows",
+    "key": "Delete %@?",
+    "english": "Delete %@?",
+    "comment": "Models tab: alert title before deleting a model. %@ is the model name. Windows only.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "要刪除 %@ 嗎？"
+  },
+  {
+    "catalog": "windows",
+    "key": "Hearsay could not read its settings and started with the defaults. The old file was moved to %@.",
+    "english": "Hearsay could not read its settings and started with the defaults. The old file was moved to %@.",
+    "comment": "Settings problem banner. %@ is a file path. Windows only.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Hearsay 無法讀取其設定，已使用預設值啟動。舊檔案已移至 %@。"
+  },
+  {
+    "catalog": "windows",
+    "key": "Hearsay has no microphone access. Allow it in Settings > Privacy & security > Microphone (\"Let desktop apps access your microphone\").",
+    "english": "Hearsay has no microphone access. Allow it in Settings > Privacy & security > Microphone (\"Let desktop apps access your microphone\").",
+    "comment": "Record tab error, the Mac's System Settings text with the Windows Settings path. Use the names Windows Settings shows in this language for the path and the quoted switch. Windows only.",
+    "placeholders": [],
+    "translation": "Hearsay 沒有麥克風取用權限。請在「設定 > 隱私權與安全性 > 麥克風」中允許（「讓桌面應用程式存取您的麥克風」）。"
+  },
+  {
+    "catalog": "windows",
+    "key": "Hearsay transcribes on this PC with a Whisper model that you download once. Nothing is sent anywhere while transcribing. The recommended model gives the best balance of accuracy and speed; smaller ones download faster but make more mistakes.",
+    "english": "Hearsay transcribes on this PC with a Whisper model that you download once. Nothing is sent anywhere while transcribing. The recommended model gives the best balance of accuracy and speed; smaller ones download faster but make more mistakes.",
+    "comment": "First-run model sheet, the Mac's text with \"this PC\" for \"this Mac\". Windows only.",
+    "placeholders": [],
+    "translation": "Hearsay 會在這台電腦上使用 Whisper 模型轉錄，模型只需下載一次。轉錄期間不會傳送任何資料。建議的模型在準確度與速度之間取得最佳平衡；較小的模型下載較快，但錯誤較多。"
+  },
+  {
+    "catalog": "windows",
+    "key": "Hearsay will use %@ after it restarts.",
+    "english": "Hearsay will use %@ after it restarts.",
+    "comment": "Settings > General, below the interface language, next to Restart Now. %@ is a language autonym such as Deutsch (never translated). Windows only.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Hearsay 重新啟動後將使用 %@。"
+  },
+  {
+    "catalog": "windows",
+    "key": "Hearsay: %@",
+    "english": "Hearsay: %@",
+    "comment": "Tooltip of the notification area icon. %@ is the state, such as \"Recording 00:12\". Windows only.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Hearsay：%@"
+  },
+  {
+    "catalog": "windows",
+    "key": "Help",
+    "english": "Help",
+    "comment": "Main window: the Help item at the end of the tab bar. Windows only.",
+    "placeholders": [],
+    "translation": "說明"
+  },
+  {
+    "catalog": "windows",
+    "key": "Its files are removed from this PC. You can download it again at any time.",
+    "english": "Its files are removed from this PC. You can download it again at any time.",
+    "comment": "Models tab: alert text before deleting a model. Windows only.",
+    "placeholders": [],
+    "translation": "其檔案會從這台電腦移除。你隨時可以重新下載。"
+  },
+  {
+    "catalog": "windows",
+    "key": "Live preview off: this computer is too slow for it",
+    "english": "Live preview off: this computer is too slow for it",
+    "comment": "Record tab notice when the speed probe finds the computer too slow for the live preview. Windows only.",
+    "placeholders": [],
+    "translation": "即時預覽已關閉：這台電腦的速度不足"
+  },
+  {
+    "catalog": "windows",
+    "key": "Media Foundation returned %@, %@ bits, %@ channels.",
+    "english": "Media Foundation returned %1$@, %2$@ bits, %3$@ channels.",
+    "comment": "File tab error detail when a file decodes to an unexpected format. %1$@ is a technical encoding name (IeeeFloat, Pcm), %2$@ and %3$@ numbers. Media Foundation is a product name. Windows only.",
+    "placeholders": [
+      "%@",
+      "%@",
+      "%@"
+    ],
+    "translation": "Media Foundation 傳回 %1$@、%2$@ 位元、%3$@ 聲道。"
+  },
+  {
+    "catalog": "windows",
+    "key": "Meeting notes are not available in this build yet.",
+    "english": "Meeting notes are not available in this build yet.",
+    "comment": "Tooltip of the disabled Generate Notes button in a build without the notes flow. Windows only.",
+    "placeholders": [],
+    "translation": "此版本尚未提供會議筆記。"
+  },
+  {
+    "catalog": "windows",
+    "key": "Move this meeting to the Recycle Bin?",
+    "english": "Move this meeting to the Recycle Bin?",
+    "comment": "History alert title, the Mac's \"Move this meeting to the Trash?\". Use the name Windows gives the Recycle Bin in this language. Windows only.",
+    "placeholders": [],
+    "translation": "要將此會議移至資源回收筒嗎？"
+  },
+  {
+    "catalog": "windows",
+    "key": "Move to Recycle Bin",
+    "english": "Move to Recycle Bin",
+    "comment": "History alert button, the Mac's \"Move to Trash\". Windows only.",
+    "placeholders": [],
+    "translation": "移至資源回收筒"
+  },
+  {
+    "catalog": "windows",
+    "key": "Move to Recycle Bin…",
+    "english": "Move to Recycle Bin…",
+    "comment": "History context menu item, the Mac's \"Move to Trash…\". Windows only.",
+    "placeholders": [],
+    "translation": "移至資源回收筒…"
+  },
+  {
+    "catalog": "windows",
+    "key": "No output device is available to capture system audio from.",
+    "english": "No output device is available to capture system audio from.",
+    "comment": "Record tab notice, the Mac's \"No display is available to capture system audio from.\": Windows records system audio from the default output device. Windows only.",
+    "placeholders": [],
+    "translation": "沒有可用來擷取系統聲音的輸出裝置。"
+  },
+  {
+    "catalog": "windows",
+    "key": "Notification area and taskbar",
+    "english": "Notification area and taskbar",
+    "comment": "Settings > Window picker, the Mac's \"Menu bar and Dock\". Use the names Windows gives the notification area and the taskbar in this language. Windows only.",
+    "placeholders": [],
+    "translation": "通知區域與工作列"
+  },
+  {
+    "catalog": "windows",
+    "key": "Notification area only",
+    "english": "Notification area only",
+    "comment": "Settings > Window picker, the Mac's \"Menu bar only\". Windows only.",
+    "placeholders": [],
+    "translation": "僅通知區域"
+  },
+  {
+    "catalog": "windows",
+    "key": "Reveal in Explorer",
+    "english": "Reveal in Explorer",
+    "comment": "History: shows the meeting's files selected in File Explorer, the Mac's \"Reveal in Finder\". Windows only.",
+    "placeholders": [],
+    "translation": "在檔案總管中顯示"
+  },
+  {
+    "catalog": "windows",
+    "key": "Saving moves the current notes to the Recycle Bin.",
+    "english": "Saving moves the current notes to the Recycle Bin.",
+    "comment": "Naming sheet, the Mac's \"Saving moves the current notes to the Trash.\". Windows only.",
+    "placeholders": [],
+    "translation": "儲存後，目前的筆記會移至資源回收筒。"
+  },
+  {
+    "catalog": "windows",
+    "key": "Show in Explorer",
+    "english": "Show in Explorer",
+    "comment": "Models tab: opens the models folder in File Explorer, the Mac's \"Show in Finder\". Windows only.",
+    "placeholders": [],
+    "translation": "在檔案總管中顯示"
+  },
+  {
+    "catalog": "windows",
+    "key": "Show recording status in the notification area",
+    "english": "Show recording status in the notification area",
+    "comment": "Settings > Window toggle, the Mac's \"Show recording status in the menu bar\". Windows only.",
+    "placeholders": [],
+    "translation": "在通知區域顯示錄音狀態"
+  },
+  {
+    "catalog": "windows",
+    "key": "Some files could not be moved to the Recycle Bin:",
+    "english": "Some files could not be moved to the Recycle Bin:",
+    "comment": "History alert, followed by one line per file. Windows only.",
+    "placeholders": [],
+    "translation": "部分檔案無法移至資源回收筒："
+  },
+  {
+    "catalog": "windows",
+    "key": "Taskbar only",
+    "english": "Taskbar only",
+    "comment": "Settings > Window picker, the Mac's \"Dock only\". Windows only.",
+    "placeholders": [],
+    "translation": "僅工作列"
+  },
+  {
+    "catalog": "windows",
+    "key": "The current notes will be moved to the Recycle Bin when the new ones are saved.",
+    "english": "The current notes will be moved to the Recycle Bin when the new ones are saved.",
+    "comment": "Confirm sheet, the Mac's \"…moved to the Trash…\". Windows only.",
+    "placeholders": [],
+    "translation": "儲存新筆記時，目前的筆記會移至資源回收筒。"
+  },
+  {
+    "catalog": "windows",
+    "key": "This sends the whole transcript to %@. Nothing leaves this PC otherwise.",
+    "english": "This sends the whole transcript to %@. Nothing leaves this PC otherwise.",
+    "comment": "Confirm sheet, the Mac's text with \"this PC\" for \"this Mac\". %@ is the provider name. Windows only.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "這會將完整逐字稿傳送至 %@。除此之外，不會有任何資料離開這台電腦。"
+  },
+  {
+    "catalog": "windows",
+    "key": "To install it, run `%@` in a terminal.",
+    "english": "To install it, run `%@` in a terminal.",
+    "comment": "Settings > AI, after each CLI caption. %@ is an install command such as `winget install GitHub.Copilot` (never translated). Windows only.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "若要安裝，請在終端機中執行 `%@`。"
+  },
+  {
+    "catalog": "windows",
+    "key": "Transcribing…",
+    "english": "Transcribing…",
+    "comment": "Record tab: the live preview chunk being transcribed right now. Windows only.",
+    "placeholders": [],
+    "translation": "正在轉錄…"
+  },
+  {
+    "catalog": "windows",
+    "key": "Uses Claude Code installed on this PC and your Claude subscription login; requests count against its usage limits. Run `claude` once in Terminal to log in. Model: an alias (sonnet, opus) or a full id. Effort: low, medium, high, xhigh, or max (none and minimal become low).",
+    "english": "Uses Claude Code installed on this PC and your Claude subscription login; requests count against its usage limits. Run `claude` once in Terminal to log in. Model: an alias (sonnet, opus) or a full id. Effort: low, medium, high, xhigh, or max (none and minimal become low).",
+    "comment": "Settings > AI caption, the Mac's text with \"this PC\" for \"this Mac\". Windows only.",
+    "placeholders": [],
+    "translation": "使用這台電腦上安裝的 Claude Code 與你的 Claude 訂閱登入；請求會計入其用量限制。請在「終端機」中執行一次 `claude` 以登入。模型：別名（sonnet、opus）或完整 ID。推理強度：low、medium、high、xhigh 或 max（none 與 minimal 會視為 low）。"
+  },
+  {
+    "catalog": "windows",
+    "key": "Uses Codex installed on this PC and your ChatGPT login; requests count against your plan's usage limits. Run `codex login` once in Terminal to log in. Effort: none, minimal, low, medium, high, xhigh, or max. An empty model uses Codex's default.",
+    "english": "Uses Codex installed on this PC and your ChatGPT login; requests count against your plan's usage limits. Run `codex login` once in Terminal to log in. Effort: none, minimal, low, medium, high, xhigh, or max. An empty model uses Codex's default.",
+    "comment": "Settings > AI caption, the Mac's text with \"this PC\" for \"this Mac\". Windows only.",
+    "placeholders": [],
+    "translation": "使用這台電腦上安裝的 Codex 與你的 ChatGPT 登入；請求會計入你方案的用量限制。請在「終端機」中執行一次 `codex login` 以登入。推理強度：none、minimal、low、medium、high、xhigh 或 max。模型留空時使用 Codex 的預設值。"
+  },
+  {
+    "catalog": "windows",
+    "key": "Uses the Antigravity CLI installed on this PC and the Google account it is logged in with; requests count against that account's limits. Run `agy` once in Terminal to log in; `agy models` lists the model ids. Effort: low, medium, high, or max, only for a model id without its own level (a model ending in -high, -medium, or -low ignores it). Runs use agy's hearsay-notes project, whose deny rules leave the model no tools except web search, and each run's conversation is deleted from agy's history afterwards.",
+    "english": "Uses the Antigravity CLI installed on this PC and the Google account it is logged in with; requests count against that account's limits. Run `agy` once in Terminal to log in; `agy models` lists the model ids. Effort: low, medium, high, or max, only for a model id without its own level (a model ending in -high, -medium, or -low ignores it). Runs use agy's hearsay-notes project, whose deny rules leave the model no tools except web search, and each run's conversation is deleted from agy's history afterwards.",
+    "comment": "Settings > AI caption, the Mac's text with \"this PC\" for \"this Mac\". Windows only.",
+    "placeholders": [],
+    "translation": "使用這台電腦上安裝的 Antigravity CLI 及其登入的 Google 帳號；請求會計入該帳號的限制。請在「終端機」中執行一次 `agy` 以登入；`agy models` 會列出模型 ID。推理強度：low、medium、high 或 max，僅適用於本身未帶等級的模型 ID（以 -high、-medium 或 -low 結尾的模型會忽略此設定）。執行時使用 agy 的 hearsay-notes 專案，其拒絕規則讓模型除了網路搜尋外無法使用任何工具，且每次執行的對話之後都會從 agy 的歷史記錄中刪除。"
+  },
+  {
+    "catalog": "windows",
+    "key": "Uses the Copilot CLI installed on this PC and its own login. Run `copilot` once in Terminal to log in. \"auto\" lets Copilot pick the model.",
+    "english": "Uses the Copilot CLI installed on this PC and its own login. Run `copilot` once in Terminal to log in. \"auto\" lets Copilot pick the model.",
+    "comment": "Settings > AI caption, the Mac's text with \"this PC\" for \"this Mac\". Windows only.",
+    "placeholders": [],
+    "translation": "使用這台電腦上安裝的 Copilot CLI 及其自身的登入。請在「終端機」中執行一次 `copilot` 以登入。「auto」會讓 Copilot 自行選擇模型。"
+  },
+  {
+    "catalog": "windows",
+    "key": "While recording, the notification area icon turns red and its tooltip shows the elapsed time. When off, the icon stays the same.",
+    "english": "While recording, the notification area icon turns red and its tooltip shows the elapsed time. When off, the icon stays the same.",
+    "comment": "Settings > Window caption, the Mac's menu bar text: the Windows notification area cannot show text next to the icon. Windows only.",
+    "placeholders": [],
+    "translation": "錄音時，通知區域圖示會變成紅色，其工具提示會顯示已錄時間。關閉時，圖示維持原樣。"
+  },
+  {
+    "catalog": "windows",
+    "key": "wav, m4a, mp3, aac, wma, flac, or the audio track of mp4 / mov",
+    "english": "wav, m4a, mp3, aac, wma, flac, or the audio track of mp4 / mov",
+    "comment": "File tab: the file types the drop target accepts, the Mac's list with what Windows can read. Keep the extensions as they are. Windows only.",
+    "placeholders": [],
+    "translation": "wav、m4a、mp3、aac、wma、flac，或 mp4／mov 的音軌"
   }
 ]

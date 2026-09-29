@@ -121,6 +121,11 @@ def validate(language, entries, expected):
             continue
         identity = (entry["catalog"], entry["key"])
         label = f"{language} {entry['catalog']}:{entry['key']!r}"
+        if entry["catalog"] == "windows":
+            # Windows-only strings share these files (PLAN.md 18.3,
+            # Localization). They have no Mac catalog; the Windows side
+            # checks them with windows/scripts/import-strings.py --check.
+            continue
         if identity in seen:
             problems.append(f"{label}: listed twice")
             continue

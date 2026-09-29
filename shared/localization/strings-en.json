@@ -3524,5 +3524,313 @@
     "english": "© 2026 Chihling Wang. MIT License.\nIncludes open-source software; see Settings > General > Acknowledgements.\nSupport Hearsay: Buy Me a Coffee",
     "comment": "Credits shown in the About Hearsay window (en.lproj/Credits.rtf). Plain text; line breaks are kept. 'Settings > General > Acknowledgements' names the Settings tab, its General section, and the Acknowledgements section: use the translated names of those labels.",
     "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "%@ byte",
+    "english": "%@ byte",
+    "comment": "Models tab: a size under 1 KB, exactly one byte. %@ is the number. Windows only (the Mac uses the system's ByteCountFormatter).",
+    "placeholders": [
+      "%@"
+    ]
+  },
+  {
+    "catalog": "windows",
+    "key": "%@ bytes",
+    "english": "%@ bytes",
+    "comment": "Models tab: a size under 1 KB. %@ is the number. Windows only (the Mac uses the system's ByteCountFormatter).",
+    "placeholders": [
+      "%@"
+    ]
+  },
+  {
+    "catalog": "windows",
+    "key": "%@ does not exist.",
+    "english": "%@ does not exist.",
+    "comment": "File tab error. %@ is a file name. Windows only.",
+    "placeholders": [
+      "%@"
+    ]
+  },
+  {
+    "catalog": "windows",
+    "key": "Could not open the file",
+    "english": "Could not open the file",
+    "comment": "Alert title when File Explorer or the default app cannot open a file. Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Could not save the settings: %@ The change holds until Hearsay quits.",
+    "english": "Could not save the settings: %@ The change holds until Hearsay quits.",
+    "comment": "Settings problem banner. %@ is the system error message. Windows only.",
+    "placeholders": [
+      "%@"
+    ]
+  },
+  {
+    "catalog": "windows",
+    "key": "Could not show the files in File Explorer: %@",
+    "english": "Could not show the files in File Explorer: %@",
+    "comment": "History error. %@ is the system error message. File Explorer is the Windows file manager (the Mac's Finder). Windows only.",
+    "placeholders": [
+      "%@"
+    ]
+  },
+  {
+    "catalog": "windows",
+    "key": "Credential Manager error: %@",
+    "english": "Credential Manager error: %@",
+    "comment": "Settings > AI token error, the Mac's \"Keychain error: %@\". Credential Manager is the Windows name of the password store: use the name Windows shows in this language. %@ is the system error message. Windows only.",
+    "placeholders": [
+      "%@"
+    ]
+  },
+  {
+    "catalog": "windows",
+    "key": "Delete %@?",
+    "english": "Delete %@?",
+    "comment": "Models tab: alert title before deleting a model. %@ is the model name. Windows only.",
+    "placeholders": [
+      "%@"
+    ]
+  },
+  {
+    "catalog": "windows",
+    "key": "Hearsay could not read its settings and started with the defaults. The old file was moved to %@.",
+    "english": "Hearsay could not read its settings and started with the defaults. The old file was moved to %@.",
+    "comment": "Settings problem banner. %@ is a file path. Windows only.",
+    "placeholders": [
+      "%@"
+    ]
+  },
+  {
+    "catalog": "windows",
+    "key": "Hearsay has no microphone access. Allow it in Settings > Privacy & security > Microphone (\"Let desktop apps access your microphone\").",
+    "english": "Hearsay has no microphone access. Allow it in Settings > Privacy & security > Microphone (\"Let desktop apps access your microphone\").",
+    "comment": "Record tab error, the Mac's System Settings text with the Windows Settings path. Use the names Windows Settings shows in this language for the path and the quoted switch. Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Hearsay transcribes on this PC with a Whisper model that you download once. Nothing is sent anywhere while transcribing. The recommended model gives the best balance of accuracy and speed; smaller ones download faster but make more mistakes.",
+    "english": "Hearsay transcribes on this PC with a Whisper model that you download once. Nothing is sent anywhere while transcribing. The recommended model gives the best balance of accuracy and speed; smaller ones download faster but make more mistakes.",
+    "comment": "First-run model sheet, the Mac's text with \"this PC\" for \"this Mac\". Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Hearsay will use %@ after it restarts.",
+    "english": "Hearsay will use %@ after it restarts.",
+    "comment": "Settings > General, below the interface language, next to Restart Now. %@ is a language autonym such as Deutsch (never translated). Windows only.",
+    "placeholders": [
+      "%@"
+    ]
+  },
+  {
+    "catalog": "windows",
+    "key": "Hearsay: %@",
+    "english": "Hearsay: %@",
+    "comment": "Tooltip of the notification area icon. %@ is the state, such as \"Recording 00:12\". Windows only.",
+    "placeholders": [
+      "%@"
+    ]
+  },
+  {
+    "catalog": "windows",
+    "key": "Help",
+    "english": "Help",
+    "comment": "Main window: the Help item at the end of the tab bar. Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Its files are removed from this PC. You can download it again at any time.",
+    "english": "Its files are removed from this PC. You can download it again at any time.",
+    "comment": "Models tab: alert text before deleting a model. Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Live preview off: this computer is too slow for it",
+    "english": "Live preview off: this computer is too slow for it",
+    "comment": "Record tab notice when the speed probe finds the computer too slow for the live preview. Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Media Foundation returned %@, %@ bits, %@ channels.",
+    "english": "Media Foundation returned %1$@, %2$@ bits, %3$@ channels.",
+    "comment": "File tab error detail when a file decodes to an unexpected format. %1$@ is a technical encoding name (IeeeFloat, Pcm), %2$@ and %3$@ numbers. Media Foundation is a product name. Windows only.",
+    "placeholders": [
+      "%@",
+      "%@",
+      "%@"
+    ]
+  },
+  {
+    "catalog": "windows",
+    "key": "Meeting notes are not available in this build yet.",
+    "english": "Meeting notes are not available in this build yet.",
+    "comment": "Tooltip of the disabled Generate Notes button in a build without the notes flow. Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Move this meeting to the Recycle Bin?",
+    "english": "Move this meeting to the Recycle Bin?",
+    "comment": "History alert title, the Mac's \"Move this meeting to the Trash?\". Use the name Windows gives the Recycle Bin in this language. Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Move to Recycle Bin",
+    "english": "Move to Recycle Bin",
+    "comment": "History alert button, the Mac's \"Move to Trash\". Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Move to Recycle Bin…",
+    "english": "Move to Recycle Bin…",
+    "comment": "History context menu item, the Mac's \"Move to Trash…\". Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "No output device is available to capture system audio from.",
+    "english": "No output device is available to capture system audio from.",
+    "comment": "Record tab notice, the Mac's \"No display is available to capture system audio from.\": Windows records system audio from the default output device. Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Notification area and taskbar",
+    "english": "Notification area and taskbar",
+    "comment": "Settings > Window picker, the Mac's \"Menu bar and Dock\". Use the names Windows gives the notification area and the taskbar in this language. Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Notification area only",
+    "english": "Notification area only",
+    "comment": "Settings > Window picker, the Mac's \"Menu bar only\". Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Reveal in Explorer",
+    "english": "Reveal in Explorer",
+    "comment": "History: shows the meeting's files selected in File Explorer, the Mac's \"Reveal in Finder\". Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Saving moves the current notes to the Recycle Bin.",
+    "english": "Saving moves the current notes to the Recycle Bin.",
+    "comment": "Naming sheet, the Mac's \"Saving moves the current notes to the Trash.\". Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Show in Explorer",
+    "english": "Show in Explorer",
+    "comment": "Models tab: opens the models folder in File Explorer, the Mac's \"Show in Finder\". Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Show recording status in the notification area",
+    "english": "Show recording status in the notification area",
+    "comment": "Settings > Window toggle, the Mac's \"Show recording status in the menu bar\". Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Some files could not be moved to the Recycle Bin:",
+    "english": "Some files could not be moved to the Recycle Bin:",
+    "comment": "History alert, followed by one line per file. Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Taskbar only",
+    "english": "Taskbar only",
+    "comment": "Settings > Window picker, the Mac's \"Dock only\". Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "The current notes will be moved to the Recycle Bin when the new ones are saved.",
+    "english": "The current notes will be moved to the Recycle Bin when the new ones are saved.",
+    "comment": "Confirm sheet, the Mac's \"…moved to the Trash…\". Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "This sends the whole transcript to %@. Nothing leaves this PC otherwise.",
+    "english": "This sends the whole transcript to %@. Nothing leaves this PC otherwise.",
+    "comment": "Confirm sheet, the Mac's text with \"this PC\" for \"this Mac\". %@ is the provider name. Windows only.",
+    "placeholders": [
+      "%@"
+    ]
+  },
+  {
+    "catalog": "windows",
+    "key": "To install it, run `%@` in a terminal.",
+    "english": "To install it, run `%@` in a terminal.",
+    "comment": "Settings > AI, after each CLI caption. %@ is an install command such as `winget install GitHub.Copilot` (never translated). Windows only.",
+    "placeholders": [
+      "%@"
+    ]
+  },
+  {
+    "catalog": "windows",
+    "key": "Transcribing…",
+    "english": "Transcribing…",
+    "comment": "Record tab: the live preview chunk being transcribed right now. Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Uses Claude Code installed on this PC and your Claude subscription login; requests count against its usage limits. Run `claude` once in Terminal to log in. Model: an alias (sonnet, opus) or a full id. Effort: low, medium, high, xhigh, or max (none and minimal become low).",
+    "english": "Uses Claude Code installed on this PC and your Claude subscription login; requests count against its usage limits. Run `claude` once in Terminal to log in. Model: an alias (sonnet, opus) or a full id. Effort: low, medium, high, xhigh, or max (none and minimal become low).",
+    "comment": "Settings > AI caption, the Mac's text with \"this PC\" for \"this Mac\". Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Uses Codex installed on this PC and your ChatGPT login; requests count against your plan's usage limits. Run `codex login` once in Terminal to log in. Effort: none, minimal, low, medium, high, xhigh, or max. An empty model uses Codex's default.",
+    "english": "Uses Codex installed on this PC and your ChatGPT login; requests count against your plan's usage limits. Run `codex login` once in Terminal to log in. Effort: none, minimal, low, medium, high, xhigh, or max. An empty model uses Codex's default.",
+    "comment": "Settings > AI caption, the Mac's text with \"this PC\" for \"this Mac\". Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Uses the Antigravity CLI installed on this PC and the Google account it is logged in with; requests count against that account's limits. Run `agy` once in Terminal to log in; `agy models` lists the model ids. Effort: low, medium, high, or max, only for a model id without its own level (a model ending in -high, -medium, or -low ignores it). Runs use agy's hearsay-notes project, whose deny rules leave the model no tools except web search, and each run's conversation is deleted from agy's history afterwards.",
+    "english": "Uses the Antigravity CLI installed on this PC and the Google account it is logged in with; requests count against that account's limits. Run `agy` once in Terminal to log in; `agy models` lists the model ids. Effort: low, medium, high, or max, only for a model id without its own level (a model ending in -high, -medium, or -low ignores it). Runs use agy's hearsay-notes project, whose deny rules leave the model no tools except web search, and each run's conversation is deleted from agy's history afterwards.",
+    "comment": "Settings > AI caption, the Mac's text with \"this PC\" for \"this Mac\". Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Uses the Copilot CLI installed on this PC and its own login. Run `copilot` once in Terminal to log in. \"auto\" lets Copilot pick the model.",
+    "english": "Uses the Copilot CLI installed on this PC and its own login. Run `copilot` once in Terminal to log in. \"auto\" lets Copilot pick the model.",
+    "comment": "Settings > AI caption, the Mac's text with \"this PC\" for \"this Mac\". Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "While recording, the notification area icon turns red and its tooltip shows the elapsed time. When off, the icon stays the same.",
+    "english": "While recording, the notification area icon turns red and its tooltip shows the elapsed time. When off, the icon stays the same.",
+    "comment": "Settings > Window caption, the Mac's menu bar text: the Windows notification area cannot show text next to the icon. Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "wav, m4a, mp3, aac, wma, flac, or the audio track of mp4 / mov",
+    "english": "wav, m4a, mp3, aac, wma, flac, or the audio track of mp4 / mov",
+    "comment": "File tab: the file types the drop target accepts, the Mac's list with what Windows can read. Keep the extensions as they are. Windows only.",
+    "placeholders": []
   }
 ]

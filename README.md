@@ -205,6 +205,52 @@ is shown there and in About Hearsay.
   Español, 繁體中文, 简体中文. Hearsay restarts to apply it.
 - Help > Hearsay Help (⌘?) opens the help in the interface language.
 
+## Windows
+
+The Windows version (`windows/`, PLAN.md section 18) is in progress and
+has no release yet. It works like the Mac app; this is what differs.
+
+**Requirements**
+
+- Windows 11 x64.
+- A graphics card with Vulkan (Intel, AMD, or NVIDIA) is recommended.
+  Without one Hearsay transcribes on the processor: the final pass takes
+  about 1.5 to 3.5 times the recording length, and live preview is off.
+- Disk space for the speech model (574 MB for the recommended one).
+
+**Install** (once releases exist)
+
+1. Download `Hearsay-<version>-win-x64.zip` from GitHub Releases (and
+   `SHA256SUMS.txt` to check it with `Get-FileHash`).
+2. Extract it to a folder you can write to, for example
+   `%LOCALAPPDATA%\Programs`, and start `Hearsay.exe` in the `Hearsay`
+   folder. Do not run it from inside the zip: Hearsay can only update
+   itself from a folder it can write to.
+3. The first launch: releases are not signed with a certificate Windows
+   trusts, so SmartScreen says "Windows protected your PC". Click More
+   info, then Run anyway. Updates installed from inside Hearsay do not ask
+   again.
+
+**First run**
+
+1. **Output folder.** Files go to `Documents\Hearsay`; Settings > Output
+   picks another one.
+2. **Download a model** in the Models tab; Hearsay offers the recommended
+   one (`ggml-large-v3-turbo-q5_0`). Models are stored in
+   `%LOCALAPPDATA%\Hearsay\Models`.
+3. **Microphone.** If Windows blocks it, turn on Settings > Privacy &
+   security > Microphone > "Let desktop apps access your microphone".
+   System audio needs no permission.
+4. **Meeting notes** in Settings > AI, with the same providers. Windows
+   limits a command line to 32,766 characters, and the GitHub Copilot CLI
+   and the Antigravity CLI get the transcript on the command line, so they
+   refuse transcripts longer than roughly a 20-minute meeting. Use Claude
+   Code, Codex, Ollama, or Custom for longer ones.
+
+**Updates** work as on the Mac: Hearsay downloads the zip, checks its
+checksum and signature, and replaces its folder when it quits, then starts
+again.
+
 ## Relation to whisper-tools
 
 Hearsay is the native macOS version of the `whisper-tools` Python CLI

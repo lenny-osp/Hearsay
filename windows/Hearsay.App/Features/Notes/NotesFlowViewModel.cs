@@ -125,13 +125,13 @@ internal sealed class NotesFlowViewModel
 
     public bool IsRunning => Phase is not (NotesPhase.Idle or NotesPhase.Finished or NotesPhase.Failed);
 
-    public string ProviderName => Store.Configuration.Preset.Name;
+    public string ProviderName => Strings.CoreText(Store.Configuration.Preset.Name);
 
     /// <summary>"Transcript language: …" under the confirm sheet's picker.</summary>
-    public string TranscriptLanguageCaption => NotesLanguageCaption.TranscriptLine(TranscriptLanguage, TranscriptLanguageNote);
+    public string TranscriptLanguageCaption => Strings.TranscriptLanguageLine(TranscriptLanguage, TranscriptLanguageNote);
 
     /// <summary>"Notes will be written in …." when the choice differs, else null.</summary>
-    public string? NotesLanguageCaptionText => NotesLanguageCaption.NotesLine(TranscriptLanguage, NotesLanguage);
+    public string? NotesLanguageCaptionText => Strings.NotesLanguageLine(TranscriptLanguage, NotesLanguage);
 
     /// <summary>
     /// Windows only: the refusal the pipeline would give for this transcript
@@ -416,11 +416,11 @@ internal sealed class NotesFlowViewModel
         AIProviderConfiguration configuration, string? token, CancellationToken cancellationToken) =>
         SharedPipeline.Value.GenerateAsync(srtText, languageCode, template, configuration, token, cancellationToken);
 
-    /// <summary>The user-facing text of an error (the Swift <c>describe</c>): every Core error's message is its description.</summary>
+    /// <summary>The user-facing text of an error (the Swift <c>describe</c>), through <see cref="Strings.Describe"/>.</summary>
     public static string Describe(Exception error)
     {
         ArgumentNullException.ThrowIfNull(error);
-        return error.Message;
+        return Strings.Describe(error);
     }
 }
 

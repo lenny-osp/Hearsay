@@ -65,7 +65,7 @@ internal sealed partial class AISettingsView : UserControl
 
         // Provider
         preset = new ComboBox { MinWidth = 280 };
-        foreach (var item in ProviderPreset.All) preset.Items.Add(item.Name);
+        foreach (var item in ProviderPreset.All) preset.Items.Add(Strings.CoreText(item.Name));
         preset.SelectionChanged += (_, _) =>
         {
             if (refreshing || preset.SelectedIndex < 0) return;
@@ -310,7 +310,7 @@ internal sealed partial class AISettingsView : UserControl
         if (presetValue.Id == ProviderPreset.Custom.Id)
         {
             var header = new ComboBox { MinWidth = 220 };
-            foreach (var style in AuthHeaderStyles.All) header.Items.Add(style.DisplayName());
+            foreach (var style in AuthHeaderStyles.All) header.Items.Add(Strings.CoreText(style.DisplayName()));
             header.SelectedIndex = AuthHeaderStyles.All.ToList().IndexOf(configuration.Auth);
             header.SelectionChanged += (_, _) =>
             {
@@ -471,7 +471,7 @@ internal sealed partial class AISettingsView : UserControl
             List<UIElement> found = [ResultText(Strings.AICliFound(installation.Version, installation.Path), success: true)];
             if (installation.LoginStatus is { } status)
             {
-                found.Add(ResultText(status, success: installation.LoggedIn != false));
+                found.Add(ResultText(Strings.CoreText(status), success: installation.LoggedIn != false));
             }
             lines = [.. found];
         }
@@ -551,7 +551,7 @@ internal sealed partial class AISettingsView : UserControl
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        row.Children.Add(new TextBlock { Text = template.Name, TextTrimming = TextTrimming.CharacterEllipsis });
+        row.Children.Add(new TextBlock { Text = template.IsBuiltIn ? Strings.CoreText(template.Name) : template.Name, TextTrimming = TextTrimming.CharacterEllipsis });
         if (template.IsBuiltIn)
         {
             var builtIn = Caption(Strings.AITemplateBuiltIn);

@@ -6,7 +6,12 @@
   - Text inside <span class="ui"> is a label the app shows. Use the exact
     translated label from the app's string catalogs, not a new translation.
   - macOS locations (System Settings > ...) use Apple's wording in your
-    language; see shared/localization/GLOSSARY.md.
+    language, Windows locations (Settings > Privacy & security > ...)
+    Microsoft's; see shared/localization/GLOSSARY.md.
+  - Keep every data-platform attribute. One page serves both apps:
+    data-platform="mac" text shows only on the Mac, data-platform="windows"
+    text only on Windows (the app sets class "mac" or "windows" on <html>;
+    without a class the page shows the Mac text).
 -->
 <html lang="es">
 <head>
@@ -72,7 +77,7 @@
     background: var(--panel);
   }
   code {
-    font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace;
+    font: 12.5px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     background: var(--panel); padding: 1px 4px; border-radius: 4px;
   }
   table { border-collapse: collapse; margin: 6px 0 12px; width: 100%; }
@@ -81,12 +86,14 @@
   td:first-child { white-space: nowrap; width: 1%; padding-right: 20px; }
   .note { color: var(--secondary); }
   .problem { font-weight: 600; }
+  html:not(.windows) [data-platform="windows"],
+  html.windows [data-platform="mac"] { display: none; }
 </style>
 </head>
 <body>
 
 <h1>Ayuda de Hearsay</h1>
-<p class="lead">Graba reuniones y conviértelas en transcripciones y notas en tu Mac.</p>
+<p class="lead">Graba reuniones y conviértelas en transcripciones y notas en tu <span data-platform="mac">Mac</span><span data-platform="windows">PC</span>.</p>
 
 <nav>
 <ol>
@@ -95,7 +102,7 @@
   <li><a href="#file-mode">Transcribir un archivo</a></li>
   <li><a href="#meeting-notes">Notas de la reunión</a></li>
   <li><a href="#history">Historial</a></li>
-  <li><a href="#menu-bar">Barra de menús y atajos</a></li>
+  <li><a href="#menu-bar"><span data-platform="mac">Barra de menús y atajos</span><span data-platform="windows">Área de notificación y atajos</span></a></li>
   <li><a href="#settings">Ajustes y más</a></li>
   <li><a href="#troubleshooting">Solución de problemas</a></li>
   <li><a href="#about">Acerca de</a></li>
@@ -103,12 +110,15 @@
 </nav>
 
 <h2 id="getting-started">Primeros pasos</h2>
-<p>Hearsay graba tu micrófono y el sonido de tus llamadas y los transcribe en tu Mac. Nada sale de tu Mac salvo que envíes una transcripción a un proveedor de IA para generar notas de la reunión. Necesitas un Mac con Apple Silicon y macOS 14 o posterior.</p>
+<p data-platform="mac">Hearsay graba tu micrófono y el sonido de tus llamadas y los transcribe en tu Mac. Nada sale de tu Mac salvo que envíes una transcripción a un proveedor de IA para generar notas de la reunión. Necesitas un Mac con Apple Silicon y macOS 14 o posterior.</p>
+<p data-platform="windows">Hearsay graba tu micrófono y el sonido de tus llamadas y los transcribe en tu PC. Nada sale de tu PC salvo que envíes una transcripción a un proveedor de IA para generar notas de la reunión. Necesitas Windows 10 de 64 bits (versión 2004 o posterior) o Windows 11.</p>
 <ol>
-  <li>Elige dónde se guardan los archivos en <a href="hearsay://open/settings-output"><span class="ui">Ajustes</span> &gt; <span class="ui">Salida</span></a>. Por omisión es la carpeta Hearsay de tu carpeta Documentos.</li>
-  <li>Abre la <a href="hearsay://open/models">pestaña <span class="ui">Modelos</span></a> y haz clic en <span class="ui">Descargar</span> junto a un modelo. Se recomienda whisper-large-v3-turbo (1,61 GB); whisper-large-v3-turbo-4bit (463 MB) es la opción buena más pequeña. Si el modelo no es el <span class="ui">Modelo activo</span>, haz clic en <span class="ui">Usar</span>.</li>
-  <li>Pulsa <span class="ui">Iniciar</span> en la <a href="hearsay://open/record">pestaña <span class="ui">Grabar</span></a>. Cuando macOS lo pida, permite el acceso al micrófono y a Grabación de pantalla y audio del sistema (Hearsay solo usa el audio). Puedes cambiar ambos más tarde en Ajustes del Sistema &gt; Privacidad y seguridad.</li>
-  <li>Si el audio del sistema sigue en silencio después de permitirlo, sal de Hearsay y vuelve a abrirlo.</li>
+  <li>Elige dónde se guardan los archivos en <a href="hearsay://open/settings-output"><span class="ui">Ajustes</span> &gt; <span class="ui">Salida</span></a>. Por omisión es la carpeta Hearsay de tu carpeta Documentos<span data-platform="windows"> (<code>%USERPROFILE%\Documents\Hearsay</code>)</span>.</li>
+  <li data-platform="mac">Abre la <a href="hearsay://open/models">pestaña <span class="ui">Modelos</span></a> y haz clic en <span class="ui">Descargar</span> junto a un modelo. Se recomienda whisper-large-v3-turbo (1,61 GB); whisper-large-v3-turbo-4bit (463 MB) es la opción buena más pequeña. Si el modelo no es el <span class="ui">Modelo activo</span>, haz clic en <span class="ui">Usar</span>.</li>
+  <li data-platform="windows">Abre la <a href="hearsay://open/models">pestaña <span class="ui">Modelos</span></a> y haz clic en <span class="ui">Descargar</span> junto a un modelo. Se recomienda Whisper Large v3 Turbo (5-bit), de 574 MB. Si el modelo no es el <span class="ui">Modelo activo</span>, haz clic en <span class="ui">Usar</span>.</li>
+  <li data-platform="mac">Pulsa <span class="ui">Iniciar</span> en la <a href="hearsay://open/record">pestaña <span class="ui">Grabar</span></a>. Cuando macOS lo pida, permite el acceso al micrófono y a Grabación de pantalla y audio del sistema (Hearsay solo usa el audio). Puedes cambiar ambos más tarde en Ajustes del Sistema &gt; Privacidad y seguridad.</li>
+  <li data-platform="windows">Pulsa <span class="ui">Iniciar</span> en la <a href="hearsay://open/record">pestaña <span class="ui">Grabar</span></a>. En Windows, el audio del sistema no necesita permiso. Si el micrófono sigue en silencio, permite el acceso al micrófono para las aplicaciones de escritorio en Configuración &gt; Privacidad y seguridad &gt; Micrófono.</li>
+  <li data-platform="mac">Si el audio del sistema sigue en silencio después de permitirlo, sal de Hearsay y vuelve a abrirlo.</li>
 </ol>
 
 <h2 id="recording">Grabar</h2>
@@ -117,7 +127,7 @@
   <li>Elige el <span class="ui">Micrófono</span>. Deja activado <span class="ui">Capturar también el audio del sistema</span> para incluir al otro lado de una llamada.</li>
   <li>Elige el <span class="ui">Idioma</span>: <span class="ui">Automático</span> lo detecta, o elige EN, DE o ES. ZH-TW escribe el chino en caracteres tradicionales; ZH-CN, en caracteres simplificados.</li>
   <li>Pulsa <span class="ui">Iniciar</span>. Los medidores muestran si el micrófono y el audio del sistema captan sonido, y aparece un aviso tras 5 segundos de silencio. <span class="ui">Pausar</span> deja ese tiempo fuera de la transcripción.</li>
-  <li>El texto nuevo aparece en la <span class="ui">Vista previa en directo</span> más o menos cada 30 segundos.</li>
+  <li>El texto nuevo aparece en la <span class="ui">Vista previa en directo</span> más o menos cada 30 segundos.<span data-platform="windows"> En un PC demasiado lento para ello, la pestaña indica que la vista previa está desactivada y solo se hace la transcripción final (consulta <a href="#troubleshooting">Solución de problemas</a>).</span></li>
   <li>Pulsa <span class="ui">Detener</span>. Hearsay vuelve a transcribir toda la grabación para la transcripción final. Para omitir este paso, haz clic en <span class="ui">Usar la vista previa en su lugar</span>.</li>
 </ol>
 <p>La transcripción (SRT) y la grabación (WAV) se guardan en la carpeta de salida, con la hora de inicio como nombre, por ejemplo <code>2026-09-28_14-05-00.srt</code>.</p>
@@ -129,7 +139,7 @@
 <h2 id="file-mode">Transcribir un archivo</h2>
 <p>Usa la <a href="hearsay://open/file">pestaña <span class="ui">Archivo</span></a> para transcribir un archivo de audio o vídeo que ya tengas.</p>
 <ol>
-  <li>Suelta el archivo en la pestaña <span class="ui">Archivo</span> o haz clic en <span class="ui">Elegir…</span>. Hearsay lee wav, m4a, mp3, aac, aiff, caf y el audio de archivos mp4 y mov.</li>
+  <li>Suelta el archivo en la pestaña <span class="ui">Archivo</span> o haz clic en <span class="ui">Elegir…</span>. <span data-platform="mac">Hearsay lee wav, m4a, mp3, aac, aiff, caf y el audio de archivos mp4 y mov.</span><span data-platform="windows">Hearsay lee wav, m4a, mp3, aac, wma, flac y el audio de archivos mp4 y mov.</span></li>
   <li>Elige el <span class="ui">Idioma</span>, como en la pestaña <span class="ui">Grabar</span>.</li>
   <li>Para detenerlo, haz clic en <span class="ui">Cancelar</span>. No se guarda nada.</li>
 </ol>
@@ -140,8 +150,9 @@
 <ol>
   <li>En <a href="hearsay://open/settings-ai"><span class="ui">Ajustes</span> &gt; <span class="ui">IA</span></a>, elige un proveedor en <span class="ui">Preajuste:</span>
     <ul>
-      <li>GitHub Copilot CLI, Claude Code CLI, Codex CLI y Antigravity CLI usan el programa instalado en tu Mac y la sesión que tengas iniciada en él. Las solicitudes cuentan para los límites de esa suscripción. Su botón de comprobación (por ejemplo <span class="ui">Comprobar Claude Code</span>) muestra si se encuentra el programa y si hay una sesión iniciada.</li>
-      <li>Ollama / LM Studio se ejecuta en tu Mac.</li>
+      <li>GitHub Copilot CLI, Claude Code CLI, Codex CLI y Antigravity CLI usan el programa instalado en tu <span data-platform="mac">Mac</span><span data-platform="windows">PC</span> y la sesión que tengas iniciada en él. Las solicitudes cuentan para los límites de esa suscripción. Su botón de comprobación (por ejemplo <span class="ui">Comprobar Claude Code</span>) muestra si se encuentra el programa y si hay una sesión iniciada.<span data-platform="windows"> El comando de instalación de cada programa aparece bajo su preajuste.</span></li>
+      <li data-platform="windows">En Windows, Copilot y Antigravity no admiten una transcripción muy larga (a partir de unos 20 minutos de reunión); para esas, usa Claude Code, Codex, Ollama o <span class="ui">Personalizado</span>.</li>
+      <li>Ollama / LM Studio se ejecuta en tu <span data-platform="mac">Mac</span><span data-platform="windows">PC</span>.</li>
       <li><span class="ui">Personalizado</span> funciona con cualquier servicio compatible con OpenAI. Introduce su URL, el modelo y el token.</li>
     </ul>
   </li>
@@ -158,43 +169,54 @@
 </table>
 
 <h2 id="history">Historial</h2>
-<p>La <a href="hearsay://open/history">pestaña <span class="ui">Historial</span></a> muestra las reuniones de tu carpeta de salida. Usa los botones de una fila o haz clic en ella con la tecla Control pulsada.</p>
+<p>La <a href="hearsay://open/history">pestaña <span class="ui">Historial</span></a> muestra las reuniones de tu carpeta de salida. Usa los botones de una fila <span data-platform="mac">o haz clic en ella con la tecla Control pulsada.</span><span data-platform="windows">o haz clic en ella con el botón derecho.</span></p>
 <ul>
-  <li><span class="ui">Abrir SRT</span>, <span class="ui">Abrir notas</span> y <span class="ui">Abrir transcripción</span> abren un archivo; <span class="ui">Mostrar en el Finder</span> lo muestra en el Finder.</li>
-  <li><span class="ui">Generar notas…</span> crea notas para una transcripción guardada. <span class="ui">Regenerar notas…</span> las sustituye; las notas antiguas van a la Papelera cuando se guardan las nuevas.</li>
-  <li><span class="ui">Renombrar…</span> renombra todos los archivos de una reunión; <span class="ui">Trasladar a la Papelera…</span> los traslada todos a la Papelera.</li>
+  <li data-platform="mac"><span class="ui">Abrir SRT</span>, <span class="ui">Abrir notas</span> y <span class="ui">Abrir transcripción</span> abren un archivo; <span class="ui">Mostrar en el Finder</span> lo muestra en el Finder.</li>
+  <li data-platform="windows"><span class="ui">Abrir SRT</span>, <span class="ui">Abrir notas</span> y <span class="ui">Abrir transcripción</span> abren un archivo; <span class="ui">Mostrar en el Explorador</span> lo muestra en el Explorador de archivos.</li>
+  <li><span class="ui">Generar notas…</span> crea notas para una transcripción guardada. <span class="ui">Regenerar notas…</span> las sustituye; las notas antiguas van a la <span data-platform="mac">Papelera</span><span data-platform="windows">Papelera de reciclaje</span> cuando se guardan las nuevas.</li>
+  <li data-platform="mac"><span class="ui">Renombrar…</span> renombra todos los archivos de una reunión; <span class="ui">Trasladar a la Papelera…</span> los traslada todos a la Papelera.</li>
+  <li data-platform="windows"><span class="ui">Renombrar…</span> renombra todos los archivos de una reunión; <span class="ui">Mover a la Papelera de reciclaje…</span> los mueve todos a la Papelera de reciclaje.</li>
 </ul>
 
-<h2 id="menu-bar">Barra de menús y atajos</h2>
+<h2 id="menu-bar"><span data-platform="mac">Barra de menús y atajos</span><span data-platform="windows">Área de notificación y atajos</span></h2>
 <p>Puedes controlar Hearsay sin su ventana. La grabación continúa aunque cierres la ventana.</p>
 <ul>
-  <li>Elige dónde aparece Hearsay con <span class="ui">Mostrar Hearsay en:</span> en <a href="hearsay://open/settings-window"><span class="ui">Ajustes</span> &gt; <span class="ui">Ventana</span></a>: <span class="ui">Barra de menús y Dock</span>, <span class="ui">Solo en la barra de menús</span> o <span class="ui">Solo en el Dock</span>.</li>
-  <li>Haz clic en el icono de la barra de menús para ver el estado e iniciar, pausar o detener una grabación. Mientras graba, el icono se vuelve rojo y muestra el tiempo transcurrido; para que no cambie, desactiva <span class="ui">Mostrar el estado de grabación en la barra de menús</span> en <a href="hearsay://open/settings-window"><span class="ui">Ajustes</span> &gt; <span class="ui">Ventana</span></a>.</li>
-  <li>Pulsa <kbd>⌃⌥⌘R</kbd> para iniciar o detener y <kbd>⌃⌥⌘P</kbd> para pausar o reanudar, desde cualquier app. Para cambiarlos, ve a <a href="hearsay://open/settings-general"><span class="ui">Ajustes</span> &gt; <span class="ui">General</span></a> &gt; <span class="ui">Atajos de teclado</span>, haz clic en un atajo y pulsa uno nuevo.</li>
-  <li>Pulsa <kbd>⌘,</kbd> para abrir <span class="ui">Ajustes</span> y <kbd>⌘?</kbd> para abrir esta ayuda.</li>
+  <li data-platform="mac">Elige dónde aparece Hearsay con <span class="ui">Mostrar Hearsay en:</span> en <a href="hearsay://open/settings-window"><span class="ui">Ajustes</span> &gt; <span class="ui">Ventana</span></a>: <span class="ui">Barra de menús y Dock</span>, <span class="ui">Solo en la barra de menús</span> o <span class="ui">Solo en el Dock</span>.</li>
+  <li data-platform="windows">Elige dónde aparece Hearsay con <span class="ui">Mostrar Hearsay en:</span> en <a href="hearsay://open/settings-window"><span class="ui">Ajustes</span> &gt; <span class="ui">Ventana</span></a>: <span class="ui">Área de notificación y barra de tareas</span>, <span class="ui">Solo en el área de notificación</span> o <span class="ui">Solo en la barra de tareas</span>. Con <span class="ui">Solo en la barra de tareas</span>, al cerrar la ventana se sale de Hearsay.</li>
+  <li data-platform="windows">Haz clic en el icono de Hearsay del área de notificación para abrir la ventana, o haz clic en él con el botón derecho para ver el estado e iniciar, pausar o detener una grabación. Mientras graba, el icono se vuelve rojo y su información sobre herramientas muestra el tiempo transcurrido; para que no cambie, desactiva <span class="ui">Mostrar el estado de grabación en el área de notificación</span> en <a href="hearsay://open/settings-window"><span class="ui">Ajustes</span> &gt; <span class="ui">Ventana</span></a>.</li>
+  <li data-platform="mac">Haz clic en el icono de la barra de menús para ver el estado e iniciar, pausar o detener una grabación. Mientras graba, el icono se vuelve rojo y muestra el tiempo transcurrido; para que no cambie, desactiva <span class="ui">Mostrar el estado de grabación en la barra de menús</span> en <a href="hearsay://open/settings-window"><span class="ui">Ajustes</span> &gt; <span class="ui">Ventana</span></a>.</li>
+  <li data-platform="mac">Pulsa <kbd>⌃⌥⌘R</kbd> para iniciar o detener y <kbd>⌃⌥⌘P</kbd> para pausar o reanudar, desde cualquier app. Para cambiarlos, ve a <a href="hearsay://open/settings-general"><span class="ui">Ajustes</span> &gt; <span class="ui">General</span></a> &gt; <span class="ui">Atajos de teclado</span>, haz clic en un atajo y pulsa uno nuevo.</li>
+  <li data-platform="windows">Pulsa <kbd>Ctrl+Alt+Win+R</kbd> para iniciar o detener y <kbd>Ctrl+Alt+Win+P</kbd> para pausar o reanudar, desde cualquier app. Aparecen en <a href="hearsay://open/settings-general"><span class="ui">Ajustes</span> &gt; <span class="ui">General</span></a> &gt; <span class="ui">Atajos de teclado</span>; <span class="ui">Restablecer</span> los devuelve a los predeterminados.</li>
+  <li data-platform="mac">Pulsa <kbd>⌘,</kbd> para abrir <span class="ui">Ajustes</span> y <kbd>⌘?</kbd> para abrir esta ayuda.</li>
+  <li data-platform="windows">Pulsa <kbd>F1</kbd> para abrir esta ayuda.</li>
 </ul>
 
 <h2 id="settings">Ajustes y más</h2>
 <ul>
-  <li><strong><span class="ui">Idioma de la interfaz</span>:</strong> elígelo en <a href="hearsay://open/settings-general"><span class="ui">Ajustes</span> &gt; <span class="ui">General</span></a>. Hearsay debe reiniciarse; haz clic en <span class="ui">Reiniciar ahora</span>.</li>
+  <li><strong><span class="ui">Idioma de la interfaz</span>:</strong> elígelo en <a href="hearsay://open/settings-general"><span class="ui">Ajustes</span> &gt; <span class="ui">General</span></a>. <span data-platform="mac">Hearsay debe reiniciarse; haz clic en <span class="ui">Reiniciar ahora</span>.</span><span data-platform="windows">El cambio se aplica la próxima vez que se abra Hearsay.</span></li>
   <li><strong>Inicio:</strong> activa <span class="ui">Abrir Hearsay al iniciar sesión</span> en el mismo lugar.</li>
-  <li><strong>Actualizaciones:</strong> <span class="ui">Buscar actualizaciones…</span> en el menú Hearsay ofrece <span class="ui">Instalar actualización</span>, que descarga, verifica e instala la nueva versión y reinicia Hearsay, o <span class="ui">Ver en GitHub</span>, que abre la página de la versión.</li>
+  <li data-platform="mac"><strong>Actualizaciones:</strong> <span class="ui">Buscar actualizaciones…</span> en el menú Hearsay ofrece <span class="ui">Instalar actualización</span>, que descarga, verifica e instala la nueva versión y reinicia Hearsay, o <span class="ui">Ver en GitHub</span>, que abre la página de la versión.</li>
   <li><strong>Grabaciones:</strong> para eliminar el WAV tras una transcripción correcta, desactiva <span class="ui">Conservar la grabación (WAV) tras una transcripción correcta</span> en <a href="hearsay://open/settings-output"><span class="ui">Ajustes</span> &gt; <span class="ui">Salida</span></a>.</li>
-  <li><strong>Grabaciones sin terminar:</strong> si Hearsay o tu Mac se detienen durante una grabación, al abrirlo de nuevo te pregunta qué hacer con ella. <span class="ui">Transcribir</span> crea la transcripción, <span class="ui">Conservar</span> traslada el WAV a la carpeta de salida y <span class="ui">Eliminar</span> la borra.</li>
+  <li><strong>Grabaciones sin terminar:</strong> si Hearsay o tu <span data-platform="mac">Mac</span><span data-platform="windows">PC</span> se detienen durante una grabación, al abrirlo de nuevo te pregunta qué hacer con ella. <span class="ui">Transcribir</span> crea la transcripción, <span class="ui">Conservar</span> traslada el WAV a la carpeta de salida y <span class="ui">Eliminar</span> la borra.</li>
 </ul>
 
 <h2 id="troubleshooting">Solución de problemas</h2>
 <ul>
   <li><span class="problem">No hay ningún modelo instalado</span> — Abre la <a href="hearsay://open/models">pestaña <span class="ui">Modelos</span></a>, descarga un modelo y haz clic en <span class="ui">Usar</span>.</li>
-  <li><span class="problem">Sin acceso al micrófono</span> — Activa Hearsay en Ajustes del Sistema &gt; Privacidad y seguridad &gt; Micrófono.</li>
-  <li><span class="problem"><span class="ui">Audio del sistema desactivado: permiso denegado</span></span> — Activa Hearsay en Ajustes del Sistema &gt; Privacidad y seguridad &gt; Grabación de pantalla y audio del sistema y empieza una grabación nueva.</li>
-  <li><span class="problem">El audio del sistema sigue en silencio después de permitirlo</span> — Sal de Hearsay y vuelve a abrirlo.</li>
-  <li><span class="problem">El audio del sistema deja de funcionar tras una actualización</span> — Esta versión de Hearsay no está firmada con un Developer ID, así que macOS olvida el permiso. En la <a href="hearsay://open/record">pestaña <span class="ui">Grabar</span></a>, haz clic en <span class="ui">Solucionar…</span> y vuelve a activar Hearsay en Ajustes del Sistema &gt; Privacidad y seguridad &gt; Grabación de pantalla y audio del sistema.</li>
+  <li data-platform="mac"><span class="problem">Sin acceso al micrófono</span> — Activa Hearsay en Ajustes del Sistema &gt; Privacidad y seguridad &gt; Micrófono.</li>
+  <li data-platform="windows"><span class="problem">Sin acceso al micrófono</span> — En Configuración &gt; Privacidad y seguridad &gt; Micrófono, activa el acceso al micrófono y el acceso de las aplicaciones de escritorio.</li>
+  <li data-platform="windows"><span class="problem">El audio del sistema está desactivado</span> — En Windows, el audio del sistema no necesita permiso. Comprueba que haya una salida de altavoces o auriculares conectada y activada, y empieza una grabación nueva.</li>
+  <li data-platform="mac"><span class="problem"><span class="ui">Audio del sistema desactivado: permiso denegado</span></span> — Activa Hearsay en Ajustes del Sistema &gt; Privacidad y seguridad &gt; Grabación de pantalla y audio del sistema y empieza una grabación nueva.</li>
+  <li data-platform="mac"><span class="problem">El audio del sistema sigue en silencio después de permitirlo</span> — Sal de Hearsay y vuelve a abrirlo.</li>
+  <li data-platform="mac"><span class="problem">El audio del sistema deja de funcionar tras una actualización</span> — Esta versión de Hearsay no está firmada con un Developer ID, así que macOS olvida el permiso. En la <a href="hearsay://open/record">pestaña <span class="ui">Grabar</span></a>, haz clic en <span class="ui">Solucionar…</span> y vuelve a activar Hearsay en Ajustes del Sistema &gt; Privacidad y seguridad &gt; Grabación de pantalla y audio del sistema.</li>
   <li><span class="problem">“No llega audio de” un dispositivo</span> — Comprueba que el dispositivo esté conectado y no silenciado, o elige otro <span class="ui">Micrófono</span>.</li>
-  <li><span class="problem">Mal sonido con los AirPods u otros auriculares Bluetooth</span> — Mientras grabas, macOS los cambia a un modo de llamada de baja calidad. En una sala ruidosa, usa el micrófono integrado del Mac.</li>
-  <li><span class="problem">No se encuentra un programa de IA</span> — Instálalo o introduce su ruta en <a href="hearsay://open/settings-ai"><span class="ui">Ajustes</span> &gt; <span class="ui">IA</span></a>.</li>
-  <li><span class="problem">Un programa de IA no tiene la sesión iniciada</span> — En Terminal, ejecuta una vez <code>copilot</code>, <code>claude</code>, <code>codex login</code> o <code>agy</code> y haz clic en su botón de comprobación en <span class="ui">Ajustes</span> &gt; <span class="ui">IA</span>.</li>
-  <li><span class="problem">No encuentras tus archivos</span> — La carpeta aparece en <a href="hearsay://open/settings-output"><span class="ui">Ajustes</span> &gt; <span class="ui">Salida</span></a>. En la pestaña <span class="ui">Historial</span>, haz clic en <span class="ui">Mostrar en el Finder</span>.</li>
+  <li><span class="problem">Mal sonido con los AirPods u otros auriculares Bluetooth</span> — Mientras grabas, <span data-platform="mac">macOS</span><span data-platform="windows">Windows</span> los cambia a un modo de llamada de baja calidad. En una sala ruidosa, usa el micrófono integrado del <span data-platform="mac">Mac</span><span data-platform="windows">PC</span>.</li>
+  <li data-platform="mac"><span class="problem">No se encuentra un programa de IA</span> — Instálalo o introduce su ruta en <a href="hearsay://open/settings-ai"><span class="ui">Ajustes</span> &gt; <span class="ui">IA</span></a>.</li>
+  <li data-platform="windows"><span class="problem">No se encuentra un programa de IA</span> — Instálalo con el comando que aparece bajo su preajuste en <a href="hearsay://open/settings-ai"><span class="ui">Ajustes</span> &gt; <span class="ui">IA</span></a> (para Claude Code, por ejemplo, <code>irm https://claude.ai/install.ps1 | iex</code> en PowerShell) o introduce allí su ruta.</li>
+  <li><span class="problem">Un programa de IA no tiene la sesión iniciada</span> — En <span data-platform="mac">Terminal</span><span data-platform="windows">un terminal</span>, ejecuta una vez <code>copilot</code>, <code>claude</code>, <code>codex login</code> o <code>agy</code> y haz clic en su botón de comprobación en <span class="ui">Ajustes</span> &gt; <span class="ui">IA</span>.</li>
+  <li data-platform="mac"><span class="problem">No encuentras tus archivos</span> — La carpeta aparece en <a href="hearsay://open/settings-output"><span class="ui">Ajustes</span> &gt; <span class="ui">Salida</span></a>. En la pestaña <span class="ui">Historial</span>, haz clic en <span class="ui">Mostrar en el Finder</span>.</li>
+  <li data-platform="windows"><span class="problem">No encuentras tus archivos</span> — La carpeta aparece en <a href="hearsay://open/settings-output"><span class="ui">Ajustes</span> &gt; <span class="ui">Salida</span></a>; por omisión es <code>%USERPROFILE%\Documents\Hearsay</code>. En la pestaña <span class="ui">Historial</span>, haz clic en <span class="ui">Mostrar en el Explorador</span>.</li>
+  <li data-platform="windows"><span class="problem">La transcripción es lenta o la vista previa está desactivada</span> — Hearsay usa el chip gráfico mediante Vulkan cuando puede y, si no, el procesador (CPU). En la CPU, la transcripción final tarda entre 1,5 y 3,5 veces lo que dura la grabación, y la vista previa en directo queda desactivada. Un PC con chip gráfico de Intel, AMD o NVIDIA es mucho más rápido.</li>
 </ul>
 
 <h2 id="about">Acerca de</h2>

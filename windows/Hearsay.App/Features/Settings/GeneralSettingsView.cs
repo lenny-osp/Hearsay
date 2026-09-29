@@ -28,6 +28,7 @@ internal sealed partial class GeneralSettingsView : UserControl
     private readonly AppSettings settings;
     private readonly ComboBox interfaceLanguage;
     private readonly TextBlock pendingLanguage;
+    private readonly Grid pendingRow;
     private readonly ToggleSwitch launchAtLogin;
     private readonly TextBlock launchError;
     private readonly ComboBox preferredLanguage;
@@ -52,12 +53,21 @@ internal sealed partial class GeneralSettingsView : UserControl
             if (refreshing || interfaceLanguage.SelectedIndex < 0) return;
             settings.InterfaceLanguage = InterfaceLanguages.All[interfaceLanguage.SelectedIndex];
         };
+        // A change waits for a restart (PLAN.md 18.3); Restart Now does it at
+        // once, as the Mac's language alert does. Debug runs never relaunch.
         pendingLanguage = Caption("");
+        pendingLanguage.TextWrapping = TextWrapping.Wrap;
+        var restartNow = new Button { Content = Strings.RestartNow };
+        restartNow.Click += (_, _) => shell.Restart();
+        pendingRow = Labeled("", restartNow);
+        pendingRow.Children.RemoveAt(0);
+        pendingLanguage.VerticalAlignment = VerticalAlignment.Center;
+        pendingRow.Children.Insert(0, pendingLanguage);
         page.Children.Add(Header(Strings.SectionInterface));
         page.Children.Add(Card(
             Labeled(Strings.InterfaceLanguage, interfaceLanguage),
             Caption(Strings.InterfaceLanguageCaption),
-            pendingLanguage));
+            pendingRow));
 
         // Startup.
         var (launchRow, launchSwitch) = Toggle(Strings.LaunchAtLogin);
@@ -125,7 +135,7 @@ internal sealed partial class GeneralSettingsView : UserControl
         pendingLanguage.Text = InterfaceLanguages.NeedsRestart(shell.RunningLanguage, settings.InterfaceLanguage)
             ? Strings.InterfaceLanguagePending(settings.InterfaceLanguage.Autonym())
             : "";
-        pendingLanguage.Visibility = pendingLanguage.Text.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+        pendingRow.Visibility = pendingLanguage.Text.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
         launchAtLogin.IsOn = shell.LaunchAtLogin.IsEnabled;
         preferredLanguage.SelectedIndex = IndexOf(TranscriptLanguages.All, settings.PreferredLanguage);
         startStopShortcut.Text = settings.StartStopHotkey.DisplayString;

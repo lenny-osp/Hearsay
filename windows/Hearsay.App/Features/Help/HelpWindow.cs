@@ -16,6 +16,10 @@ namespace Hearsay.App.Features.Help;
 /// build time), in WebView2 with JavaScript off. Anchor links stay in the
 /// view, web and mail links open in the default browser, and
 /// <c>hearsay://open/...</c> links switch the main window's tab.
+/// The shared page serves both apps: its CSS shows the
+/// <c>data-platform="windows"</c> passages and hides the Mac ones only when
+/// <c>&lt;html&gt;</c> has class <c>windows</c>, which this window adds to every
+/// document it loads (PLAN.md 18.3, Help row).
 /// Mirrors mac/Hearsay/Features/Help/HelpView.swift (<c>HelpWindow</c>,
 /// <c>HelpView</c>, <c>HelpWebView</c>).
 /// </summary>
@@ -23,6 +27,35 @@ internal sealed partial class HelpWindow : Window
 {
     public const int DefaultWidth = 760;
     public const int DefaultHeight = 640;
+
+    /// <summary>The class on <c>&lt;html&gt;</c> that selects this platform's passages.</summary>
+    public const string PlatformClass = "windows";
+
+    /// <summary>
+    /// Run by the host at DOMContentLoaded of every help document. With the
+    /// page's own scripts off (<c>IsScriptEnabled</c> false), WebView2 still
+    /// runs <c>ExecuteScriptAsync</c> but not
+    /// <c>AddScriptToExecuteOnDocumentCreatedAsync</c> (measured with
+    /// WebView2 154), so the class cannot be set before parsing; the view
+    /// stays transparent until it is set, so the Mac passages never show.
+    /// </summary>
+    private const string MarkPlatformScript = """
+        document.documentElement.classList.add("windows");
+        document.documentElement.classList.contains("windows");
+        """;
+
+    /// <summary>For the UI snapshots: the class and how many passages of each platform are shown.</summary>
+    private const string DescribePlatformScript = """
+        (function () {
+          var shown = function (platform) {
+            return Array.prototype.filter.call(
+              document.querySelectorAll('[data-platform="' + platform + '"]'),
+              function (element) { return getComputedStyle(element).display !== "none"; }).length;
+          };
+          return "class \"" + document.documentElement.className + "\", shown mac " + shown("mac")
+            + ", shown windows " + shown("windows");
+        })();
+        """;
 
     private readonly Action<HelpDestination> onOpen;
     private readonly WebView2? webView;
@@ -46,7 +79,8 @@ internal sealed partial class HelpWindow : Window
 
         if (File.Exists(HelpFile))
         {
-            webView = new WebView2();
+            // Transparent until the first page has its platform class.
+            webView = new WebView2 { Opacity = 0 };
             Content = webView;
             _ = LoadAsync(webView, new Uri(HelpFile));
         }
@@ -99,6 +133,14 @@ internal sealed partial class HelpWindow : Window
             return false;
         }
         await Task.Delay(400).ConfigureAwait(true);
+        var platform = await core.ExecuteScriptAsync(DescribePlatformScript);
+        AppLog.Write($"help: {fragment ?? "top"}: {platform}");
+        // A page that still shows Mac passages would be the wrong help.
+        if (!platform.Contains("shown mac 0", StringComparison.Ordinal))
+        {
+            AppLog.Write("help: the Mac passages are visible; the platform class did not apply");
+            return false;
+        }
         using var stream = new Windows.Storage.Streams.InMemoryRandomAccessStream();
         var capture = core.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, stream).AsTask();
         if (await Task.WhenAny(capture, Task.Delay(TimeSpan.FromSeconds(15))).ConfigureAwait(true) != capture)
@@ -158,6 +200,7 @@ internal sealed partial class HelpWindow : Window
         catch (Exception error) when (error is System.Runtime.InteropServices.COMException or FileNotFoundException)
         {
             AppLog.Write($"help: WebView2 unavailable: {error.Message}");
+            view.Opacity = 1;
             firstLoad.TrySetResult(false);
             return;
         }
@@ -171,14 +214,34 @@ internal sealed partial class HelpWindow : Window
         core.NavigationStarting += OnNavigationStarting;
         core.NewWindowRequested += OnNewWindowRequested;
         core.LaunchingExternalUriScheme += OnLaunchingExternalUriScheme;
+        core.DOMContentLoaded += OnDOMContentLoaded;
         void Completed(CoreWebView2 sender, CoreWebView2NavigationCompletedEventArgs args)
         {
             core.NavigationCompleted -= Completed;
             AppLog.Write($"help: page loaded, success {args.IsSuccess}, status {args.WebErrorStatus}");
+            // An error page has no platform passages to hide.
+            if (!args.IsSuccess) view.Opacity = 1;
             firstLoad.TrySetResult(args.IsSuccess);
         }
         core.NavigationCompleted += Completed;
         core.Navigate(page.AbsoluteUri);
+    }
+
+    /// <summary>Sets <see cref="PlatformClass"/> on each help document, then shows the view.</summary>
+    private async void OnDOMContentLoaded(CoreWebView2 sender, CoreWebView2DOMContentLoadedEventArgs args)
+    {
+        if (!sender.Source.StartsWith("file:", StringComparison.OrdinalIgnoreCase)) return;
+        try
+        {
+            var set = await sender.ExecuteScriptAsync(MarkPlatformScript);
+            if (set != "true") AppLog.Write($"help: platform class \"{PlatformClass}\" not set ({set})");
+        }
+        catch (Exception error) when (error is System.Runtime.InteropServices.COMException or InvalidOperationException)
+        {
+            AppLog.Write($"help: could not set the platform class: {error.Message}");
+        }
+        // Shown even if the class failed: the Mac text is better than a blank window.
+        if (webView is not null) webView.Opacity = 1;
     }
 
     private void OnNavigationStarting(CoreWebView2 sender, CoreWebView2NavigationStartingEventArgs args)

@@ -1,9 +1,10 @@
 # GitHub Actions
 
-Two workflows, both on the `macos-26` Apple Silicon runner with the newest
-stable Xcode installed there (selected by `.github/actions/setup-mac`).
-Neither needs or downloads a speech model. PLAN.md section 4.7 has the
-reasons.
+Three workflows. `ci.yml` and `release.yml` build the Mac app on the
+`macos-26` Apple Silicon runner with the newest stable Xcode installed there
+(selected by `.github/actions/setup-mac`); `windows-ci.yml` builds the
+Windows version on `windows-latest` (see "Windows" below). None needs or
+downloads a speech model. PLAN.md section 4.7 has the reasons.
 
 ## ci.yml: every pull request and every push to `main`
 
@@ -67,3 +68,34 @@ signs the app with `codesign --deep --options runtime --timestamp` and the
 app's entitlements, builds the DMG, signs it, notarizes it with
 `xcrun notarytool submit --wait`, staples the ticket, and deletes the
 keychain.
+
+## Windows
+
+### windows-ci.yml: every pull request and every push to `main`
+
+One job on `windows-latest` with the .NET 10 SDK (`actions/setup-dotnet`):
+
+- builds `windows\Hearsay.slnx` in Release (warnings are errors through
+  `windows/Directory.Build.props`), which includes the WinUI app;
+- runs `dotnet test windows\Hearsay.Tests` (the Whisper integration tests
+  skip without `TEST_RUNNER_HEARSAY_MODEL_DIR`, the capture tests skip
+  without audio devices; the update tests run the swap helper in Windows
+  PowerShell against scratch folders);
+- runs `windows\scripts\make-notices.ps1 -Check` and fails if
+  `windows/THIRD_PARTY_NOTICES.md` changed;
+- runs `python windows\scripts\import-strings.py --check` and fails if a
+  `.resw` file is stale or a translation is missing.
+
+NuGet packages are cached by the hash of the project files. Test results
+(`.trx`) are uploaded when a step fails.
+
+### Releases
+
+There is no Windows release workflow yet: it waits for the owner's
+packaging decision (PLAN.md 18.3, Packaging, and 18.4, "Updates and
+packaging (proposal)"). The proposal is to add the Windows build to the
+same `v*` tag: `dotnet publish` of the self-contained app, zipped as
+`Hearsay-<version>-win-x64.zip` with one `Hearsay\` folder inside,
+signed with the same kind of self-signed identity the Mac uses (or Azure
+Trusted Signing), and its line added to the release's `SHA256SUMS.txt`,
+which the in-app update reads.

@@ -59,14 +59,14 @@ internal sealed partial class ConfirmSendSheet : ContentDialog
         facts.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         facts.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         AddFact(facts, Strings.ConfirmProvider, model.ProviderName);
-        AddFact(facts, Strings.ConfirmModel, configuration.ModelDescription);
+        AddFact(facts, Strings.ConfirmModel, Strings.CoreText(configuration.ModelDescription));
         AddFact(facts, Strings.ConfirmTranscript, Strings.ConfirmCharacters(model.TranscriptCharacterCount));
         if (model.SrtPath is { } srt) AddFact(facts, Strings.ConfirmFile, Path.GetFileName(srt));
         panel.Children.Add(facts);
 
         var template = new ComboBox { MinWidth = 200 };
         var templates = store.Templates;
-        foreach (var item in templates) template.Items.Add(item.Name);
+        foreach (var item in templates) template.Items.Add(item.IsBuiltIn ? Strings.CoreText(item.Name) : item.Name);
         template.SelectedIndex = Math.Max(0, templates.ToList().FindIndex(item => item.Id == model.TemplateId));
         template.SelectionChanged += (_, _) =>
         {

@@ -376,7 +376,7 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
         catch (Exception error) when (error is not OutOfMemoryException)
         {
             AppLog.Write($"recording: start failed: {error}");
-            Phase = new ControllerPhase.Failed(error.Message);
+            Phase = new ControllerPhase.Failed(Strings.Describe(error));
         }
         startTask = null;
     }
@@ -582,7 +582,7 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
             }
             catch (Exception error) when (error is not OutOfMemoryException)
             {
-                SystemAudioNotice = Strings.SystemAudioOff(error.Message);
+                SystemAudioNotice = Strings.SystemAudioOff(Strings.Describe(error));
             }
         }
         if (stopRequestedWhileStarting)
@@ -616,7 +616,7 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
             system?.Stop();
             newWriter.Dispose();
             TryDelete(path);
-            Phase = new ControllerPhase.Failed(error.Message);
+            Phase = new ControllerPhase.Failed(Strings.Describe(error));
             return;
         }
 
@@ -710,7 +710,7 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
     /// <summary>The no-audio message plus what capture saw, for the error display (English, as on the Mac).</summary>
     private string NoAudioMessage(MicrophoneRecorderException error)
     {
-        if (recorder?.Diagnostics is not { } diagnostics) return error.Message;
+        if (recorder?.Diagnostics is not { } diagnostics) return Strings.Describe(error);
         var detail = string.Create(CultureInfo.InvariantCulture, $"Capture details: {diagnostics.Callbacks} buffers received");
         if (diagnostics.ConversionFailures > 0)
         {
@@ -718,7 +718,7 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
             if (diagnostics.LastConversionError is { } last) detail += $" ({last})";
         }
         if (diagnostics.LastRuntimeError is { } runtime) detail += $", capture error: {runtime}";
-        return error.Message + "\n" + detail + ".";
+        return Strings.Describe(error) + "\n" + detail + ".";
     }
 
     // MARK: - Pipeline
@@ -772,7 +772,7 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
             case AudioSource.System:
                 if (systemRecorder?.Failure is { } failure)
                 {
-                    SystemAudioNotice = Strings.SystemAudioOff(failure.Message);
+                    SystemAudioNotice = Strings.SystemAudioOff(Strings.Describe(failure));
                     SystemLevelFraction = null;
                     Notify();
                 }
@@ -800,7 +800,7 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
         noAudioFailure = null;
         if (recorder?.Failure is { } failure)
         {
-            problems.Add(failure.Message);
+            problems.Add(Strings.Describe(failure));
             RefreshDevices();
         }
         if (writeError is { } write)
@@ -848,7 +848,7 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
             // Nothing was captured: never keep a zero-length recording.
             TryDelete(closed);
             var lines = problems.Count == 0
-                ? new List<string> { new MicrophoneRecorderException(MicrophoneRecorderErrorKind.NoAudio, recordingDeviceName).Message }
+                ? new List<string> { Strings.Describe(new MicrophoneRecorderException(MicrophoneRecorderErrorKind.NoAudio, recordingDeviceName)) }
                 : problems;
             lines.Add(Strings.NothingRecorded);
             Phase = new ControllerPhase.Failed(string.Join("\n", lines));

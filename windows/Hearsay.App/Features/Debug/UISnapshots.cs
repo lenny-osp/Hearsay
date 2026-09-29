@@ -26,9 +26,10 @@ namespace Hearsay.App.Features.Debug;
 /// <c>&lt;dir&gt;</c>: every main-window tab, every Settings section, the
 /// settings warning banner with sample text, the naming and first-run
 /// sheets, History's Rename sheet, its inline rejection and its error alert,
-/// History after a rename, and the help page (top and the Meeting notes
-/// section). Then it quits with status 0 (1 when a file could not be written
-/// or a check failed).
+/// History after a rename, and the help page (top, the Meeting notes
+/// section and the Windows-only notification area section; a page that
+/// still shows Mac passages fails). Then it quits with status 0 (1 when a
+/// file could not be written or a check failed).
 /// Port of mac/Hearsay/Features/Debug/UISnapshots.swift; the Mac's confirm,
 /// unfinished-recording and permission sheets, menu bar panel and update
 /// window do not exist on Windows yet. The tray menu is a native Win32
@@ -288,7 +289,7 @@ internal static class UISnapshots
 
         var help = shell.ShowHelp();
         Say($"help file {help.HelpFile}{(File.Exists(help.HelpFile) ? "" : " (missing)")}");
-        foreach (var (name, fragment) in new[] { ("19-help-top", (string?)null), ("20-help-meeting-notes", "meeting-notes") })
+        foreach (var (name, fragment) in new[] { ("19-help-top", (string?)null), ("20-help-meeting-notes", "meeting-notes"), ("22-help-menu-bar", "menu-bar") })
         {
             var path = Path.Combine(directory, $"{name}.png");
             if (await help.CaptureAsync(fragment, path).ConfigureAwait(true))

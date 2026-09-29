@@ -6,7 +6,12 @@
   - Text inside <span class="ui"> is a label the app shows. Use the exact
     translated label from the app's string catalogs, not a new translation.
   - macOS locations (System Settings > ...) use Apple's wording in your
-    language; see shared/localization/GLOSSARY.md.
+    language, Windows locations (Settings > Privacy & security > ...)
+    Microsoft's; see shared/localization/GLOSSARY.md.
+  - Keep every data-platform attribute. One page serves both apps:
+    data-platform="mac" text shows only on the Mac, data-platform="windows"
+    text only on Windows (the app sets class "mac" or "windows" on <html>;
+    without a class the page shows the Mac text).
 -->
 <html lang="en">
 <head>
@@ -72,7 +77,7 @@
     background: var(--panel);
   }
   code {
-    font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace;
+    font: 12.5px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     background: var(--panel); padding: 1px 4px; border-radius: 4px;
   }
   table { border-collapse: collapse; margin: 6px 0 12px; width: 100%; }
@@ -81,12 +86,14 @@
   td:first-child { white-space: nowrap; width: 1%; padding-right: 20px; }
   .note { color: var(--secondary); }
   .problem { font-weight: 600; }
+  html:not(.windows) [data-platform="windows"],
+  html.windows [data-platform="mac"] { display: none; }
 </style>
 </head>
 <body>
 
 <h1>Hearsay Help</h1>
-<p class="lead">Record meetings and turn them into transcripts and notes on your Mac.</p>
+<p class="lead">Record meetings and turn them into transcripts and notes on your <span data-platform="mac">Mac</span><span data-platform="windows">PC</span>.</p>
 
 <nav>
 <ol>
@@ -95,7 +102,7 @@
   <li><a href="#file-mode">Transcribing a file</a></li>
   <li><a href="#meeting-notes">Meeting notes</a></li>
   <li><a href="#history">History</a></li>
-  <li><a href="#menu-bar">Menu bar and shortcuts</a></li>
+  <li><a href="#menu-bar"><span data-platform="mac">Menu bar and shortcuts</span><span data-platform="windows">Notification area and shortcuts</span></a></li>
   <li><a href="#settings">Settings and more</a></li>
   <li><a href="#troubleshooting">Troubleshooting</a></li>
   <li><a href="#about">About</a></li>
@@ -103,12 +110,15 @@
 </nav>
 
 <h2 id="getting-started">Getting started</h2>
-<p>Hearsay records your microphone and the sound of your calls and transcribes them on your Mac. Nothing leaves your Mac unless you send a transcript to an AI provider for meeting notes. You need a Mac with Apple Silicon and macOS 14 or later.</p>
+<p data-platform="mac">Hearsay records your microphone and the sound of your calls and transcribes them on your Mac. Nothing leaves your Mac unless you send a transcript to an AI provider for meeting notes. You need a Mac with Apple Silicon and macOS 14 or later.</p>
+<p data-platform="windows">Hearsay records your microphone and the sound of your calls and transcribes them on your PC. Nothing leaves your PC unless you send a transcript to an AI provider for meeting notes. You need 64-bit Windows 10 (version 2004 or later) or Windows 11.</p>
 <ol>
-  <li>Choose where files are saved in <a href="hearsay://open/settings-output"><span class="ui">Settings</span> &gt; <span class="ui">Output</span></a>. The default is the Hearsay folder in your Documents folder.</li>
-  <li>Open the <a href="hearsay://open/models"><span class="ui">Models</span> tab</a> and click <span class="ui">Download</span> next to a model. whisper-large-v3-turbo (1.61 GB) is recommended; whisper-large-v3-turbo-4bit (463 MB) is the smallest good option. If the model is not the <span class="ui">Active model</span>, click <span class="ui">Use</span>.</li>
-  <li>Press <span class="ui">Start</span> on the <a href="hearsay://open/record"><span class="ui">Record</span> tab</a>. When macOS asks, allow access to the microphone and to Screen &amp; System Audio Recording (Hearsay uses only the audio). You can change both later in System Settings &gt; Privacy &amp; Security.</li>
-  <li>If system audio stays silent after you allow it, quit and reopen Hearsay.</li>
+  <li>Choose where files are saved in <a href="hearsay://open/settings-output"><span class="ui">Settings</span> &gt; <span class="ui">Output</span></a>. The default is the Hearsay folder in your Documents folder<span data-platform="windows"> (<code>%USERPROFILE%\Documents\Hearsay</code>)</span>.</li>
+  <li data-platform="mac">Open the <a href="hearsay://open/models"><span class="ui">Models</span> tab</a> and click <span class="ui">Download</span> next to a model. whisper-large-v3-turbo (1.61 GB) is recommended; whisper-large-v3-turbo-4bit (463 MB) is the smallest good option. If the model is not the <span class="ui">Active model</span>, click <span class="ui">Use</span>.</li>
+  <li data-platform="windows">Open the <a href="hearsay://open/models"><span class="ui">Models</span> tab</a> and click <span class="ui">Download</span> next to a model. Whisper Large v3 Turbo (5-bit), 574 MB, is recommended. If the model is not the <span class="ui">Active model</span>, click <span class="ui">Use</span>.</li>
+  <li data-platform="mac">Press <span class="ui">Start</span> on the <a href="hearsay://open/record"><span class="ui">Record</span> tab</a>. When macOS asks, allow access to the microphone and to Screen &amp; System Audio Recording (Hearsay uses only the audio). You can change both later in System Settings &gt; Privacy &amp; Security.</li>
+  <li data-platform="windows">Press <span class="ui">Start</span> on the <a href="hearsay://open/record"><span class="ui">Record</span> tab</a>. System audio needs no permission on Windows. If the microphone stays silent, allow microphone access for desktop apps in Settings &gt; Privacy &amp; security &gt; Microphone.</li>
+  <li data-platform="mac">If system audio stays silent after you allow it, quit and reopen Hearsay.</li>
 </ol>
 
 <h2 id="recording">Recording</h2>
@@ -117,7 +127,7 @@
   <li>Choose the <span class="ui">Microphone</span>. Leave <span class="ui">Also capture system audio</span> on to include the other side of a call.</li>
   <li>Choose the <span class="ui">Language</span>: <span class="ui">Auto</span> detects it, or pick EN, DE, or ES. ZH-TW writes Chinese in Traditional characters, ZH-CN in Simplified characters.</li>
   <li>Press <span class="ui">Start</span>. The meters show whether the microphone and system audio are picking up sound, and a warning appears after 5 seconds of silence. <span class="ui">Pause</span> leaves that time out of the transcript.</li>
-  <li>New text appears in the <span class="ui">Live preview</span> about every 30 seconds.</li>
+  <li>New text appears in the <span class="ui">Live preview</span> about every 30 seconds.<span data-platform="windows"> On a PC too slow for it, the tab says the live preview is off, and only the final transcript is made (see <a href="#troubleshooting">Troubleshooting</a>).</span></li>
   <li>Press <span class="ui">Stop</span>. Hearsay transcribes the whole recording once more for the final transcript. To skip this, click <span class="ui">Use live preview instead</span>.</li>
 </ol>
 <p>The transcript (SRT) and the recording (WAV) are saved in the output folder, named by the start time, for example <code>2026-09-28_14-05-00.srt</code>.</p>
@@ -129,7 +139,7 @@
 <h2 id="file-mode">Transcribing a file</h2>
 <p>Use the <a href="hearsay://open/file"><span class="ui">File</span> tab</a> to transcribe an audio or video file you already have.</p>
 <ol>
-  <li>Drop the file on the <span class="ui">File</span> tab, or click <span class="ui">Choose…</span>. Hearsay reads wav, m4a, mp3, aac, aiff, caf, and the audio of mp4 and mov files.</li>
+  <li>Drop the file on the <span class="ui">File</span> tab, or click <span class="ui">Choose…</span>. <span data-platform="mac">Hearsay reads wav, m4a, mp3, aac, aiff, caf, and the audio of mp4 and mov files.</span><span data-platform="windows">Hearsay reads wav, m4a, mp3, aac, wma, flac, and the audio of mp4 and mov files.</span></li>
   <li>Choose the <span class="ui">Language</span>, as on the <span class="ui">Record</span> tab.</li>
   <li>To stop, click <span class="ui">Cancel</span>. Nothing is saved.</li>
 </ol>
@@ -140,8 +150,9 @@
 <ol>
   <li>In <a href="hearsay://open/settings-ai"><span class="ui">Settings</span> &gt; <span class="ui">AI</span></a>, choose a provider under <span class="ui">Preset:</span>
     <ul>
-      <li>GitHub Copilot CLI, Claude Code CLI, Codex CLI, and Antigravity CLI use the program installed on your Mac and the login you have in it. Requests count against that subscription’s limits. Its Check button (for example <span class="ui">Check Claude Code</span>) shows whether the program is found and logged in.</li>
-      <li>Ollama / LM Studio runs on your Mac.</li>
+      <li>GitHub Copilot CLI, Claude Code CLI, Codex CLI, and Antigravity CLI use the program installed on your <span data-platform="mac">Mac</span><span data-platform="windows">PC</span> and the login you have in it. Requests count against that subscription’s limits. Its Check button (for example <span class="ui">Check Claude Code</span>) shows whether the program is found and logged in.<span data-platform="windows"> The install command for each program is shown below its preset.</span></li>
+      <li data-platform="windows">On Windows, Copilot and Antigravity can’t take a very long transcript (about 20 minutes of meeting or more); for those, use Claude Code, Codex, Ollama, or <span class="ui">Custom</span>.</li>
+      <li>Ollama / LM Studio runs on your <span data-platform="mac">Mac</span><span data-platform="windows">PC</span>.</li>
       <li><span class="ui">Custom</span> works with any OpenAI-compatible service. Enter its URL, model, and token.</li>
     </ul>
   </li>
@@ -158,43 +169,54 @@
 </table>
 
 <h2 id="history">History</h2>
-<p>The <a href="hearsay://open/history"><span class="ui">History</span> tab</a> lists the meetings in your output folder. Use the buttons on a row, or Control-click it.</p>
+<p>The <a href="hearsay://open/history"><span class="ui">History</span> tab</a> lists the meetings in your output folder. Use the buttons on a row, or <span data-platform="mac">Control-click</span><span data-platform="windows">right-click</span> it.</p>
 <ul>
-  <li><span class="ui">Open SRT</span>, <span class="ui">Open Notes</span>, and <span class="ui">Open Transcript</span> open a file; <span class="ui">Reveal in Finder</span> shows it in Finder.</li>
-  <li><span class="ui">Generate Notes…</span> creates notes for a saved transcript. <span class="ui">Regenerate Notes…</span> replaces them; the old notes go to the Trash when the new ones are saved.</li>
-  <li><span class="ui">Rename…</span> renames all of a meeting’s files; <span class="ui">Move to Trash…</span> moves them all to the Trash.</li>
+  <li data-platform="mac"><span class="ui">Open SRT</span>, <span class="ui">Open Notes</span>, and <span class="ui">Open Transcript</span> open a file; <span class="ui">Reveal in Finder</span> shows it in Finder.</li>
+  <li data-platform="windows"><span class="ui">Open SRT</span>, <span class="ui">Open Notes</span>, and <span class="ui">Open Transcript</span> open a file; <span class="ui">Reveal in Explorer</span> shows it in File Explorer.</li>
+  <li><span class="ui">Generate Notes…</span> creates notes for a saved transcript. <span class="ui">Regenerate Notes…</span> replaces them; the old notes go to the <span data-platform="mac">Trash</span><span data-platform="windows">Recycle Bin</span> when the new ones are saved.</li>
+  <li data-platform="mac"><span class="ui">Rename…</span> renames all of a meeting’s files; <span class="ui">Move to Trash…</span> moves them all to the Trash.</li>
+  <li data-platform="windows"><span class="ui">Rename…</span> renames all of a meeting’s files; <span class="ui">Move to Recycle Bin…</span> moves them all to the Recycle Bin.</li>
 </ul>
 
-<h2 id="menu-bar">Menu bar and shortcuts</h2>
+<h2 id="menu-bar"><span data-platform="mac">Menu bar and shortcuts</span><span data-platform="windows">Notification area and shortcuts</span></h2>
 <p>You can control Hearsay without its window. Recording continues when the window is closed.</p>
 <ul>
-  <li>Choose where Hearsay appears with <span class="ui">Show Hearsay in:</span> in <a href="hearsay://open/settings-window"><span class="ui">Settings</span> &gt; <span class="ui">Window</span></a>: <span class="ui">Menu bar and Dock</span>, <span class="ui">Menu bar only</span>, or <span class="ui">Dock only</span>.</li>
-  <li>Click the menu bar icon to see the status and to start, pause, or stop a recording. The icon turns red and shows the elapsed time while recording; turn off <span class="ui">Show recording status in the menu bar</span> in <a href="hearsay://open/settings-window"><span class="ui">Settings</span> &gt; <span class="ui">Window</span></a> to keep it unchanged.</li>
-  <li>Press <kbd>⌃⌥⌘R</kbd> to start or stop and <kbd>⌃⌥⌘P</kbd> to pause or resume, in any app. To change them, go to <a href="hearsay://open/settings-general"><span class="ui">Settings</span> &gt; <span class="ui">General</span></a> &gt; <span class="ui">Shortcuts</span>, click a shortcut, and press a new one.</li>
-  <li>Press <kbd>⌘,</kbd> to open <span class="ui">Settings</span> and <kbd>⌘?</kbd> to open this help.</li>
+  <li data-platform="mac">Choose where Hearsay appears with <span class="ui">Show Hearsay in:</span> in <a href="hearsay://open/settings-window"><span class="ui">Settings</span> &gt; <span class="ui">Window</span></a>: <span class="ui">Menu bar and Dock</span>, <span class="ui">Menu bar only</span>, or <span class="ui">Dock only</span>.</li>
+  <li data-platform="windows">Choose where Hearsay appears with <span class="ui">Show Hearsay in:</span> in <a href="hearsay://open/settings-window"><span class="ui">Settings</span> &gt; <span class="ui">Window</span></a>: <span class="ui">Notification area and taskbar</span>, <span class="ui">Notification area only</span>, or <span class="ui">Taskbar only</span>. With <span class="ui">Taskbar only</span>, closing the window quits Hearsay.</li>
+  <li data-platform="windows">Click the Hearsay icon in the notification area to open the window, or right-click it to see the status and to start, pause, or stop a recording. While recording, the icon turns red and its tooltip shows the elapsed time; turn off <span class="ui">Show recording status in the notification area</span> in <a href="hearsay://open/settings-window"><span class="ui">Settings</span> &gt; <span class="ui">Window</span></a> to keep it unchanged.</li>
+  <li data-platform="mac">Click the menu bar icon to see the status and to start, pause, or stop a recording. The icon turns red and shows the elapsed time while recording; turn off <span class="ui">Show recording status in the menu bar</span> in <a href="hearsay://open/settings-window"><span class="ui">Settings</span> &gt; <span class="ui">Window</span></a> to keep it unchanged.</li>
+  <li data-platform="mac">Press <kbd>⌃⌥⌘R</kbd> to start or stop and <kbd>⌃⌥⌘P</kbd> to pause or resume, in any app. To change them, go to <a href="hearsay://open/settings-general"><span class="ui">Settings</span> &gt; <span class="ui">General</span></a> &gt; <span class="ui">Shortcuts</span>, click a shortcut, and press a new one.</li>
+  <li data-platform="windows">Press <kbd>Ctrl+Alt+Win+R</kbd> to start or stop and <kbd>Ctrl+Alt+Win+P</kbd> to pause or resume, in any app. They are shown in <a href="hearsay://open/settings-general"><span class="ui">Settings</span> &gt; <span class="ui">General</span></a> &gt; <span class="ui">Shortcuts</span>; <span class="ui">Reset</span> restores them.</li>
+  <li data-platform="mac">Press <kbd>⌘,</kbd> to open <span class="ui">Settings</span> and <kbd>⌘?</kbd> to open this help.</li>
+  <li data-platform="windows">Press <kbd>F1</kbd> to open this help.</li>
 </ul>
 
 <h2 id="settings">Settings and more</h2>
 <ul>
-  <li><strong><span class="ui">Interface language</span>:</strong> choose it in <a href="hearsay://open/settings-general"><span class="ui">Settings</span> &gt; <span class="ui">General</span></a>. Hearsay needs to restart; click <span class="ui">Restart Now</span>.</li>
+  <li><strong><span class="ui">Interface language</span>:</strong> choose it in <a href="hearsay://open/settings-general"><span class="ui">Settings</span> &gt; <span class="ui">General</span></a>. <span data-platform="mac">Hearsay needs to restart; click <span class="ui">Restart Now</span>.</span><span data-platform="windows">The change applies the next time Hearsay starts.</span></li>
   <li><strong>Startup:</strong> turn on <span class="ui">Launch Hearsay at login</span> in the same place.</li>
-  <li><strong>Updates:</strong> <span class="ui">Check for Updates…</span> in the Hearsay menu offers <span class="ui">Install Update</span>, which downloads, verifies, and installs the new version and relaunches Hearsay, or <span class="ui">View on GitHub</span>, which opens the release page.</li>
+  <li data-platform="mac"><strong>Updates:</strong> <span class="ui">Check for Updates…</span> in the Hearsay menu offers <span class="ui">Install Update</span>, which downloads, verifies, and installs the new version and relaunches Hearsay, or <span class="ui">View on GitHub</span>, which opens the release page.</li>
   <li><strong>Recordings:</strong> to delete the WAV after a successful transcription, turn off <span class="ui">Keep the recording (WAV) after a successful transcription</span> in <a href="hearsay://open/settings-output"><span class="ui">Settings</span> &gt; <span class="ui">Output</span></a>.</li>
-  <li><strong>Unfinished recordings:</strong> if Hearsay or your Mac stops during a recording, the next launch asks what to do with it. <span class="ui">Transcribe</span> creates the transcript, <span class="ui">Keep</span> moves the WAV to the output folder, and <span class="ui">Delete</span> removes it.</li>
+  <li><strong>Unfinished recordings:</strong> if Hearsay or your <span data-platform="mac">Mac</span><span data-platform="windows">PC</span> stops during a recording, the next launch asks what to do with it. <span class="ui">Transcribe</span> creates the transcript, <span class="ui">Keep</span> moves the WAV to the output folder, and <span class="ui">Delete</span> removes it.</li>
 </ul>
 
 <h2 id="troubleshooting">Troubleshooting</h2>
 <ul>
   <li><span class="problem">No model installed</span> — Open the <a href="hearsay://open/models"><span class="ui">Models</span> tab</a>, download a model, and click <span class="ui">Use</span>.</li>
-  <li><span class="problem">No microphone access</span> — Turn on Hearsay in System Settings &gt; Privacy &amp; Security &gt; Microphone.</li>
-  <li><span class="problem"><span class="ui">System audio off: permission denied</span></span> — Turn on Hearsay in System Settings &gt; Privacy &amp; Security &gt; Screen &amp; System Audio Recording, then start a new recording.</li>
-  <li><span class="problem">System audio silent after you allowed it</span> — Quit and reopen Hearsay.</li>
-  <li><span class="problem">System audio stops working after an update</span> — This Hearsay build is not signed with a Developer ID, so macOS forgets the permission. On the <a href="hearsay://open/record"><span class="ui">Record</span> tab</a>, click <span class="ui">Fix…</span>, then turn Hearsay on again in System Settings &gt; Privacy &amp; Security &gt; Screen &amp; System Audio Recording.</li>
+  <li data-platform="mac"><span class="problem">No microphone access</span> — Turn on Hearsay in System Settings &gt; Privacy &amp; Security &gt; Microphone.</li>
+  <li data-platform="windows"><span class="problem">No microphone access</span> — In Settings &gt; Privacy &amp; security &gt; Microphone, turn on microphone access and access for desktop apps.</li>
+  <li data-platform="windows"><span class="problem">System audio is off</span> — System audio needs no permission on Windows. Check that a speaker or headphone output is connected and turned on, then start a new recording.</li>
+  <li data-platform="mac"><span class="problem"><span class="ui">System audio off: permission denied</span></span> — Turn on Hearsay in System Settings &gt; Privacy &amp; Security &gt; Screen &amp; System Audio Recording, then start a new recording.</li>
+  <li data-platform="mac"><span class="problem">System audio silent after you allowed it</span> — Quit and reopen Hearsay.</li>
+  <li data-platform="mac"><span class="problem">System audio stops working after an update</span> — This Hearsay build is not signed with a Developer ID, so macOS forgets the permission. On the <a href="hearsay://open/record"><span class="ui">Record</span> tab</a>, click <span class="ui">Fix…</span>, then turn Hearsay on again in System Settings &gt; Privacy &amp; Security &gt; Screen &amp; System Audio Recording.</li>
   <li><span class="problem">“No audio from” a device</span> — Check that the device is connected and not muted, or choose another <span class="ui">Microphone</span>.</li>
-  <li><span class="problem">Poor sound from AirPods or another Bluetooth headset</span> — While recording, macOS switches them to a low-quality call mode. In a noisy room, use the Mac’s built-in microphone.</li>
-  <li><span class="problem">An AI program is not found</span> — Install it, or enter its path in <a href="hearsay://open/settings-ai"><span class="ui">Settings</span> &gt; <span class="ui">AI</span></a>.</li>
-  <li><span class="problem">An AI program is not logged in</span> — In Terminal, run <code>copilot</code>, <code>claude</code>, <code>codex login</code>, or <code>agy</code> once, then click its Check button in <span class="ui">Settings</span> &gt; <span class="ui">AI</span>.</li>
-  <li><span class="problem">Can’t find your files</span> — The folder is shown in <a href="hearsay://open/settings-output"><span class="ui">Settings</span> &gt; <span class="ui">Output</span></a>. In the <span class="ui">History</span> tab, click <span class="ui">Reveal in Finder</span>.</li>
+  <li><span class="problem">Poor sound from AirPods or another Bluetooth headset</span> — While recording, <span data-platform="mac">macOS</span><span data-platform="windows">Windows</span> switches them to a low-quality call mode. In a noisy room, use the <span data-platform="mac">Mac’s</span><span data-platform="windows">PC’s</span> built-in microphone.</li>
+  <li data-platform="mac"><span class="problem">An AI program is not found</span> — Install it, or enter its path in <a href="hearsay://open/settings-ai"><span class="ui">Settings</span> &gt; <span class="ui">AI</span></a>.</li>
+  <li data-platform="windows"><span class="problem">An AI program is not found</span> — Install it with the command shown below its preset in <a href="hearsay://open/settings-ai"><span class="ui">Settings</span> &gt; <span class="ui">AI</span></a> (for example <code>irm https://claude.ai/install.ps1 | iex</code> in PowerShell for Claude Code), or enter its path there.</li>
+  <li><span class="problem">An AI program is not logged in</span> — In <span data-platform="mac">Terminal</span><span data-platform="windows">a terminal</span>, run <code>copilot</code>, <code>claude</code>, <code>codex login</code>, or <code>agy</code> once, then click its Check button in <span class="ui">Settings</span> &gt; <span class="ui">AI</span>.</li>
+  <li data-platform="mac"><span class="problem">Can’t find your files</span> — The folder is shown in <a href="hearsay://open/settings-output"><span class="ui">Settings</span> &gt; <span class="ui">Output</span></a>. In the <span class="ui">History</span> tab, click <span class="ui">Reveal in Finder</span>.</li>
+  <li data-platform="windows"><span class="problem">Can’t find your files</span> — The folder is shown in <a href="hearsay://open/settings-output"><span class="ui">Settings</span> &gt; <span class="ui">Output</span></a>; the default is <code>%USERPROFILE%\Documents\Hearsay</code>. In the <span class="ui">History</span> tab, click <span class="ui">Reveal in Explorer</span>.</li>
+  <li data-platform="windows"><span class="problem">Transcription is slow, or the live preview is off</span> — Hearsay uses the graphics chip through Vulkan when it can, otherwise the processor (CPU). On the CPU the final transcript takes about 1.5 to 3.5 times as long as the recording, and the live preview stays off. A PC with a graphics chip from Intel, AMD, or NVIDIA is much faster.</li>
 </ul>
 
 <h2 id="about">About</h2>

@@ -1,438 +1,625 @@
+using System.Collections.Concurrent;
+using System.ComponentModel;
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.RegularExpressions;
+using Hearsay.App.Features.Debug;
+using Hearsay.Core.Audio;
+using Hearsay.Core.Settings;
+using Hearsay.Core.Transcription;
+using Microsoft.Windows.ApplicationModel.Resources;
 
 namespace Hearsay.App;
 
 /// <summary>
-/// Every user-facing string of the Windows app, in English, in one place so
-/// W7 can move them to <c>.resw</c> files generated from shared/localization
-/// (PLAN.md 18.3, "Localization"). Where the Mac has the same text, the
-/// English value is the Mac's string-catalog key, so the four translations in
-/// shared/localization can be reused; Windows-only strings are marked.
+/// Every user-facing string of the Windows app, looked up in the
+/// <c>.resw</c> files that windows/scripts/import-strings.py generates from
+/// shared/localization (PLAN.md 18.3, "Localization"). Each member names its
+/// key: <see cref="App(string)"/> for the Mac's app catalog,
+/// <see cref="Core(string)"/> for its core catalog, and <see cref="Win(string)"/>
+/// for the Windows-only entries (catalog "windows"). The key is the English
+/// text, so the four translations of the Mac are reused; placeholders are
+/// the Mac's (<c>%@</c>, <c>%lld</c>), the .resw values .NET format strings.
+/// The script scans this file for those calls, so every key is a literal.
+/// <para>
+/// The language is fixed at launch (<see cref="Apply"/>). A missing resource
+/// throws in debug runs and falls back to the English key otherwise.
 /// Never put the AI prompt, CLI arguments, file names, log lines, product
 /// names or language autonyms here (AGENTS.md, Conventions).
+/// </para>
 /// </summary>
-internal static class Strings
+internal static partial class Strings
 {
+    private static readonly ConcurrentDictionary<string, string> Cache = new(StringComparer.Ordinal);
+    private static ResourceMap? map;
+    private static ResourceContext? context;
+
     private static CultureInfo Culture => CultureInfo.CurrentCulture;
 
+    /// <summary>
+    /// Loads the app's resources in <paramref name="language"/> for this run
+    /// (the Mac writes <c>AppleLanguages</c> at the same point). Call once,
+    /// before any window is built.
+    /// </summary>
+    public static void Apply(InterfaceLanguage language)
+    {
+        Cache.Clear();
+        try
+        {
+            var manager = new ResourceManager();
+            var resources = manager.MainResourceMap.GetSubtree("Resources");
+            var languageContext = manager.CreateResourceContext();
+            languageContext.QualifierValues["Language"] = language.Code();
+            map = resources;
+            context = languageContext;
+        }
+        catch (Exception error) when (error is not OutOfMemoryException)
+        {
+            map = null;
+            context = null;
+            AppLog.Write($"strings: cannot load the resources, English only: {error.Message}");
+            if (ThrowsOnMissing) throw new InvalidOperationException("The app's string resources (Hearsay.pri) could not be loaded.", error);
+        }
+        try
+        {
+            // Built-in control text (text box context menus and the like).
+            Microsoft.Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride = language.Code();
+        }
+        catch (Exception error) when (error is not OutOfMemoryException)
+        {
+            AppLog.Write($"strings: cannot set the primary language override: {error.Message}");
+        }
+    }
+
+    /// <summary>Debug builds and debug runs (<c>HEARSAY_*</c>) fail on a missing string instead of showing English.</summary>
+    private static bool ThrowsOnMissing =>
+#if DEBUG
+        true;
+#else
+        DebugEnvironment.IsDebugRun;
+#endif
+
+    private static string App(string key) => Lookup("app", key, required: true) ?? key;
+
+    private static string App(string key, params object?[] args) => Format("app", key, args);
+
+    private static string Core(string key) => Lookup("core", key, required: true) ?? key;
+
+    private static string Core(string key, params object?[] args) => Format("core", key, args);
+
+    private static string Win(string key) => Lookup("windows", key, required: true) ?? key;
+
+    private static string Win(string key, params object?[] args) => Format("windows", key, args);
+
+    private static string Format(string catalog, string key, object?[] args) =>
+        string.Format(Culture, Lookup(catalog, key, required: true) ?? ToDotNetFormat(key), args);
+
+    /// <summary>
+    /// The resource name import-strings.py gives <paramref name="key"/>:
+    /// the catalog, "_", and 16 hex digits of the key's SHA-256.
+    /// </summary>
+    internal static string ResourceName(string catalog, string key) =>
+        catalog + "_" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(key)))[..16];
+
+    private static string? Lookup(string catalog, string key, bool required)
+    {
+        var name = ResourceName(catalog, key);
+        if (Cache.TryGetValue(name, out var cached)) return cached;
+        string? value = null;
+        if (map is { } resources && context is { } languageContext)
+        {
+            try
+            {
+                value = resources.TryGetValue(name, languageContext)?.ValueAsString;
+            }
+            catch (Exception error) when (error is not OutOfMemoryException)
+            {
+                AppLog.Write($"strings: lookup of {catalog}:{key} failed: {error.Message}");
+            }
+        }
+        if (value is null)
+        {
+            if (!required) return null;
+            if (ThrowsOnMissing)
+            {
+                throw new InvalidOperationException(
+                    $"No string resource for {catalog}:\"{key}\". Add it to shared/localization and run windows/scripts/import-strings.py.");
+            }
+            return null;
+        }
+        Cache[name] = value;
+        return value;
+    }
+
+    /// <summary>The Mac's printf-style placeholders as a .NET format string (the English fallback), as import-strings.py converts them.</summary>
+    private static string ToDotNetFormat(string text)
+    {
+        var builder = new StringBuilder();
+        var counter = 0;
+        var last = 0;
+        foreach (Match match in FormatToken().Matches(text))
+        {
+            builder.Append(text.AsSpan(last, match.Index - last).ToString().Replace("{", "{{", StringComparison.Ordinal).Replace("}", "}}", StringComparison.Ordinal));
+            if (match.Value == "%%")
+            {
+                builder.Append('%');
+            }
+            else if (match.Groups[1].Success)
+            {
+                builder.Append('{').Append(int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture) - 1).Append('}');
+            }
+            else
+            {
+                builder.Append('{').Append(counter++).Append('}');
+            }
+            last = match.Index + match.Length;
+        }
+        builder.Append(text[last..].Replace("{", "{{", StringComparison.Ordinal).Replace("}", "}}", StringComparison.Ordinal));
+        return builder.ToString();
+    }
+
+    [GeneratedRegex(@"%%|%(?:(\d+)\$)?[-+ #0']*(?:\d+|\*)?(?:\.(?:\d+|\*))?(?:hh|h|ll|l|q|z|t|j|L)?[@dDuUxXoOfFeEgGcCsSaAp]")]
+    private static partial Regex FormatToken();
+
+    /// <summary>
+    /// The translation of a plain English text a Core type returns (a preset
+    /// name, "No token"), when the Mac's core catalog has it; otherwise the
+    /// text unchanged. Never throws for an unknown text.
+    /// </summary>
+    public static string CoreText(string english) => Lookup("core", english, required: false) ?? english;
+
+    /// <summary>
+    /// The user-facing text of an error (the Swift <c>describe</c>): the
+    /// Core errors whose English the Mac localizes are translated here by
+    /// kind; every other error shows its message.
+    /// </summary>
+    public static string Describe(Exception error) => error switch
+    {
+        MicrophoneRecorderException microphone => Describe(microphone),
+        SystemAudioRecorderException system => Describe(system),
+        SecretStoreException { ErrorCode: not 0 } secret => Win("Credential Manager error: %@",
+            new Win32Exception(secret.ErrorCode).Message.TrimEnd().TrimEnd('.')),
+        null => throw new ArgumentNullException(nameof(error)),
+        _ => error.Message,
+    };
+
+    private static string Describe(MicrophoneRecorderException error) => error.Kind switch
+    {
+        MicrophoneRecorderErrorKind.PermissionDenied => Win(
+            "Hearsay has no microphone access. Allow it in Settings > Privacy & security > Microphone (\"Let desktop apps access your microphone\")."),
+        MicrophoneRecorderErrorKind.NoInputDevice => Core("No input device is available."),
+        MicrophoneRecorderErrorKind.DeviceNotFound => Core("%@ is not available for recording. Reconnect it or choose another input.", error.Detail),
+        MicrophoneRecorderErrorKind.EngineFailed => Core("Audio capture failed: %@", error.Detail),
+        MicrophoneRecorderErrorKind.NoAudio => Core(
+            "No audio from %@. Nothing arrived within %lld seconds, so the recording was stopped. Check that the device is connected and not muted, or choose another input.",
+            error.Detail, (int)NoAudioWatchdog.Timeout),
+        MicrophoneRecorderErrorKind.ConfigurationChanged => Core("The input device changed or was disconnected, so recording stopped."),
+        _ => error.Message,
+    };
+
+    private static string Describe(SystemAudioRecorderException error) => error.Kind switch
+    {
+        SystemAudioRecorderErrorKind.NoOutputDevice => Win("No output device is available to capture system audio from."),
+        SystemAudioRecorderErrorKind.StartFailed => Core("System audio capture could not start: %@", error.Detail),
+        SystemAudioRecorderErrorKind.StreamStopped => Core("System audio capture stopped: %@", error.Detail),
+        _ => error.Message,
+    };
+
     // Main window tabs (mac/Hearsay/Features/Main/MainView.swift).
-    public const string TabRecord = "Record";
-    public const string TabFile = "File";
-    public const string TabModels = "Models";
-    public const string TabHistory = "History";
-    public const string TabSettings = "Settings";
+    public static string TabRecord => App("Record");
+    public static string TabFile => App("File");
+    public static string TabModels => App("Models");
+    public static string TabHistory => App("History");
+    public static string TabSettings => App("Settings");
 
     // Shared buttons.
-    public const string Cancel = "Cancel";
-    public const string OK = "OK";
+    public static string Cancel => App("Cancel");
+    public static string OK => App("OK");
 
     // Models tab (mac/Hearsay/Features/Models/ModelManagerView.swift, ModelRowView.swift).
-    public const string ModelsStoredIn = "Models are stored in";
-    public static string ModelsOnDisk(string size) => string.Format(Culture, "{0} on disk", size);
+    public static string ModelsStoredIn => App("Models are stored in");
+    public static string ModelsOnDisk(string size) => App("%@ on disk", size);
     /// <summary>The Mac's "Show in Finder" (Windows only).</summary>
-    public const string ShowInExplorer = "Show in Explorer";
-    public const string Recommended = "Recommended";
-    public static string DownloadProgress(string received, string total) =>
-        string.Format(Culture, "{0} of {1}", received, total);
-    public static string ModelInUse(string size) => string.Format(Culture, "{0}, in use", size);
-    public static string ModelInstalled(string size) => string.Format(Culture, "{0}, installed", size);
-    public const string Download = "Download";
-    public const string Retry = "Retry";
-    public const string Use = "Use";
-    public const string ActiveModel = "Active model";
-    public const string Delete = "Delete";
-    public const string CouldNotDeleteModel = "Could not delete the model";
+    public static string ShowInExplorer => Win("Show in Explorer");
+    public static string Recommended => App("Recommended");
+    public static string DownloadProgress(string received, string total) => App("%@ of %@", received, total);
+    public static string ModelInUse(string size) => App("%@, in use", size);
+    public static string ModelInstalled(string size) => App("%@, installed", size);
+    public static string Download => App("Download");
+    public static string Retry => App("Retry");
+    public static string Use => App("Use");
+    public static string ActiveModel => App("Active model");
+    public static string Delete => App("Delete");
+    public static string CouldNotDeleteModel => App("Could not delete the model");
     /// <summary>Windows only: the Mac deletes from the context menu without asking.</summary>
-    public static string DeleteModelTitle(string displayName) => string.Format(Culture, "Delete {0}?", displayName);
+    public static string DeleteModelTitle(string displayName) => Win("Delete %@?", displayName);
     /// <summary>Windows only.</summary>
-    public const string DeleteModelMessage = "Its files are removed from this PC. You can download it again at any time.";
-    /// <summary>Byte counts under 1 KB (ByteCountFormatter's "bytes").</summary>
-    public static string Bytes(long count) =>
-        count == 1 ? string.Format(Culture, "{0} byte", count) : string.Format(Culture, "{0} bytes", count);
+    public static string DeleteModelMessage => Win("Its files are removed from this PC. You can download it again at any time.");
+    /// <summary>Byte counts under 1 KB (ByteCountFormatter's "bytes"; Windows only).</summary>
+    public static string Bytes(long count) => count == 1 ? Win("%@ byte", count) : Win("%@ bytes", count);
 
     // First-run model sheet (mac/Hearsay/Features/Models/OnboardingModelSheet.swift).
-    public const string OnboardingTitle = "Download a speech model";
+    public static string OnboardingTitle => App("Download a speech model");
     /// <summary>The Mac's text with "on this Mac" as "on this PC" (Windows only).</summary>
-    public const string OnboardingText =
+    public static string OnboardingText => Win(
         "Hearsay transcribes on this PC with a Whisper model that you download once. "
         + "Nothing is sent anywhere while transcribing. The recommended model gives the "
         + "best balance of accuracy and speed; smaller ones download faster but make "
-        + "more mistakes.";
-    public const string ChooseAnother = "Choose another…";
-    public static string DownloadRecommended(string size) =>
-        string.Format(Culture, "Download recommended model ({0})", size);
+        + "more mistakes.");
+    public static string ChooseAnother => App("Choose another…");
+    public static string DownloadRecommended(string size) => App("Download recommended model (%@)", size);
 
     // History tab (mac/Hearsay/Features/History/HistoryView.swift, HistoryViewModel.swift).
-    public const string NoOutputFolder = "No output folder";
+    public static string NoOutputFolder => App("No output folder");
     /// <summary>The Mac's "Reveal in Finder" (Windows only).</summary>
-    public const string RevealInExplorer = "Reveal in Explorer";
-    public const string Refresh = "Refresh";
-    public const string NoMeetingsYet = "No meetings yet";
-    public const string NoMeetingsDescription =
-        "Recordings, transcripts and meeting notes saved in the output folder appear here.";
-    public const string Untitled = "Untitled";
-    public const string BadgeNotes = "Notes";
-    public const string BadgeTranscript = "Transcript";
-    public const string BadgeAudio = "Audio";
-    public static string BadgeSaved(string title) => string.Format(Culture, "{0} saved", title);
-    public const string OpenNotesTooltip = "Open notes";
-    public const string OpenTranscriptTooltip = "Open transcript";
-    public const string OpenSrt = "Open SRT";
-    public const string OpenNotes = "Open Notes";
-    public const string OpenTranscript = "Open Transcript";
-    public const string Rename = "Rename…";
-    public const string GenerateNotes = "Generate Notes…";
-    public const string RegenerateNotes = "Regenerate Notes…";
+    public static string RevealInExplorer => Win("Reveal in Explorer");
+    public static string Refresh => App("Refresh");
+    public static string NoMeetingsYet => App("No meetings yet");
+    public static string NoMeetingsDescription =>
+        App("Recordings, transcripts and meeting notes saved in the output folder appear here.");
+    public static string Untitled => App("Untitled");
+    public static string BadgeNotes => App("Notes");
+    public static string BadgeTranscript => App("Transcript");
+    public static string BadgeAudio => App("Audio");
+    public static string BadgeSaved(string title) => App("%@ saved", title);
+    public static string OpenNotesTooltip => App("Open notes");
+    public static string OpenTranscriptTooltip => App("Open transcript");
+    public static string OpenSrt => App("Open SRT");
+    public static string OpenNotes => App("Open Notes");
+    public static string OpenTranscript => App("Open Transcript");
+    public static string Rename => App("Rename…");
+    public static string GenerateNotes => App("Generate Notes…");
+    public static string RegenerateNotes => App("Regenerate Notes…");
     /// <summary>The Mac's "Move to Trash…" (Windows only).</summary>
-    public const string MoveToRecycleBin = "Move to Recycle Bin…";
+    public static string MoveToRecycleBin => Win("Move to Recycle Bin…");
     /// <summary>The Mac's "Move this meeting to the Trash?" (Windows only).</summary>
-    public const string MoveToRecycleBinTitle = "Move this meeting to the Recycle Bin?";
+    public static string MoveToRecycleBinTitle => Win("Move this meeting to the Recycle Bin?");
     /// <summary>The Mac's "Move to Trash" (Windows only).</summary>
-    public const string MoveToRecycleBinButton = "Move to Recycle Bin";
+    public static string MoveToRecycleBinButton => Win("Move to Recycle Bin");
     /// <summary>The Mac's "Some files could not be moved to the Trash:" (Windows only).</summary>
-    public const string RecycleFailures = "Some files could not be moved to the Recycle Bin:";
-    public const string CouldNotRename = "Could not rename the meeting";
-    public static string OutputFolderOpenFailed(string message) =>
-        string.Format(Culture, "Could not open the output folder: {0}", message);
-    public static string FolderReadFailed(string path, string message) =>
-        string.Format(Culture, "Could not read {0}: {1}", path, message);
-    public static string NoAppToOpen(string fileName) =>
-        string.Format(Culture, "No app is available to open {0}.", fileName);
+    public static string RecycleFailures => Win("Some files could not be moved to the Recycle Bin:");
+    public static string CouldNotRename => App("Could not rename the meeting");
+    public static string OutputFolderOpenFailed(string message) => App("Could not open the output folder: %@", message);
+    public static string FolderReadFailed(string path, string message) => App("Could not read %@: %@", path, message);
+    public static string NoAppToOpen(string fileName) => App("No app is available to open %@.", fileName);
     /// <summary>Windows only: File Explorer could not be asked to show the files.</summary>
-    public static string RevealFailed(string message) =>
-        string.Format(Culture, "Could not show the files in File Explorer: {0}", message);
+    public static string RevealFailed(string message) => Win("Could not show the files in File Explorer: %@", message);
 
     // Naming sheet (mac/Hearsay/Features/Notes/NamingSheet.swift).
-    public const string NamingTitleRename = "Rename meeting";
-    public const string NamingTitleNew = "Name this meeting";
-    public const string NamingTitleExisting = "Meeting name";
-    public const string NamingExplainRename = "The transcript, notes, and recording are renamed to <timestamp>_<name>.";
-    public const string NamingExplainCurrent = "This is the meeting's current name. Edit it or press Return to keep it.";
-    public const string NamingExplainCurrentOrSuggestion =
-        "This is the meeting's current name. Edit it, keep it, or use the AI's suggestion.";
-    public const string NamingExplainManual = "The transcript and recording are renamed to <timestamp>_<name>.";
-    public const string NamingExplainSuggestion = "The AI suggested this name. Edit it or press Return to accept it.";
-    public const string NamingPlaceholder = "Meeting name (in English)";
-    public static string NamingUseSuggestion(string suggestion) =>
-        string.Format(Culture, "Use suggested name: {0}", suggestion);
-    public const string NamingFileName = "File name:";
-    public const string NamingRejected = "Enter an English meeting name using letters or digits.";
+    public static string NamingTitleRename => App("Rename meeting");
+    public static string NamingTitleNew => App("Name this meeting");
+    public static string NamingTitleExisting => App("Meeting name");
+    public static string NamingExplainRename => App("The transcript, notes, and recording are renamed to <timestamp>_<name>.");
+    public static string NamingExplainCurrent => App("This is the meeting's current name. Edit it or press Return to keep it.");
+    public static string NamingExplainCurrentOrSuggestion =>
+        App("This is the meeting's current name. Edit it, keep it, or use the AI's suggestion.");
+    public static string NamingExplainManual => App("The transcript and recording are renamed to <timestamp>_<name>.");
+    public static string NamingExplainSuggestion => App("The AI suggested this name. Edit it or press Return to accept it.");
+    public static string NamingPlaceholder => App("Meeting name (in English)");
+    public static string NamingUseSuggestion(string suggestion) => App("Use suggested name: %@", suggestion);
+    public static string NamingFileName => App("File name:");
+    public static string NamingRejected => App("Enter an English meeting name using letters or digits.");
     /// <summary>The Mac's "Saving moves the current notes to the Trash." (Windows only).</summary>
-    public const string NamingReplacesNotes = "Saving moves the current notes to the Recycle Bin.";
-    public const string NamingRenameButton = "Rename";
-    public const string NamingSaveButton = "Save";
+    public static string NamingReplacesNotes => Win("Saving moves the current notes to the Recycle Bin.");
+    public static string NamingRenameButton => App("Rename");
+    public static string NamingSaveButton => App("Save");
 
     // Settings > AI (mac/Hearsay/Features/Notes/AISettingsTab.swift).
-    public const string AISectionProvider = "Provider";
-    public const string AIPreset = "Preset:";
-    public static string AICliPath(string shortName) => string.Format(Culture, "{0} CLI path:", shortName);
-    public static string AICliNotFound(string binaryName) =>
-        string.Format(Culture, "not found; enter the path to {0}", binaryName);
-    public const string AIModel = "Model:";
-    public const string AIReasoningEffort = "Reasoning effort:";
-    public const string AICliDefault = "CLI default";
-    public static string AICheckCli(string shortName) => string.Format(Culture, "Check {0}", shortName);
-    public static string AICliFound(string version, string path) => string.Format(Culture, "{0} at {1}", version, path);
+    public static string AISectionProvider => App("Provider");
+    public static string AIPreset => App("Preset:");
+    public static string AICliPath(string shortName) => App("%@ CLI path:", shortName);
+    public static string AICliNotFound(string binaryName) => App("not found; enter the path to %@", binaryName);
+    public static string AIModel => App("Model:");
+    public static string AIReasoningEffort => App("Reasoning effort:");
+    public static string AICliDefault => App("CLI default");
+    public static string AICheckCli(string shortName) => App("Check %@", shortName);
+    public static string AICliFound(string version, string path) => App("%@ at %@", version, path);
     /// <summary>The Mac's captions with "on this Mac" as "on this PC" (Windows only).</summary>
-    public const string AICaptionCopilot =
-        "Uses the Copilot CLI installed on this PC and its own login. Run `copilot` once in Terminal to log in. \"auto\" lets Copilot pick the model.";
-    public const string AICaptionClaudeCode =
-        "Uses Claude Code installed on this PC and your Claude subscription login; requests count against its usage limits. Run `claude` once in Terminal to log in. Model: an alias (sonnet, opus) or a full id. Effort: low, medium, high, xhigh, or max (none and minimal become low).";
-    public const string AICaptionCodex =
-        "Uses Codex installed on this PC and your ChatGPT login; requests count against your plan's usage limits. Run `codex login` once in Terminal to log in. Effort: none, minimal, low, medium, high, xhigh, or max. An empty model uses Codex's default.";
-    public const string AICaptionAntigravity =
-        "Uses the Antigravity CLI installed on this PC and the Google account it is logged in with; requests count against that account's limits. Run `agy` once in Terminal to log in; `agy models` lists the model ids. Effort: low, medium, high, or max, only for a model id without its own level (a model ending in -high, -medium, or -low ignores it). Runs use agy's hearsay-notes project, whose deny rules leave the model no tools except web search, and each run's conversation is deleted from agy's history afterwards.";
+    public static string AICaptionCopilot => Win(
+        "Uses the Copilot CLI installed on this PC and its own login. Run `copilot` once in Terminal to log in. \"auto\" lets Copilot pick the model.");
+    public static string AICaptionClaudeCode => Win(
+        "Uses Claude Code installed on this PC and your Claude subscription login; requests count against its usage limits. Run `claude` once in Terminal to log in. Model: an alias (sonnet, opus) or a full id. Effort: low, medium, high, xhigh, or max (none and minimal become low).");
+    public static string AICaptionCodex => Win(
+        "Uses Codex installed on this PC and your ChatGPT login; requests count against your plan's usage limits. Run `codex login` once in Terminal to log in. Effort: none, minimal, low, medium, high, xhigh, or max. An empty model uses Codex's default.");
+    public static string AICaptionAntigravity => Win(
+        "Uses the Antigravity CLI installed on this PC and the Google account it is logged in with; requests count against that account's limits. Run `agy` once in Terminal to log in; `agy models` lists the model ids. Effort: low, medium, high, or max, only for a model id without its own level (a model ending in -high, -medium, or -low ignores it). Runs use agy's hearsay-notes project, whose deny rules leave the model no tools except web search, and each run's conversation is deleted from agy's history afterwards.");
     /// <summary>Windows only: the Mac's captions have no install line.</summary>
-    public static string AIInstallLine(string command) =>
-        string.Format(Culture, "To install it, run `{0}` in a terminal.", command);
-    public const string AIEndpointUrl = "Endpoint URL:";
-    public const string AIOmittedWhenEmpty = "omitted when empty";
-    public const string AITemperature = "Temperature:";
-    public const string AITokenHeader = "Token header:";
-    public const string AIExtraHeaders = "Extra headers:";
-    public const string AIExtraHeadersPlaceholder = "Name: value, one per line";
-    public const string AISectionToken = "Token";
-    public const string AIApiToken = "API token:";
-    public const string AITokenPlaceholder = "paste and press Return";
-    public const string AITokenStatus = "Status:";
-    public const string AITokenSaved = "Saved";
-    public const string AITokenNotSet = "Not set";
-    public const string AITokenRemove = "Remove";
-    public const string AINoTokenNeeded = "This provider needs no token.";
-    public static string AITokenSaveFailed(string reason) => string.Format(Culture, "Could not save the token: {0}", reason);
-    public static string AITokenRemoveFailed(string reason) => string.Format(Culture, "Could not remove the token: {0}", reason);
-    public const string AISectionSending = "Sending";
-    public const string AIAskBeforeSending = "Ask before sending a transcript";
-    public const string AITestConnection = "Test connection";
-    public static string AIConnected(string reply) => string.Format(Culture, "Connected. Reply: {0}", reply);
-    public const string AISectionTemplates = "Prompt templates";
-    public const string AITemplateBuiltIn = "built-in";
-    public const string AITemplateDefault = "Default";
-    public const string AITemplateAdd = "Add";
-    public const string AITemplateEdit = "Edit";
-    public const string AITemplateSetDefault = "Set as Default";
-    public const string AINewTemplateName = "New template";
-    public const string TemplateEditorTitle = "Prompt template";
-    public const string TemplateEditorName = "Name:";
-    public const string TemplateEditorInstructions = "Instructions";
-    public static string TemplateEditorCaption(string placeholder) => string.Format(Culture,
-        "{0} is replaced by the notes language. The filename and JSON rules and the transcript are always appended.",
-        placeholder);
+    public static string AIInstallLine(string command) => Win("To install it, run `%@` in a terminal.", command);
+    public static string AIEndpointUrl => App("Endpoint URL:");
+    public static string AIOmittedWhenEmpty => App("omitted when empty");
+    public static string AITemperature => App("Temperature:");
+    public static string AITokenHeader => App("Token header:");
+    public static string AIExtraHeaders => App("Extra headers:");
+    public static string AIExtraHeadersPlaceholder => App("Name: value, one per line");
+    public static string AISectionToken => App("Token");
+    public static string AIApiToken => App("API token:");
+    public static string AITokenPlaceholder => App("paste and press Return");
+    public static string AITokenStatus => App("Status:");
+    public static string AITokenSaved => App("Saved");
+    public static string AITokenNotSet => App("Not set");
+    public static string AITokenRemove => App("Remove");
+    public static string AINoTokenNeeded => App("This provider needs no token.");
+    public static string AITokenSaveFailed(string reason) => App("Could not save the token: %@", reason);
+    public static string AITokenRemoveFailed(string reason) => App("Could not remove the token: %@", reason);
+    public static string AISectionSending => App("Sending");
+    public static string AIAskBeforeSending => App("Ask before sending a transcript");
+    public static string AITestConnection => App("Test connection");
+    public static string AIConnected(string reply) => App("Connected. Reply: %@", reply);
+    public static string AISectionTemplates => App("Prompt templates");
+    public static string AITemplateBuiltIn => App("built-in");
+    public static string AITemplateDefault => App("Default");
+    public static string AITemplateAdd => App("Add");
+    public static string AITemplateEdit => App("Edit");
+    public static string AITemplateSetDefault => App("Set as Default");
+    public static string AINewTemplateName => App("New template");
+    public static string TemplateEditorTitle => App("Prompt template");
+    public static string TemplateEditorName => App("Name:");
+    public static string TemplateEditorInstructions => App("Instructions");
+    public static string TemplateEditorCaption(string placeholder) =>
+        App("%@ is replaced by the notes language. The filename and JSON rules and the transcript are always appended.", placeholder);
 
     // Confirm sheet (mac/Hearsay/Features/Notes/ConfirmSendSheet.swift).
-    public const string ConfirmTitle = "Send transcript for meeting notes?";
-    public const string ConfirmProvider = "Provider:";
-    public const string ConfirmModel = "Model:";
-    public const string ConfirmTranscript = "Transcript:";
-    public static string ConfirmCharacters(int count) => string.Format(Culture, "{0:N0} characters", count);
-    public const string ConfirmFile = "File:";
-    public const string ConfirmTemplate = "Template:";
-    public const string ConfirmNotesLanguage = "Notes language:";
+    public static string ConfirmTitle => App("Send transcript for meeting notes?");
+    public static string ConfirmProvider => App("Provider:");
+    public static string ConfirmModel => App("Model:");
+    public static string ConfirmTranscript => App("Transcript:");
+    public static string ConfirmCharacters(int count) => App("%@ characters", count.ToString("N0", Culture));
+    public static string ConfirmFile => App("File:");
+    public static string ConfirmTemplate => App("Template:");
+    public static string ConfirmNotesLanguage => App("Notes language:");
     /// <summary>The Mac's "…Nothing leaves this Mac otherwise." (Windows only).</summary>
     public static string ConfirmSendsTo(string provider) =>
-        string.Format(Culture, "This sends the whole transcript to {0}. Nothing leaves this PC otherwise.", provider);
+        Win("This sends the whole transcript to %@. Nothing leaves this PC otherwise.", provider);
     /// <summary>The Mac's "…moved to the Trash…" (Windows only).</summary>
-    public const string ConfirmReplacesNotes = "The current notes will be moved to the Recycle Bin when the new ones are saved.";
-    public const string ConfirmAlwaysAsk = "Always ask before sending";
-    public const string ConfirmKeepLocal = "Keep local";
-    public const string ConfirmSend = "Send";
+    public static string ConfirmReplacesNotes => Win("The current notes will be moved to the Recycle Bin when the new ones are saved.");
+    public static string ConfirmAlwaysAsk => App("Always ask before sending");
+    public static string ConfirmKeepLocal => App("Keep local");
+    public static string ConfirmSend => App("Send");
 
     // Notes flow (mac/Hearsay/Features/Notes/NotesFlowView.swift, NotesFlowViewModel.swift).
-    public const string NotesWaiting = "Waiting for your answer…";
-    public static string NotesGenerating(string provider, string model) =>
-        string.Format(Culture, "Generating meeting notes via {0} ({1})…", provider, model);
-    public const string NotesNotSaved = "Meeting notes were not saved";
-    public static string NotesSrtKept(string path) => string.Format(Culture, "The SRT is kept at {0}", path);
-    public const string NotesDone = "Done";
-    public const string ManualNamingTitle = "Name this meeting yourself?";
-    public const string ManualNamingText =
-        "No meeting notes were generated. You can rename the SRT and its recording, or keep the timestamp names.";
-    public static string ManualNamingTranscriptKept(string fileName) => string.Format(Culture, "Transcript kept: {0}", fileName);
-    public static string ManualNamingRecordingKept(string fileName) => string.Format(Culture, "Recording kept: {0}", fileName);
-    public const string ManualNamingNameIt = "Name It…";
-    public const string ManualNamingKeep = "Keep Timestamp Names";
-    public const string NotesCancelled = "Meeting-note generation was cancelled; no meeting notes were generated.";
-    public const string NotesNoneGenerated = "No meeting notes were generated.";
-    public const string NotesNothingSent = "Nothing was sent; the current notes are unchanged.";
-    public const string NotesSkipped = "Skipped AI processing; no meeting notes were generated.";
-    public const string NotesGenerated = "Meeting notes generated successfully!";
-    public const string NotesSkippedRenamed = "Skipped AI processing; renamed the transcript and recording.";
-    public const string NotesKeepingTimestampNames = "Keeping the timestamp file names.";
-    public const string NotesNoNameRegenerate = "No meeting name selected; the current notes are unchanged.";
-    public const string NotesNoNameRetained = "No meeting name selected; the SRT has been retained.";
-    public const string NotesSkippedKept = "Skipped AI processing; kept the timestamp file names.";
+    public static string NotesWaiting => App("Waiting for your answer…");
+    public static string NotesGenerating(string provider, string model) => App("Generating meeting notes via %@ (%@)…", provider, model);
+    public static string NotesNotSaved => App("Meeting notes were not saved");
+    public static string NotesSrtKept(string path) => App("The SRT is kept at %@", path);
+    public static string NotesDone => App("Done");
+    public static string ManualNamingTitle => App("Name this meeting yourself?");
+    public static string ManualNamingText =>
+        App("No meeting notes were generated. You can rename the SRT and its recording, or keep the timestamp names.");
+    public static string ManualNamingTranscriptKept(string fileName) => App("Transcript kept: %@", fileName);
+    public static string ManualNamingRecordingKept(string fileName) => App("Recording kept: %@", fileName);
+    public static string ManualNamingNameIt => App("Name It…");
+    public static string ManualNamingKeep => App("Keep Timestamp Names");
+    public static string NotesCancelled => App("Meeting-note generation was cancelled; no meeting notes were generated.");
+    public static string NotesNoneGenerated => App("No meeting notes were generated.");
+    public static string NotesNothingSent => App("Nothing was sent; the current notes are unchanged.");
+    public static string NotesSkipped => App("Skipped AI processing; no meeting notes were generated.");
+    public static string NotesGenerated => App("Meeting notes generated successfully!");
+    public static string NotesSkippedRenamed => App("Skipped AI processing; renamed the transcript and recording.");
+    public static string NotesKeepingTimestampNames => App("Keeping the timestamp file names.");
+    public static string NotesNoNameRegenerate => App("No meeting name selected; the current notes are unchanged.");
+    public static string NotesNoNameRetained => App("No meeting name selected; the SRT has been retained.");
+    public static string NotesSkippedKept => App("Skipped AI processing; kept the timestamp file names.");
 
     // Language picker and banner (mac/Hearsay/Features/Transcription/LanguageViews.swift).
-    public const string LanguageLabel = "Language";
+    public static string LanguageLabel => App("Language");
     /// <summary>The Auto segment (<c>LanguageChoice.shortLabel</c>); the language labels are never translated.</summary>
-    public const string LanguageAuto = "Auto";
-    public const string LanguagePickerTooltip =
-        "Auto detects English, Chinese, German, or Spanish from the first speech. ZH-TW writes Traditional characters, ZH-CN Simplified.";
-    /// <summary>The notice's English text; W7 localizes it by <c>LanguageNotice.MessageKey</c>.</summary>
-    public static string LanguageNoticeMessage(Hearsay.Core.Transcription.LanguageNotice notice) =>
-        notice?.Message ?? "";
-    public const string TranscribeAgain = "Transcribe again";
-    public const string Dismiss = "Dismiss";
+    public static string LanguageAuto => Core("Auto");
+    public static string LanguagePickerTooltip =>
+        App("Auto detects English, Chinese, German, or Spanish from the first speech. ZH-TW writes Traditional characters, ZH-CN Simplified.");
+    /// <summary>The notice by its <see cref="LanguageNotice.MessageKey"/> (the Mac's core catalog); every placeholder is the language name.</summary>
+    public static string LanguageNoticeMessage(LanguageNotice notice) => notice switch
+    {
+        LanguageNotice.Suggestion => Core("This sounds like %@. Transcribe again in %@?", notice.MessageArgument, notice.MessageArgument),
+        LanguageNotice.Fallback => Core("Couldn't tell the language, so this was transcribed in %@ (your Auto mode default language).",
+            notice.MessageArgument),
+        null => "",
+        _ => notice.Message,
+    };
+    /// <summary>
+    /// The confirm sheet's "Transcript language: …" (<see cref="NotesLanguageCaption.TranscriptLine"/>),
+    /// with Core's English <paramref name="note"/> translated by the key it was built from.
+    /// </summary>
+    public static string TranscriptLanguageLine(TranscriptLanguage language, string? note)
+    {
+        var name = language.DisplayName();
+        string? Built(string key) => note == key.Replace("%@", name, StringComparison.Ordinal) ? name : null;
+        var localizedNote = note is null ? name
+            : Built(StoredTranscriptLanguage.DetectedNoteKey) is { } detected ? Core("%@ (detected from the text)", detected)
+            : Built(StoredTranscriptLanguage.ChoiceNoteKey) is { } choice
+                ? Core("%@ (your language choice; this transcript's language was not recorded)", choice)
+            : Built(StoredTranscriptLanguage.AutoNoteKey) is { } preferred
+                ? Core("%@ (your Auto mode default language; this transcript's language was not recorded)", preferred)
+            : note;
+        return Core("Transcript language: %@", localizedNote);
+    }
+    /// <summary>"Notes will be written in …." when the notes language differs (<see cref="NotesLanguageCaption.NotesLine"/>), else null.</summary>
+    public static string? NotesLanguageLine(TranscriptLanguage transcript, TranscriptLanguage notes) =>
+        notes == transcript ? null : Core("Notes will be written in %@.", notes.DisplayName());
+    public static string TranscribeAgain => App("Transcribe again");
+    public static string Dismiss => App("Dismiss");
     public static string TranscribeAgainTooltip(string language) =>
-        string.Format(Culture, "Transcribe this recording again in {0}. Your language choice stays as it is.", language);
-    public static string TranscribeAgainInTooltip(string language) =>
-        string.Format(Culture, "Transcribe this recording again in {0}", language);
+        App("Transcribe this recording again in %@. Your language choice stays as it is.", language);
+    public static string TranscribeAgainInTooltip(string language) => App("Transcribe this recording again in %@", language);
 
     // Record tab (mac/Hearsay/Features/Recording/RecordView.swift).
-    public const string Microphone = "Microphone";
-    public const string NoInputDevice = "No input device";
-    public const string AlsoCaptureSystemAudio = "Also capture system audio";
-    public const string InputLevel = "Input level";
-    public const string MicMeter = "Mic";
-    public const string SystemMeter = "System";
-    public static string SourceLevel(string source) => string.Format(Culture, "{0} level", source);
-    public const string Ready = "Ready";
-    public const string Finalizing = "Finalizing…";
-    public const string Saved = "Saved";
-    public const string StartingState = "Starting…";
-    public const string RecordingState = "Recording";
-    public const string PausedState = "Paused";
-    public const string Saving = "Saving…";
-    public const string LivePreview = "Live preview";
-    public const string DetectingLanguage = "Detecting language…";
-    public static string ChunksWaiting(int count) => string.Format(Culture, "{0} chunks waiting", count);
-    public const string ChunksWaitingTooltip = "The preview lags behind the recording but stays complete.";
+    public static string Microphone => App("Microphone");
+    public static string NoInputDevice => App("No input device");
+    public static string AlsoCaptureSystemAudio => App("Also capture system audio");
+    public static string InputLevel => App("Input level");
+    public static string MicMeter => App("Mic");
+    public static string SystemMeter => App("System");
+    public static string SourceLevel(string source) => App("%@ level", source);
+    public static string Ready => App("Ready");
+    public static string Finalizing => App("Finalizing…");
+    public static string Saved => App("Saved");
+    public static string StartingState => App("Starting…");
+    public static string RecordingState => App("Recording");
+    public static string PausedState => App("Paused");
+    public static string Saving => App("Saving…");
+    public static string LivePreview => App("Live preview");
+    public static string DetectingLanguage => App("Detecting language…");
+    public static string ChunksWaiting(int count) => App("%lld chunks waiting", count);
+    public static string ChunksWaitingTooltip => App("The preview lags behind the recording but stays complete.");
     /// <summary>Windows only: the Mac shows a small spinner for the one chunk in progress.</summary>
-    public const string TranscribingChunk = "Transcribing…";
-    public const string FirstLinesAppear = "The first lines appear after about 10 to 30 s.";
-    public const string Transcribing = "Transcribing";
-    public const string UseLivePreviewInstead = "Use live preview instead";
-    public const string UseLivePreviewTooltip = "Skip the full pass and save the live preview as the transcript";
-    public const string SavingLivePreview = "Saving the live preview…";
-    public const string OpenModels = "Open Models";
-    public const string TryAgain = "Try Again";
-    public const string TranscribeThisFile = "Transcribe this file";
-    public const string Transcript = "Transcript";
-    public const string RecordingLabel = "Recording";
-    /// <summary>Windows only, temporary: the hook W6's notes flow sets is not connected.</summary>
-    public const string GenerateNotesUnavailable = "Meeting notes are not available in this build yet.";
+    public static string TranscribingChunk => Win("Transcribing…");
+    public static string FirstLinesAppear => App("The first lines appear after about 10 to 30 s.");
+    public static string Transcribing => App("Transcribing");
+    public static string UseLivePreviewInstead => App("Use live preview instead");
+    public static string UseLivePreviewTooltip => App("Skip the full pass and save the live preview as the transcript");
+    public static string SavingLivePreview => App("Saving the live preview…");
+    public static string OpenModels => App("Open Models");
+    public static string TryAgain => App("Try Again");
+    public static string TranscribeThisFile => App("Transcribe this file");
+    public static string Transcript => App("Transcript");
+    public static string RecordingLabel => App("Recording");
+    /// <summary>Windows only: the tooltip of Generate Notes when no notes flow is connected.</summary>
+    public static string GenerateNotesUnavailable => Win("Meeting notes are not available in this build yet.");
     /// <summary>Windows only: title of the alert when Explorer or the default app cannot be opened.</summary>
-    public const string CouldNotOpen = "Could not open the file";
-    public static string SilenceWarning(int seconds) =>
-        string.Format(Culture, "Silent for {0}s — check the input device", seconds);
-    public static string SystemAudioOff(string reason) => string.Format(Culture, "System audio off: {0}", reason);
-    public static string LivePreviewOff(string reason) => string.Format(Culture, "Live preview off: {0}", reason);
+    public static string CouldNotOpen => Win("Could not open the file");
+    public static string SilenceWarning(int seconds) => App("Silent for %llds — check the input device", seconds);
+    public static string SystemAudioOff(string reason) => App("System audio off: %@", reason);
+    public static string LivePreviewOff(string reason) => App("Live preview off: %@", reason);
     /// <summary>PLAN.md 18.4, "Speed" (Windows only).</summary>
-    public const string LivePreviewTooSlow = "Live preview off: this computer is too slow for it";
-    public static string LivePreviewMissedChunk(string reason) =>
-        string.Format(Culture, "Live preview missed a chunk: {0}", reason);
+    public static string LivePreviewTooSlow => Win("Live preview off: this computer is too slow for it");
+    public static string LivePreviewMissedChunk(string reason) => App("Live preview missed a chunk: %@", reason);
 
     // Recording and transcription errors (mac/Hearsay/Features/Recording/RecordingController.swift).
-    public const string TheInputDevice = "the input device";
-    public static string CouldNotCreateRecording(string message) =>
-        string.Format(Culture, "Could not create the recording file: {0}", message);
-    public static string WritingRecordingFailed(string message) =>
-        string.Format(Culture, "Writing the recording failed: {0}", message);
-    public static string ClosingRecordingFailed(string message) =>
-        string.Format(Culture, "Closing the recording failed: {0}", message);
-    public const string NothingRecorded = "Nothing was recorded, so no file was kept.";
-    public const string CancelledBecauseQuit = "Transcription was cancelled because Hearsay quit.";
-    public const string LanguageNotDecided = "Transcription failed: the language could not be decided.";
-    public static string TranscriptionFailed(string reason) => string.Format(Culture, "Transcription failed: {0}", reason);
-    public static string CouldNotTranscribeAgain(string reason) =>
-        string.Format(Culture, "Could not transcribe again: {0}", reason);
-    public const string CouldNotTranscribeAgainNotKept = "Could not transcribe again: the recording was not kept.";
-    public static string CouldNotTranscribeAgainMoved(string fileName) =>
-        string.Format(Culture, "Could not transcribe again: {0} was moved or renamed.", fileName);
-    public const string RecordingMissing = "The recording is missing.";
-    public static string CouldNotWriteTranscript(string message) =>
-        string.Format(Culture, "Could not write the transcript: {0}", message);
+    public static string TheInputDevice => App("the input device");
+    public static string CouldNotCreateRecording(string message) => App("Could not create the recording file: %@", message);
+    public static string WritingRecordingFailed(string message) => App("Writing the recording failed: %@", message);
+    public static string ClosingRecordingFailed(string message) => App("Closing the recording failed: %@", message);
+    public static string NothingRecorded => App("Nothing was recorded, so no file was kept.");
+    public static string CancelledBecauseQuit => App("Transcription was cancelled because Hearsay quit.");
+    public static string LanguageNotDecided => App("Transcription failed: the language could not be decided.");
+    public static string TranscriptionFailed(string reason) => App("Transcription failed: %@", reason);
+    public static string CouldNotTranscribeAgain(string reason) => App("Could not transcribe again: %@", reason);
+    public static string CouldNotTranscribeAgainNotKept => App("Could not transcribe again: the recording was not kept.");
+    public static string CouldNotTranscribeAgainMoved(string fileName) => App("Could not transcribe again: %@ was moved or renamed.", fileName);
+    public static string RecordingMissing => App("The recording is missing.");
+    public static string CouldNotWriteTranscript(string message) => App("Could not write the transcript: %@", message);
     public static string CouldNotMoveRecordingKeptAt(string message, string path) =>
-        string.Format(Culture, "Could not move the recording to the output folder: {0} It is kept at {1}.", message, path);
-    public static string CouldNotMoveRecording(string message) =>
-        string.Format(Culture, "Could not move the recording to the output folder: {0}", message);
-    public static string LivePreviewSavedAs(string path) => string.Format(Culture, "The live preview was saved as {0}.", path);
-    public static string LivePreviewNotSaved(string message) =>
-        string.Format(Culture, "The live preview could not be saved: {0}", message);
-    public static string RecordingKeptAt(string path) => string.Format(Culture, "The recording is kept at {0}.", path);
+        App("Could not move the recording to the output folder: %@ It is kept at %@.", message, path);
+    public static string CouldNotMoveRecording(string message) => App("Could not move the recording to the output folder: %@", message);
+    public static string LivePreviewSavedAs(string path) => App("The live preview was saved as %@.", path);
+    public static string LivePreviewNotSaved(string message) => App("The live preview could not be saved: %@", message);
+    public static string RecordingKeptAt(string path) => App("The recording is kept at %@.", path);
 
     // Quit while recording (mac/Hearsay/AppDelegate.swift).
-    public const string StopRecordingAndQuit = "Stop recording and quit?";
-    public const string RecordingSavedBeforeQuit = "The recording is saved before Hearsay quits.";
-    public const string StopAndQuit = "Stop & Quit";
+    public static string StopRecordingAndQuit => App("Stop recording and quit?");
+    public static string RecordingSavedBeforeQuit => App("The recording is saved before Hearsay quits.");
+    public static string StopAndQuit => App("Stop & Quit");
 
     // File tab (mac/Hearsay/Features/FileTranscription/FileView.swift, FileViewModel.swift).
-    public const string DropFileHere = "Drop an audio or video file here";
+    public static string DropFileHere => App("Drop an audio or video file here");
     /// <summary>The Mac's "wav, m4a, mp3, aac, aiff, caf, or …" with what Media Foundation reads (Windows only).</summary>
-    public const string AcceptedFileTypes = "wav, m4a, mp3, aac, wma, flac, or the audio track of mp4 / mov";
-    public const string ChooseFile = "Choose…";
-    public static string ReadingFile(string fileName) => string.Format(Culture, "Reading {0}…", fileName);
-    public static string DetectingLanguageOf(string fileName) =>
-        string.Format(Culture, "Detecting the language of {0}…", fileName);
-    public static string TranscribingFile(string fileName) => string.Format(Culture, "Transcribing {0}…", fileName);
-    public const string CancelFileTooltip = "Stop at the next 30 s window; nothing is saved";
-    public const string Cancelled = "Cancelled";
-    public static string CouldNotTranscribeFile(string fileName, string reason) =>
-        string.Format(Culture, "Could not transcribe {0}: {1}", fileName, reason);
+    public static string AcceptedFileTypes => Win("wav, m4a, mp3, aac, wma, flac, or the audio track of mp4 / mov");
+    public static string ChooseFile => App("Choose…");
+    public static string ReadingFile(string fileName) => App("Reading %@…", fileName);
+    public static string DetectingLanguageOf(string fileName) => App("Detecting the language of %@…", fileName);
+    public static string TranscribingFile(string fileName) => App("Transcribing %@…", fileName);
+    public static string CancelFileTooltip => App("Stop at the next 30 s window; nothing is saved");
+    public static string Cancelled => App("Cancelled");
+    public static string CouldNotTranscribeFile(string fileName, string reason) => App("Could not transcribe %@: %@", fileName, reason);
     /// <summary>Windows only (the Mac's AVAudioFile reports its own error).</summary>
-    public static string FileNotFound(string fileName) => string.Format(Culture, "{0} does not exist.", fileName);
+    public static string FileNotFound(string fileName) => Win("%@ does not exist.", fileName);
+    /// <summary>Windows only: a file decoded to a format the loader cannot use (technical detail).</summary>
+    public static string UnexpectedDecodedFormat(string encoding, int bits, int channels) =>
+        Win("Media Foundation returned %@, %@ bits, %@ channels.", encoding, bits, channels);
 
     // Unfinished recording (mac/Hearsay/Features/Recovery/UnfinishedRecordingSheet.swift, MainView.swift).
-    public const string UnfinishedRecording = "Unfinished recording";
+    public static string UnfinishedRecording => App("Unfinished recording");
     public static string UnfinishedRecordingMessage(string date, string duration) =>
-        string.Format(Culture, "A recording from {0} was not finished ({1}). What do you want to do?", date, duration);
-    public static string MoreAfterThisOne(int count) => string.Format(Culture, "{0} more after this one.", count);
-    public const string AnUnknownTime = "an unknown time";
-    public const string UnknownLength = "unknown length";
-    public const string TranscribeButton = "Transcribe";
-    public const string Keep = "Keep";
+        App("A recording from %@ was not finished (%@). What do you want to do?", date, duration);
+    public static string MoreAfterThisOne(int count) => App("%lld more after this one.", count);
+    public static string AnUnknownTime => App("an unknown time");
+    public static string UnknownLength => App("unknown length");
+    public static string TranscribeButton => App("Transcribe");
+    public static string Keep => App("Keep");
     public static string CouldNotKeepRecording(string message, string path) =>
-        string.Format(Culture, "Could not keep the recording: {0} It stays at {1}.", message, path);
-    public static string CouldNotDeleteRecording(string message) =>
-        string.Format(Culture, "Could not delete the recording: {0}", message);
-    public static string CouldNotRepairRecording(string message) =>
-        string.Format(Culture, "Could not repair the recording: {0}", message);
-    public const string CouldNotTranscribeRecording = "Could not transcribe the recording";
-    public static string RecoveryStaysAt(string message, string path) =>
-        string.Format(Culture, "{0} It stays at {1}.", message, path);
+        App("Could not keep the recording: %@ It stays at %@.", message, path);
+    public static string CouldNotDeleteRecording(string message) => App("Could not delete the recording: %@", message);
+    public static string CouldNotRepairRecording(string message) => App("Could not repair the recording: %@", message);
+    public static string CouldNotTranscribeRecording => App("Could not transcribe the recording");
+    public static string RecoveryStaysAt(string message, string path) => App("%@ It stays at %@.", message, path);
 
     // Help (mac/Hearsay/Features/Help/HelpView.swift).
-    public const string HelpTitle = "Hearsay Help";
-    public const string HelpButton = "Help";
-    public static string HelpMissing(string fileName) =>
-        string.Format(Culture, "({0} is missing from the app bundle.)", fileName);
+    public static string HelpTitle => App("Hearsay Help");
+    /// <summary>Windows only: the Help item of the tab bar (the Mac has a Help menu).</summary>
+    public static string HelpButton => Win("Help");
+    public static string HelpMissing(string fileName) => App("(%@ is missing from the app bundle.)", fileName);
 
     // Settings sections (mac/Hearsay/Features/Settings/SettingsView.swift).
-    public const string PaneGeneral = "General";
-    public const string PaneWindow = "Window";
-    public const string PaneOutput = "Output";
-    public const string PaneAI = "AI";
+    public static string PaneGeneral => App("General");
+    public static string PaneWindow => App("Window");
+    public static string PaneOutput => App("Output");
+    public static string PaneAI => App("AI");
 
     // Settings > General.
-    public const string SectionInterface = "Interface";
-    public const string InterfaceLanguage = "Interface language";
-    public const string InterfaceLanguageCaption = "Menus and windows. A change applies after Hearsay restarts.";
-    /// <summary>Windows only until W7 offers "Restart Now" as the Mac's alert does.</summary>
-    public static string InterfaceLanguagePending(string autonym) =>
-        string.Format(Culture, "Hearsay will use {0} after it restarts.", autonym);
-    public const string SectionStartup = "Startup";
-    public const string LaunchAtLogin = "Launch Hearsay at login";
-    public static string LaunchAtLoginOnFailed(string message) =>
-        string.Format(Culture, "Could not turn on launch at login: {0}", message);
-    public static string LaunchAtLoginOffFailed(string message) =>
-        string.Format(Culture, "Could not turn off launch at login: {0}", message);
-    public const string SectionTranscription = "Transcription";
-    public const string PreferredLanguage = "Auto mode default language";
-    public const string PreferredLanguageCaption =
-        "Used when Auto can't tell the language. When Auto hears Chinese, it writes 简体中文 if that is chosen here, otherwise 繁體中文.";
-    public const string SectionShortcuts = "Shortcuts";
-    public const string ShortcutStartStop = "Start / Stop recording:";
-    public const string ShortcutPause = "Pause / Resume:";
-    public const string ShortcutsCaption = "Work in any app, even with the window closed.";
-    public const string ShortcutsReset = "Reset";
-    public static string ShortcutTaken(string shortcut) =>
-        string.Format(Culture, "{0} is already used by another app or shortcut.", shortcut);
-    public static string ShortcutsUnavailable(int error) =>
-        string.Format(Culture, "Global shortcuts are unavailable (error {0}).", error);
+    public static string SectionInterface => App("Interface");
+    public static string InterfaceLanguage => App("Interface language");
+    public static string InterfaceLanguageCaption => App("Menus and windows. A change applies after Hearsay restarts.");
+    /// <summary>Windows only: shown next to Restart Now (the Mac asks in an alert).</summary>
+    public static string InterfaceLanguagePending(string autonym) => Win("Hearsay will use %@ after it restarts.", autonym);
+    /// <summary>The Mac's language-change alert button.</summary>
+    public static string RestartNow => App("Restart Now");
+    public static string SectionStartup => App("Startup");
+    public static string LaunchAtLogin => App("Launch Hearsay at login");
+    public static string LaunchAtLoginOnFailed(string message) => App("Could not turn on launch at login: %@", message);
+    public static string LaunchAtLoginOffFailed(string message) => App("Could not turn off launch at login: %@", message);
+    public static string SectionTranscription => App("Transcription");
+    public static string PreferredLanguage => App("Auto mode default language");
+    public static string PreferredLanguageCaption =>
+        App("Used when Auto can't tell the language. When Auto hears Chinese, it writes 简体中文 if that is chosen here, otherwise 繁體中文.");
+    public static string SectionShortcuts => App("Shortcuts");
+    public static string ShortcutStartStop => App("Start / Stop recording:");
+    public static string ShortcutPause => App("Pause / Resume:");
+    public static string ShortcutsCaption => App("Work in any app, even with the window closed.");
+    public static string ShortcutsReset => App("Reset");
+    public static string ShortcutTaken(string shortcut) => App("%@ is already used by another app or shortcut.", shortcut);
+    public static string ShortcutsUnavailable(int error) => App("Global shortcuts are unavailable (error %d).", error);
 
     // Settings > Window.
-    public const string ShowHearsayIn = "Show Hearsay in:";
-    public const string ChangesApplyImmediately = "Changes apply immediately.";
+    public static string ShowHearsayIn => App("Show Hearsay in:");
+    public static string ChangesApplyImmediately => App("Changes apply immediately.");
     /// <summary>Windows labels of the Mac's "Menu bar and Dock", "Menu bar only", "Dock only" (Windows only).</summary>
-    public const string ModeTrayAndTaskbar = "Notification area and taskbar";
-    public const string ModeTrayOnly = "Notification area only";
-    public const string ModeTaskbarOnly = "Taskbar only";
+    public static string ModeTrayAndTaskbar => Win("Notification area and taskbar");
+    public static string ModeTrayOnly => Win("Notification area only");
+    public static string ModeTaskbarOnly => Win("Taskbar only");
     /// <summary>PLAN.md 18.3, "Tray status" (Windows only).</summary>
-    public const string ShowTrayStatus = "Show recording status in the notification area";
+    public static string ShowTrayStatus => Win("Show recording status in the notification area");
     /// <summary>Windows only: the notification area cannot show text beside the icon.</summary>
-    public const string ShowTrayStatusCaption =
-        "While recording, the notification area icon turns red and its tooltip shows the elapsed time. When off, the icon stays the same.";
+    public static string ShowTrayStatusCaption => Win(
+        "While recording, the notification area icon turns red and its tooltip shows the elapsed time. When off, the icon stays the same.");
 
     // Settings > Output.
-    public const string OutputFolder = "Output folder:";
-    public const string ChooseFolder = "Choose…";
-    public const string UseDefaultFolder = "Use Default";
-    public static string OutputFolderCreateFailed(string message) =>
-        string.Format(Culture, "Could not create the output folder: {0}", message);
-    public static string OutputFolderRememberFailed(string message) =>
-        string.Format(Culture, "Could not remember that folder: {0}", message);
-    public const string KeepRecording = "Keep the recording (WAV) after a successful transcription";
-    public const string KeepRecordingCaption =
-        "When off, the WAV is deleted once its SRT is written. A failed transcription always keeps it.";
+    public static string OutputFolder => App("Output folder:");
+    public static string ChooseFolder => App("Choose…");
+    public static string UseDefaultFolder => App("Use Default");
+    public static string OutputFolderCreateFailed(string message) => App("Could not create the output folder: %@", message);
+    public static string OutputFolderRememberFailed(string message) => App("Could not remember that folder: %@", message);
+    public static string KeepRecording => App("Keep the recording (WAV) after a successful transcription");
+    public static string KeepRecordingCaption =>
+        App("When off, the WAV is deleted once its SRT is written. A failed transcription always keeps it.");
 
     // Settings file problems (PLAN.md 18.4, Settings; Windows only).
-    public const string SettingsProblemTitle = "Settings";
+    public static string SettingsProblemTitle => App("Settings");
     public static string SettingsCorrupt(string backupPath) =>
-        string.Format(Culture, "Hearsay could not read its settings and started with the defaults. The old file was moved to {0}.", backupPath);
+        Win("Hearsay could not read its settings and started with the defaults. The old file was moved to %@.", backupPath);
     public static string SettingsSaveFailed(string message) =>
-        string.Format(Culture, "Could not save the settings: {0} The change holds until Hearsay quits.", message);
+        Win("Could not save the settings: %@ The change holds until Hearsay quits.", message);
 
     // Notification-area menu (mac/Hearsay/Features/MenuBar/MenuBarView.swift).
-    public const string StateIdle = "Idle";
-    public static string StateRecording(string elapsed) => string.Format(Culture, "Recording {0}", elapsed);
-    public static string StatePaused(string elapsed) => string.Format(Culture, "Paused {0}", elapsed);
-    public static string StateTranscribing(int percent) => string.Format(Culture, "Transcribing… {0}%", percent);
-    public const string Start = "Start";
-    public const string Stop = "Stop";
-    public const string Pause = "Pause";
-    public const string Resume = "Resume";
-    public const string OpenHearsay = "Open Hearsay";
-    public const string QuitHearsay = "Quit Hearsay";
+    public static string StateIdle => App("Idle");
+    public static string StateRecording(string elapsed) => App("Recording %@", elapsed);
+    public static string StatePaused(string elapsed) => App("Paused %@", elapsed);
+    public static string StateTranscribing(int percent) => App("Transcribing… %lld%%", percent);
+    public static string Start => App("Start");
+    public static string Stop => App("Stop");
+    public static string Pause => App("Pause");
+    public static string Resume => App("Resume");
+    public static string OpenHearsay => App("Open Hearsay");
+    public static string QuitHearsay => App("Quit Hearsay");
     /// <summary>Tooltip of the tray icon: "Hearsay" plus the state line (Windows only).</summary>
-    public static string TrayTooltip(string state) => string.Format(Culture, "Hearsay: {0}", state);
+    public static string TrayTooltip(string state) => Win("Hearsay: %@", state);
 }

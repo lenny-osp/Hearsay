@@ -53,7 +53,7 @@ internal static class AudioFileLoader
             if (format.Encoding != WaveFormatEncoding.IeeeFloat || format.BitsPerSample != 32 || format.Channels < 1)
             {
                 throw new AudioFileLoaderException(
-                    $"Media Foundation returned {format.Encoding}, {format.BitsPerSample} bits, {format.Channels} channels.");
+                    Strings.UnexpectedDecodedFormat(format.Encoding.ToString(), format.BitsPerSample, format.Channels));
             }
             var resampler = new MonoResampler(format.SampleRate, format.Channels);
             var output = new List<float>(capacity: (int)Math.Min(int.MaxValue / 2, reader.Length / 4 / format.Channels * 16_000 / Math.Max(1, format.SampleRate) + 16_000));

@@ -46,6 +46,10 @@ public static class Program
             SynchronizationContext.SetSynchronizationContext(context);
             _ = new App();
         });
+        if (App.RelaunchRequested)
+        {
+            Relaunch();
+        }
         if (App.ScratchFolder is { } scratch)
         {
             // WebView2's helper processes release the profile a moment after
@@ -73,6 +77,25 @@ public static class Program
         var redirect = Task.Run(() => main.RedirectActivationToAsync(activation).AsTask());
         redirect.Wait(TimeSpan.FromSeconds(10));
         return false;
+    }
+
+    /// <summary>
+    /// Restart Now: gives up the single-instance key so the new process does
+    /// not hand its activation back to this one, then starts Hearsay.exe
+    /// again. A failure is logged; the user starts Hearsay themselves.
+    /// </summary>
+    private static void Relaunch()
+    {
+        try
+        {
+            AppInstance.GetCurrent().UnregisterKey();
+            var path = Environment.ProcessPath ?? throw new InvalidOperationException("The path of Hearsay.exe is unknown.");
+            using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = false });
+        }
+        catch (Exception error) when (error is not OutOfMemoryException)
+        {
+            AppLog.Write($"restart failed: {error.Message}");
+        }
     }
 
     /// <summary>

@@ -76,8 +76,10 @@ internal sealed class AppShell
             ? new AIProviderStore(SettingsFile, Secrets, installedCli: () => null)
             : new AIProviderStore(SettingsFile, Secrets);
         RunningLanguage = InterfaceLanguages.ResolveAtLaunch(Settings.InterfaceLanguage, DebugEnvironment.Environment);
-        // Strings are English until W7 wires .resw; dates and numbers follow
-        // the interface language already, as the Mac's \.locale does.
+        // Strings come from the .resw of this language, dates and numbers
+        // follow it, as the Mac's AppleLanguages and \.locale do. Fixed for
+        // the whole run (PLAN.md 18.3, "Localization").
+        Strings.Apply(RunningLanguage);
         var culture = RunningLanguage.Culture();
         CultureInfo.DefaultThreadCurrentCulture = culture;
         CultureInfo.DefaultThreadCurrentUICulture = culture;
@@ -283,6 +285,25 @@ internal sealed class AppShell
     }
 
     private bool isStoppingForQuit;
+    private bool relaunchRequested;
+
+    /// <summary>
+    /// Restart Now after an interface-language change (the Mac's language
+    /// alert): quits as <see cref="Quit"/> does, asking first while
+    /// recording, and <see cref="Program"/> starts Hearsay again once this
+    /// instance has let go of its single-instance key. Debug runs never
+    /// relaunch.
+    /// </summary>
+    public void Restart()
+    {
+        if (IsDebugRun)
+        {
+            AppLog.Write("restart: skipped in a debug run");
+            return;
+        }
+        relaunchRequested = true;
+        Quit();
+    }
 
     private async Task QuitAfterRecordingAsync()
     {
@@ -294,7 +315,11 @@ internal sealed class AppShell
             var dialog = Alert.Make(root, Strings.StopRecordingAndQuit, Alert.Message(Strings.RecordingSavedBeforeQuit));
             dialog.PrimaryButtonText = Strings.StopAndQuit;
             dialog.CloseButtonText = Strings.Cancel;
-            if (await Alert.PresentAsync(dialog).ConfigureAwait(true) != Microsoft.UI.Xaml.Controls.ContentDialogResult.Primary) return;
+            if (await Alert.PresentAsync(dialog).ConfigureAwait(true) != Microsoft.UI.Xaml.Controls.ContentDialogResult.Primary)
+            {
+                relaunchRequested = false;
+                return;
+            }
             if (isStoppingForQuit || IsQuitting) return;
             isStoppingForQuit = true;
             await controller.StopAsync().ConfigureAwait(true);
@@ -312,7 +337,8 @@ internal sealed class AppShell
     {
         if (IsQuitting) return;
         IsQuitting = true;
-        AppLog.Write("quit");
+        App.RelaunchRequested = relaunchRequested && !IsDebugRun;
+        AppLog.Write(App.RelaunchRequested ? "quit to restart" : "quit");
         ticker?.Stop();
         Settings.PropertyChanged -= OnSettingsChanged;
         Hotkeys.Dispose();
