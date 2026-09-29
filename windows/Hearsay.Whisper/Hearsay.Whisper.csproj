@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The Whisper engine (PLAN.md 18.3, Whisper row; work item W5): one
+       whisper.cpp context per loaded GGUF, used for language detection and
+       transcription, plus the silence gate (PLAN.md 18.4). Mirrors
+       mac/Hearsay/Features/Transcription/WhisperEngine.swift and the public
+       surface of mac/HearsayWhisper. -->
+  <PropertyGroup>
+    <RootNamespace>Hearsay.Whisper</RootNamespace>
+    <AssemblyName>Hearsay.Whisper</AssemblyName>
+    <!-- The whisper.cpp C API is called through function pointers. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <!-- PLAN.md 18.3: Whisper.net 1.9.1 (whisper.cpp 1.8.5) with the CPU and
+       Vulkan runtimes. Whisper.net itself is used only to pick and load the
+       native library (RuntimeOptions, default order Vulkan then CPU); the
+       CUDA runtime is added once tested on an NVIDIA machine. -->
+  <ItemGroup>
+    <PackageReference Include="Whisper.net" Version="1.9.1" />
+    <PackageReference Include="Whisper.net.Runtime" Version="1.9.1" />
+    <PackageReference Include="Whisper.net.Runtime.Vulkan" Version="1.9.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Hearsay.Core\Hearsay.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Hearsay.Tests" />
+  </ItemGroup>
+
+  <!-- The speed probe's 30 s of speech (WhisperEngine.MeasureWindowSeconds),
+       embedded straight from shared/fixtures (AGENTS.md: Windows never keeps
+       a copy of a shared file). zh-30s.wav is dense speech with a plain
+       44-byte header, the window the W1 spike timed. -->
+  <ItemGroup>
+    <EmbeddedResource Include="$(HearsaySharedDir)fixtures\zh-30s.wav"
+                      LogicalName="Hearsay.Whisper.SpeedProbe.wav"
+                      Visible="false" />
+  </ItemGroup>
+
+</Project>

@@ -539,6 +539,16 @@ public static class OutputWriter
     /// A file that cannot be recycled (for example on a network share) asks
     /// before it is deleted instead (<c>FOF_WANTNUKEWARNING</c>).
     /// </summary>
+    /// <summary>
+    /// Sends one file to the Recycle Bin (History's "Move to Recycle Bin…").
+    /// Same operation <see cref="ReplaceNamed"/> uses for the old notes.
+    /// </summary>
+    public static void MoveToRecycleBin(string path)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(path);
+        _ = DefaultTrash(path);
+    }
+
     internal static string? DefaultTrash(string path)
     {
         if (!OperatingSystem.IsWindows())

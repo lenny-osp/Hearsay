@@ -30,22 +30,6 @@ public enum ProviderKind
     AntigravityCli,
 }
 
-/// <summary>
-/// A command-line program that writes meeting notes with the user's own
-/// login. Port of the <c>CLITool</c> cases in
-/// mac/HearsayCore/Sources/HearsayCore/Notes/CLIProcess.swift; only the cases
-/// and their storage values live here (the presets need them). The process
-/// details (binary name, install and login commands) belong to the CLI
-/// runner port (W6), which may move this type next to it.
-/// </summary>
-public enum CliTool
-{
-    Copilot,
-    ClaudeCode,
-    Codex,
-    Antigravity,
-}
-
 /// <summary>Swift raw values and computed properties of <see cref="AuthHeaderStyle"/>.</summary>
 public static class AuthHeaderStyles
 {
@@ -121,33 +105,6 @@ public static class ProviderKinds
     };
 
     public static bool IsCli(this ProviderKind kind) => kind.CliTool() is not null;
-}
-
-/// <summary>Swift raw values of <see cref="CliTool"/>.</summary>
-public static class CliTools
-{
-    /// <summary>Every tool, in the Swift <c>allCases</c> order.</summary>
-    public static IReadOnlyList<CliTool> All { get; } =
-        [CliTool.Copilot, CliTool.ClaudeCode, CliTool.Codex, CliTool.Antigravity];
-
-    /// <summary>The stored value ("copilot", "claudeCode", "codex", "antigravity").</summary>
-    public static string RawValue(this CliTool tool) => tool switch
-    {
-        CliTool.Copilot => "copilot",
-        CliTool.ClaudeCode => "claudeCode",
-        CliTool.Codex => "codex",
-        CliTool.Antigravity => "antigravity",
-        _ => throw new ArgumentOutOfRangeException(nameof(tool), tool, null),
-    };
-
-    public static CliTool? FromRawValue(string rawValue) => rawValue switch
-    {
-        "copilot" => CliTool.Copilot,
-        "claudeCode" => CliTool.ClaudeCode,
-        "codex" => CliTool.Codex,
-        "antigravity" => CliTool.Antigravity,
-        _ => null,
-    };
 }
 
 /// <summary>

@@ -100,8 +100,18 @@ dotnet test windows\Hearsay.Tests -c Release          # core tests, fast
 - Tests read `shared/` through `Hearsay.Tests.SharedFiles` (path stamped
   at build time); never copy a shared file into `windows/`.
 
-- The Whisper integration tests read the model path from
-  `TEST_RUNNER_HEARSAY_MODEL_DIR` and skip without it, as on macOS.
+- The Whisper integration tests (`windows/Hearsay.Tests/Whisper`) read
+  the model path from `TEST_RUNNER_HEARSAY_MODEL_DIR` and skip without it,
+  as on macOS. On Windows the value is the model path: a whisper.cpp
+  `ggml-*.bin` file, or a folder holding one
+  (`ggml-large-v3-turbo-q5_0.bin` preferred when there are several).
+  `HEARSAY_TEST_WHISPER_RUNTIME=cpu|vulkan` pins the runtime for a
+  measurement run. On this dev machine the full Whisper set takes about
+  5 minutes on Vulkan; on CPU budget 30 minutes or more.
+  ```powershell
+  $env:TEST_RUNNER_HEARSAY_MODEL_DIR = "$PWD\windows\Spike\models\ggml-large-v3-turbo-q5_0.bin"   # an absolute path
+  dotnet test windows\Hearsay.Tests -c Release --filter "FullyQualifiedName~Hearsay.Tests.Whisper" --logger "console;verbosity=detailed"
+  ```
 - The owner may run an installed Windows build. Do not start a second
   instance of it (hotkeys, tray icon) and never kill it; use the debug
   entry points.

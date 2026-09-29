@@ -18,6 +18,7 @@
   <ItemGroup>
     <Using Include="Xunit" />
     <ProjectReference Include="..\Hearsay.Core\Hearsay.Core.csproj" />
+    <ProjectReference Include="..\Hearsay.Whisper\Hearsay.Whisper.csproj" />
   </ItemGroup>
 
   <ItemGroup>

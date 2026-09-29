@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Settings tab: General, Window, Output, AI
+     (mac/Hearsay/Features/Settings/SettingsView.swift). -->
+<UserControl
+    x:Class="Hearsay.App.Features.Settings.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <SelectorBar
+            x:Name="Sections"
+            Grid.Row="0"
+            HorizontalAlignment="Center"
+            Margin="0,8,0,0"
+            SelectionChanged="OnSectionChanged">
+            <SelectorBarItem x:Name="GeneralItem" Tag="General" />
+            <SelectorBarItem x:Name="WindowItem" Tag="Window" />
+            <SelectorBarItem x:Name="OutputItem" Tag="Output" />
+            <SelectorBarItem x:Name="AIItem" Tag="AI" />
+        </SelectorBar>
+        <ScrollViewer Grid.Row="1" x:Name="Scroller" VerticalScrollBarVisibility="Auto">
+            <ContentControl
+                x:Name="PaneContent"
+                MaxWidth="720"
+                Margin="24,4,24,24"
+                HorizontalContentAlignment="Stretch" />
+        </ScrollViewer>
+    </Grid>
+</UserControl>

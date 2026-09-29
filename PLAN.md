@@ -789,6 +789,17 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
     `hallucination_silence_threshold` may not fire either. If the Mac
     invents text too, port the Windows silence gate (18.4) to the Mac and
     record it in section 6.
+21. Windows, History tab on the desktop (added 2026-09-29): with a few
+    finished meetings in the output folder, check Open SRT / Notes /
+    Transcript open in the right apps, Reveal in Explorer selects all the
+    entry's files, Move to Recycle Bin… asks, then the files appear in the
+    Recycle Bin, and Models > Show in Explorer opens the models folder.
+22. Windows, the CLIs (added 2026-09-29): with Copilot, Claude Code, Codex
+    and agy installed, generate notes from `shared/fixtures/en-30s.expected.srt`
+    with each preset. Claude Code and Codex receive the prompt on stdin on
+    Windows (18.4 "W6 core"); confirm both produce notes. Then try a
+    transcript over about 32,000 characters with Copilot: the run must
+    refuse before starting with the message naming the other providers.
 
 ## 17. Polish list (found during review, not yet scheduled)
 
@@ -1015,8 +1026,59 @@ passes, 271 tests). Where Windows forced a difference from the Swift:
   `FLLR` chunk (data at byte 4096); only `zh-30s.wav` is a plain 44-byte
   header. `WavWriter` writes the canonical header, so only `zh` round-trips
   byte for byte; for the others the PCM data does.
-- **Not ported yet, by design**: `CLITool` holds only the enum cases until
-  W6; display strings are English until W7 wires `.resw`.
+- **Not ported yet, by design**: display strings are English until W7
+  wires `.resw`.
+
+W6 core (2026-09-29; `windows/Hearsay.Core/Notes`: `AIProviderStore` on the
+app's `SettingsFile` and `ISecretStore`, `CliProcess`, `CliClient`,
+`ChatCompletionsClient`, `AntigravityHousekeeping`, `NotesPipeline` with a
+new `GenerateAndSaveAsync` that does the file part the Mac keeps in
+`NotesFlowViewModel`). Where Windows differs from the Mac:
+
+- **Command-line length.** Windows allows 32,766 characters (the Mac about
+  1 MB). Claude Code and Codex get the prompt on stdin (Claude Code drops
+  the trailing `-- <prompt>`; Codex gets `-- -`); the argv builders stay
+  flag for flag the Mac's, the move happens in
+  `CliArguments.WindowsInvocation`. Copilot and Antigravity have no
+  documented stdin input and keep the prompt in argv; a transcript over the
+  limit (roughly a 20-minute meeting) fails before the run starts with a
+  message that names Claude Code, Codex or an HTTP provider instead. To
+  check with the real CLIs (section 16 item 22): that `claude --print`
+  with no prompt argument and `codex exec … -- -` read stdin on Windows,
+  and whether Copilot or agy accept stdin after all.
+- **npm `.cmd` shims** are started as `node.exe <script>` (or the `.exe`
+  the shim points at), never through cmd.exe, which cannot pass newlines
+  or `% & | ^` safely. A batch file that is not a shim runs only when every
+  argument is cmd-safe; otherwise the launch fails pointing to Settings > AI.
+- **Locating a CLI**: the Mac's login-shell lookup is an in-process search
+  of `%USERPROFILE%\.local\bin`, `%LOCALAPPDATA%\agy\bin` (agy),
+  `%LOCALAPPDATA%\Microsoft\WinGet\Links`, `%APPDATA%\npm`,
+  `%ProgramFiles%\nodejs`, nvm-windows versions, then `PATH` with `.exe`,
+  `.cmd`, `.bat`. Assumed program names: `copilot.exe` (winget) or
+  `copilot.cmd` (npm), `claude.exe` (native installer,
+  `irm https://claude.ai/install.ps1 | iex`) or `claude.cmd`, `codex.cmd`
+  (npm), `agy.exe` (`%LOCALAPPDATA%\agy\bin`, the install command from
+  antigravity.google/docs/cli/install). A configured path may be quoted,
+  use `%VAR%` or `~`, or omit the extension.
+- **Timeout and cancel kill the process tree** (a shim's node starts the
+  real CLI as a child); no console window; environment keys compare
+  ignoring case; `PATH` uses `;`.
+- **agy data** lives under `%USERPROFILE%\.gemini` (projects in
+  `config\projects`, conversations in `antigravity-cli`) per agy's docs,
+  not `%APPDATA%`; only the program is in `%LOCALAPPDATA%`. "Another agy is
+  running" is detected by image name; the index is read through Windows'
+  own `winsqlite3.dll` (no package). Storage layout and the 1.2 version
+  gate were verified on the Mac only; housekeeping deletes only files
+  named after the conversation id unless agy is exactly 1.2.x and idle.
+- **Settings**: `aiProviderConfiguration` and `promptTemplates` are JSON
+  values inside `settings.json` (the Mac stores data blobs); GUIDs lowercase.
+- **HTTP errors**: a timeout reads "The request timed out."; "Cannot reach
+  <host>" on name-resolution or connection errors; an `error` object
+  without `message` is shown as JSON.
+- **Speed probe audio**: the engine's `MeasureWindowSeconds()` embeds a
+  fixture; it must be `en-30s.wav` (synthesized `say` voice), not
+  `zh-30s.wav` (the owner's voice), so the product ships no personal audio.
+  The W5 engine landed with zh; the app wiring switches it.
 
 Chinese script and text language (2026-09-29, after the W1 text spike):
 `ChineseScriptConverter` P/Invokes `icu.dll` (classic `DllImport`, exports
@@ -1155,6 +1217,82 @@ because the SDK has no notification-icon API; WebView2 comes with the SDK):
 - **Not yet**: Restart Now after an interface-language change, Software
   updates and Acknowledgements sections, quit-while-recording prompt (W5).
 
+Models and History tabs (2026-09-29; `Features/Models`, `Features/History`,
+`Features/Notes/NamingSheet.cs` as a ContentDialog in name, regenerate and
+rename modes):
+
+- **Deleting a model asks first** (the Mac deletes straight from the
+  context menu); the context menu opens on right click or Shift+F10.
+- **Labels**: "Show in Explorer" (opens the models folder), "Reveal in
+  Explorer" (selects all the entry's files with
+  `SHOpenFolderAndSelectItems`), "Move to Recycle Bin…" for "Move to
+  Trash…" (through `OutputWriter.MoveToRecycleBin`, the same call
+  `ReplaceNamed` uses). A file type with no default app opens in Notepad.
+- **Rename is disabled** for stems in `RecordingStatus.BusyFiles` (empty
+  until W5 fills it) and, from W6, while History generates notes for the
+  entry. Generate/Regenerate Notes… is disabled until W6.
+- The naming texts keep the Mac's "press Return"; W7 decides on "Enter".
+- The onboarding dialog is 640 wide (the default cut the label).
+- Snapshots: 23 PNGs per language; the History samples are built in the
+  scratch output folder from `shared/fixtures/en-30s.expected.srt` (copied
+  to `DebugSamples\` at build time) and a WAV from `WavWriter`; the run
+  proves rename, rejection, rollback on a locked file, and reselection
+  against the real `OutputWriter.RenameEntry`. The real Recycle Bin,
+  Explorer reveal and file opening were not exercised (they would touch the
+  owner's desktop); section 16 item 21.
+
+W5 Whisper engine (2026-09-29; `windows/Hearsay.Whisper`, Whisper.net 1.9.1
+with the CPU and Vulkan runtimes). Where Windows differs from the Mac:
+
+- **Engine**: one whisper.cpp context per loaded model for both detection
+  and transcription, driven through the C API directly (21 exports, listed
+  in `WhisperNative.ExportNames`): Whisper.net keeps its context handle
+  private, so its `WhisperProcessor` could not share a context with the
+  detector. Whisper.net only picks and loads the runtime (`RuntimeOptions`,
+  default order Vulkan then CPU); the engine binds the `whisper.dll` that
+  loader loaded (found among the process modules) and logs the runtime,
+  its path and whisper.cpp's system info. The two by-value structs are
+  checked against Whisper.net's own declarations by a test. Context: GPU
+  on, flash attention off (Whisper.net's default, the configuration W1
+  measured). Idle unload after 600 s as on the Mac.
+- **Options** (`TranscriptionOptions`, Mac defaults): temperatures become
+  whisper.cpp's start plus increment (the default `[0]` is no fallback);
+  `compressionRatioThreshold` 2.4 maps to `entropy_thold` (token entropy,
+  not the zlib ratio); non-speech tokens suppressed (`suppress_nst`, the
+  Python `suppress_tokens="-1"`); timestamps on, `no_context` on, no
+  prompt. Threads: max(4, min(12, logical cores)) on CPU, min(4, cores) on
+  a GPU runtime.
+- **Silence gate**: the grid of 30 s windows starts at sample 0 of the
+  samples passed in (the whole recording, or one live chunk); consecutive
+  non-silent windows are one `whisper_full` call, so whisper.cpp still
+  seeks by timestamps inside a run. Cues with no samples (past the end)
+  count as silent. With `language: nil` the engine detects on the first
+  transcribed window, where the Mac uses the first 30 s (a silent first
+  window is never transcribed here). The app path passes a fixed language
+  after `LanguageDetection.Detect`, so this only affects direct callers.
+- **Cancellation** is checked before each run and, through whisper.cpp's
+  encoder-begin callback, before each 30 s window (as the Mac); the CPU
+  backend also polls it inside a window (abort callback). Progress is
+  whisper.cpp's integer percent per run, mapped to the fraction of the
+  whole input (skipped windows count as done).
+- **Speed probe**: `MeasureWindowSeconds()` transcribes
+  `shared/fixtures/zh-30s.wav` (embedded at build, looped to 30 s,
+  language zh); a 4 s warm-up runs first when nothing ran since the load
+  (the clip opens with 3 s of digital silence, which the gate skips).
+  Measured here: Vulkan 10.1 to 12.6 s per warm window (warm-up 10.1 s;
+  the W1 spike measured 8.8 s, and other agents were building on the
+  machine), so live preview stays on; CPU runtime at 12 threads 55.8 s
+  (warm-up 55.8 s), so live preview is off.
+- **Acceptance on Vulkan** (turbo q5_0, fixed language): en, de, es
+  similarity 1.000, worst cue delta 0.02 s; zh 0.964 against
+  `zh-30s.truth.srt` after conversion to Traditional (the dropped leading
+  按 and 臘漆 for 臘七 remain), worst delta 0.46 s (last cue end). Auto
+  detection over the four: en 0.9999, zh 0.9991, de 0.9996, es 0.9998;
+  top over all 100 within 0.001 of Python; no-speech 1e-12 to 1.5e-11.
+  With 45 s of digital silence appended every fixture keeps its cues
+  unchanged and gets no invented cue (the spike's "Thank you." / "Vielen
+  Dank." / "Gracias." / YoYo credit are gone).
+
 ### 18.5 Acceptance
 
 For each `shared/fixtures/<lang>-30s.wav`, transcribed with the Windows
@@ -1199,8 +1337,8 @@ created in the IDE.
 | W2. Core | Port naming, prompt, SRT, language decision, mixer; all shared vectors pass. **Done 2026-09-29** (four parallel agents, one day): naming + OutputWriter incl. Rename, HistoryIndex, prompt + reply contract + presets, SRT, LanguageDecision + SessionLanguage + LiveChunker, AudioMixer + LevelMeter + MonoResampler + WavWriter + RecordingSpool; 271 tests, every Swift test ported one for one except those needing AVFoundation or a device (listed in the test files) | 4 to 5 days |
 | W3. Audio | WASAPI mic and loopback capture, resampling, spool WAV, no-audio watchdog. **Done 2026-09-29** except the hardware run (18.4, "Untested on hardware"); with it the settings layer (AppSettings, hotkeys, interface language, output folder, Credential Manager) and the ICU script converter and text-language detector; 487 tests | 4 to 5 days |
 | W4. Shell | WinUI window with the five tabs, tray icon, window modes, hotkeys, settings, model store and downloads. **Shell, Settings, tray, hotkeys, help window, UI snapshots and the model store core done 2026-09-29** (18.4); the Models and History tabs follow | 6 to 8 days |
-| W5. Transcription | live preview, final pass, File mode, Auto detection with banners, Chinese conversion | 5 to 6 days |
-| W6. Notes | CLI providers on Windows, Ollama, Custom, confirm and naming sheets, History with regenerate and Rename (section 4.8; port `OutputWriter.renameEntry` and its tests) | 4 to 5 days |
+| W5. Transcription | live preview, final pass, File mode, Auto detection with banners, Chinese conversion. **Engine done 2026-09-29** (`windows/Hearsay.Whisper`: one context, detection, silence gate, speed probe; 18.4 "W5 Whisper engine"); the app wiring follows | 5 to 6 days |
+| W6. Notes | CLI providers on Windows, Ollama, Custom, confirm and naming sheets, History with regenerate and Rename (section 4.8; port `OutputWriter.renameEntry` and its tests). **Core done 2026-09-29** (18.4 "W6 core"; Rename and the naming sheet landed with W4); the AI settings tab, confirm sheet, notes flow and History regenerate follow | 4 to 5 days |
 | W7. Polish and ship | interface languages from shared translations, help window, crash recovery, MSIX, signing, updates, README | 5 to 6 days |
 
 Total: about 6 to 8 weeks of agent time.
