@@ -778,8 +778,8 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
 
 ## 18. Windows version
 
-Planned 2026-09-28 (owner request). Nothing is built yet; `windows/` holds
-a placeholder. This section is the design record for that work; expand it
+Planned 2026-09-28 (owner request). Work started 2026-09-29 on the dev
+machine in 18.6; no code yet. This section is the design record for that work; expand it
 in place as decisions are made.
 
 ### 18.1 Goal
@@ -829,14 +829,23 @@ byte-identical to before. `mac/Scripts/make-icon.swift` writes
 AppIcon PNGs stay where Xcode needs them. The mac model catalog stays in
 `HearsayCore/Resources/ModelCatalog.json`.
 
+Line endings (2026-09-29). The first Windows checkout (`core.autocrlf=true`,
+Git for Windows' default) wrote CRLF into every text file, including the
+byte-compared prompts, expected SRTs, vectors, and help pages. A root
+`.gitattributes` now stores and checks out all text files as LF on every
+platform (`.sln`, `.bat`, `.cmd` as CRLF); the index was already LF, so no
+committed file changed. An existing Windows checkout must be refreshed
+once after pulling this.
+
 ### 18.3 Stack
 
 | Part | Choice | Notes |
 |---|---|---|
-| Language, UI | C# on .NET 8 or later, WinUI 3 (Windows App SDK) | tray icon through the Windows App SDK notification-icon APIs or `H.NotifyIcon` |
+| Language, UI | C# on .NET 10 (LTS), WinUI 3 (Windows App SDK) | .NET 10 pinned 2026-09-29 (installed on the dev machine; was ".NET 8 or later"); tray icon through the Windows App SDK notification-icon APIs or `H.NotifyIcon` |
 | Audio capture | WASAPI via NAudio: `WasapiCapture` for the mic, `WasapiLoopbackCapture` for system audio | loopback needs no permission prompt; resample to 16 kHz mono like the Mac; port `AudioMixer` rules |
-| Whisper | `Whisper.net` (whisper.cpp) with GGUF models; CUDA runtime package on NVIDIA, Vulkan on AMD and Intel, CPU fallback | whisper.cpp has its own timestamp decoder; language detection is built in |
-| Chinese script | OpenCC (`OpenCCNET`) for Traditional and Simplified conversion | .NET has no Hans-Hant transliteration |
+| Whisper | `Whisper.net` (whisper.cpp) with GGUF models; CUDA runtime package on NVIDIA, Vulkan on AMD and Intel, CPU fallback | whisper.cpp has its own timestamp decoder; language detection is built in; W1 checks the gaps in 18.8 |
+| Chinese script | OpenCC (`OpenCCNET`) for Traditional and Simplified conversion, unless W1 finds the macOS transform usable (18.8) | .NET exposes no Hans-Hant transliteration |
+| Transcript text language (History SRTs with no stored language) | open, see 18.8 | macOS uses Apple's NaturalLanguage |
 | Meeting notes | same providers: Copilot CLI, Claude Code, Codex CLI (all support Windows), Antigravity CLI (confirm Windows availability first), Ollama, Custom | same JSON contract and prompt; tokens in Windows Credential Manager |
 | Settings and state | `%APPDATA%\Hearsay\settings.json`; models in `%LOCALAPPDATA%\Hearsay\Models`; spool in `%LOCALAPPDATA%\Hearsay\Recording`; output default `%USERPROFILE%\Documents\Hearsay` | |
 | Hotkeys, login, window modes | `RegisterHotKey`; `HKCU\...\Run` for launch at login; tray-only vs taskbar | |
@@ -869,10 +878,29 @@ vectors and must match exactly.
 
 ### 18.6 Phases
 
-Estimates assume one Windows machine with Claude Code, Visual Studio 2022
-(.NET desktop and C++ desktop workloads), Git, and, if present, the CUDA
-Toolkit. Agents work the same way as on macOS: one work item each, no
+Estimates assume one Windows machine with Claude Code, Visual Studio 2026
+(".NET desktop development" and "WinUI application development"
+workloads; "Desktop development with C++" only if whisper.cpp is built
+from source instead of Whisper.net's prebuilt runtimes), the .NET 10 SDK,
+Git, and, if present, the CUDA Toolkit. Agents work the same way as on
+macOS (`.claude/agents/windows-implementer.md`): one work item each, no
 commits, a reviewer builds and tests.
+
+Dev machine (inventoried 2026-09-29): Windows 11 Pro x64, Intel Core
+i5-1235U (2 performance + 8 efficiency cores, 15 W), 16 GB RAM, Intel UHD
+integrated graphics, no NVIDIA GPU, .NET SDK 10.0.401, Visual Studio
+Community 2026 18.10, WebView2 runtime, Python 3.14. This is the plan's
+worst supported case: W1 measures CPU and Vulkan on the integrated GPU
+here, and the CUDA path needs another machine before it ships.
+
+Toolchain verified 2026-09-29 with a throwaway project: a minimal WinUI 3
+app (`net10.0-windows10.0.26100.0`, Windows App SDK 2.5.1 from NuGet,
+unpackaged, self-contained, warnings as errors) builds with both
+`dotnet build` and Visual Studio's MSBuild 18.10 and launches without
+Developer Mode. MSVC 19.51 and the CMake bundled with Visual Studio work
+through `Launch-VsDevShell.ps1`. WinUI project templates exist only in
+Visual Studio, not in `dotnet new`; projects are written by hand or
+created in the IDE.
 
 | Phase | Deliverable | Estimate |
 |---|---|---|
@@ -896,3 +924,17 @@ Total: about 6 to 8 weeks of agent time.
 | CPU-only machines too slow for live preview | disable live preview below a measured speed threshold and say so |
 | Loopback capture silent with exclusive-mode apps | document; offer "microphone only" |
 | Two code bases drift | shared vectors and fixtures are the contract; a behavior change must update the shared files first |
+| CUDA path untested (dev machine has no NVIDIA GPU) | test on an NVIDIA machine before W7; until then the CPU and Vulkan paths are the only measured ones |
+| Line endings rewritten by a Windows checkout | root `.gitattributes` forces LF (18.2); the prompt and vector tests fail loudly on CRLF |
+
+### 18.8 Porting gaps (found 2026-09-29)
+
+macOS behavior that has no direct Windows equivalent yet. Each needs a
+decision recorded here before the phase named.
+
+| Gap | macOS today | Windows options | Decide by |
+|---|---|---|---|
+| Hallucination filter | `hallucination_silence_threshold` 2.0 (section 6), ported from `mlx_whisper` | whisper.cpp has no such option; measure on the fixtures without it, port the Python rule on top of whisper.cpp segments if the output needs it | W1 |
+| Language detection | probabilities of the four supported languages, renormalized, averaged over up to three speech windows, plus no-speech probability | confirm Whisper.net exposes per-language probabilities (whisper.cpp `whisper_lang_auto_detect` returns them) and a no-speech probability; the shared language-decision vectors assume both | W1 |
+| Chinese script conversion | ICU `Hans-Hant` transform through `String.applyingTransform` | OpenCC's tables are not ICU's, so the same Simplified text can come out with different Traditional characters and ZH-TW text would differ between the platforms (measure on `zh-30s`); check whether Windows' own `icu.dll` exposes the same transform (`utrans_*`), which would match macOS exactly | W1 |
+| Transcript text language | `NLLanguageRecognizer` over the four languages, confidence at least 0.6 | no built-in Windows API; a small rule (CJK share for zh, stop-word scores for en, de, es) or a library; must pass tests built from the fixtures' SRTs | W6 |

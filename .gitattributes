@@ -1,0 +1,15 @@
+# Text files are stored and checked out with LF on every platform, so the
+# byte-compared shared files (prompts, expected SRTs, test vectors, help
+# pages) are identical on macOS and Windows whatever core.autocrlf says.
+* text=auto eol=lf
+
+# Windows-only files that tools expect with CRLF.
+*.sln   text eol=crlf
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+
+# Binary.
+*.wav   binary
+*.png   binary
+*.ico   binary
+*.icns  binary

@@ -1,7 +1,7 @@
 # Agent guide for Hearsay
 
 Hearsay is a meeting recorder and transcriber. The macOS app is finished
-and in daily use; a Windows version is planned. This file tells an agent
+and in daily use; the Windows version is in progress. This file tells an agent
 how to work in this repository without breaking what exists. Read it
 fully before editing anything.
 
@@ -24,7 +24,8 @@ mac/            the macOS app (Swift 6, SwiftUI, MLX)
   Scripts/      build, translation, notices, icon scripts
   Spike/        the Phase 0 spike; its models/ folder holds local test models
   project.yml   XcodeGen spec; Hearsay.xcodeproj is generated, never edited
-windows/        the Windows version (not started; see PLAN.md, Windows)
+windows/        the Windows version (C#, WinUI 3, whisper.cpp; PLAN.md section 18)
+  Spike/        the W1 spike; its models/ folder holds local test models
 docs/           notes for the sibling whisper-tools repo
 PLAN.md         the design record: every decision, with dates and reasons
 README.md       user documentation
@@ -82,6 +83,34 @@ delete those you create. Delete every SRT a debug run writes into the
 owner's output folder (`~/Documents/Hearsay`) and never touch the owner's
 own files there.
 
+## Building and testing (Windows)
+
+Everything runs from `windows/`, on Windows 11 x64 with the .NET 10 SDK
+and Visual Studio 2026 (workloads ".NET desktop development" and "WinUI
+application development"). The solution does not exist yet; once it
+does, these are the commands (update them here when they change):
+
+```powershell
+dotnet build windows\Hearsay.sln -c Release          # build
+dotnet test windows\Hearsay.Tests -c Release          # core tests, fast
+```
+
+- The Whisper integration tests read the model path from
+  `TEST_RUNNER_HEARSAY_MODEL_DIR` and skip without it, as on macOS.
+- The owner may run an installed Windows build. Do not start a second
+  instance of it (hotkeys, tray icon) and never kill it; use the debug
+  entry points.
+- Put a hard time limit on every long command: the tool's `timeout`
+  parameter, or in Git Bash `perl -e 'alarm shift; exec @ARGV' 1500 <command>`.
+- Local test models (whisper.cpp `ggml-*.bin`) live in
+  `windows/Spike/models/` (git-ignored). The 500 MB download rule applies.
+- The dev machine has no NVIDIA GPU (PLAN.md 18.6): CUDA code paths
+  cannot be run here; say so in the report instead of claiming them tested.
+- The Windows app implements the same debug entry points (same variable
+  names and meaning) with a throwaway settings folder instead of
+  `%APPDATA%\Hearsay`. Delete every SRT a debug run writes into the owner's
+  output folder (`%USERPROFILE%\Documents\Hearsay`).
+
 ## Parity with the Python tool
 
 `mac/HearsayWhisper` must reproduce `mlx_whisper` 0.4.3 output. The
@@ -113,7 +142,16 @@ byte-identical to the Python tool (tests in `NotesTests.swift`).
   them to the git-ignored `Hearsay/Resources/<lang>.lproj/Help.html`.
 - Third-party notices: after a dependency change run
   `mac/Scripts/make-notices.sh`; it fails loudly if a license file moved.
-- Git: author is Chihling Wang <chihlingw@gmail.com> (repo-local config).
+- C# (Windows): nullable reference types on, warnings are errors, no `!`
+  null-forgiving operator outside tests, no NuGet packages beyond those
+  listed in PLAN.md 18.3. Windows reads `shared/` at build or run time;
+  it never keeps its own copy of a shared file.
+- Line endings: `.gitattributes` makes every text file LF on every
+  platform (`.sln`, `.bat`, `.cmd` are CRLF). The byte-compared files in
+  `shared/` (prompts, expected SRTs, vectors, help) must never get CRLF;
+  C# code that reads them must not translate newlines.
+- Git: author is Chihling Wang <chihlingw@gmail.com> (repo-local config;
+  set it in every new clone, including on Windows).
   Commit messages have an imperative subject and a short body; no
   `Co-Authored-By` or other attribution trailers, even if a tool suggests
   one. Subagents do not commit; the reviewing agent commits after building
@@ -151,6 +189,11 @@ PLAN.md):
   provider. Live checks use `shared/fixtures/en-30s.expected.srt`.
 - Never run `defaults write` against the owner's real domain
   `tw.og1o.hearsay` or the global domain.
+- On Windows, never write the owner's `%APPDATA%\Hearsay\settings.json`,
+  the `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` key, or
+  Hearsay's Credential Manager entries; tests use a scratch folder.
+- Never change Windows system or security settings (Developer Mode,
+  Defender, execution policy, drivers); ask the owner to do it.
 - Never delete anything in the owner's home folder except files you
   created in that session, and list them first.
 - Never take screenshots of the owner's screen; render views with
@@ -159,6 +202,17 @@ PLAN.md):
 
 ## Windows version
 
-See PLAN.md, section "Windows version". Shared resources for it live in
+See PLAN.md, section 18 "Windows version". Shared resources for it live in
 `shared/`; the Swift code is not portable, but the fixtures, translations,
 naming rules, prompt text, and help content are meant to be reused.
+
+- The behavioral spec is the macOS app (`mac/HearsayCore` sources and
+  tests) plus the Python tool (`run_whisper.py`, and
+  `run_whisper_windows.py` for Windows device and path handling, in the
+  sibling `whisper-tools` checkout). Port a rule from the Swift code and
+  its test, and name the Swift file in the C# file's summary comment.
+- Where Windows must behave differently (PLAN.md 18.4 and 18.8), the
+  difference is written in PLAN.md first.
+- A behavior change that both platforms share updates the `shared/`
+  file and its vectors first, then both apps.
+- Agents use `.claude/agents/windows-implementer.md` for Windows work items.

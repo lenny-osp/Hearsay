@@ -27,3 +27,14 @@ mac/Hearsay/Resources/*.lproj/Help.html
 Hearsay.xcodeproj/
 default.profraw
 __pycache__/
+# .NET / Visual Studio (windows/)
+bin/
+obj/
+.vs/
+*.user
+TestResults/
+AppPackages/
+*.binlog
+windows/Spike/models/
+*.gguf
+ggml-*.bin
