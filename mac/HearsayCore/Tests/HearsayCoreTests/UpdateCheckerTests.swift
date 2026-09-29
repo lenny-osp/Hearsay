@@ -99,6 +99,40 @@ struct UpdateCheckerTests {
         #expect(release.notes == nil)
     }
 
+    @Test func parsesAssets() throws {
+        let json = """
+            {"tag_name": "v0.3.0", "html_url": "https://github.com/o/r/releases/tag/v0.3.0",
+             "assets": [
+               {"name": "Hearsay-0.3.0.dmg", "size": 48123456,
+                "browser_download_url": "https://github.com/o/r/releases/download/v0.3.0/Hearsay-0.3.0.dmg"},
+               {"name": "SHA256SUMS.txt", "size": 84,
+                "browser_download_url": "https://github.com/o/r/releases/download/v0.3.0/SHA256SUMS.txt"},
+               {"name": "broken.dmg", "browser_download_url": "http://example.com/broken.dmg"},
+               {"size": 1}
+             ]}
+            """
+        let release = try UpdateChecker.parse(Data(json.utf8))
+        #expect(release.assets == [
+            ReleaseAsset(
+                name: "Hearsay-0.3.0.dmg",
+                downloadURL: try #require(URL(string: "https://github.com/o/r/releases/download/v0.3.0/Hearsay-0.3.0.dmg")),
+                size: 48_123_456
+            ),
+            ReleaseAsset(
+                name: "SHA256SUMS.txt",
+                downloadURL: try #require(URL(string: "https://github.com/o/r/releases/download/v0.3.0/SHA256SUMS.txt")),
+                size: 84
+            ),
+        ])
+        #expect(release.dmgAsset(forVersion: release.version)?.size == 48_123_456)
+        #expect(release.checksumsAsset?.name == "SHA256SUMS.txt")
+    }
+
+    @Test func missingAssetsAreEmpty() throws {
+        let json = #"{"tag_name": "v0.3.0", "html_url": "https://github.com/o/r/releases/tag/v0.3.0"}"#
+        #expect(try UpdateChecker.parse(Data(json.utf8)).assets.isEmpty)
+    }
+
     @Test func notFoundMeansNoReleasesYet() async {
         let repository = uniqueRepository()
         ChatStubURLProtocol.register(url(repository), status: 404, body: Data(#"{"message": "Not Found"}"#.utf8))

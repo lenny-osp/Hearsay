@@ -1,5 +1,20 @@
 import Foundation
 
+/// One file attached to a GitHub release.
+public struct ReleaseAsset: Sendable, Equatable {
+    public var name: String
+    /// `browser_download_url`.
+    public var downloadURL: URL
+    /// Bytes, as GitHub reports them.
+    public var size: Int64
+
+    public init(name: String, downloadURL: URL, size: Int64) {
+        self.name = name
+        self.downloadURL = downloadURL
+        self.size = size
+    }
+}
+
 /// The latest published release of Hearsay on GitHub (PLAN.md 4.6).
 public struct ReleaseInfo: Sendable, Equatable {
     /// The tag without a leading "v", for example "0.2.0".
@@ -11,13 +26,35 @@ public struct ReleaseInfo: Sendable, Equatable {
     public var publishedAt: Date?
     /// The release notes (Markdown), if any.
     public var notes: String?
+    /// The files attached to the release (the DMG and `SHA256SUMS.txt`).
+    public var assets: [ReleaseAsset]
 
-    public init(version: String, tagName: String, htmlURL: URL, publishedAt: Date?, notes: String?) {
+    public init(
+        version: String, tagName: String, htmlURL: URL, publishedAt: Date?, notes: String?,
+        assets: [ReleaseAsset] = []
+    ) {
         self.version = version
         self.tagName = tagName
         self.htmlURL = htmlURL
         self.publishedAt = publishedAt
         self.notes = notes
+        self.assets = assets
+    }
+
+    /// The checksum list the release workflow publishes.
+    public static let checksumsFileName = "SHA256SUMS.txt"
+
+    /// The DMG for `version`: the asset named exactly `Hearsay-<version>.dmg`,
+    /// else the only asset ending in `.dmg`, else nil.
+    public func dmgAsset(forVersion version: String) -> ReleaseAsset? {
+        if let exact = assets.first(where: { $0.name == "Hearsay-\(version).dmg" }) { return exact }
+        let disks = assets.filter { $0.name.lowercased().hasSuffix(".dmg") }
+        return disks.count == 1 ? disks.first : nil
+    }
+
+    /// `SHA256SUMS.txt`, if the release has it.
+    public var checksumsAsset: ReleaseAsset? {
+        assets.first { $0.name == Self.checksumsFileName }
     }
 }
 
@@ -102,11 +139,17 @@ public actor UpdateChecker {
 
     /// Parses the body of `releases/latest`.
     public static func parse(_ data: Data) throws -> ReleaseInfo {
+        struct Asset: Decodable {
+            var name: String?
+            var browser_download_url: String?
+            var size: Int64?
+        }
         struct Payload: Decodable {
             var tag_name: String
             var html_url: String
             var published_at: String?
             var body: String?
+            var assets: [Asset]?
         }
         guard let payload = try? JSONDecoder().decode(Payload.self, from: data),
               !payload.tag_name.isEmpty,
@@ -115,9 +158,16 @@ public actor UpdateChecker {
         }
         let published = payload.published_at.flatMap { try? Date($0, strategy: .iso8601) }
         let notes = payload.body.flatMap { $0.isEmpty ? nil : $0 }
+        // An asset without a name or an https download URL is skipped.
+        let assets = (payload.assets ?? []).compactMap { asset -> ReleaseAsset? in
+            guard let name = asset.name, !name.isEmpty,
+                  let link = asset.browser_download_url, let download = URL(string: link),
+                  download.scheme == "https" else { return nil }
+            return ReleaseAsset(name: name, downloadURL: download, size: asset.size ?? 0)
+        }
         return ReleaseInfo(
             version: stripV(payload.tag_name), tagName: payload.tag_name, htmlURL: url,
-            publishedAt: published, notes: notes
+            publishedAt: published, notes: notes, assets: assets
         )
     }
 

@@ -58,6 +58,9 @@ actor WhisperEngine {
     init() {}
 
     var isLoaded: Bool { transcriber != nil }
+    /// A job (a File-mode transcription, a final pass, a live chunk) is
+    /// waiting or running. The update install waits for it (PLAN.md 4.6).
+    var isBusy: Bool { activeJobs > 0 }
 
     /// Loads the model unless the same folders are already loaded.
     func load(modelDirectory: URL, tokenizerDirectory: URL) async throws {

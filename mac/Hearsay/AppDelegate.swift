@@ -129,6 +129,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         relauncher.handler = { [weak self] in self?.restart() }
+        // Install Update (PLAN.md 4.6): waits for recordings and
+        // transcriptions, then relaunches through the same path.
+        updateService.installer.relaunch = { [weak self] in self?.restart() }
+        updateService.installer.installBlocker = { [weak self] in await self?.updateInstallBlocker() }
         // One main window, never tabbed: removes View > Show Tab Bar and
         // Show All Tabs. Set before any window exists.
         NSWindow.allowsAutomaticWindowTabbing = false
@@ -156,6 +160,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // through the recording pipeline and log live-job timings (see
         // RecordingReplay).
         if RecordingReplay.runIfRequested(engine: whisperEngine) {
+            return
+        }
+        // Debug only: HEARSAY_INSTALL_UPDATE + HEARSAY_INSTALL_TARGET verify a
+        // DMG and install it over a scratch app bundle (see UpdateInstallDebug).
+        if UpdateInstallDebug.runIfRequested() {
             return
         }
         applyWindowMode(settings.windowMode)
@@ -232,6 +241,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return .terminateLater
     }
 
+    // MARK: - Update install
+
+    /// Why Install and Relaunch must wait, or nil: a recording session or
+    /// its final pass, or any Whisper job (File mode) still running.
+    private func updateInstallBlocker() async -> String? {
+        let recordingBusy = recordingController.isSessionActive || recordingController.isTranscribing
+        let engineBusy = await whisperEngine.isBusy
+        guard recordingBusy || engineBusy else { return nil }
+        return String(localized: "Finish the recording first.",
+                      comment: "Alert when Install and Relaunch is chosen while recording or transcribing")
+    }
+
     // MARK: - Restart
 
     /// "Restart Now": quits through the usual quit path (which asks before
@@ -259,9 +280,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.reply(toApplicationShouldTerminate: false)
         let alert = NSAlert()
         alert.messageText = String(localized: "Hearsay could not restart.",
-                                   comment: "Alert when the automatic restart after a language change failed")
-        alert.informativeText = String(localized: "Quit Hearsay and open it again to use the new language.",
-                                       comment: "Alert when the automatic restart after a language change failed")
+                                   comment: "Alert when the automatic restart (language change or update) failed")
+        alert.informativeText = String(localized: "Quit Hearsay and open it again.",
+                                       comment: "Alert when the automatic restart (language change or update) failed")
         alert.runModal()
     }
 
@@ -330,7 +351,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 /// Debug entry points (`HEARSAY_TRANSCRIBE_FILE`, `HEARSAY_REPLAY_FILE`,
-/// `HEARSAY_RECORD_SECONDS`, `HEARSAY_UI_SNAPSHOTS`) run on a throwaway
+/// `HEARSAY_RECORD_SECONDS`, `HEARSAY_UI_SNAPSHOTS`, `HEARSAY_INSTALL_UPDATE`) run on a throwaway
 /// defaults suite and never write `AppleLanguages`, so they never
 /// write the user's settings, not even the one-time language migration in
 /// `AppSettings.init`. The copy starts with the user's values for the keys
@@ -339,6 +360,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 enum DebugDefaults {
     static let debugVariables = [
         "HEARSAY_TRANSCRIBE_FILE", "HEARSAY_REPLAY_FILE", "HEARSAY_RECORD_SECONDS", UISnapshots.variable,
+        UpdateInstallDebug.variable,
     ]
     static let copiedKeys = [
         AppSettings.Key.interfaceLanguage,

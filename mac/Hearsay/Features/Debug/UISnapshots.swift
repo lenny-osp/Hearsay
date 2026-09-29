@@ -7,7 +7,7 @@ import SwiftUI
 /// `<dir>`: every main-window tab, every Settings section, the confirm,
 /// naming, onboarding, unfinished-recording, and permission sheets with
 /// sample data (and the Record tab with both permissions granted), the
-/// menu bar panel, and the help page (top and the Meeting notes section).
+/// menu bar panel, the update progress window, and the help page (top and the Meeting notes section).
 /// Then it quits with status 0 (1 when a file could not be written).
 ///
 /// The views run in the interface language of `HEARSAY_UI_LANGUAGE` (en, de,
@@ -164,6 +164,10 @@ enum UISnapshots {
         await render("17-sheet-unfinished-recording", width: 460,
                      UnfinishedRecordingSheet(queue: queue, recording: samples.unfinishedWAV, onTranscribe: { _ in }))
         await render("18-menu-bar", width: 260, MenuBarView())
+        await render("25-update-progress", width: 380, UpdateProgressView(
+            version: "0.3.0", phase: .downloading(fraction: 0.42, received: 20_400_000, total: 48_600_000),
+            onCancel: {}
+        ))
         say("help file \(HelpWindow.contentURL?.path ?? "missing")")
         for (name, fragment) in [("19-help-top", nil), ("20-help-meeting-notes", "meeting-notes")] as [(String, String?)] {
             let url = directory.appendingPathComponent("\(name).png")
