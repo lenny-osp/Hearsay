@@ -1645,6 +1645,21 @@ decision recorded here before the phase named.
 Like section 17, for the Windows app. Add here rather than leaving
 findings only in a chat report.
 
+- **Live preview override** (owner, 2026-09-30, first hands-on run on the
+  dev machine): the Record tab said "Live preview off: this computer is
+  too slow for it" although the same machine measures 8 to 12.6 s per
+  30 s window on Vulkan. The speed probe (18.4 "Speed", 15 s limit) ran
+  once at the first recording, while agents were building and testing on
+  the machine, and its result is cached for the process, so a busy moment
+  sticks until relaunch. Add a Windows-only setting in Settings > General,
+  "Live preview: Automatic / Always on / Off" (`livePreviewMode`; the Mac
+  has none because Apple Silicon is always fast enough), where Always on
+  ignores the probe and lets the preview lag on a slow machine; and re-run
+  the probe when a recording starts more than a few minutes after the
+  cached result, or when it was measured under load. First confirm from
+  the log (`whisper: runtime …` and `whisper: speed probe …` lines,
+  visible when Hearsay.exe is started with stdout redirected) whether the
+  GUI launch loaded Vulkan or fell back to CPU.
 - **Core texts still English** (the Windows-only Core texts got `windows`
   keys on 2026-09-30, 18.3 Localization row): the technical detail inside
   a translated sentence (the whisper.cpp or runtime message after "Could
