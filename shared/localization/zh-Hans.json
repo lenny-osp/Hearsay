@@ -1959,6 +1959,14 @@
   },
   {
     "catalog": "app",
+    "key": "Show recording status in the menu bar",
+    "english": "Show recording status in the menu bar",
+    "comment": "UI text in SettingsView.swift.",
+    "placeholders": [],
+    "translation": "在菜单栏显示录音状态"
+  },
+  {
+    "catalog": "app",
     "key": "Silent for %llds — check the input device",
     "english": "Silent for %llds — check the input device",
     "comment": "Silence warning while recording. %lld is a number of seconds.",
@@ -2649,6 +2657,14 @@
     "comment": "UI text in SettingsView.swift.",
     "placeholders": [],
     "translation": "关闭时，写入 SRT 后会删除 WAV。转录失败时始终保留。"
+  },
+  {
+    "catalog": "app",
+    "key": "While recording, the menu bar icon turns red and shows the elapsed time. When off, the icon stays the same.",
+    "english": "While recording, the menu bar icon turns red and shows the elapsed time. When off, the icon stays the same.",
+    "comment": "Settings > Window caption under Show recording status in the menu bar",
+    "placeholders": [],
+    "translation": "录音时，菜单栏图标会变成红色并显示已录时间。关闭时，图标保持不变。"
   },
   {
     "catalog": "app",

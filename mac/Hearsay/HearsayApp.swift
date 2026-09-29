@@ -77,7 +77,7 @@ struct HearsayApp: App {
                 .environment(appDelegate.windowOpener)
                 .registeringMainWindowOpener(appDelegate.windowOpener)
         } label: {
-            MenuBarLabel(recording: appDelegate.recordingController)
+            MenuBarLabel(recording: appDelegate.recordingController, settings: appDelegate.settings)
                 .environment(\.locale, InterfaceLanguageLaunch.applied.locale)
         }
         .menuBarExtraStyle(.window)

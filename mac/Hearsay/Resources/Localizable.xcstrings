@@ -6972,6 +6972,34 @@
         }
       }
     },
+    "Show recording status in the menu bar" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufnahmestatus in der Menüleiste anzeigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar el estado de grabación en la barra de menús"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在菜单栏显示录音状态"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在選單列顯示錄音狀態"
+          }
+        }
+      }
+    },
     "Silent for %llds — check the input device" : {
       "comment" : "Silence warning while recording. %lld is a number of seconds.",
       "localizations" : {
@@ -9700,6 +9728,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "關閉時，WAV 會在其 SRT 寫入後刪除。轉錄失敗時一律會保留。"
+          }
+        }
+      }
+    },
+    "While recording, the menu bar icon turns red and shows the elapsed time. When off, the icon stays the same." : {
+      "comment" : "Settings > Window caption under Show recording status in the menu bar",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Während der Aufnahme wird das Symbol in der Menüleiste rot und zeigt die verstrichene Zeit. Ist die Option aus, bleibt das Symbol unverändert."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Durante la grabación, el icono de la barra de menús se vuelve rojo y muestra el tiempo transcurrido. Si está desactivado, el icono no cambia."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "录音时，菜单栏图标会变成红色并显示已录时间。关闭时，图标保持不变。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "錄音時，選單列圖示會變成紅色並顯示已錄時間。關閉時，圖示維持原樣。"
           }
         }
       }

@@ -179,8 +179,9 @@ Transcript, Reveal in Finder, and:
 ## Menu bar, window, and startup
 
 - The menu bar item shows the state and elapsed time, starts, pauses, and
-  stops recording, and turns red while recording. Recording continues with
-  the window closed.
+  stops recording, and turns red while recording (Settings > Window > Show
+  recording status in the menu bar turns that off). Recording continues
+  with the window closed.
 - ⌃⌥⌘R starts or stops, ⌃⌥⌘P pauses or resumes, in any app. Change them in
   Settings > General.
 - Settings > Window: "Menu bar and Dock", "Menu bar only", or "Dock only".

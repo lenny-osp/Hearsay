@@ -36,6 +36,7 @@ public enum WindowMode: String, CaseIterable, Codable, Sendable {
 public final class AppSettings {
     public enum Key {
         public static let windowMode = "windowMode"
+        public static let menuBarShowsStatus = "menuBarShowsStatus"
         public static let outputFolderBookmark = "outputFolderBookmark"
         /// Legacy key ("en" or "zh"), read once to migrate into `languageChoice`.
         public static let defaultLanguageCode = "defaultLanguageCode"
@@ -61,6 +62,15 @@ public final class AppSettings {
 
     public var windowMode: WindowMode {
         didSet { defaults.set(windowMode.rawValue, forKey: Key.windowMode) }
+    }
+
+    /// "Show recording status in the menu bar" (Settings > Window, added
+    /// 2026-09-29, owner request). On (the default): the menu bar icon
+    /// turns into the red record symbol with the elapsed time while
+    /// recording, a pause symbol while paused, and the transcription
+    /// percentage. Off: the icon stays the plain waveform in every state.
+    public var menuBarShowsStatus: Bool {
+        didSet { defaults.set(menuBarShowsStatus, forKey: Key.menuBarShowsStatus) }
     }
 
     /// Security-scoped bookmark for the user-chosen output folder, or nil
@@ -194,6 +204,7 @@ public final class AppSettings {
         self.defaults = defaults
         let rawMode = defaults.string(forKey: Key.windowMode) ?? ""
         self.windowMode = WindowMode(rawValue: rawMode) ?? .menuBarAndDock
+        self.menuBarShowsStatus = defaults.object(forKey: Key.menuBarShowsStatus) as? Bool ?? true
         self.outputFolderBookmark = defaults.data(forKey: Key.outputFolderBookmark)
         self.languageChoice = Self.loadLanguageChoice(from: defaults)
         self.preferredLanguage = Self.loadPreferredLanguage(from: defaults)

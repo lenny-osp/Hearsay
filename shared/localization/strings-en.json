@@ -1819,6 +1819,13 @@
   },
   {
     "catalog": "app",
+    "key": "Show recording status in the menu bar",
+    "english": "Show recording status in the menu bar",
+    "comment": "UI text in SettingsView.swift.",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
     "key": "Silent for %llds — check the input device",
     "english": "Silent for %llds — check the input device",
     "comment": "Silence warning while recording. %lld is a number of seconds.",
@@ -2536,6 +2543,13 @@
     "key": "When off, the WAV is deleted once its SRT is written. A failed transcription always keeps it.",
     "english": "When off, the WAV is deleted once its SRT is written. A failed transcription always keeps it.",
     "comment": "UI text in SettingsView.swift.",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "While recording, the menu bar icon turns red and shows the elapsed time. When off, the icon stays the same.",
+    "english": "While recording, the menu bar icon turns red and shows the elapsed time. When off, the icon stays the same.",
+    "comment": "Settings > Window caption under Show recording status in the menu bar",
     "placeholders": []
   },
   {

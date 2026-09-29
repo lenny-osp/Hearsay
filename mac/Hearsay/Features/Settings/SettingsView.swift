@@ -194,6 +194,12 @@ private struct WindowSettingsView: View {
             Text("Changes apply immediately.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+            Toggle("Show recording status in the menu bar", isOn: $settings.menuBarShowsStatus)
+                .disabled(!settings.windowMode.showsMenuBarItem)
+            Text("While recording, the menu bar icon turns red and shows the elapsed time. When off, the icon stays the same.",
+                 comment: "Settings > Window caption under Show recording status in the menu bar")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
         .formStyle(.grouped)
     }

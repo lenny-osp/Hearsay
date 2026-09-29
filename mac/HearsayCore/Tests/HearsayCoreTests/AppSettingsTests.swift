@@ -47,6 +47,16 @@ final class AppSettingsTests {
         #expect(AppSettings(defaults: defaults).keepRecording == false)
     }
 
+    @Test func menuBarShowsStatusDefaultOnAndRoundTrips() {
+        let defaults = scratch.make()
+        let settings = AppSettings(defaults: defaults)
+        #expect(settings.menuBarShowsStatus)
+        settings.menuBarShowsStatus = false
+        #expect(AppSettings(defaults: defaults).menuBarShowsStatus == false)
+        settings.menuBarShowsStatus = true
+        #expect(AppSettings(defaults: defaults).menuBarShowsStatus)
+    }
+
     @Test func automaticUpdateChecksDefaultOnAndRoundTrips() {
         let defaults = scratch.make()
         let settings = AppSettings(defaults: defaults)

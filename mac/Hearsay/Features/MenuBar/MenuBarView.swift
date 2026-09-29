@@ -189,10 +189,27 @@ struct MenuBarView: View {
 
 /// The menu bar item itself: `waveform` when idle, a red record symbol
 /// with the elapsed time while recording, and a pause symbol while paused.
+/// With "Show recording status in the menu bar" off it is always the
+/// waveform.
 struct MenuBarLabel: View {
     let recording: RecordingController
+    let settings: AppSettings
 
     var body: some View {
+        if settings.menuBarShowsStatus {
+            statusLabel
+        } else {
+            plainLabel
+        }
+    }
+
+    private var plainLabel: some View {
+        Image(systemName: "waveform")
+            .accessibilityLabel(Text(verbatim: "Hearsay"))
+    }
+
+    @ViewBuilder
+    private var statusLabel: some View {
         switch recording.phase {
         case .recording:
             HStack(spacing: 4) {
@@ -212,8 +229,7 @@ struct MenuBarLabel: View {
             }
             .accessibilityLabel("Hearsay, transcribing")
         default:
-            Image(systemName: "waveform")
-                .accessibilityLabel(Text(verbatim: "Hearsay"))
+            plainLabel
         }
     }
 

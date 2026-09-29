@@ -285,8 +285,13 @@ live preview SRT is kept if it exists, the WAV path is shown, and a
   2026-09-28; there is no separate Settings window. ⌘, opens the main window
   on that tab, also in Menu bar only mode. The menu bar menu has no
   Settings row.
-- Menu bar icon changes to a filled red variant while recording, and a
-  paused variant while paused.
+- Menu bar icon changes to a filled red variant with the elapsed time
+  while recording, a paused variant while paused, and the percentage while
+  transcribing. Since 2026-09-29 (owner request) Settings > Window has
+  "Show recording status in the menu bar" (`menuBarShowsStatus`, default
+  on); off keeps the plain waveform in every state. The toggle is disabled
+  in Dock only mode. The Windows plan (section 18) mirrors it for the tray
+  icon.
 - Global hotkey (default ⌃⌥⌘R, editable in Settings) toggles
   Start/Stop; ⌃⌥⌘P toggles Pause. Implemented with a Carbon
   `RegisterEventHotKey` wrapper or the `KeyboardShortcuts` package; both
@@ -849,6 +854,7 @@ once after pulling this.
 | Meeting notes | same providers: Copilot CLI, Claude Code, Codex CLI (all support Windows), Antigravity CLI (confirm Windows availability first), Ollama, Custom | same JSON contract and prompt; tokens in Windows Credential Manager |
 | Settings and state | `%APPDATA%\Hearsay\settings.json`; models in `%LOCALAPPDATA%\Hearsay\Models`; spool in `%LOCALAPPDATA%\Hearsay\Recording`; output default `%USERPROFILE%\Documents\Hearsay` | |
 | Hotkeys, login, window modes | `RegisterHotKey`; `HKCU\...\Run` for launch at login; tray-only vs taskbar | |
+| Tray status | Same setting as the Mac (`menuBarShowsStatus`, default on): the tray icon swaps to a red variant while recording and a pause variant while paused. The Windows notification area cannot show text next to an icon, so the elapsed time goes in the tooltip. Label is Windows-only ("Show recording status in the notification area"); add it to `shared/localization` | added 2026-09-29 |
 | Localization | `.resw` generated from `shared/localization` by a script; interface language setting applies at next launch | |
 | Help | WebView2 rendering `shared/help/<lang>/Help.html`; `hearsay://open/<tab>` links handled the same way | |
 | Packaging | MSIX (or Inno Setup) with code signing through Azure Trusted Signing; updates through MSIX or Velopack | unsigned builds trigger SmartScreen |

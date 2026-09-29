@@ -1959,6 +1959,14 @@
   },
   {
     "catalog": "app",
+    "key": "Show recording status in the menu bar",
+    "english": "Show recording status in the menu bar",
+    "comment": "UI text in SettingsView.swift.",
+    "placeholders": [],
+    "translation": "Aufnahmestatus in der Menüleiste anzeigen"
+  },
+  {
+    "catalog": "app",
     "key": "Silent for %llds — check the input device",
     "english": "Silent for %llds — check the input device",
     "comment": "Silence warning while recording. %lld is a number of seconds.",
@@ -2649,6 +2657,14 @@
     "comment": "UI text in SettingsView.swift.",
     "placeholders": [],
     "translation": "Wenn deaktiviert, wird die WAV-Datei gelöscht, sobald ihre SRT-Datei geschrieben ist. Bei einer fehlgeschlagenen Transkription bleibt sie immer erhalten."
+  },
+  {
+    "catalog": "app",
+    "key": "While recording, the menu bar icon turns red and shows the elapsed time. When off, the icon stays the same.",
+    "english": "While recording, the menu bar icon turns red and shows the elapsed time. When off, the icon stays the same.",
+    "comment": "Settings > Window caption under Show recording status in the menu bar",
+    "placeholders": [],
+    "translation": "Während der Aufnahme wird das Symbol in der Menüleiste rot und zeigt die verstrichene Zeit. Ist die Option aus, bleibt das Symbol unverändert."
   },
   {
     "catalog": "app",
