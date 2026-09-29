@@ -7,6 +7,13 @@
     <AssemblyName>Hearsay.Core</AssemblyName>
   </PropertyGroup>
 
+  <!-- WASAPI capture (PLAN.md 18.3). NAudio.Wasapi alone (it brings
+       NAudio.Core) rather than the NAudio metapackage, which adds WinForms,
+       WinMM, ASIO and MIDI assemblies Hearsay does not use. -->
+  <ItemGroup>
+    <PackageReference Include="NAudio.Wasapi" Version="3.1.0" />
+  </ItemGroup>
+
   <!-- The tests reach internal helpers the way the Swift tests use
        @testable import. -->
   <ItemGroup>

@@ -245,6 +245,42 @@ public class LanguageNoticeTests
     }
 }
 
+/// <summary>Port of StoredTranscriptLanguageResolveTests in SessionLanguageTests.swift.</summary>
+public class StoredTranscriptLanguageResolveTests
+{
+    private const string GermanSrt =
+        "1\n00:00:00,000 --> 00:00:04,000\nWir fangen mit dem Budget an und besprechen dann den Bericht.\n\n"
+        + "2\n00:00:04,000 --> 00:00:08,000\nDer Bericht muss bis Freitag fertig sein.\n\n";
+
+    [Fact]
+    public void ConfidentDetectionWins()
+    {
+        var resolved = StoredTranscriptLanguage.Resolve(GermanSrt, LanguageChoice.Fixed(TranscriptLanguage.English), TranscriptLanguage.English);
+        Assert.Equal(TranscriptLanguage.German, resolved.Language);
+        Assert.Equal("Deutsch (detected from the text)", resolved.Note);
+    }
+
+    [Fact]
+    public void UnsureFallsBackToAssumed()
+    {
+        const string srt = "1\n00:00:00,000 --> 00:00:01,000\nOK 好\n";
+        var resolved = StoredTranscriptLanguage.Resolve(srt, LanguageChoice.Auto, TranscriptLanguage.Spanish);
+        Assert.Equal(TranscriptLanguage.Spanish, resolved.Language);
+        Assert.Equal("Español (your Auto mode default language; this transcript's language was not recorded)", resolved.Note);
+        var empty = StoredTranscriptLanguage.Resolve("", LanguageChoice.Fixed(TranscriptLanguage.ChineseMainland), TranscriptLanguage.English);
+        Assert.Equal(TranscriptLanguage.ChineseMainland, empty.Language);
+    }
+
+    [Fact]
+    public void DetectedNoteKeyIsTheSharedCatalogKey()
+    {
+        using var catalog = System.Text.Json.JsonDocument.Parse(SharedFiles.ReadText("localization", "strings-en.json"));
+        Assert.Contains(
+            StoredTranscriptLanguage.DetectedNoteKey,
+            catalog.RootElement.EnumerateArray().Select(entry => entry.GetProperty("key").GetString()));
+    }
+}
+
 /// <summary>Port of NotesLanguageCaptionTests in SessionLanguageTests.swift.</summary>
 public class NotesLanguageCaptionTests
 {

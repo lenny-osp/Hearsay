@@ -770,6 +770,16 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
     line shows the new name. Rename another meeting to the same name: it
     gets `-2`. While a recording is transcribing, and while History is
     generating notes for a meeting, its Rename… is disabled.
+19. Windows, microphone on real hardware (added 2026-09-29): the dev
+    machine ran the W3 capture work in an RDP session with no capture
+    endpoint, so the live microphone path never ran. On the machine itself
+    (or with RDP microphone redirection on), from the repo root run
+    `HEARSAY_TEST_AUDIO_DEVICES=1 HEARSAY_TEST_RECORD_SECONDS=2 dotnet test
+    windows\Hearsay.Tests -c Release --filter "AudioDeviceListTests|AudioRecordingTests" --logger "console;verbosity=detailed"`
+    and check: the enumeration lists the microphone, the 2 s recording's
+    sample count is within 10 % of 32,000, and the diagnostics show a real
+    mix format and non-zero callbacks. Also confirm the proposed hotkey
+    defaults Ctrl+Alt+Win+R / Ctrl+Alt+Win+P (18.4, Settings).
 
 ## 17. Polish list (found during review, not yet scheduled)
 
@@ -978,9 +988,91 @@ passes, 271 tests). Where Windows forced a difference from the Swift:
   `FLLR` chunk (data at byte 4096); only `zh-30s.wav` is a plain 44-byte
   header. `WavWriter` writes the canonical header, so only `zh` round-trips
   byte for byte; for the others the PCM data does.
-- **Not ported yet, by design**: `StoredTranscriptLanguage.resolve(srtText:)`
-  waits for the text-language detector (W6); `CLITool` holds only the enum
-  cases until W6; display strings are English until W7 wires `.resw`.
+- **Not ported yet, by design**: `CLITool` holds only the enum cases until
+  W6; display strings are English until W7 wires `.resw`.
+
+Chinese script and text language (2026-09-29, after the W1 text spike):
+`ChineseScriptConverter` P/Invokes `icu.dll` (classic `DllImport`, exports
+checked up front, a missing DLL or export throws
+`PlatformNotSupportedException`; nothing falls back to the input text);
+`TranscriptTextLanguage` is the rule detector (sample is the first 4,000
+grapheme clusters, NFC-normalized; `detect(srtText:)` is `DetectSrt`);
+`StoredTranscriptLanguage.Resolve` is in. 
+
+W3 capture (2026-09-29; `windows/Hearsay.Core/Audio`, NAudio.Wasapi 3.1.0,
+`WasapiRecorder` because 3.1.0 marks `WasapiCapture` obsolete). Where
+Windows differs from the Mac:
+
+- **Timestamps**: each chunk carries the QPC time of its first frame from
+  the packet position WASAPI reports (closer to the Mac's presentation
+  timestamps); "callback time minus buffer duration" is only the fallback
+  for drivers that report position 0. Stamps are shifted back by the
+  resampler's held-back output so chunks are contiguous.
+- **Loopback is not continuous**: WASAPI loopback delivers nothing while
+  no app plays (measured: 0 packets in 2 s of silence), where
+  ScreenCaptureKit streams continuously. A 0.1 s timer fills any gap over
+  0.2 s with silence at the capture rate, through the same resampler;
+  Stop fills up to the stop time. Loopback also captures Hearsay's own
+  output (the Mac excludes it).
+- **Default output device changes** move loopback capture to the new
+  default; after a capture error the endpoint is reopened on the current
+  default within the same 5-per-10-s recovery limit. Only "no output
+  device left" ends the recording (`NoOutputDevice`, a new string). System
+  audio start is synchronous; there is no `starting` state and no
+  permission case.
+- **Microphone pause releases the audio client** (the mic-in-use indicator
+  goes off); resume reopens the endpoint (a `WasapiRecorder` cannot restart)
+  and a failed resume goes through capture-error recovery. System-audio
+  pause keeps capture running and drops chunks, as on the Mac.
+- **Recovery**: a capture error (for example `AUDCLNT_E_DEVICE_INVALIDATED`
+  on a format change) reopens the endpoint. The chosen endpoint being
+  removed or disabled ends the recording with `ConfigurationChanged`, no
+  fallback to another microphone. WASAPI has no interruption notification,
+  so `Interruptions` is always 0. `cannotSelectDevice` has no Windows case.
+- **Permission** cannot be checked in advance; `E_ACCESSDENIED` at start
+  becomes `PermissionDenied` with Windows wording pointing to Settings >
+  Privacy & security > Microphone (new localization key, W7).
+- **Device identity** is the endpoint id string; `ResolveSelection` ports
+  `RecordingController.refreshDevices()` (chosen, else default, else first).
+- **Untested on hardware**: the dev machine runs in an RDP session with no
+  capture endpoint ("Remote Audio" output only), so the live microphone
+  path, real int16/24-bit mix formats and QPC stamps on real packets have
+  only run against the fake session. Run
+  `HEARSAY_TEST_AUDIO_DEVICES=1 HEARSAY_TEST_RECORD_SECONDS=2 dotnet test
+  windows\Hearsay.Tests -c Release --filter "AudioDeviceListTests|AudioRecordingTests"`
+  on a machine with a microphone (section 16 item 19).
+
+Settings (2026-09-29; `windows/Hearsay.Core/Settings`):
+
+- **Storage** is one `settings.json` (UTF-8, no BOM, LF, indented) in the
+  folder the app passes (`%APPDATA%\Hearsay`); unknown keys are kept,
+  comments and trailing commas tolerated on read. Atomic write: temp file
+  in the same folder, then `File.Move(overwrite: true)`, retried up to 5
+  times on a sharing violation. A file that is not a JSON object is moved
+  to `settings.corrupt.json` and settings start empty. A failed write does
+  not throw; the value holds for the run and `SaveFailed` fires.
+- **Key names** are the Mac's except `outputFolder` (a path) in place of
+  `outputFolderBookmark`. The Mac-only permission hashes round-trip unused;
+  `activeModelRepo` keeps its name for the Windows model id.
+- **Hotkeys** store `{keyCode, modifiers}` with Win32 values (VK codes;
+  MOD_ALT 1, MOD_CONTROL 2, MOD_SHIFT 4, MOD_WIN 8; MOD_NOREPEAT added at
+  registration). Proposed defaults Ctrl+Alt+Win+R and Ctrl+Alt+Win+P
+  (⌘→Win), to be confirmed by the owner. Key names are English until W7.
+- **Window mode** keeps the Mac's stored values; the menu bar item is the
+  tray icon and the Dock icon the taskbar button.
+- **Interface language**: `ResolveAtLaunch(stored, environment)`
+  (`HEARSAY_UI_LANGUAGE` wins) and `NeedsRestart`; the app sets its
+  resource language at launch (W7).
+- **Output folder**: `MakeStoredPath` replaces `makeBookmark`; a chosen
+  folder is used only when it is a full path to an existing folder, else
+  the default (created on demand). Nothing is tracked across moves.
+- **Secrets**: Credential Manager generic credentials, target
+  `Hearsay/<account>`, `CRED_PERSIST_LOCAL_MACHINE`, UTF-8 blob (2,560-byte
+  limit). Error text "Credential Manager error: <message>" (new key, W7).
+- **Owed by W4**: subscribe to `AppSettings.SaveFailed` and show
+  `SettingsFile.CorruptFileBackup`; share one `SettingsFile` per folder
+  (two instances overwrite each other's keys); later stores (AI providers,
+  prompt templates) take the same `SettingsFile`.
 
 ### 18.5 Acceptance
 
@@ -1024,7 +1116,7 @@ created in the IDE.
 | W0. Shared extraction (done on macOS) | `shared/prompts`, `shared/naming-tests.json`, `shared/help`, `shared/assets`, model catalog split; macOS tests unchanged | 2 days |
 | W1. Spike | Whisper.net transcribes the four fixtures; measure similarity, timestamps, speed on CPU and GPU; pick the default model | 2 to 3 days |
 | W2. Core | Port naming, prompt, SRT, language decision, mixer; all shared vectors pass. **Done 2026-09-29** (four parallel agents, one day): naming + OutputWriter incl. Rename, HistoryIndex, prompt + reply contract + presets, SRT, LanguageDecision + SessionLanguage + LiveChunker, AudioMixer + LevelMeter + MonoResampler + WavWriter + RecordingSpool; 271 tests, every Swift test ported one for one except those needing AVFoundation or a device (listed in the test files) | 4 to 5 days |
-| W3. Audio | WASAPI mic and loopback capture, resampling, spool WAV, no-audio watchdog | 4 to 5 days |
+| W3. Audio | WASAPI mic and loopback capture, resampling, spool WAV, no-audio watchdog. **Done 2026-09-29** except the hardware run (18.4, "Untested on hardware"); with it the settings layer (AppSettings, hotkeys, interface language, output folder, Credential Manager) and the ICU script converter and text-language detector; 487 tests | 4 to 5 days |
 | W4. Shell | WinUI window with the five tabs, tray icon, window modes, hotkeys, settings, model store and downloads | 6 to 8 days |
 | W5. Transcription | live preview, final pass, File mode, Auto detection with banners, Chinese conversion | 5 to 6 days |
 | W6. Notes | CLI providers on Windows, Ollama, Custom, confirm and naming sheets, History with regenerate and Rename (section 4.8; port `OutputWriter.renameEntry` and its tests) | 4 to 5 days |

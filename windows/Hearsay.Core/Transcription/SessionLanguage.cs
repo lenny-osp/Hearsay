@@ -228,16 +228,17 @@ public static class LanguageDecisionDebug
 /// The notes language for an SRT whose transcript language was not stored
 /// (History "Generate notes..." on an older transcript): the fixed choice, or
 /// the preferred language for Auto, with the confirm sheet's explanation.
-/// Port of <c>StoredTranscriptLanguage.assumed</c> in SessionLanguage.swift.
-/// <c>resolve(srtText:...)</c> is not ported yet: it needs the transcript text
-/// language detector (PLAN.md 18.8, "Transcript text language", W6).
+/// Port of <c>StoredTranscriptLanguage.assumed</c> and <c>resolve(srtText:choice:preferred:)</c>
+/// in SessionLanguage.swift.
 /// </summary>
-/// <remarks>The notes are English; the app localizes them by <see cref="ChoiceNoteKey"/> and <see cref="AutoNoteKey"/>.</remarks>
+/// <remarks>The notes are English; the app localizes them by <see cref="ChoiceNoteKey"/>,
+/// <see cref="AutoNoteKey"/> and <see cref="DetectedNoteKey"/>.</remarks>
 public static class StoredTranscriptLanguage
 {
     public const string ChoiceNoteKey = "%@ (your language choice; this transcript's language was not recorded)";
     public const string AutoNoteKey =
         "%@ (your Auto mode default language; this transcript's language was not recorded)";
+    public const string DetectedNoteKey = "%@ (detected from the text)";
 
     public static (TranscriptLanguage Language, string Note) Assumed(LanguageChoice choice, TranscriptLanguage preferred)
     {
@@ -246,6 +247,24 @@ public static class StoredTranscriptLanguage
             return (language, ChoiceNoteKey.Replace("%@", language.DisplayName(), StringComparison.Ordinal));
         }
         return (preferred, AutoNoteKey.Replace("%@", preferred.DisplayName(), StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// The language detected from <paramref name="srtText"/> when
+    /// <see cref="TranscriptTextLanguage"/> is confident (at least
+    /// <see cref="TranscriptTextLanguage.ConfidenceThreshold"/>), noted as
+    /// detected; otherwise <see cref="Assumed"/>.
+    /// </summary>
+    public static (TranscriptLanguage Language, string Note) Resolve(
+        string srtText, LanguageChoice choice, TranscriptLanguage preferred)
+    {
+        if (TranscriptTextLanguage.DetectSrt(srtText) is { } detected
+            && detected.Probability >= TranscriptTextLanguage.ConfidenceThreshold)
+        {
+            return (detected.Language,
+                DetectedNoteKey.Replace("%@", detected.Language.DisplayName(), StringComparison.Ordinal));
+        }
+        return Assumed(choice, preferred);
     }
 }
 
