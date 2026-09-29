@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Ported logic with no UI and no whisper.cpp: naming, prompt, SRT,
+       language decision, mixer rules. Mirrors mac/HearsayCore. -->
+  <PropertyGroup>
+    <RootNamespace>Hearsay.Core</RootNamespace>
+    <AssemblyName>Hearsay.Core</AssemblyName>
+  </PropertyGroup>
+
+  <!-- The tests reach internal helpers the way the Swift tests use
+       @testable import. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Hearsay.Tests" />
+  </ItemGroup>
+
+  <!-- The meeting-notes prompt text, embedded straight from shared/prompts
+       (AGENTS.md: Windows never keeps a copy of a shared file). Embedded
+       resources are copied byte for byte, so the LF newlines survive.
+       Read through Hearsay.Core.Notes.MeetingPrompt; a test compares the
+       embedded bytes with the files on disk. -->
+  <ItemGroup>
+    <EmbeddedResource Include="$(HearsaySharedDir)prompts\*.txt;$(HearsaySharedDir)prompts\languages.json"
+                      LogicalName="Hearsay.Core.Prompts.%(Filename)%(Extension)"
+                      Visible="false" />
+  </ItemGroup>
+
+</Project>

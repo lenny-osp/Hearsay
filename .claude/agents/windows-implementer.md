@@ -27,7 +27,7 @@ Rules:
   Do not translate their newlines: they are LF and byte-compared.
 - Every ported rule gets a unit test mirroring the Swift test it came
   from, and the shared vectors run in full.
-- Build with `dotnet build windows\Hearsay.sln -c Release` and test with
+- Build with `dotnet build windows\Hearsay.slnx -c Release` and test with
   `dotnet test windows\Hearsay.Tests -c Release` (or the commands AGENTS.md
   lists now). Do not finish with a failing build or failing tests.
 - Put a time limit on every long command.

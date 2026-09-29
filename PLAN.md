@@ -855,14 +855,23 @@ can agree (section 18.5).
 
 ```text
 windows/
-  Hearsay.sln
+  Hearsay.slnx        solution (the XML format .NET 10 creates; VS 2026 opens it)
+  Directory.Build.props  shared build settings: net10.0, x64, nullable, warnings as errors
   Hearsay.App/        WinUI 3 app (views, tray, settings, help window)
   Hearsay.Core/       ported logic: naming, prompt, SRT, language decision, mixer
   Hearsay.Whisper/    whisper.cpp integration and model store
   Hearsay.Tests/      unit tests, driven by the shared vectors and fixtures
+  Spike/              W1 spikes (WhisperSpike, TextSpike); models/ is git-ignored
   scripts/            build, translation import, notices
   THIRD_PARTY_NOTICES.md
 ```
+
+Scaffolded 2026-09-29: `Hearsay.slnx`, `Hearsay.Core`, `Hearsay.Tests` (xUnit).
+The tests find `shared/` through an assembly attribute stamped from
+`Directory.Build.props` (`HearsaySharedDir`), so nothing in `windows/` is a
+copy of a shared file; the prompt files are embedded into `Hearsay.Core` at
+build time straight from `shared/prompts/`, and a test proves the embedded
+bytes equal the files on disk.
 
 Shared resources (`shared/`) and what Windows does with them:
 
@@ -904,8 +913,8 @@ once after pulling this.
 | Language, UI | C# on .NET 10 (LTS), WinUI 3 (Windows App SDK) | .NET 10 pinned 2026-09-29 (installed on the dev machine; was ".NET 8 or later"); tray icon through the Windows App SDK notification-icon APIs or `H.NotifyIcon` |
 | Audio capture | WASAPI via NAudio: `WasapiCapture` for the mic, `WasapiLoopbackCapture` for system audio | loopback needs no permission prompt; resample to 16 kHz mono like the Mac; port `AudioMixer` rules |
 | Whisper | `Whisper.net` (whisper.cpp) with GGUF models; CUDA runtime package on NVIDIA, Vulkan on AMD and Intel, CPU fallback | whisper.cpp has its own timestamp decoder; language detection is built in; W1 checks the gaps in 18.8 |
-| Chinese script | OpenCC (`OpenCCNET`) for Traditional and Simplified conversion, unless W1 finds the macOS transform usable (18.8) | .NET exposes no Hans-Hant transliteration |
-| Transcript text language (History SRTs with no stored language) | open, see 18.8 | macOS uses Apple's NaturalLanguage |
+| Chinese script | Windows' own `C:\Windows\System32\icu.dll` (ICU 72 on this machine) through P/Invoke: `utrans_openU("Hans-Hant", UTRANS_FORWARD)` for Traditional, the same id with `UTRANS_REVERSE` for Simplified (what Swift's `reverse: true` does), `utrans_transUChars` to convert. No package. | Decided 2026-09-29 (W1 text spike, `windows/Spike/TextSpike/REPORT.md`): this is the same ICU transform the Mac uses and it reproduced the Mac's ZH-TW SRT for `zh-30s` byte for byte. OpenCC was rejected: every variant differs from ICU (on the fixture 里 vs 裏/裡; 231 to 242 of OpenCC's 3,980 table characters, including 为 台 干 只 群 周), `OpenCCNET` pulls vulnerable packages that fail restore with warnings as errors, and it costs about 1.5 s and 70 MB at startup. ELS transliteration and `LCMapStringEx` also differ from ICU. |
+| Transcript text language (History SRTs with no stored language) | A rule-based detector in `Hearsay.Core` (no package, no ELS): Han-ideograph share for zh, Traditional-only vs Simplified-only characters (via the ICU transforms) to split ZH-TW and ZH-CN, function-word and diacritic scores for en, de, es; the five probabilities sum to 1 and the largest is the confidence. Same constants as the Mac: sample 4,000 characters, nil below 12 letters, confident at 0.6 or more, ties in picker order. | Decided 2026-09-29 (W1 text spike): 68/68 labelled samples right, never confident and wrong at 0.6. Windows ELS Language Detection also got 68/68 but exposes no confidence and returns bare `zh` for script-neutral Chinese, so it is not used. Implement in W6; tests assert the language and whether it is confident, never the number. |
 | Meeting notes | same providers: Copilot CLI, Claude Code, Codex CLI (all support Windows), Antigravity CLI (confirm Windows availability first), Ollama, Custom | same JSON contract and prompt; tokens in Windows Credential Manager |
 | Settings and state | `%APPDATA%\Hearsay\settings.json`; models in `%LOCALAPPDATA%\Hearsay\Models`; spool in `%LOCALAPPDATA%\Hearsay\Recording`; output default `%USERPROFILE%\Documents\Hearsay` | |
 | Hotkeys, login, window modes | `RegisterHotKey`; `HKCU\...\Run` for launch at login; tray-only vs taskbar | |
@@ -925,6 +934,53 @@ once after pulling this.
   microphone in the same room hears it too. Recommend a headset, and keep
   the mixer's per-source meters so the user sees both.
 - **Bluetooth headsets** switch to call quality on Windows as on macOS.
+- **Text-language confidence numbers differ** from `NLLanguageRecognizer`'s,
+  so a borderline History SRT with no stored language may land on the other
+  side of 0.6 and get the assumed language instead. Nothing else depends on
+  the number.
+
+W2 core port (2026-09-29; `windows/Hearsay.Core`, every shared vector
+passes, 271 tests). Where Windows forced a difference from the Swift:
+
+- **File identity** (`OutputWriter.FileIdentity`): Swift compares device
+  and inode; Windows compares the normalized full path ignoring case (the
+  Windows file id needs a handle per file, and NTFS, FAT and exFAT ignore
+  case). Hard links, junctions, 8.3 names and per-directory case
+  sensitivity are not recognized as the same file.
+- **Birth time** (`Timestamps.SourceFileTimestamp`): the file's creation
+  time, falling back to the last write only when creation time is the 1601
+  sentinel; a missing file gives null.
+- **Recycle Bin** (`ReplaceNamed`): `SHFileOperationW` with `FOF_ALLOWUNDO`
+  does not report where the recycled file went, so when a later step fails
+  the old notes cannot be moved back as on the Mac; the error lists them as
+  not restored. `IFileOperation` with a progress sink could restore them
+  (W6 candidate). The user-facing text still says "Trash" so the
+  translations are reused; W7 decides on a Windows string.
+- **History scan** skips files with the Hidden attribute as well as dot
+  files; reparse points are not skipped because OneDrive placeholders in
+  Documents are reparse points.
+- **Resampler** (`MonoResampler`): the Mac wraps Apple's unpublished
+  `AVAudioConverter`. Windows uses a Kaiser-windowed sinc filter (16 zero
+  crossings, rolloff 0.9, beta 8), channel average for the downmix, no
+  delay, output length `ceil(frames × 16000 / rate)`; 16 kHz input passes
+  through with only the downmix. Same length, level and timing as the Mac,
+  not the same samples. A 10 kHz tone is removed by more than 60 dB.
+- **Mixer source errors**: Swift's `AsyncStream` cannot throw, so a failing
+  recorder there ends its stream; in C# a source whose `IAsyncEnumerable`
+  throws is treated as ended the same way. The W3 recorder must report the
+  error itself before its stream ends.
+- **Prompt template ids** are written as lowercase GUIDs (Swift writes
+  uppercase); only matters if settings are ever shared across platforms.
+- **JSON error detail** after "AI output is not valid JSON: " comes from
+  System.Text.Json and reads differently from Foundation's; the prefix is
+  the contract.
+- **Fixture WAV layout**: `en`, `de`, `es-30s.wav` carry a 4,044-byte Apple
+  `FLLR` chunk (data at byte 4096); only `zh-30s.wav` is a plain 44-byte
+  header. `WavWriter` writes the canonical header, so only `zh` round-trips
+  byte for byte; for the others the PCM data does.
+- **Not ported yet, by design**: `StoredTranscriptLanguage.resolve(srtText:)`
+  waits for the text-language detector (W6); `CLITool` holds only the enum
+  cases until W6; display strings are English until W7 wires `.resw`.
 
 ### 18.5 Acceptance
 
@@ -967,7 +1023,7 @@ created in the IDE.
 |---|---|---|
 | W0. Shared extraction (done on macOS) | `shared/prompts`, `shared/naming-tests.json`, `shared/help`, `shared/assets`, model catalog split; macOS tests unchanged | 2 days |
 | W1. Spike | Whisper.net transcribes the four fixtures; measure similarity, timestamps, speed on CPU and GPU; pick the default model | 2 to 3 days |
-| W2. Core | Port naming, prompt, SRT, language decision, mixer; all shared vectors pass | 4 to 5 days |
+| W2. Core | Port naming, prompt, SRT, language decision, mixer; all shared vectors pass. **Done 2026-09-29** (four parallel agents, one day): naming + OutputWriter incl. Rename, HistoryIndex, prompt + reply contract + presets, SRT, LanguageDecision + SessionLanguage + LiveChunker, AudioMixer + LevelMeter + MonoResampler + WavWriter + RecordingSpool; 271 tests, every Swift test ported one for one except those needing AVFoundation or a device (listed in the test files) | 4 to 5 days |
 | W3. Audio | WASAPI mic and loopback capture, resampling, spool WAV, no-audio watchdog | 4 to 5 days |
 | W4. Shell | WinUI window with the five tabs, tray icon, window modes, hotkeys, settings, model store and downloads | 6 to 8 days |
 | W5. Transcription | live preview, final pass, File mode, Auto detection with banners, Chinese conversion | 5 to 6 days |
@@ -997,5 +1053,5 @@ decision recorded here before the phase named.
 |---|---|---|---|
 | Hallucination filter | `hallucination_silence_threshold` 2.0 (section 6), ported from `mlx_whisper` | whisper.cpp has no such option; measure on the fixtures without it, port the Python rule on top of whisper.cpp segments if the output needs it | W1 |
 | Language detection | probabilities of the four supported languages, renormalized, averaged over up to three speech windows, plus no-speech probability | confirm Whisper.net exposes per-language probabilities (whisper.cpp `whisper_lang_auto_detect` returns them) and a no-speech probability; the shared language-decision vectors assume both | W1 |
-| Chinese script conversion | ICU `Hans-Hant` transform through `String.applyingTransform` | OpenCC's tables are not ICU's, so the same Simplified text can come out with different Traditional characters and ZH-TW text would differ between the platforms (measure on `zh-30s`); check whether Windows' own `icu.dll` exposes the same transform (`utrans_*`), which would match macOS exactly | W1 |
-| Transcript text language | `NLLanguageRecognizer` over the four languages, confidence at least 0.6 | no built-in Windows API; a small rule (CJK share for zh, stop-word scores for en, de, es) or a library; must pass tests built from the fixtures' SRTs | W6 |
+| Chinese script conversion | ICU `Hans-Hant` transform through `String.applyingTransform` | **Decided 2026-09-29:** Windows' `icu.dll` exposes the same transform and matches the Mac byte for byte on `zh-30s`; OpenCC rejected (18.3). Follow-up: a Mac-generated `shared/` vector file of Simplified↔Traditional pairs that both test suites run, so an ICU change on either OS is caught. Note `zh-30s.expected.srt` is the raw model output (mostly Simplified); the Mac's ZH-TW rendering of it equals `zh-30s.truth.srt` with 臘七→臘漆 and 裏→里. | done |
+| Transcript text language | `NLLanguageRecognizer` over the four languages, confidence at least 0.6 | **Decided 2026-09-29:** rule-based detector (18.3), implement in W6 with tests from the fixtures' SRTs and the Mac's `TranscriptTextLanguageTests` inputs; also try longer synthetic transcripts before W6 closes | done |

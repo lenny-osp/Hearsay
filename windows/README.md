@@ -1,6 +1,6 @@
 # Hearsay for Windows
 
-In progress; no code yet. The design is in [PLAN.md](../PLAN.md), section
+In progress (W1 spike and W2 core port under way). The design is in [PLAN.md](../PLAN.md), section
 18 "Windows version": goal, layout, stack (C# on .NET 10 / WinUI 3, WASAPI,
 whisper.cpp through Whisper.net), what `shared/` provides, acceptance
 thresholds, phases, risks, and the porting gaps still open (18.8). Read
@@ -19,16 +19,24 @@ thresholds, phases, risks, and the porting gaps still open (18.8). Read
 A checkout made before the root `.gitattributes` existed has CRLF text
 files; refresh it once (PLAN.md 18.2, "Line endings").
 
-Planned layout:
+Build and test:
+
+```powershell
+dotnet build Hearsay.slnx -c Release
+dotnet test Hearsay.Tests -c Release
+```
+
+Layout:
 
 ```text
 windows/
-  Hearsay.sln
-  Hearsay.App/       WinUI 3 app
-  Hearsay.Core/      ported logic, tested with the shared vectors
-  Hearsay.Whisper/   whisper.cpp integration and model store
+  Hearsay.slnx           solution
+  Directory.Build.props  shared build settings
+  Hearsay.App/           WinUI 3 app (W4)
+  Hearsay.Core/          ported logic, tested with the shared vectors
+  Hearsay.Whisper/       whisper.cpp integration and model store (W5)
   Hearsay.Tests/
-  Spike/             W1 spike; models/ holds local test models (git-ignored)
+  Spike/                 W1 spikes; models/ holds local test models (git-ignored)
   scripts/
   THIRD_PARTY_NOTICES.md
 ```

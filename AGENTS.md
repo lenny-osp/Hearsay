@@ -87,13 +87,18 @@ own files there.
 
 Everything runs from `windows/`, on Windows 11 x64 with the .NET 10 SDK
 and Visual Studio 2026 (workloads ".NET desktop development" and "WinUI
-application development"). The solution does not exist yet; once it
-does, these are the commands (update them here when they change):
+application development").
 
 ```powershell
-dotnet build windows\Hearsay.sln -c Release          # build
+dotnet build windows\Hearsay.slnx -c Release         # build
 dotnet test windows\Hearsay.Tests -c Release          # core tests, fast
 ```
+
+- The solution is `Hearsay.slnx` (the XML format .NET 10 creates).
+  `Directory.Build.props` holds the settings every project shares; do not
+  repeat them in a csproj. New source files need no csproj edit.
+- Tests read `shared/` through `Hearsay.Tests.SharedFiles` (path stamped
+  at build time); never copy a shared file into `windows/`.
 
 - The Whisper integration tests read the model path from
   `TEST_RUNNER_HEARSAY_MODEL_DIR` and skip without it, as on macOS.
