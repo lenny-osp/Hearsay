@@ -1080,6 +1080,36 @@ new `GenerateAndSaveAsync` that does the file part the Mac keeps in
   `zh-30s.wav` (the owner's voice), so the product ships no personal audio.
   The W5 engine landed with zh; the app wiring switched it (2026-09-30).
 
+W6 app (2026-09-30; `Features/Settings/AISettingsView.cs`, `Features/Notes/`
+NotesFlowViewModel, NotesFlowView, ConfirmSendSheet, TemplateEditorSheet,
+NotesPanel, CommandLineCheck; History Generate/Regenerate wired; the flow
+starts from the Record and File results as on the Mac). Where Windows
+differs from the Mac:
+
+- **Command-line refusal shown early**: `CommandLineCheck` builds the exact
+  invocation and the confirm sheet shows the pipeline's `CommandLineTooLong`
+  text with Send disabled (Copilot and Antigravity only; 18.4 "W6 core").
+  With "Ask before sending" off the refusal appears as the flow's error.
+- **Confirm sheet** keeps the Mac's Keep local (N) / Send (Enter); Escape
+  answers Keep local plus timestamp names. "Name this meeting yourself?"
+  puts its default, Keep Timestamp Names, on the left (Windows order).
+- **Result** adds Open Notes and Open Transcript beside Reveal in Explorer;
+  paths are shortened in the middle at 84 characters with the full path in
+  the tooltip.
+- **Wording**: "this PC", "Recycle Bin"; each CLI caption adds "To install
+  it, run `<InstallCommand>` in a terminal." (new key).
+- **No timeout field** (the Mac has none); `CliClient.Timeout` stays 600 s.
+  Temperature is a NumberBox (empty = omitted). Extra headers save on focus
+  loss (the Mac on Return).
+- **`GenerateAndSaveAsync` is unused**: the naming sheet sits between
+  generating and saving, so the flow calls `GenerateAsync` then
+  `SaveNamed` / `ReplaceNamed` / `RenameRetained` like the Mac.
+- **Untested live**: Check <tool>, Test connection, a real send, and
+  `CredentialManagerSecretStore` from the AI page (the snapshot run uses
+  the in-memory store). The locator finds `copilot.exe` (WinGet Links),
+  `claude.exe` (`~\.local\bin`) and `agy.exe` on the dev machine, so
+  section 16 item 22 can run here once the owner says so.
+
 Chinese script and text language (2026-09-29, after the W1 text spike):
 `ChineseScriptConverter` P/Invokes `icu.dll` (classic `DllImport`, exports
 checked up front, a missing DLL or export throws
