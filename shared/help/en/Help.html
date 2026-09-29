@@ -122,8 +122,8 @@
 </ol>
 <p>The transcript (SRT) and the recording (WAV) are saved in the output folder, named by the start time, for example <code>2026-09-28_14-05-00.srt</code>.</p>
 <ul>
-  <li><span class="ui">Auto</span> listens to up to the first 90 seconds of speech. If it can’t tell the language, it uses your preferred language and says so, with a button to transcribe again in another language. If you chose a language but the meeting sounds like another one, a banner offers <span class="ui">Transcribe again</span>.</li>
-  <li>Set the <span class="ui">Preferred language</span> in <a href="hearsay://open/settings-general"><span class="ui">Settings</span> &gt; <span class="ui">General</span></a>. When <span class="ui">Auto</span> hears Chinese, it writes Simplified characters if 简体中文 is your preferred language, otherwise Traditional characters.</li>
+  <li><span class="ui">Auto</span> listens to up to the first 90 seconds of speech. If it can’t tell the language, it uses the Auto mode default language and says so, with a button to transcribe again in another language. If you chose a language but the meeting sounds like another one, a banner offers <span class="ui">Transcribe again</span>.</li>
+  <li>Set the <span class="ui">Auto mode default language</span> in <a href="hearsay://open/settings-general"><span class="ui">Settings</span> &gt; <span class="ui">General</span></a>. When <span class="ui">Auto</span> hears Chinese, it writes Simplified characters if 简体中文 is the Auto mode default language, otherwise Traditional characters.</li>
 </ul>
 
 <h2 id="file-mode">Transcribing a file</h2>
@@ -178,6 +178,7 @@
 <ul>
   <li><strong><span class="ui">Interface language</span>:</strong> choose it in <a href="hearsay://open/settings-general"><span class="ui">Settings</span> &gt; <span class="ui">General</span></a>. Hearsay needs to restart; click <span class="ui">Restart Now</span>.</li>
   <li><strong>Startup:</strong> turn on <span class="ui">Launch Hearsay at login</span> in the same place.</li>
+  <li><strong>Updates:</strong> <span class="ui">Check for Updates…</span> in the Hearsay menu offers <span class="ui">Install Update</span>, which downloads, verifies, and installs the new version and relaunches Hearsay, or <span class="ui">View on GitHub</span>, which opens the release page.</li>
   <li><strong>Recordings:</strong> to delete the WAV after a successful transcription, turn off <span class="ui">Keep the recording (WAV) after a successful transcription</span> in <a href="hearsay://open/settings-output"><span class="ui">Settings</span> &gt; <span class="ui">Output</span></a>.</li>
   <li><strong>Unfinished recordings:</strong> if Hearsay or your Mac stops during a recording, the next launch asks what to do with it. <span class="ui">Transcribe</span> creates the transcript, <span class="ui">Keep</span> moves the WAV to the output folder, and <span class="ui">Delete</span> removes it.</li>
 </ul>

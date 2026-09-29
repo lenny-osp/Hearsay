@@ -82,7 +82,7 @@ private struct GeneralSettingsView: View {
             Section("Transcription") {
                 PreferredLanguagePicker()
                 Text("Used when Auto can't tell the language. When Auto hears Chinese, it writes 简体中文 if that is chosen here, otherwise 繁體中文.",
-                     comment: "Settings > General caption under Preferred language. 简体中文 and 繁體中文 are language names; keep them as they are.")
+                     comment: "Settings > General caption under Auto mode default language. 简体中文 and 繁體中文 are language names; keep them as they are.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -161,7 +161,8 @@ private struct LaunchAtLoginSection: View {
     }
 }
 
-/// "Preferred language" (Settings > General): what Auto falls back to when
+/// "Auto mode default language" (Settings > General; renamed from "Preferred
+/// language" 2026-09-29, owner request): what Auto falls back to when
 /// detection is unsure, and which Chinese variant Auto uses when it detects
 /// Chinese. Lists the five languages by autonym. The only control that
 /// writes `AppSettings.preferredLanguage`.
@@ -170,7 +171,7 @@ private struct PreferredLanguagePicker: View {
 
     var body: some View {
         @Bindable var settings = settings
-        Picker("Preferred language", selection: $settings.preferredLanguage) {
+        Picker("Auto mode default language", selection: $settings.preferredLanguage) {
             ForEach(TranscriptLanguage.allCases, id: \.self) { language in
                 Text(language.displayName).tag(language)
             }

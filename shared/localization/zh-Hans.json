@@ -1599,11 +1599,11 @@
   },
   {
     "catalog": "app",
-    "key": "Preferred language",
-    "english": "Preferred language",
+    "key": "Auto mode default language",
+    "english": "Auto mode default language",
     "comment": "UI text in SettingsView.swift.",
     "placeholders": [],
-    "translation": "首选语言"
+    "translation": "自动模式默认语言"
   },
   {
     "catalog": "app",
@@ -1660,14 +1660,6 @@
     "comment": "Menu bar panel",
     "placeholders": [],
     "translation": "退出 Hearsay"
-  },
-  {
-    "catalog": "app",
-    "key": "Quit Hearsay and open it again to use the new language.",
-    "english": "Quit Hearsay and open it again to use the new language.",
-    "comment": "Alert when the automatic restart after a language change failed",
-    "placeholders": [],
-    "translation": "退出 Hearsay 并重新打开，以使用新语言。"
   },
   {
     "catalog": "app",
@@ -2595,7 +2587,7 @@
     "catalog": "app",
     "key": "Used when Auto can't tell the language. When Auto hears Chinese, it writes 简体中文 if that is chosen here, otherwise 繁體中文.",
     "english": "Used when Auto can't tell the language. When Auto hears Chinese, it writes 简体中文 if that is chosen here, otherwise 繁體中文.",
-    "comment": "Settings > General caption under Preferred language. 简体中文 and 繁體中文 are language names; keep them as they are.",
+    "comment": "Settings > General caption under Auto mode default language. 简体中文 and 繁體中文 are language names; keep them as they are.",
     "placeholders": [],
     "translation": "“自动”无法判断语言时使用。“自动”识别出中文时，如果此处选择简体中文，就以简体中文书写，否则以繁體中文书写。"
   },
@@ -2683,16 +2675,6 @@
       "%@"
     ],
     "translation": "写入录音失败：%@"
-  },
-  {
-    "catalog": "app",
-    "key": "You have version %@. The download page opens in your browser.",
-    "english": "You have version %@. The download page opens in your browser.",
-    "comment": "Update available alert. %@ is the installed version.",
-    "placeholders": [
-      "%@"
-    ],
-    "translation": "当前使用的是版本 %@。下载页面会在浏览器中打开。"
   },
   {
     "catalog": "app",
@@ -2800,13 +2782,13 @@
   },
   {
     "catalog": "core",
-    "key": "%@ (your preferred language; this transcript's language was not recorded)",
-    "english": "%@ (your preferred language; this transcript's language was not recorded)",
+    "key": "%@ (your Auto mode default language; this transcript's language was not recorded)",
+    "english": "%@ (your Auto mode default language; this transcript's language was not recorded)",
     "comment": "Confirm sheet, after 'Transcript language:'. %@ is a language name in its own language.",
     "placeholders": [
       "%@"
     ],
-    "translation": "%@（你的首选语言；未记录此转录稿的语言）"
+    "translation": "%@（你的自动模式默认语言；未记录此转录稿的语言）"
   },
   {
     "catalog": "core",
@@ -3122,13 +3104,13 @@
   },
   {
     "catalog": "core",
-    "key": "Couldn't tell the language, so this was transcribed in %@ (your preferred language).",
-    "english": "Couldn't tell the language, so this was transcribed in %@ (your preferred language).",
+    "key": "Couldn't tell the language, so this was transcribed in %@ (your Auto mode default language).",
+    "english": "Couldn't tell the language, so this was transcribed in %@ (your Auto mode default language).",
     "comment": "Language banner. %@ is a language name in its own language (English, 繁體中文, 简体中文, Deutsch, Español).",
     "placeholders": [
       "%@"
     ],
-    "translation": "无法判断语言，因此以 %@（你的首选语言）转录。"
+    "translation": "无法判断语言，因此以 %@（你的自动模式默认语言）转录。"
   },
   {
     "catalog": "core",
@@ -3675,5 +3657,274 @@
     "comment": "Credits shown in the About Hearsay window (en.lproj/Credits.rtf). Plain text; line breaks are kept. 'Settings > General > Acknowledgements' names the Settings tab, its General section, and the Acknowledgements section: use the translated names of those labels.",
     "placeholders": [],
     "translation": "© 2026 Chihling Wang。MIT 许可证。\n包含开源软件；请参阅“设置 > 通用 > 致谢”。\n支持 Hearsay：Buy Me a Coffee"
+  },
+  {
+    "catalog": "app",
+    "key": "Downloading Hearsay %@…",
+    "english": "Downloading Hearsay %@…",
+    "comment": "Update progress. %@ is the new version.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "正在下载 Hearsay %@…"
+  },
+  {
+    "catalog": "app",
+    "key": "Finish the recording first.",
+    "english": "Finish the recording first.",
+    "comment": "Alert when Install and Relaunch is chosen while recording or transcribing",
+    "placeholders": [],
+    "translation": "请先完成录音。"
+  },
+  {
+    "catalog": "app",
+    "key": "Hearsay %@ is ready to install.",
+    "english": "Hearsay %@ is ready to install.",
+    "comment": "Update ready alert title and Settings line. %@ is the new version.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Hearsay %@ 已可安装。"
+  },
+  {
+    "catalog": "app",
+    "key": "Hearsay cannot install the update here.",
+    "english": "Hearsay cannot install the update here.",
+    "comment": "Alert title: the running app cannot replace itself",
+    "placeholders": [],
+    "translation": "Hearsay 无法在此位置安装更新。"
+  },
+  {
+    "catalog": "app",
+    "key": "Hearsay could not download the update.",
+    "english": "Hearsay could not download the update.",
+    "comment": "Alert title: the update download failed",
+    "placeholders": [],
+    "translation": "Hearsay 无法下载更新。"
+  },
+  {
+    "catalog": "app",
+    "key": "Hearsay could not install the update.",
+    "english": "Hearsay could not install the update.",
+    "comment": "Alert title: staging or replacing the app bundle failed",
+    "placeholders": [],
+    "translation": "Hearsay 无法安装更新。"
+  },
+  {
+    "catalog": "app",
+    "key": "Hearsay could not verify the downloaded update.",
+    "english": "Hearsay could not verify the downloaded update.",
+    "comment": "Alert title: checksum or code signature check of an update failed",
+    "placeholders": [],
+    "translation": "Hearsay 无法验证下载的更新。"
+  },
+  {
+    "catalog": "app",
+    "key": "Hearsay will quit and open again as the new version.",
+    "english": "Hearsay will quit and open again as the new version.",
+    "comment": "Update ready alert",
+    "placeholders": [],
+    "translation": "Hearsay 将退出并以新版本重新打开。"
+  },
+  {
+    "catalog": "app",
+    "key": "Install Update",
+    "english": "Install Update",
+    "comment": "Update available alert button: download and install the new version",
+    "placeholders": [],
+    "translation": "安装更新"
+  },
+  {
+    "catalog": "app",
+    "key": "Install and Relaunch",
+    "english": "Install and Relaunch",
+    "comment": "Update ready alert button: replace the app and relaunch",
+    "placeholders": [],
+    "translation": "安装并重新启动"
+  },
+  {
+    "catalog": "app",
+    "key": "Installing Hearsay %@…",
+    "english": "Installing Hearsay %@…",
+    "comment": "Update progress. %@ is the new version.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "正在安装 Hearsay %@…"
+  },
+  {
+    "catalog": "app",
+    "key": "Quit Hearsay and open it again.",
+    "english": "Quit Hearsay and open it again.",
+    "comment": "Alert when the automatic restart (language change or update) failed",
+    "placeholders": [],
+    "translation": "请退出 Hearsay 并重新打开。"
+  },
+  {
+    "catalog": "app",
+    "key": "Software Update",
+    "english": "Software Update",
+    "comment": "Update progress window title",
+    "placeholders": [],
+    "translation": "软件更新"
+  },
+  {
+    "catalog": "app",
+    "key": "The checksum of %@ does not match the release's checksum list.",
+    "english": "The checksum of %@ does not match the release's checksum list.",
+    "comment": "Update verification error. %@ is a file name.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "%@ 的校验和与此版本的校验和列表不符。"
+  },
+  {
+    "catalog": "app",
+    "key": "The code signature of the new version is not valid: %@",
+    "english": "The code signature of the new version is not valid: %@",
+    "comment": "Update verification error. %@ is the Security framework's message.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "新版本的代码签名无效：%@"
+  },
+  {
+    "catalog": "app",
+    "key": "The disk image could not be opened: %@",
+    "english": "The disk image could not be opened: %@",
+    "comment": "Update verification error. %@ is the hdiutil error.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "无法打开磁盘映像：%@"
+  },
+  {
+    "catalog": "app",
+    "key": "The disk image should contain one app but contains %lld.",
+    "english": "The disk image should contain one app but contains %lld.",
+    "comment": "Update verification error. %lld is a number of apps.",
+    "placeholders": [
+      "%lld"
+    ],
+    "translation": "磁盘映像应只包含一个 App，但包含 %lld 个。"
+  },
+  {
+    "catalog": "app",
+    "key": "The download failed: %@",
+    "english": "The download failed: %@",
+    "comment": "Update download error. %@ is the underlying error.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "下载失败：%@"
+  },
+  {
+    "catalog": "app",
+    "key": "The download page opens in your browser.",
+    "english": "The download page opens in your browser.",
+    "comment": "Update available alert, when the app cannot install the update itself",
+    "placeholders": [],
+    "translation": "下载页面会在浏览器中打开。"
+  },
+  {
+    "catalog": "app",
+    "key": "The new app has the bundle identifier %@, not tw.og1o.hearsay.",
+    "english": "The new app has the bundle identifier %@, not tw.og1o.hearsay.",
+    "comment": "Update verification error. %@ is a bundle identifier.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "新 App 的包标识符是 %@，而不是 tw.og1o.hearsay。"
+  },
+  {
+    "catalog": "app",
+    "key": "The new app is version %@, not %@.",
+    "english": "The new app is version %1$@, not %2$@.",
+    "comment": "Update verification error. %1$@ is the version found, %2$@ the release version.",
+    "placeholders": [
+      "%@",
+      "%@"
+    ],
+    "translation": "新 App 的版本是 %1$@，而不是 %2$@。"
+  },
+  {
+    "catalog": "app",
+    "key": "The release has no disk image or checksum list.",
+    "english": "The release has no disk image or checksum list.",
+    "comment": "Update error",
+    "placeholders": [],
+    "translation": "此版本没有磁盘映像或校验和列表。"
+  },
+  {
+    "catalog": "app",
+    "key": "The release's checksum list has no entry for %@.",
+    "english": "The release's checksum list has no entry for %@.",
+    "comment": "Update verification error. %@ is a file name.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "此版本的校验和列表中没有 %@。"
+  },
+  {
+    "catalog": "app",
+    "key": "Verifying Hearsay %@…",
+    "english": "Verifying Hearsay %@…",
+    "comment": "Update progress. %@ is the new version.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "正在验证 Hearsay %@…"
+  },
+  {
+    "catalog": "app",
+    "key": "View on GitHub",
+    "english": "View on GitHub",
+    "comment": "Update alert button: open the release page in the browser",
+    "placeholders": [],
+    "translation": "在 GitHub 上查看"
+  },
+  {
+    "catalog": "app",
+    "key": "You have version %@.",
+    "english": "You have version %@.",
+    "comment": "Update available alert. %@ is the installed version.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "当前使用的是版本 %@。"
+  },
+  {
+    "catalog": "core",
+    "key": "Hearsay cannot write to the folder %@. Move Hearsay to the Applications folder or another folder you can write to, open it from there, then check for updates again.",
+    "english": "Hearsay cannot write to the folder %@. Move Hearsay to the Applications folder or another folder you can write to, open it from there, then check for updates again.",
+    "comment": "Update install error. %@ is a folder path.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Hearsay 无法写入文件夹 %@。请将 Hearsay 移到“应用程序”文件夹或其他可写入的文件夹，从那里打开后再检查更新。"
+  },
+  {
+    "catalog": "core",
+    "key": "Hearsay is running from the disk image. Drag Hearsay to the Applications folder, open it from there, then check for updates again.",
+    "english": "Hearsay is running from the disk image. Drag Hearsay to the Applications folder, open it from there, then check for updates again.",
+    "comment": "Update install error: the app runs from the mounted DMG",
+    "placeholders": [],
+    "translation": "Hearsay 正从磁盘映像运行。请将 Hearsay 拖到“应用程序”文件夹，从那里打开后再检查更新。"
+  },
+  {
+    "catalog": "core",
+    "key": "This copy of Hearsay is not an app bundle, so it cannot update itself. Download the new version from the release page.",
+    "english": "This copy of Hearsay is not an app bundle, so it cannot update itself. Download the new version from the release page.",
+    "comment": "Update install error",
+    "placeholders": [],
+    "translation": "这份 Hearsay 不是 App 包，无法自行更新。请从版本页面下载新版本。"
+  },
+  {
+    "catalog": "core",
+    "key": "macOS is running Hearsay from a temporary location. Move Hearsay to the Applications folder, open it from there, then check for updates again.",
+    "english": "macOS is running Hearsay from a temporary location. Move Hearsay to the Applications folder, open it from there, then check for updates again.",
+    "comment": "Update install error: the app is translocated by Gatekeeper",
+    "placeholders": [],
+    "translation": "macOS 正从临时位置运行 Hearsay。请将 Hearsay 移到“应用程序”文件夹，从那里打开后再检查更新。"
   }
 ]

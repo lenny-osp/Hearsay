@@ -30,6 +30,35 @@
         }
       }
     },
+    "%@ (your Auto mode default language; this transcript's language was not recorded)" : {
+      "comment" : "Confirm sheet, after 'Transcript language:'. %@ is a language name in its own language.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (Standardsprache für Automatisch; die Sprache dieses Transkripts wurde nicht gespeichert)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (tu idioma predeterminado para Automático; no se ha registrado el idioma de esta transcripción)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@（你的自动模式默认语言；未记录此转录稿的语言）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@（你的自動模式預設語言；未記錄此逐字稿的語言）"
+          }
+        }
+      }
+    },
     "%@ (your language choice; this transcript's language was not recorded)" : {
       "comment" : "Confirm sheet, after 'Transcript language:'. %@ is a language name in its own language.",
       "localizations" : {
@@ -55,35 +84,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@（你的語言選擇；未記錄此逐字稿的語言）"
-          }
-        }
-      }
-    },
-    "%@ (your preferred language; this transcript's language was not recorded)" : {
-      "comment" : "Confirm sheet, after 'Transcript language:'. %@ is a language name in its own language.",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ (bevorzugte Sprache; die Sprache dieses Transkripts wurde nicht gespeichert)"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ (tu idioma preferido; no se ha registrado el idioma de esta transcripción)"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@（你的首选语言；未记录此转录稿的语言）"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@（你的偏好語言；未記錄此逐字稿的語言）"
           }
         }
       }
@@ -1088,31 +1088,31 @@
         }
       }
     },
-    "Couldn't tell the language, so this was transcribed in %@ (your preferred language)." : {
+    "Couldn't tell the language, so this was transcribed in %@ (your Auto mode default language)." : {
       "comment" : "Language banner. %@ is a language name in its own language (English, 繁體中文, 简体中文, Deutsch, Español).",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Sprache war nicht erkennbar, daher wurde auf %@ transkribiert (bevorzugte Sprache)."
+            "value" : "Die Sprache war nicht erkennbar, daher wurde auf %@ transkribiert (Standardsprache für Automatisch)."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No se ha podido reconocer el idioma, así que se ha transcrito en %@ (tu idioma preferido)."
+            "value" : "No se ha podido reconocer el idioma, así que se ha transcrito en %@ (tu idioma predeterminado para Automático)."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无法判断语言，因此以 %@（你的首选语言）转录。"
+            "value" : "无法判断语言，因此以 %@（你的自动模式默认语言）转录。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "無法判斷語言，因此以 %@（你的偏好語言）轉錄。"
+            "value" : "無法判斷語言，因此以 %@（你的自動模式預設語言）轉錄。"
           }
         }
       }
@@ -1384,6 +1384,35 @@
         }
       }
     },
+    "Hearsay cannot write to the folder %@. Move Hearsay to the Applications folder or another folder you can write to, open it from there, then check for updates again." : {
+      "comment" : "Update install error. %@ is a folder path.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay kann nicht in den Ordner %@ schreiben. Hearsay in den Ordner „Programme“ oder einen anderen beschreibbaren Ordner bewegen, dort öffnen und dann erneut nach Updates suchen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay no puede escribir en la carpeta %@. Traslada Hearsay a la carpeta Aplicaciones u otra carpeta en la que puedas escribir, ábrelo desde allí y vuelve a buscar actualizaciones."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 无法写入文件夹 %@。请将 Hearsay 移到“应用程序”文件夹或其他可写入的文件夹，从那里打开后再检查更新。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 無法寫入資料夾 %@。請將 Hearsay 移到「應用程式」資料夾或其他可寫入的資料夾，從那裡打開後再檢查更新。"
+          }
+        }
+      }
+    },
     "Hearsay has no microphone access. Allow it in System Settings > Privacy & Security > Microphone." : {
       "comment" : "Recording error. Use the macOS wording for the System Settings path.",
       "localizations" : {
@@ -1438,6 +1467,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hearsay 沒有系統聲音取用權限。請在「系統設定 > 隱私權與安全性 > 螢幕與系統錄音」中允許，然後開始新的錄音。"
+          }
+        }
+      }
+    },
+    "Hearsay is running from the disk image. Drag Hearsay to the Applications folder, open it from there, then check for updates again." : {
+      "comment" : "Update install error: the app runs from the mounted DMG",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay wird vom Image ausgeführt. Hearsay in den Ordner „Programme“ ziehen, dort öffnen und dann erneut nach Updates suchen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay se está ejecutando desde la imagen de disco. Arrastra Hearsay a la carpeta Aplicaciones, ábrelo desde allí y vuelve a buscar actualizaciones."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 正从磁盘映像运行。请将 Hearsay 拖到“应用程序”文件夹，从那里打开后再检查更新。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 正從磁碟映像檔執行。請將 Hearsay 拖到「應用程式」資料夾，從那裡打開後再檢查更新。"
           }
         }
       }
@@ -2550,6 +2608,35 @@
         }
       }
     },
+    "This copy of Hearsay is not an app bundle, so it cannot update itself. Download the new version from the release page." : {
+      "comment" : "Update install error",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Kopie von Hearsay ist kein App-Bundle und kann sich nicht selbst aktualisieren. Die neue Version von der Releaseseite laden."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta copia de Hearsay no es un paquete de app, por lo que no puede actualizarse sola. Descarga la nueva versión desde la página de la versión."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这份 Hearsay 不是 App 包，无法自行更新。请从版本页面下载新版本。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這份 Hearsay 不是 App 套件，無法自行更新。請從版本頁面下載新版本。"
+          }
+        }
+      }
+    },
     "This sounds like %@. Transcribe again in %@?" : {
       "comment" : "Language banner. Both %@ are the same language name in its own language (English, 繁體中文, 简体中文, Deutsch, Español).",
       "localizations" : {
@@ -2779,6 +2866,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "`agy models` 執行失敗（結束代碼 %1$d）。%2$@"
+          }
+        }
+      }
+    },
+    "macOS is running Hearsay from a temporary location. Move Hearsay to the Applications folder, open it from there, then check for updates again." : {
+      "comment" : "Update install error: the app is translocated by Gatekeeper",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS führt Hearsay von einem temporären Ort aus. Hearsay in den Ordner „Programme“ bewegen, dort öffnen und dann erneut nach Updates suchen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS está ejecutando Hearsay desde una ubicación temporal. Traslada Hearsay a la carpeta Aplicaciones, ábrelo desde allí y vuelve a buscar actualizaciones."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS 正从临时位置运行 Hearsay。请将 Hearsay 移到“应用程序”文件夹，从那里打开后再检查更新。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS 正從暫時位置執行 Hearsay。請將 Hearsay 移到「應用程式」資料夾，從那裡打開後再檢查更新。"
           }
         }
       }

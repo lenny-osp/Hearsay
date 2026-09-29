@@ -133,7 +133,7 @@ struct LanguageNoticeTests {
         let notice = try #require(LanguageNotice(decision: decision))
         #expect(notice == .fallback(preferred: .english))
         #expect(notice.message
-            == "Couldn't tell the language, so this was transcribed in English (your preferred language).")
+            == "Couldn't tell the language, so this was transcribed in English (your Auto mode default language).")
         #expect(notice.rerunLanguages == [.chineseTaiwan, .chineseMainland, .german, .spanish])
         #expect(LanguageNotice.fallback(preferred: .german).rerunLanguages
             == [.english, .chineseTaiwan, .chineseMainland, .spanish])
@@ -162,7 +162,7 @@ struct LanguageNoticeTests {
         #expect(fixed.note == "Español (your language choice; this transcript's language was not recorded)")
         let auto = StoredTranscriptLanguage.assumed(choice: .auto, preferred: .german)
         #expect(auto.language == .german)
-        #expect(auto.note == "Deutsch (your preferred language; this transcript's language was not recorded)")
+        #expect(auto.note == "Deutsch (your Auto mode default language; this transcript's language was not recorded)")
     }
 }
 
@@ -189,7 +189,7 @@ struct StoredTranscriptLanguageResolveTests {
         let srt = "1\n00:00:00,000 --> 00:00:01,000\nOK 好\n"
         let resolved = StoredTranscriptLanguage.resolve(srtText: srt, choice: .auto, preferred: .spanish)
         #expect(resolved.language == .spanish)
-        #expect(resolved.note == "Español (your preferred language; this transcript's language was not recorded)")
+        #expect(resolved.note == "Español (your Auto mode default language; this transcript's language was not recorded)")
         let empty = StoredTranscriptLanguage.resolve(srtText: "", choice: .fixed(.chineseMainland), preferred: .english)
         #expect(empty.language == .chineseMainland)
     }

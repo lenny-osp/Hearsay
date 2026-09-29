@@ -130,7 +130,7 @@ public enum LanguageNotice: Equatable, Sendable {
                    bundle: .module,
                    comment: "Language banner. Both %@ are the same language name in its own language (English, 繁體中文, 简体中文, Deutsch, Español).")
         case .fallback(let preferred):
-            String(localized: "Couldn't tell the language, so this was transcribed in \(preferred.displayName) (your preferred language).",
+            String(localized: "Couldn't tell the language, so this was transcribed in \(preferred.displayName) (your Auto mode default language).",
                    bundle: .module,
                    comment: "Language banner. %@ is a language name in its own language (English, 繁體中文, 简体中文, Deutsch, Español).")
         }
@@ -182,7 +182,7 @@ public enum StoredTranscriptLanguage {
                 comment: "Confirm sheet, after 'Transcript language:'. %@ is a language name in its own language."))
         case .auto:
             return (preferred, String(
-                localized: "\(preferred.displayName) (your preferred language; this transcript's language was not recorded)",
+                localized: "\(preferred.displayName) (your Auto mode default language; this transcript's language was not recorded)",
                 bundle: .module,
                 comment: "Confirm sheet, after 'Transcript language:'. %@ is a language name in its own language."))
         }

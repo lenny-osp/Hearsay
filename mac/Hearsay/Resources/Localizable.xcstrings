@@ -213,6 +213,7 @@
       }
     },
     "%@ of %@" : {
+      "comment" : "Update download progress. %1$@ is the amount received, %2$@ the total size.",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -844,6 +845,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "「自動」會根據最初的語音偵測英文、中文、德文或西班牙文。ZH-TW 以繁體字書寫，ZH-CN 以簡體字書寫。"
+          }
+        }
+      }
+    },
+    "Auto mode default language" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standardsprache für Automatisch"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Idioma predeterminado para Automático"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动模式默认语言"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動模式預設語言"
           }
         }
       }
@@ -2249,6 +2278,35 @@
         }
       }
     },
+    "Downloading Hearsay %@…" : {
+      "comment" : "Update progress. %@ is the new version.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay %@ wird geladen …"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descargando Hearsay %@…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在下载 Hearsay %@…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在下載 Hearsay %@…"
+          }
+        }
+      }
+    },
     "Drop an audio or video file here" : {
       "localizations" : {
         "de" : {
@@ -2537,6 +2595,35 @@
         }
       }
     },
+    "Finish the recording first." : {
+      "comment" : "Alert when Install and Relaunch is chosen while recording or transcribing",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zuerst die Aufnahme beenden."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termina primero la grabación."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先完成录音。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請先完成錄音。"
+          }
+        }
+      }
+    },
     "Fix…" : {
       "comment" : "Record tab, Permissions row: open the re-approval instructions",
       "localizations" : {
@@ -2745,6 +2832,35 @@
         }
       }
     },
+    "Hearsay %@ is ready to install." : {
+      "comment" : "Update ready alert title and Settings line. %@ is the new version.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay %@ kann installiert werden."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay %@ está listo para instalarse."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay %@ 已可安装。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay %@ 已可安裝。"
+          }
+        }
+      }
+    },
     "Hearsay Help" : {
       "comment" : "Help menu item and the title of the help window",
       "localizations" : {
@@ -2770,6 +2886,93 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hearsay 說明"
+          }
+        }
+      }
+    },
+    "Hearsay cannot install the update here." : {
+      "comment" : "Alert title: the running app cannot replace itself",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay kann das Update hier nicht installieren."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay no puede instalar la actualización aquí."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 无法在此位置安装更新。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 無法在此位置安裝更新。"
+          }
+        }
+      }
+    },
+    "Hearsay could not download the update." : {
+      "comment" : "Alert title: the update download failed",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay konnte das Update nicht laden."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay no ha podido descargar la actualización."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 无法下载更新。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 無法下載更新。"
+          }
+        }
+      }
+    },
+    "Hearsay could not install the update." : {
+      "comment" : "Alert title: staging or replacing the app bundle failed",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay konnte das Update nicht installieren."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay no ha podido instalar la actualización."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 无法安装更新。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 無法安裝更新。"
           }
         }
       }
@@ -2804,7 +3007,7 @@
       }
     },
     "Hearsay could not restart." : {
-      "comment" : "Alert when the automatic restart after a language change failed",
+      "comment" : "Alert when the automatic restart (language change or update) failed",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2828,6 +3031,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hearsay 無法重新啟動。"
+          }
+        }
+      }
+    },
+    "Hearsay could not verify the downloaded update." : {
+      "comment" : "Alert title: checksum or code signature check of an update failed",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay konnte das geladene Update nicht prüfen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay no ha podido verificar la actualización descargada."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 无法验证下载的更新。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 無法驗證下載的更新。"
           }
         }
       }
@@ -2942,6 +3174,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hearsay 會在這台 Mac 上使用 Whisper 模型轉錄，模型只需下載一次。轉錄期間不會傳送任何資料。建議的模型在準確度與速度之間取得最佳平衡；較小的模型下載較快，但錯誤較多。"
+          }
+        }
+      }
+    },
+    "Hearsay will quit and open again as the new version." : {
+      "comment" : "Update ready alert",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay wird beendet und als neue Version wieder geöffnet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay se cerrará y se volverá a abrir con la nueva versión."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 将退出并以新版本重新打开。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 會結束並以新版本重新開啟。"
           }
         }
       }
@@ -3170,6 +3431,93 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "輸入音量"
+          }
+        }
+      }
+    },
+    "Install Update" : {
+      "comment" : "Update available alert button: download and install the new version",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Update installieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instalar actualización"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装更新"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安裝更新"
+          }
+        }
+      }
+    },
+    "Install and Relaunch" : {
+      "comment" : "Update ready alert button: replace the app and relaunch",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installieren und neu starten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instalar y reiniciar"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装并重新启动"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安裝並重新啟動"
+          }
+        }
+      }
+    },
+    "Installing Hearsay %@…" : {
+      "comment" : "Update progress. %@ is the new version.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay %@ wird installiert …"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instalando Hearsay %@…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在安装 Hearsay %@…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在安裝 Hearsay %@…"
           }
         }
       }
@@ -4833,6 +5181,7 @@
       }
     },
     "OK" : {
+      "comment" : "Alert button",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -5373,34 +5722,6 @@
         }
       }
     },
-    "Preferred language" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bevorzugte Sprache"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Idioma preferido"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "首选语言"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "偏好語言"
-          }
-        }
-      }
-    },
     "Preset:" : {
       "localizations" : {
         "de" : {
@@ -5599,31 +5920,31 @@
         }
       }
     },
-    "Quit Hearsay and open it again to use the new language." : {
-      "comment" : "Alert when the automatic restart after a language change failed",
+    "Quit Hearsay and open it again." : {
+      "comment" : "Alert when the automatic restart (language change or update) failed",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hearsay beenden und erneut öffnen, um die neue Sprache zu verwenden."
+            "value" : "Hearsay beenden und erneut öffnen."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sal de Hearsay y vuelve a abrirlo para usar el nuevo idioma."
+            "value" : "Sal de Hearsay y vuelve a abrirlo."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "退出 Hearsay 并重新打开，以使用新语言。"
+            "value" : "请退出 Hearsay 并重新打开。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "請結束 Hearsay 後再次打開，以使用新的語言。"
+            "value" : "請結束 Hearsay 後再次打開。"
           }
         }
       }
@@ -6795,6 +7116,35 @@
         }
       }
     },
+    "Software Update" : {
+      "comment" : "Update progress window title",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Softwareupdate"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualización de software"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "软件更新"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "軟體更新"
+          }
+        }
+      }
+    },
     "Software updates" : {
       "comment" : "Settings > General section header",
       "localizations" : {
@@ -7509,6 +7859,64 @@
         }
       }
     },
+    "The checksum of %@ does not match the release's checksum list." : {
+      "comment" : "Update verification error. %@ is a file name.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Prüfsumme von %@ stimmt nicht mit der Prüfsummenliste des Release überein."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La suma de comprobación de %@ no coincide con la lista de sumas de comprobación de la versión."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 的校验和与此版本的校验和列表不符。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 的校驗和與此版本的校驗和清單不符。"
+          }
+        }
+      }
+    },
+    "The code signature of the new version is not valid: %@" : {
+      "comment" : "Update verification error. %@ is the Security framework's message.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Codesignatur der neuen Version ist ungültig: %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La firma de código de la nueva versión no es válida: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新版本的代码签名无效：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新版本的程式碼簽署無效：%@"
+          }
+        }
+      }
+    },
     "The current notes will be moved to the Trash when the new ones are saved." : {
       "localizations" : {
         "de" : {
@@ -7533,6 +7941,122 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "儲存新筆記時，目前的筆記會被丟到垃圾桶。"
+          }
+        }
+      }
+    },
+    "The disk image could not be opened: %@" : {
+      "comment" : "Update verification error. %@ is the hdiutil error.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Image konnte nicht geöffnet werden: %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido abrir la imagen de disco: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法打开磁盘映像：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法打開磁碟映像檔：%@"
+          }
+        }
+      }
+    },
+    "The disk image should contain one app but contains %lld." : {
+      "comment" : "Update verification error. %lld is a number of apps.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Image sollte eine App enthalten, enthält aber %lld."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La imagen de disco debería contener una app, pero contiene %lld."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "磁盘映像应只包含一个 App，但包含 %lld 个。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "磁碟映像檔應只包含一個 App，但包含 %lld 個。"
+          }
+        }
+      }
+    },
+    "The download failed: %@" : {
+      "comment" : "Update download error. %@ is the underlying error.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Download ist fehlgeschlagen: %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La descarga ha fallado: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载失败：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下載失敗：%@"
+          }
+        }
+      }
+    },
+    "The download page opens in your browser." : {
+      "comment" : "Update available alert, when the app cannot install the update itself",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Downloadseite wird im Browser geöffnet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La página de descarga se abrirá en el navegador."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载页面会在浏览器中打开。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下載頁面會在瀏覽器中開啟。"
           }
         }
       }
@@ -7653,6 +8177,70 @@
         }
       }
     },
+    "The new app has the bundle identifier %@, not tw.og1o.hearsay." : {
+      "comment" : "Update verification error. %@ is a bundle identifier.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die neue App hat die Bundle-ID %@, nicht tw.og1o.hearsay."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La nueva app tiene el identificador de paquete %@, no tw.og1o.hearsay."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新 App 的包标识符是 %@，而不是 tw.og1o.hearsay。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新 App 的套件識別碼是 %@，而不是 tw.og1o.hearsay。"
+          }
+        }
+      }
+    },
+    "The new app is version %@, not %@." : {
+      "comment" : "Update verification error. %1$@ is the version found, %2$@ the release version.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die neue App hat Version %1$@, nicht %2$@."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The new app is version %1$@, not %2$@."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La nueva app es la versión %1$@, no la %2$@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新 App 的版本是 %1$@，而不是 %2$@。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新 App 的版本是 %1$@，而不是 %2$@。"
+          }
+        }
+      }
+    },
     "The preview lags behind the recording but stays complete." : {
       "localizations" : {
         "de" : {
@@ -7764,6 +8352,64 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "結束 Hearsay 前會先儲存錄音。"
+          }
+        }
+      }
+    },
+    "The release has no disk image or checksum list." : {
+      "comment" : "Update error",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Release enthält kein Image oder keine Prüfsummenliste."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La versión no incluye una imagen de disco o una lista de sumas de comprobación."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此版本没有磁盘映像或校验和列表。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此版本沒有磁碟映像檔或校驗和清單。"
+          }
+        }
+      }
+    },
+    "The release's checksum list has no entry for %@." : {
+      "comment" : "Update verification error. %@ is a file name.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Prüfsummenliste des Release enthält keinen Eintrag für %@."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La lista de sumas de comprobación de la versión no incluye %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此版本的校验和列表中没有 %@。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此版本的校驗和清單中沒有 %@。"
           }
         }
       }
@@ -8765,7 +9411,7 @@
       }
     },
     "Used when Auto can't tell the language. When Auto hears Chinese, it writes 简体中文 if that is chosen here, otherwise 繁體中文." : {
-      "comment" : "Settings > General caption under Preferred language. 简体中文 and 繁體中文 are language names; keep them as they are.",
+      "comment" : "Settings > General caption under Auto mode default language. 简体中文 and 繁體中文 are language names; keep them as they are.",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -8909,6 +9555,35 @@
         }
       }
     },
+    "Verifying Hearsay %@…" : {
+      "comment" : "Update progress. %@ is the new version.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay %@ wird geprüft …"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verificando Hearsay %@…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在验证 Hearsay %@…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在驗證 Hearsay %@…"
+          }
+        }
+      }
+    },
     "Version %@ (%@)" : {
       "comment" : "Settings > General > Software updates. %1$@ is the version, %2$@ the build number.",
       "localizations" : {
@@ -8940,6 +9615,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "版本 %1$@（%2$@）"
+          }
+        }
+      }
+    },
+    "View on GitHub" : {
+      "comment" : "Update alert button: open the release page in the browser",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf GitHub ansehen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ver en GitHub"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 GitHub 上查看"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 GitHub 上檢視"
           }
         }
       }
@@ -9086,31 +9790,31 @@
         }
       }
     },
-    "You have version %@. The download page opens in your browser." : {
+    "You have version %@." : {
       "comment" : "Update available alert. %@ is the installed version.",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Installiert ist Version %@. Die Downloadseite wird im Browser geöffnet."
+            "value" : "Installiert ist Version %@."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tienes la versión %@. La página de descarga se abrirá en el navegador."
+            "value" : "Tienes la versión %@."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "当前使用的是版本 %@。下载页面会在浏览器中打开。"
+            "value" : "当前使用的是版本 %@。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "目前使用的是版本 %@。下載頁面會在瀏覽器中開啟。"
+            "value" : "目前使用的是版本 %@。"
           }
         }
       }

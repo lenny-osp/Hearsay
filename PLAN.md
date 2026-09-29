@@ -30,7 +30,7 @@ output rule ported here.
 | System audio | Captured with ScreenCaptureKit (`SCStream`, audio only) and mixed with the mic, so Zoom/Teams/Meet calls are transcribed, not just the room. Decided 2026-09-28. |
 | Live transcript | Yes in v1. 30 s chunks are transcribed while recording and shown as a live preview; the final SRT comes from one full pass after Stop. Decided 2026-09-28. |
 | Output folder | Default `~/Documents/Hearsay`, user-configurable in Settings. Decided 2026-09-28. |
-| Languages | Added 2026-09-28 (owner request): Auto, EN, ZH-TW, ZH-CN, DE, ES (the two Chinese choices replaced ZH plus a separate "Chinese output" setting, owner request 2026-09-28: both call Whisper with "zh", ZH-TW transcripts are converted to Traditional characters and ZH-CN to Simplified; when Auto detects Chinese it uses the preferred language's Chinese variant, else ZH-TW; stored "zh" settings migrate by the old Chinese output setting). Auto is the picker default for new users. Detection only compares the four supported languages (probabilities renormalized over them), skips silent windows (below about -60 dBFS, or no-speech probability above 0.6; the turbo model's no-speech probability alone never flags silence, measured 2026-09-28), averages the restricted probabilities of up to three speech windows, and locks the language once per session. Below the confidence threshold it uses the **preferred language** from Settings > General (default English, owner choice; never changed automatically by what the user picks elsewhere) and says so, with one-click re-run in another language. When the user picked a language and detection is confident it is a different one, a banner offers to re-run in the detected language; nothing switches automatically. Meeting notes default to the transcript language; the confirm sheet can pick another of the four for that run only (added 2026-09-28, owner request). History SRTs with no stored language default to the language NaturalLanguage detects in the text (probability at least 0.6), else the language choice or preferred language. Mixed-language (code-switching) meetings are out of scope. |
+| Languages | Added 2026-09-28 (owner request): Auto, EN, ZH-TW, ZH-CN, DE, ES (the two Chinese choices replaced ZH plus a separate "Chinese output" setting, owner request 2026-09-28: both call Whisper with "zh", ZH-TW transcripts are converted to Traditional characters and ZH-CN to Simplified; when Auto detects Chinese it uses the Auto mode default language's Chinese variant, else ZH-TW; the setting was labeled "Preferred language" until 2026-09-29 (owner request; `preferredLanguage` in code); stored "zh" settings migrate by the old Chinese output setting). Auto is the picker default for new users. Detection only compares the four supported languages (probabilities renormalized over them), skips silent windows (below about -60 dBFS, or no-speech probability above 0.6; the turbo model's no-speech probability alone never flags silence, measured 2026-09-28), averages the restricted probabilities of up to three speech windows, and locks the language once per session. Below the confidence threshold it uses the **preferred language** from Settings > General (default English, owner choice; never changed automatically by what the user picks elsewhere) and says so, with one-click re-run in another language. When the user picked a language and detection is confident it is a different one, a banner offers to re-run in the detected language; nothing switches automatically. Meeting notes default to the transcript language; the confirm sheet can pick another of the four for that run only (added 2026-09-28, owner request). History SRTs with no stored language default to the language NaturalLanguage detects in the text (probability at least 0.6), else the language choice or preferred language. Mixed-language (code-switching) meetings are out of scope. |
 | v1 extras | Global hotkey, pause/resume, an update check against GitHub Releases (section 4.6; replaced Sparkle 2026-09-28), crash recovery of an unfinished recording, custom prompt templates, and a setting that decides whether the WAV is kept at all. Decided 2026-09-28. |
 | AI notes | Direct HTTPS to any OpenAI-compatible `/chat/completions` endpoint. Same JSON contract as the Python tool. Providers (2026-09-28, after the first live runs): GitHub Copilot CLI, Claude Code CLI, and Codex CLI use the owner's subscription logins (no API keys, no temperature); Antigravity CLI is a fourth CLI (Azure OpenAI removed 2026-09-28); Ollama and Custom are HTTP. GitHub Models was shut down on 2026-07-30, and the OpenAI and Anthropic API presets were replaced by the two CLIs. |
 | Window mode | User setting: "Menu bar and Dock", "Menu bar only", "Dock only". Switched at runtime with `NSApp.setActivationPolicy`. |
@@ -311,7 +311,8 @@ release page needs no third-party framework.
 - `HearsayCore/Updates/UpdateChecker` (actor) calls
   `GET https://api.github.com/repos/<slug>/releases/latest` with
   `Accept: application/vnd.github+json`, a 15 s timeout, and no
-  authentication, and reads `tag_name`, `html_url`, `published_at`, `body`.
+  authentication, and reads `tag_name`, `html_url`, `published_at`, `body`,
+  and `assets` (`name`, `browser_download_url`, `size`; missing = none).
   GitHub never returns drafts or pre-releases as "latest". Errors: offline
   (any `URLError`), HTTP status, no release yet (404), unreadable JSON.
 - `isNewer(remote, than: current)`: numeric components compared as numbers,
@@ -324,9 +325,50 @@ release page needs no third-party framework.
   successful check (`lastUpdateCheck`) is 24 h old or more; errors are
   silent and an alert appears only for a newer version. The app menu's
   "Check for Updates…" and Settings > General > Software updates > Check
-  Now always show a result alert. "Download" opens the release page;
-  nothing is downloaded or installed by the app. Only the request itself is
-  sent.
+  Now always show a result alert. A newer version offers "Install Update"
+  (default), "View on GitHub", and "Later"; when the release lacks the DMG
+  or `SHA256SUMS.txt`, or this copy cannot replace itself, the alert says
+  why and offers "Download" (release page) and "Later". Only the requests
+  themselves are sent.
+- Install (added 2026-09-29, owner request), `UpdateInstaller` (app) with
+  the file steps in `HearsayCore/Updates/UpdateInstall` and
+  `UpdatePackage` (app):
+  1. Location check on the running bundle: not translocated
+     (`/AppTranslocation/`), not on a disk image (`/Volumes/`), a `.app`
+     folder, parent folder writable. Otherwise an alert says to move
+     Hearsay to Applications (buttons View on GitHub, Cancel).
+  2. Asset choice: `Hearsay-<version>.dmg`, else the only `.dmg`; the
+     checksum list is `SHA256SUMS.txt` (`<hex>  <name>` or `<hex> *<name>`).
+  3. Download into `~/Library/Caches/tw.og1o.hearsay/Updates/<version>/`
+     (other version folders removed first) with a progress window
+     (received / total, Cancel removes the partial file). A DMG already in
+     the cache whose checksum matches is not downloaded again.
+  4. Verify: the DMG's SHA-256 must equal its line in `SHA256SUMS.txt` (no
+     line = failure). Mount with `hdiutil attach -nobrowse -readonly
+     -noverify -mountpoint <cache>/<version>/mnt`; exactly one `.app` at the
+     root.
+  5. Signature rule: when the running app's designated requirement names a
+     certificate (self-signed or Developer ID builds), the new app must pass
+     `SecStaticCodeCheckValidity` with that requirement (all architectures,
+     nested code). When the running build is ad-hoc (`cdhash` requirement),
+     only a valid signature is required and the skipped certificate check
+     is logged. Both: `CFBundleIdentifier` is `tw.og1o.hearsay` and
+     `CFBundleShortVersionString` is the release version. A failure deletes
+     the download and shows "Hearsay could not verify the downloaded
+     update." with the reason.
+  6. Stage: copy to `<parent of Hearsay.app>/.Hearsay-update-<version>.app`
+     (same volume, hidden), clear quarantine on the whole tree, check the
+     copy's signature again, detach the DMG.
+  7. "Hearsay <version> is ready to install." with "Install and Relaunch"
+     and "Later". Later deletes the staged copy and keeps the verified DMG.
+     Install refuses ("Finish the recording first.") while a recording
+     session, its final pass, or any Whisper job (File mode) runs; notes
+     generation and model downloads are not checked. Then
+     `FileManager.replaceItemAt` swaps the bundles (on failure the old app
+     stays and keeps running), the cache folder is deleted, and the usual
+     restart path (`AppDelegate.restart`) opens the new bundle and quits.
+  - Debug: `HEARSAY_INSTALL_UPDATE=<dmg> HEARSAY_INSTALL_TARGET=<app>` runs
+    steps 1 and 4 to 6 and the replacement against a scratch bundle.
 - The version comes from `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` in
   `mac/project.yml` (0.1.0 and 1 for local builds; the release workflow sets
   both). About Hearsay and Settings > General show it.
@@ -618,7 +660,7 @@ cd .. && Spike/.build/derived/Build/Products/Release/hearsay-spike \
 
 Things no agent could verify because they need permissions or a person.
 Verified 2026-09-28: recording, live preview, final pass, File mode (items
-1, 10, 12 in part). Still open: 2 to 9, 11, 13 to 16.
+1, 10, 12 in part). Still open: 2 to 9, 11, 13 to 17.
 
 1. First Start: grant Microphone, then Screen & System Audio Recording;
    relaunch if system audio stays off after granting.
@@ -642,8 +684,9 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
     the confirm-send sheet appears.
 13. Updates (section 4.6): Hearsay > Check for Updates… before any release
     exists shows "No releases have been published yet."; after the first
-    `v*` tag, a build with a lower version offers "Download", which opens
-    the release page. About Hearsay shows the version.
+    `v*` tag, a build with a lower version offers "Install Update" and
+    "View on GitHub" (which opens the release page). About Hearsay shows
+    the version.
 14. Releases (section 4.7): push a test tag, check the Actions run, mount
     the DMG, drag Hearsay to Applications, and open it the first time as
     the release notes describe.
@@ -661,6 +704,12 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
     `tw.og1o.hearsay`, category `permissions`) one `tccutil reset` line with
     status 0. Turn Hearsay on again; the sheet turns to "Granted" within
     2 s (or after Relaunch Hearsay). Quit and reopen: no second reset.
+17. In-app update install (section 4.6), on the next release, from
+    Hearsay in /Applications: Check for Updates > Install Update. Expect the
+    progress window (Downloading Hearsay <v>… with received / total, Cancel
+    works), then "Hearsay <v> is ready to install."; Install and Relaunch
+    quits and opens the new version (About Hearsay shows it), and the
+    Microphone and System audio permissions are kept.
 
 ## 17. Polish list (found during review, not yet scheduled)
 
@@ -695,8 +744,9 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
   `MACOS_CERTIFICATE_P12` secret, so v0.2.0 and later releases carry it.
   The stale-grant recovery stays for the one-time move from v0.1.0 and
   for any future certificate change (owner decision 2026-09-28).
-- The restart-failed alert after "Relaunch Hearsay" still says "to use the
-  new language" (`AppDelegate.replyToTerminate`); make it neutral.
+- Done 2026-09-29: the restart-failed alert (`AppDelegate.replyToTerminate`)
+  now says "Quit Hearsay and open it again." for both the language restart
+  and the update relaunch.
 
 - **To do (owner request 2026-09-28): "Reduce background noise" switch** on
   the Record tab. Routes only the mic through Apple voice processing so

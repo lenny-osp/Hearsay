@@ -110,7 +110,7 @@ Settings is a tab, not a separate window; ⌘, opens it.
 - The picker offers Auto, EN, ZH-TW, ZH-CN, DE, and ES. ZH-TW writes
   Traditional characters, ZH-CN Simplified.
 - Auto listens to up to the first 90 seconds of speech. If it can't tell,
-  it uses Settings > General > Preferred language and says so, with buttons
+  it uses Settings > General > Auto mode default language and says so, with buttons
   to transcribe again in another language.
 - If you picked a language and the meeting sounds like another one, a
   banner says "This sounds like …" with "Transcribe again".
@@ -191,7 +191,8 @@ Transcript, Reveal in Finder, and:
 ## Updates
 
 Hearsay asks GitHub once a day whether a newer release exists and, if so,
-offers to open its download page. Nothing is installed automatically and
+offers to install it (download, checksum and signature check, relaunch) or
+to open its release page. Nothing is installed without your click and
 nothing else is sent. Turn it off, or check now, in Settings > General >
 Software updates; the app menu also has **Check for Updates…**. The version
 is shown there and in About Hearsay.

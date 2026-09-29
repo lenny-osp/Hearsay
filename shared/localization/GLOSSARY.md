@@ -57,7 +57,7 @@ ZH-TW, ZH-CN, DE, ES).
 | Silence warning | Stillewarnung | Aviso de silencio | 靜音警告 | 静音警告 |
 | Language (of audio) | Sprache | Idioma | 語言 | 语言 |
 | Auto (language) | Automatisch | Automático | 自動 | 自动 |
-| Preferred language | Bevorzugte Sprache | Idioma preferido | 偏好語言 | 首选语言 |
+| Auto mode default language (was "Preferred language" until 2026-09-29) | Standardsprache für Automatisch | Idioma predeterminado para Automático | 自動模式預設語言 | 自动模式默认语言 |
 | Interface language | Sprache der Benutzeroberfläche | Idioma de la interfaz | 介面語言 | 界面语言 |
 | Model | Modell | Modelo | 模型 | 模型 |
 | Download / Downloading… | Laden / Wird geladen … | Descargar / Descargando… | 下載 / 正在下載… | 下载 / 正在下载… |

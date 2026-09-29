@@ -122,8 +122,8 @@
 </ol>
 <p>转录稿（SRT）和录音（WAV）保存在输出文件夹中，以开始时间命名，例如 <code>2026-09-28_14-05-00.srt</code>。</p>
 <ul>
-  <li><span class="ui">自动</span>最多听取开头 90 秒的语音。如果无法判断语言，它会使用你的首选语言并给出提示，同时提供一个按钮，用于以其他语言重新转录。如果你选择了某种语言，但会议听起来是另一种语言，横幅会提供<span class="ui">重新转录</span>。</li>
-  <li><span class="ui">首选语言</span>可在<a href="hearsay://open/settings-general"><span class="ui">设置</span> &gt; <span class="ui">通用</span></a>中设置。<span class="ui">自动</span>识别到中文时，如果首选语言是简体中文，则以简体字输出，否则以繁体字输出。</li>
+  <li><span class="ui">自动</span>最多听取开头 90 秒的语音。如果无法判断语言，它会使用自动模式默认语言并给出提示，同时提供一个按钮，用于以其他语言重新转录。如果你选择了某种语言，但会议听起来是另一种语言，横幅会提供<span class="ui">重新转录</span>。</li>
+  <li><span class="ui">自动模式默认语言</span>可在<a href="hearsay://open/settings-general"><span class="ui">设置</span> &gt; <span class="ui">通用</span></a>中设置。<span class="ui">自动</span>识别到中文时，如果自动模式默认语言是简体中文，则以简体字输出，否则以繁体字输出。</li>
 </ul>
 
 <h2 id="file-mode">转录文件</h2>
@@ -178,6 +178,7 @@
 <ul>
   <li><strong><span class="ui">界面语言</span>：</strong>在<a href="hearsay://open/settings-general"><span class="ui">设置</span> &gt; <span class="ui">通用</span></a>中选择。Hearsay 需要重新启动；请点按<span class="ui">立即重新启动</span>。</li>
   <li><strong>启动：</strong>在同一位置打开<span class="ui">登录时打开 Hearsay</span>。</li>
+  <li><strong>更新：</strong>Hearsay 菜单中的<span class="ui">检查更新…</span>提供<span class="ui">安装更新</span>（下载、验证并安装新版本，然后重新启动 Hearsay）或<span class="ui">在 GitHub 上查看</span>（打开版本页面）。</li>
   <li><strong>录音：</strong>如要在转录成功后删除 WAV，请关闭<span class="ui">转录成功后保留录音（WAV）</span>（位于<a href="hearsay://open/settings-output"><span class="ui">设置</span> &gt; <span class="ui">输出</span></a>）。</li>
   <li><strong>未完成的录音：</strong>如果 Hearsay 或 Mac 在录音过程中停止运行，下次启动时会询问如何处理该录音。<span class="ui">转录</span>会生成转录稿，<span class="ui">保留</span>会将 WAV 移到输出文件夹，<span class="ui">删除</span>则会将其删除。</li>
 </ul>

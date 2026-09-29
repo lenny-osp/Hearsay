@@ -74,7 +74,8 @@ settings are not touched.
 | `HEARSAY_TRANSCRIBE_FILE=<wav> HEARSAY_MODEL_DIR=<dir> HEARSAY_LANGUAGE=auto\|en\|zh-TW\|zh-CN\|de\|es` | File-mode transcription; prints the language decision and the SRT path |
 | `HEARSAY_REPLAY_FILE=<wav> HEARSAY_MODEL_DIR=<dir> [HEARSAY_REPLAY_UI=1] [HEARSAY_REPLAY_SYSTEM=silence]` | Replays a WAV through the real recording pipeline in real time (live preview, final pass) |
 | `HEARSAY_RECORD_SECONDS=<n> HEARSAY_RECORD_DEVICE=<name part> [HEARSAY_RECORD_KEEP=<wav>]` | Records from a real input device; needs microphone permission |
-| `HEARSAY_UI_SNAPSHOTS=<dir> HEARSAY_UI_LANGUAGE=<en\|de\|es\|zh-Hant\|zh-Hans>` | Renders every tab, sheet, the menu bar panel, and the help page to PNGs |
+| `HEARSAY_UI_SNAPSHOTS=<dir> HEARSAY_UI_LANGUAGE=<en\|de\|es\|zh-Hant\|zh-Hans>` | Renders every tab, sheet, the menu bar panel, the update progress window, and the help page to PNGs |
+| `HEARSAY_INSTALL_UPDATE=<dmg> HEARSAY_INSTALL_TARGET=<app> [HEARSAY_INSTALL_VERSION=<v>]` | Runs the update install against a scratch app bundle: location check, checksum (against `SHA256SUMS.txt` next to the DMG, else skipped), mount, signature check, staging, bundle replacement; never relaunches. Never point it at the running app or `/Applications/Hearsay.app` |
 
 Debug runs may leave an empty `~/Library/Preferences/tw.og1o.hearsay.debug-*.plist`;
 delete those you create. Delete every SRT a debug run writes into the
@@ -127,7 +128,8 @@ PLAN.md):
   distribution path is Developer ID, not the Mac App Store.
 - One main window, no window tabs, Settings is a tab (⌘, opens it).
 - Language picker Auto / EN / ZH-TW / ZH-CN / DE / ES; Auto is the default
-  for new installs; the preferred language (Settings > General) defaults to
+  for new installs; the Auto mode default language (Settings > General;
+  `preferredLanguage` in code) defaults to
   English and is changed only by the user.
 - Chinese is transcribed with no initial prompt; Traditional or Simplified
   is a character conversion afterwards.
