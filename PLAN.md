@@ -349,11 +349,15 @@ missing, cache SwiftPM checkouts, and never download a model.
   (compressed DMG with Hearsay.app and an Applications link),
   `SHA256SUMS.txt`, and a GitHub release with generated notes. A tag with a
   suffix (`v0.3.0-beta.1`) is published as a pre-release.
-- Signing: ad-hoc by default (owner has no Apple Developer account yet);
-  the notes then explain the first launch (macOS 14: right-click > Open;
-  macOS 15 and later: Privacy & Security > Open Anyway). Developer ID
-  signing, notarization, and stapling run only when the secrets listed in
-  `.github/workflows/README.md` exist.
+- Signing: since v0.2.0 (2026-09-28) releases are signed with the owner's
+  self-signed certificate "Hearsay Code Signing (self-signed)" from the
+  `MACOS_CERTIFICATE_P12` secret (designated requirement `identifier
+  "tw.og1o.hearsay" and certificate root = H"6cbba158…"`, the same as local
+  builds), so TCC grants survive updates. Gatekeeper still treats it as
+  unsigned: the notes explain the first launch (macOS 14: right-click >
+  Open; macOS 15 and later: Privacy & Security > Open Anyway). Without the
+  secret the build is ad-hoc. Notarization and stapling run only when the
+  Apple ID secrets listed in `.github/workflows/README.md` exist too.
 
 ## 5. Model catalog and download
 
@@ -515,7 +519,7 @@ weekends counted as half days.
 | 4a. Decoder | Done 2026-09-28. Byte-identical SRT to Python on both fixtures; 38 tests. Run tests with `TEST_RUNNER_HEARSAY_MODEL_DIR=<model dir>`. | done |
 | 4b. Transcription | Done. Live preview, final pass, and File mode verified live by the owner 2026-09-28. | done |
 | 5. Notes | Done 2026-09-28 in code; runs from History > Generate notes. Not yet tried against a live provider. | done, unverified live |
-| 6. Ship | Done 2026-09-28: v0.1.0 published from GitHub Actions (public repo lenny-osp/Hearsay; CI on macos-26 with Xcode 26.6; DMG plus SHA256; GitHub-releases update check; sections 4.6, 4.7). Remaining: Developer ID signing and notarization once the owner has an Apple Developer account (workflow steps are ready). | done |
+| 6. Ship | Done 2026-09-28: v0.1.0 published from GitHub Actions (public repo lenny-osp/Hearsay; CI on macos-26 with Xcode 26.6; DMG plus SHA256; GitHub-releases update check; sections 4.6, 4.7). v0.2.0 published the same day: self-signed release signing (section 4.7), Permissions row and stale-grant recovery (section 9). Users of the ad-hoc v0.1.0 re-grant Screen & System Audio Recording once; later updates keep the grant. Remaining: Developer ID signing and notarization once the owner has an Apple Developer account (workflow steps are ready). | done |
 
 Total: about 8 to 9 weeks of calendar time.
 
@@ -686,10 +690,11 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
   Any stable certificate, even a self-signed one, gives a designated
   requirement of identifier plus certificate, which stays the same across
   builds, so TCC keeps the grants and the re-approval sheet (section 9)
-  never appears. `run-debug.sh` already signs local builds with "Hearsay
-  Code Signing (self-signed)"; releases are ad-hoc unless the certificate
-  secret in `.github/workflows/README.md` is set. Setting it is the cheap
-  fix until a Developer ID exists.
+  never appears. Done 2026-09-28: `run-debug.sh` signs local builds with
+  "Hearsay Code Signing (self-signed)" and the same certificate is the
+  `MACOS_CERTIFICATE_P12` secret, so v0.2.0 and later releases carry it.
+  The stale-grant recovery stays for the one-time move from v0.1.0 and
+  for any future certificate change (owner decision 2026-09-28).
 - The restart-failed alert after "Relaunch Hearsay" still says "to use the
   new language" (`AppDelegate.replyToTerminate`); make it neutral.
 
