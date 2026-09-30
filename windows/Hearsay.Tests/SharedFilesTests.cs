@@ -15,7 +15,8 @@ public class SharedFilesTests
         // The byte-compared files must be LF (AGENTS.md, Line endings).
         foreach (var rel in new[] { "prompts/general-meeting.txt", "prompts/response-rules.txt",
                                     "prompts/system-message.txt", "fixtures/en-30s.expected.srt",
-                                    "naming-tests.json", "language-decision-tests.json" })
+                                    "naming-tests.json", "language-decision-tests.json",
+                                    "transcription-queue-tests.json" })
         {
             var text = SharedFiles.ReadText(rel.Split('/'));
             Assert.DoesNotContain('\r', text);

@@ -2032,3 +2032,24 @@ its own file under `%LOCALAPPDATA%\Hearsay\Recording\`, same fields).
 - **Tray.** The tray tooltip shows the recording status and, with no
   session, the running job's percentage; the tray menu gets Stop & Start
   Next.
+
+**As built (Windows, WI-1 Core, 2026-09-30).**
+- `Hearsay.Core/Transcription/TranscriptionQueuePolicy.cs`: `FinalPassTiming`,
+  `TranscriptionJobState` and the pure `TranscriptionQueuePolicy`; the tests
+  run all 71 vectors of `shared/transcription-queue-tests.json`, invalid
+  cases included.
+- `Hearsay.Core/Audio/TranscriptionQueueManifest.cs`: `TranscriptionQueueManifest`
+  and `TranscriptionQueueStore` for `queue.json` and `<id>.live.srt` in the
+  spool folder, the Mac's JSON fields and values (whole-second UTC
+  `stopTime`, every key written, unknown or bad entries dropped one by one,
+  running and suspended jobs reload as waiting). Writes use
+  `OutputWriter.WriteReplacing` (temp file, then replace), as the Mac does. Differs from the Mac: a job id or
+  WAV name must also be free of `\`, `:` and the other characters Windows
+  forbids in a file name.
+- `RecordingSpool.UnfinishedRecordings` leaves out WAVs of pending queued
+  jobs (names compared without regard to case).
+- `AppSettings.FinalPassTiming` (default `WhenIdle`, unknown stored value
+  reads as the default) and `StopStartNextHotkey` (default Ctrl+Alt+Win+N),
+  keys `finalPassTiming` and `stopStartNextHotkey`. The Core layer has no
+  other list of hotkeys; registration and the Settings rows are WI-4. The
+  picker labels are the app's (no Core string is surfaced).

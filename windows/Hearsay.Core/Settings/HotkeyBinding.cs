@@ -38,9 +38,10 @@ public readonly record struct HotkeyBinding(uint KeyCode, HotkeyModifiers Modifi
     /// <summary>MOD_NOREPEAT: holding the keys down does not fire again (Carbon hotkeys fire once per press).</summary>
     public const uint ModNoRepeat = 0x4000;
 
-    /// <summary>VK_R and VK_P.</summary>
+    /// <summary>VK_R, VK_P, and VK_N.</summary>
     public const uint KeyCodeR = 0x52;
     public const uint KeyCodeP = 0x50;
+    public const uint KeyCodeN = 0x4E;
 
     private const HotkeyModifiers DefaultModifiers = HotkeyModifiers.Control | HotkeyModifiers.Alt | HotkeyModifiers.Win;
 
@@ -53,6 +54,9 @@ public readonly record struct HotkeyBinding(uint KeyCode, HotkeyModifiers Modifi
 
     /// <summary>Ctrl+Alt+Win+P toggles Pause / Resume (the Mac's ⌃⌥⌘P).</summary>
     public static HotkeyBinding DefaultPause { get; } = new(KeyCodeP, DefaultModifiers);
+
+    /// <summary>Ctrl+Alt+Win+N stops the recording and starts the next one (the Mac's ⌃⌥⌘N; PLAN.md 4.9 and 18.10).</summary>
+    public static HotkeyBinding DefaultStopStartNext { get; } = new(KeyCodeN, DefaultModifiers);
 
     /// <summary>
     /// A global shortcut needs at least one of Ctrl, Alt, Win; Shift alone

@@ -84,6 +84,8 @@ public sealed class AppSettings : INotifyPropertyChanged
         public const string CaptureSystemAudio = "captureSystemAudio";
         public const string StartStopHotkey = "startStopHotkey";
         public const string PauseHotkey = "pauseHotkey";
+        public const string StopStartNextHotkey = "stopStartNextHotkey";
+        public const string FinalPassTiming = "finalPassTiming";
         public const string KeepRecording = "keepRecording";
         /// <summary>
         /// Legacy "Chinese output" setting ("traditional" or "simplified"),
@@ -109,6 +111,8 @@ public sealed class AppSettings : INotifyPropertyChanged
     private bool captureSystemAudio;
     private HotkeyBinding startStopHotkey;
     private HotkeyBinding pauseHotkey;
+    private HotkeyBinding stopStartNextHotkey;
+    private FinalPassTiming finalPassTiming;
     private bool keepRecording;
     private InterfaceLanguage interfaceLanguage;
     private bool automaticUpdateChecks;
@@ -137,6 +141,8 @@ public sealed class AppSettings : INotifyPropertyChanged
         captureSystemAudio = file.GetBool(Key.CaptureSystemAudio) ?? true;
         startStopHotkey = HotkeyBinding.FromJson(file.Get(Key.StartStopHotkey)) ?? HotkeyBinding.DefaultStartStop;
         pauseHotkey = HotkeyBinding.FromJson(file.Get(Key.PauseHotkey)) ?? HotkeyBinding.DefaultPause;
+        stopStartNextHotkey = HotkeyBinding.FromJson(file.Get(Key.StopStartNextHotkey)) ?? HotkeyBinding.DefaultStopStartNext;
+        finalPassTiming = FinalPassTimings.FromStorageValue(file.GetString(Key.FinalPassTiming)) ?? FinalPassTimings.Default;
         keepRecording = file.GetBool(Key.KeepRecording) ?? true;
         interfaceLanguage = InterfaceLanguages.FromCode(file.GetString(Key.InterfaceLanguage)) ?? InterfaceLanguage.English;
         automaticUpdateChecks = file.GetBool(Key.AutomaticUpdateChecks) ?? true;
@@ -271,6 +277,26 @@ public sealed class AppSettings : INotifyPropertyChanged
     {
         get => pauseHotkey;
         set => Update(ref pauseHotkey, value, () => file.Set(Key.PauseHotkey, value.ToJson()));
+    }
+
+    /// <summary>Global shortcut for Stop &amp; Start Next (PLAN.md 4.9 item 2). Default Ctrl+Alt+Win+N.</summary>
+    public HotkeyBinding StopStartNextHotkey
+    {
+        get => stopStartNextHotkey;
+        set => Update(ref stopStartNextHotkey, value, () => file.Set(Key.StopStartNextHotkey, value.ToJson()));
+    }
+
+    /// <summary>
+    /// When a queued recording gets its final pass (Settings > General >
+    /// Transcription, PLAN.md 4.9 item 3). Default
+    /// <see cref="FinalPassTiming.WhenIdle"/> on Windows (PLAN.md 18.10; the
+    /// Mac's is <see cref="FinalPassTiming.Immediate"/>); stored as the
+    /// shared value, and an unknown stored value reads as the default.
+    /// </summary>
+    public FinalPassTiming FinalPassTiming
+    {
+        get => finalPassTiming;
+        set => Update(ref finalPassTiming, value, () => file.SetString(Key.FinalPassTiming, value.StorageValue()));
     }
 
     /// <summary>

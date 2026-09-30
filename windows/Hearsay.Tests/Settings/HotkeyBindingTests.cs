@@ -21,8 +21,10 @@ public sealed class HotkeyBindingTests
     }
 
     [Fact]
-    public void DefaultsAreCtrlAltWinRAndP()
+    public void DefaultsAreCtrlAltWinRPAndN()
     {
+        Assert.Equal(0x4Eu, HotkeyBinding.DefaultStopStartNext.VirtualKey);
+        Assert.Equal(HotkeyBinding.DefaultStartStop.Modifiers, HotkeyBinding.DefaultStopStartNext.Modifiers);
         Assert.Equal(0x52u, HotkeyBinding.DefaultStartStop.VirtualKey);
         Assert.Equal(0x50u, HotkeyBinding.DefaultPause.VirtualKey);
         Assert.Equal(HotkeyModifiers.Control | HotkeyModifiers.Alt | HotkeyModifiers.Win, HotkeyBinding.DefaultStartStop.Modifiers);

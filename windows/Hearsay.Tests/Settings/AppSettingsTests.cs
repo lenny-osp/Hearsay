@@ -342,6 +342,61 @@ public sealed class AppSettingsTests : IDisposable
         Assert.Equal(HotkeyBinding.DefaultStartStop, new AppSettings(folder).StartStopHotkey);
     }
 
+    [Fact]
+    public void StopStartNextHotkeyDefaultsRoundTripsAndFallsBack()
+    {
+        var folder = scratch.Make();
+        var settings = new AppSettings(folder);
+        Assert.Equal("stopStartNextHotkey", AppSettings.Key.StopStartNextHotkey);
+        Assert.Equal(HotkeyBinding.DefaultStopStartNext, settings.StopStartNextHotkey);
+        Assert.Equal("Ctrl+Alt+Win+N", settings.StopStartNextHotkey.DisplayString);
+        Assert.True(HotkeyBinding.DefaultStopStartNext.IsValidGlobalShortcut);
+        // Distinct from the other two defaults.
+        Assert.Equal(3, new HashSet<HotkeyBinding>
+        {
+            HotkeyBinding.DefaultStartStop, HotkeyBinding.DefaultPause, HotkeyBinding.DefaultStopStartNext,
+        }.Count);
+
+        var custom = new HotkeyBinding(0x7A, HotkeyModifiers.Control | HotkeyModifiers.Shift);
+        settings.StopStartNextHotkey = custom;
+        Assert.Equal(custom, new AppSettings(folder).StopStartNextHotkey);
+
+        ScratchSettings.Raw(folder).Set(AppSettings.Key.StopStartNextHotkey, JsonNode.Parse("[123]"));
+        Assert.Equal(HotkeyBinding.DefaultStopStartNext, new AppSettings(folder).StopStartNextHotkey);
+    }
+
+    [Fact]
+    public void FinalPassTimingDefaultsToWhenIdleOnWindows()
+    {
+        // The Mac's default is immediate; Windows differs (PLAN.md 18.10).
+        Assert.Equal("finalPassTiming", AppSettings.Key.FinalPassTiming);
+        Assert.Equal(FinalPassTiming.WhenIdle, new AppSettings(scratch.Make()).FinalPassTiming);
+    }
+
+    [Theory]
+    [InlineData(FinalPassTiming.Immediate)]
+    [InlineData(FinalPassTiming.WhenIdle)]
+    public void FinalPassTimingRoundTripsAsStoredValue(FinalPassTiming timing)
+    {
+        var folder = scratch.Make();
+        var settings = new AppSettings(folder);
+        // Setting the default is a no-op, so go through the other value first.
+        settings.FinalPassTiming = timing == FinalPassTiming.WhenIdle ? FinalPassTiming.Immediate : FinalPassTiming.WhenIdle;
+        settings.FinalPassTiming = timing;
+        Assert.Equal(timing.StorageValue(), Stored(folder, AppSettings.Key.FinalPassTiming));
+        Assert.Equal(timing, new AppSettings(folder).FinalPassTiming);
+    }
+
+    [Fact]
+    public void UnknownFinalPassTimingFallsBackToDefault()
+    {
+        var folder = scratch.Make();
+        ScratchSettings.Raw(folder).SetString(AppSettings.Key.FinalPassTiming, "later");
+        Assert.Equal(FinalPassTiming.WhenIdle, new AppSettings(folder).FinalPassTiming);
+        ScratchSettings.Raw(folder).Set(AppSettings.Key.FinalPassTiming, JsonValue.Create(3));
+        Assert.Equal(FinalPassTiming.WhenIdle, new AppSettings(folder).FinalPassTiming);
+    }
+
     /// <summary>The Mac's <c>globalShortcutNeedsControlOptionOrCommand</c>.</summary>
     [Fact]
     public void GlobalShortcutNeedsControlAltOrWin()
@@ -456,10 +511,10 @@ public sealed class AppSettingsTests : IDisposable
         Assert.Equal(
             [
                 "activeModelRepo", "automaticUpdateChecks", "captureSystemAudio", "chineseScript",
-                "defaultLanguageCode", "interfaceLanguage", "keepRecording", "languageChoice",
+                "defaultLanguageCode", "finalPassTiming", "interfaceLanguage", "keepRecording", "languageChoice",
                 "lastUpdateCheck", "menuBarShowsStatus", "microphoneGrantedCodeHash",
                 "outputFolder", "pauseHotkey", "preferredLanguage", "screenAudioGrantedCodeHash",
-                "screenAudioResetCodeHash", "startStopHotkey", "windowMode",
+                "screenAudioResetCodeHash", "startStopHotkey", "stopStartNextHotkey", "windowMode",
             ],
             keys);
     }

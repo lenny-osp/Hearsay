@@ -48,7 +48,9 @@ public sealed class RecordingSpool
     /// <summary>
     /// Spooled WAVs whose header sizes are still 0 or that have no <c>.srt</c>
     /// sibling in the spool, sorted by name (ordinal). Empty when the folder is
-    /// missing. Hidden files are skipped.
+    /// missing. Hidden files are skipped. WAVs of jobs still pending in
+    /// <c>queue.json</c> are left out: the transcription queue continues with
+    /// them (PLAN.md 4.9).
     /// </summary>
     public IReadOnlyList<string> UnfinishedRecordings()
     {
@@ -65,8 +67,10 @@ public sealed class RecordingSpool
         {
             return [];
         }
+        var queued = new TranscriptionQueueStore(Root).QueuedWavFileNames();
         return entries
             .Where(path => string.Equals(Path.GetExtension(path), ".wav", StringComparison.OrdinalIgnoreCase))
+            .Where(path => !queued.Contains(Path.GetFileName(path)))
             .Where(path => !IsHidden(path))
             .Where(path => IsUnfinishedHeader(path) || !File.Exists(Path.ChangeExtension(path, ".srt")))
             .OrderBy(Path.GetFileName, StringComparer.Ordinal)

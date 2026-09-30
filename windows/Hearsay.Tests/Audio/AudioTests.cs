@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Text;
 using Hearsay.Core.Audio;
+using Hearsay.Core.Transcription;
 
 namespace Hearsay.Tests.Audio;
 
@@ -265,6 +266,30 @@ public class RecordingSpoolTests
 
         Assert.Equal(["2026-09-28_10-00-00.wav", "2026-09-28_11-00-00.wav"],
             spool.UnfinishedRecordings().Select(Path.GetFileName));
+    }
+
+    [Fact]
+    public void UnfinishedRecordingsIgnoresWavsOfPendingQueuedJobs()
+    {
+        using var scratch = new ScratchDirectory();
+        var spool = new RecordingSpool(scratch.Path);
+        string[] names = ["2026-09-30_09-00-00", "2026-09-30_10-00-00", "2026-09-30_11-00-00", "2026-09-30_12-00-00"];
+        foreach (var name in names)
+        {
+            WriteFinished(scratch.File(name + ".wav"), 100);
+        }
+        TranscriptionQueueManifest.Job Job(int index, TranscriptionJobState state) =>
+            new(names[index], names[index] + ".wav", DateTimeOffset.UnixEpoch, LanguageChoice.Auto, KeepRecording: true, State: state);
+        // Waiting and running jobs are the queue's; a failed job's WAV that is
+        // still in the spool and a WAV in no job are offered as before.
+        new TranscriptionQueueStore(spool).Save(new TranscriptionQueueManifest(
+            [Job(0, TranscriptionJobState.Waiting), Job(1, TranscriptionJobState.Running), Job(2, TranscriptionJobState.Failed)]));
+        Assert.Equal(["2026-09-30_11-00-00.wav", "2026-09-30_12-00-00.wav"],
+            spool.UnfinishedRecordings().Select(Path.GetFileName));
+
+        // A corrupt manifest hides nothing: every WAV is offered.
+        File.WriteAllText(scratch.File("queue.json"), "{");
+        Assert.Equal(4, spool.UnfinishedRecordings().Count);
     }
 
     [Fact]
