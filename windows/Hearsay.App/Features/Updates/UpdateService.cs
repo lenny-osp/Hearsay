@@ -320,6 +320,13 @@ internal sealed class UpdateService : INotifyPropertyChanged, IDisposable
                 _ => new UpdateState.Idle(),
             };
         }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            // The checker reports expected failures as an outcome; anything
+            // else must still end the spinner and reach the user.
+            AppLog.Write($"update check failed: {error}");
+            result = new UpdateState.Failed(new UpdateFailure(UpdateFailureKind.Check, Strings.Describe(error)));
+        }
         finally
         {
             lock (gate)

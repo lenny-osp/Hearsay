@@ -145,7 +145,16 @@ internal sealed partial class GeneralSettingsView : UserControl
     /// <summary>The Software updates card, for the UI snapshots.</summary>
     internal SoftwareUpdatesSection Updates { get; }
 
-    private void OnSettingsChanged(object? sender, PropertyChangedEventArgs e) => Refresh();
+    private void OnSettingsChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        // Settings can change on a pool thread (an update check's continuation).
+        if (DispatcherQueue is { } queue && !queue.HasThreadAccess)
+        {
+            queue.TryEnqueue(Refresh);
+            return;
+        }
+        Refresh();
+    }
 
     private void OnHotkeysChanged(object? sender, PropertyChangedEventArgs e) =>
         SetWarning(shortcutError, shell.Hotkeys.RegistrationError);

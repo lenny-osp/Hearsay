@@ -140,6 +140,27 @@ public sealed class UpdateServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task AnUnexpectedCheckerErrorStillEndsTheCheck()
+    {
+        // A settings listener that throws on the wrong thread (RPC_E_WRONG_THREAD)
+        // once left Check Now spinning forever.
+        checker.Error = new InvalidOperationException("boom");
+        var changes = new List<bool>();
+        service.PropertyChanged += (_, _) => changes.Add(service.IsChecking);
+
+        await service.CheckNowAsync(userInitiated: true);
+
+        Assert.False(service.IsChecking);
+        var failed = Assert.IsType<UpdateState.Failed>(service.State);
+        Assert.Equal(UpdateFailureKind.Check, failed.Failure.Kind);
+        Assert.False(string.IsNullOrEmpty(failed.Failure.Message));
+        // One change when the check starts, one after it ended.
+        Assert.Equal([true, false], changes);
+        var shown = Assert.IsType<UpdateState.Failed>(Assert.Single(prompts.CheckResults));
+        Assert.Equal(UpdateFailureKind.Check, shown.Failure.Kind);
+    }
+
+    [Fact]
     public async Task InstallAndRelaunchIsRefusedWhileRecording()
     {
         service.InstallBlocker = () => Strings.UpdateFinishRecordingFirst;
@@ -542,9 +563,13 @@ public sealed class UpdateServiceTests : IDisposable
 
         public List<string> Versions { get; } = [];
 
+        /// <summary>Thrown by the next checks instead of answering.</summary>
+        public Exception? Error { get; set; }
+
         public Task<UpdateCheckOutcome> CheckAsync(string currentVersion, AppSettings settings, CancellationToken cancellationToken)
         {
             Versions.Add(currentVersion);
+            if (Error is { } error) return Task.FromException<UpdateCheckOutcome>(error);
             return Task.FromResult(Outcomes.Dequeue());
         }
     }

@@ -291,6 +291,87 @@ public sealed class UpdateCheckerTests : IDisposable
     }
 
     [Fact]
+    public async Task CheckStoresTheTimeOnTheCallersContext()
+    {
+        // The app's settings listeners are UI code: a write from a pool thread
+        // once threw RPC_E_WRONG_THREAD and left Check Now spinning.
+        foreach (var status in new[] { HttpStatusCode.OK, HttpStatusCode.NotFound })
+        {
+            var repository = UniqueRepository();
+            hub.Register(Url(repository), status, ReleaseJson);
+            var settings = new AppSettings(scratch.Make());
+            using var context = new SingleThreadContext();
+            var changedOn = new List<int>();
+            settings.PropertyChanged += (_, _) => changedOn.Add(Environment.CurrentManagedThreadId);
+            using var checker = new UpdateChecker(repository, new PoolThreadHandler(hub));
+
+            await context.RunAsync(() => checker.CheckAsync("0.1.0", settings, new FixedClock(DateTimeOffset.FromUnixTimeSeconds(1_790_600_000))));
+
+            Assert.NotNull(settings.LastUpdateCheck);
+            Assert.Equal([context.ThreadId], changedOn.Distinct());
+        }
+    }
+
+    /// <summary>Answers on a pool thread, so a continuation without the caller's context would run there.</summary>
+    private sealed class PoolThreadHandler(HttpMessageHandler inner) : DelegatingHandler(inner)
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            await Task.Run(() => Task.Delay(20, cancellationToken), cancellationToken);
+            return await base.SendAsync(request, cancellationToken);
+        }
+    }
+
+    /// <summary>A dedicated thread with a <see cref="SynchronizationContext"/>, like a UI thread's.</summary>
+    private sealed class SingleThreadContext : SynchronizationContext, IDisposable
+    {
+        private readonly System.Collections.Concurrent.BlockingCollection<(SendOrPostCallback Callback, object? State)> queue = [];
+        private readonly Thread thread;
+
+        public SingleThreadContext()
+        {
+            thread = new Thread(Loop) { IsBackground = true };
+            thread.Start();
+            ThreadId = thread.ManagedThreadId;
+        }
+
+        public int ThreadId { get; }
+
+        public override void Post(SendOrPostCallback d, object? state) => queue.Add((d, state));
+
+        /// <summary>Runs <paramref name="work"/> on the thread, then awaits the task it returns.</summary>
+        public Task RunAsync(Func<Task> work)
+        {
+            var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            Post(_ =>
+            {
+                try
+                {
+                    work().ContinueWith(
+                        t => { if (t.IsFaulted) done.SetException(t.Exception?.InnerExceptions ?? []); else done.SetResult(); },
+                        TaskScheduler.Default);
+                }
+                catch (Exception error)
+                {
+                    done.SetException(error);
+                }
+            }, null);
+            return done.Task;
+        }
+
+        private void Loop()
+        {
+            SetSynchronizationContext(this);
+            foreach (var (callback, state) in queue.GetConsumingEnumerable())
+            {
+                callback(state);
+            }
+        }
+
+        public void Dispose() => queue.CompleteAdding();
+    }
+
+    [Fact]
     public async Task NoReleaseCountsAsACheckButOtherErrorsDoNot()
     {
         var settings = new AppSettings(scratch.Make());

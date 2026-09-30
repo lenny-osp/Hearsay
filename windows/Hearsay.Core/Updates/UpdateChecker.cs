@@ -271,7 +271,9 @@ public sealed class UpdateChecker : IDisposable
     /// One check against <paramref name="currentVersion"/> (the Mac's
     /// <c>UpdateService.fetchOutcome</c>): a successful answer, and a 404,
     /// store the time in <paramref name="settings"/>' <c>lastUpdateCheck</c>;
-    /// other errors do not. Never throws except for cancellation.
+    /// other errors do not. Never throws except for cancellation. The setting
+    /// is written on the caller's synchronization context, so call from the
+    /// thread that owns the settings' listeners (the UI thread).
     /// </summary>
     public async Task<UpdateCheckOutcome> CheckAsync(
         string currentVersion, Settings.AppSettings settings, TimeProvider? clock = null,
@@ -282,7 +284,10 @@ public sealed class UpdateChecker : IDisposable
         var now = clock ?? TimeProvider.System;
         try
         {
-            var release = await LatestReleaseAsync(cancellationToken).ConfigureAwait(false);
+            // Resume on the caller's context: settings listeners are UI code and
+            // the app calls this from the UI thread (the Mac's fetchOutcome runs
+            // on the main actor).
+            var release = await LatestReleaseAsync(cancellationToken).ConfigureAwait(true);
             settings.LastUpdateCheck = now.GetUtcNow();
             return IsNewer(release.Version, currentVersion)
                 ? new UpdateCheckOutcome.Available(release)
