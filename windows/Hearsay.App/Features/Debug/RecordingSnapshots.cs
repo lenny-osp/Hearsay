@@ -2,6 +2,7 @@ using Hearsay.App.Features.FileTranscription;
 using Hearsay.App.Features.Main;
 using Hearsay.App.Features.Recording;
 using Hearsay.App.Features.Recovery;
+using Hearsay.App.Features.Transcription;
 using Hearsay.Core.Audio;
 using Hearsay.Core.Transcription;
 using Microsoft.UI.Xaml;
@@ -15,7 +16,8 @@ namespace Hearsay.App.Features.Debug;
 /// banner, during the final pass and with the saved result; the File tab
 /// idle, transcribing and finished with a suggestion; and the
 /// unfinished-recording sheet. Every state is stubbed through
-/// <see cref="RecordingController.ShowSample"/> and
+/// <see cref="RecordingController.ShowSample"/>, <see cref="TranscriptionQueue.InsertSample"/>
+/// (the final pass and the saved result are a job of the queue) and
 /// <see cref="FileViewModel.ShowSample"/>: nothing is recorded or
 /// transcribed. The live lines are the cues of
 /// shared/fixtures/en-30s.expected.srt (copied next to the exe). Mirrors the
@@ -36,6 +38,7 @@ internal static class RecordingSnapshots
         ArgumentNullException.ThrowIfNull(tools);
         var window = shell.MainWindow;
         var controller = shell.RecordingController;
+        var transcriptions = shell.Queue;
         var file = shell.FileModel;
         var cues = SampleCues();
         var srt = Path.Combine(sampleOutput, "2026-09-29_10-00-00.srt");
@@ -85,14 +88,12 @@ internal static class RecordingSnapshots
         tools.Check(controller.LanguageNotice is LanguageNotice.Suggestion { Language: TranscriptLanguage.English }, "the mismatch banner suggests English");
         await tools.Render("32-record-mismatch-banner", window.RenderRoot).ConfigureAwait(true);
 
-        controller.ShowSample(new RecordingSample(new ControllerPhase.Transcribing(0.42), new SessionLanguageTracker(english, TranscriptLanguage.English))
+        // The final pass of the one recording: a job of the queue (no session), as the Record tab always showed it.
+        controller.ShowSample(new RecordingSample(ControllerPhase.IdleState, new SessionLanguageTracker(english, TranscriptLanguage.English))
         {
             Elapsed = 1834,
-            LiveSegments = cues,
-            LivePreviewEnabled = true,
-            CanUseLivePreview = true,
-            FinishedRecording = null,
         });
+        transcriptions.InsertSample(wav, TranscriptionJobState.Running, 0.42, live: cues);
         await tools.Settle().ConfigureAwait(true);
         tools.Check(shell.Recording.StateText == Strings.StateTranscribing(42), $"the tray shows the final pass ({shell.Recording.StateText})");
         await tools.Render("33-record-final-pass", window.RenderRoot).ConfigureAwait(true);
@@ -101,27 +102,18 @@ internal static class RecordingSnapshots
         window.ResizeClient(MainWindow.DefaultWidth, 1200);
         var fallback = new SessionLanguageTracker(LanguageChoice.Auto, TranscriptLanguage.English);
         fallback.Finish(new DetectedLanguage("de", 0.41f));
-        controller.ShowSample(new RecordingSample(new ControllerPhase.Finished(srt, wav), fallback)
-        {
-            Elapsed = 1834,
-            LiveSegments = cues,
-            Notice = LanguageNotice.From(fallback.Decision),
-            FinishedTranscript = srt,
-            FinishedRecording = wav,
-        });
+        transcriptions.ClearSamples();
+        var finishedJob = transcriptions.InsertSample(wav, TranscriptionJobState.Done, 1, srt, tracker: fallback, notice: LanguageNotice.From(fallback.Decision), live: cues);
         await tools.Settle().ConfigureAwait(true);
-        tools.Check(controller.LanguageNotice is LanguageNotice.Fallback, "the Auto fallback notice shows");
+        tools.Check(finishedJob.LanguageNotice is LanguageNotice.Fallback, "the Auto fallback notice shows");
         await tools.Render("34-record-language-notice", window.RenderRoot).ConfigureAwait(true);
 
         // The result row alone (a session without live preview), so its buttons show.
-        controller.ShowSample(new RecordingSample(new ControllerPhase.Finished(srt, wav), new SessionLanguageTracker(english, TranscriptLanguage.English))
-        {
-            Elapsed = 1834,
-            FinishedTranscript = srt,
-            FinishedRecording = wav,
-        });
+        transcriptions.ClearSamples();
+        transcriptions.InsertSample(wav, TranscriptionJobState.Done, 1, srt);
         await tools.Settle().ConfigureAwait(true);
         await tools.Render("35-record-result", window.RenderRoot).ConfigureAwait(true);
+        transcriptions.ClearSamples();
         controller.ShowSample(new RecordingSample(ControllerPhase.IdleState, new SessionLanguageTracker(LanguageChoice.Auto, TranscriptLanguage.English)));
         tools.Check(shell.Recording.Phase == MenuBar.RecordingPhase.Idle && shell.Recording.BusyFiles.Count == 0, "the tray is idle again");
 

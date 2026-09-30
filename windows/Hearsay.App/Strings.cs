@@ -593,6 +593,15 @@ internal static partial class Strings
     public static string RecordingSavedBeforeQuit => App("The recording is saved before Hearsay quits.");
     public static string StopAndQuit => App("Stop & Quit");
 
+    // Background transcription queue (PLAN.md 4.9, 18.10; mac/Hearsay/AppDelegate.swift, RecordView.swift).
+    public static string RecordingsNotTranscribedYet(int count) => App("Recordings not transcribed yet: %lld", count);
+    public static string HearsayContinuesNextTime => App("Hearsay continues with them the next time it opens.");
+    public static string QuitButton => App("Quit");
+    public static string WaitUntilTranscriptionsFinished => App("Wait until the transcriptions are finished.");
+    public static string StopAndStartNext => App("Stop & Start Next");
+    public static string StopAndStartNextTooltip(string shortcut) =>
+        App("Save this recording and start the next one at once (%@). This one is transcribed in the background.", shortcut);
+
     // File tab (mac/Hearsay/Features/FileTranscription/FileView.swift, FileViewModel.swift).
     public static string DropFileHere => App("Drop an audio or video file here");
     /// <summary>The Mac's "wav, m4a, mp3, aac, aiff, caf, or …" with what Media Foundation reads (Windows only).</summary>

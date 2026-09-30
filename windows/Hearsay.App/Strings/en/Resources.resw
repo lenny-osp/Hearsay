@@ -569,6 +569,10 @@
     <value>Regenerate Notes…</value>
     <comment>app: Regenerate Notes…</comment>
   </data>
+  <data name="app_7712f7a25c48e02b" xml:space="preserve">
+    <value>Recordings not transcribed yet: {0}</value>
+    <comment>app: Recordings not transcribed yet: %lld</comment>
+  </data>
   <data name="app_7812445c87bc6e1c" xml:space="preserve">
     <value>Reading {0}…</value>
     <comment>app: Reading %@…</comment>
@@ -680,6 +684,10 @@
   <data name="app_8a7525b1492fb848" xml:space="preserve">
     <value>Notes</value>
     <comment>app: Notes</comment>
+  </data>
+  <data name="app_8e8a51b606c9e743" xml:space="preserve">
+    <value>Hearsay continues with them the next time it opens.</value>
+    <comment>app: Hearsay continues with them the next time it opens.</comment>
   </data>
   <data name="app_8f24c982c3912ed1" xml:space="preserve">
     <value>Install and Relaunch</value>
@@ -829,6 +837,10 @@
     <value>Keep Timestamp Names</value>
     <comment>app: Keep Timestamp Names</comment>
   </data>
+  <data name="app_b1044171204a6cdb" xml:space="preserve">
+    <value>Wait until the transcriptions are finished.</value>
+    <comment>app: Wait until the transcriptions are finished.</comment>
+  </data>
   <data name="app_b2439bcb8dee14b6" xml:space="preserve">
     <value>Output</value>
     <comment>app: Output</comment>
@@ -841,6 +853,10 @@
     <value>Could not create the recording file: {0}</value>
     <comment>app: Could not create the recording file: %@</comment>
   </data>
+  <data name="app_b3eb37acb66ba4bb" xml:space="preserve">
+    <value>Quit</value>
+    <comment>app: Quit</comment>
+  </data>
   <data name="app_b4abd7a6309ed1c3" xml:space="preserve">
     <value>Could not rename the meeting</value>
     <comment>app: Could not rename the meeting</comment>
@@ -848,6 +864,10 @@
   <data name="app_b5c120b316c237a0" xml:space="preserve">
     <value>Saved</value>
     <comment>app: Saved</comment>
+  </data>
+  <data name="app_b850883eb8f79344" xml:space="preserve">
+    <value>Save this recording and start the next one at once ({0}). This one is transcribed in the background.</value>
+    <comment>app: Save this recording and start the next one at once (%@). This one is transcribed in the background.</comment>
   </data>
   <data name="app_bbe5fc3b9ef39f99" xml:space="preserve">
     <value>Starting…</value>
@@ -1020,6 +1040,10 @@
   <data name="app_dca058acc8d6fb58" xml:space="preserve">
     <value>Hearsay could not verify the downloaded update.</value>
     <comment>app: Hearsay could not verify the downloaded update.</comment>
+  </data>
+  <data name="app_dda386a499f6fd17" xml:space="preserve">
+    <value>Stop &amp; Start Next</value>
+    <comment>app: Stop &amp; Start Next</comment>
   </data>
   <data name="app_de3ab6b30c87483b" xml:space="preserve">
     <value>The new app is version {0}, not {1}.</value>

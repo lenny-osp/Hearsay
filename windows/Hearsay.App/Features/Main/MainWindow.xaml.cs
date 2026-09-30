@@ -5,6 +5,7 @@ using Hearsay.App.Features.Models;
 using Hearsay.App.Features.Notes;
 using Hearsay.App.Features.Recording;
 using Hearsay.App.Features.Settings;
+using Hearsay.App.Features.Transcription;
 using Hearsay.App.Interop;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
@@ -79,13 +80,17 @@ internal sealed partial class MainWindow : Window
         // cleared when the next recording or file starts.
         RecordNotes = new NotesPanel(shell.AIProviders, RecordView);
         FileNotes = new NotesPanel(shell.AIProviders, FileView);
-        RecordView.GenerateNotes = request => RecordNotes.Start(request.Srt, request.Language);
+        RecordView.GenerateNotes = StartRecordNotes;
         FileView.GenerateNotes = request => FileNotes.Start(request.Srt, request.Language);
         var controller = shell.RecordingController;
         var file = shell.FileModel;
-        controller.NotesRequested += (_, _) =>
+        // PLAN.md 4.9 item 4: a finished job's notes flow opens here unless a
+        // session is active or another notes flow is on screen (the queue
+        // checks again when it hands the request over); otherwise the job's
+        // row offers "Generate Notes…".
+        shell.Queue.NotesRequested += (_, _) =>
         {
-            if (controller.TakeNotesRequest() is { } request) RecordNotes.Start(request.Srt, request.Language);
+            if (shell.Queue.TakeNotesRequest() is { } request) StartRecordNotes(request);
         };
         file.NotesRequested += (_, _) =>
         {
@@ -127,6 +132,20 @@ internal sealed partial class MainWindow : Window
 
         shell.Tabs.PropertyChanged += OnTabsChanged;
         ShowTab(shell.Tabs.Tab);
+    }
+
+    /// <summary>
+    /// Starts the Record tab's notes flow for a finished job and follows the
+    /// renames it makes of the job's files (PLAN.md 4.3 step 7; the Mac's
+    /// <c>notesSRT</c> and <c>queue.filesRenamed</c>).
+    /// </summary>
+    private void StartRecordNotes(NotesRequest request)
+    {
+        if (RecordNotes.Start(request.Srt, request.Language) is not { } flow) return;
+        flow.Changed += (_, _) =>
+        {
+            if (flow.Phase is NotesPhase.Finished finished) shell.Queue.FilesRenamed(request.Srt, finished.Files);
+        };
     }
 
     /// <summary>The Record tab (W5); W6's notes flow sets its <c>GenerateNotes</c> hook.</summary>

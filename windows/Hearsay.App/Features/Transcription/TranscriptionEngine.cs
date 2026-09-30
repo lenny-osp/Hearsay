@@ -14,7 +14,36 @@ namespace Hearsay.App.Features.Transcription;
 /// passed in, so a job loads the model first when needed, as the Mac's
 /// <c>transcribe(samples:location:...)</c> does.
 /// </summary>
-internal sealed class TranscriptionEngine : IDisposable
+/// <summary>
+/// What the background queue needs from the engine (the Mac's
+/// <c>WhisperEngine.transcribeStep</c>, <c>detectLanguage</c> and
+/// <c>transcribe</c> as <c>TranscriptionQueue</c> calls them). A fake
+/// implements it in the queue tests.
+/// </summary>
+internal interface IQueueEngine
+{
+    /// <summary>Foreground calls waiting for or running in the engine (lock-free); a step yields while it is above 0.</summary>
+    int ForegroundWaiting { get; }
+
+    /// <summary>
+    /// One background, resumable step of a final pass (not counted as
+    /// foreground work). <paramref name="shouldYield"/> runs on the engine's
+    /// thread: read only volatile or locked state.
+    /// </summary>
+    Task<TranscriptionStep> TranscribeStepAsync(
+        string modelPath, float[] samples, TranscriptLanguage language, TranscriptionCheckpoint? resumeFrom,
+        IProgress<double>? progress, Func<bool> shouldYield, CancellationToken cancellationToken);
+
+    /// <summary>Language detection, foreground work.</summary>
+    Task<DetectionResult> DetectLanguageAsync(string modelPath, float[] samples, CancellationToken cancellationToken = default);
+
+    /// <summary>A whole pass, foreground work ("Transcribe again").</summary>
+    Task<WhisperTranscription> TranscribeAsync(
+        string modelPath, float[] samples, TranscriptLanguage language,
+        IProgress<double>? progress = null, CancellationToken cancellationToken = default);
+}
+
+internal sealed class TranscriptionEngine : IDisposable, IQueueEngine
 {
     private readonly Dictionary<string, Task<SpeedProbeResult>> probes = new(StringComparer.OrdinalIgnoreCase);
     private readonly Lock gate = new();
@@ -30,24 +59,51 @@ internal sealed class TranscriptionEngine : IDisposable
     /// <summary>A job is waiting or running.</summary>
     public bool IsBusy => Engine.IsBusy;
 
+    /// <inheritdoc />
+    public int ForegroundWaiting => Engine.ForegroundWaiting;
+
     /// <summary>
     /// Transcribes <paramref name="samples"/> in <paramref name="language"/>
     /// with the model at <paramref name="modelPath"/> (the Mac's
     /// <c>TranscriptionOptions.app(language:)</c>). Cancelling stops at the
     /// next 30 s window with <see cref="TranscriptionCancelledException"/>.
+    /// Foreground work (PLAN.md 4.9, 18.10): the call is counted from here,
+    /// before it waits for the engine, until it ends, so a background step
+    /// yields at its next window. Every caller of this method is foreground:
+    /// the live chunks, File mode, "Transcribe again".
     /// </summary>
-    public Task<WhisperTranscription> TranscribeAsync(
+    public async Task<WhisperTranscription> TranscribeAsync(
         string modelPath, float[] samples, TranscriptLanguage language,
-        IProgress<double>? progress = null, CancellationToken cancellationToken = default) =>
-        Engine.TranscribeAsync(modelPath, samples, TranscriptionOptions.App(language), progress, cancellationToken);
+        IProgress<double>? progress = null, CancellationToken cancellationToken = default)
+    {
+        using var foreground = Engine.EnterForeground();
+        return await Engine.TranscribeAsync(modelPath, samples, TranscriptionOptions.App(language), progress, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// One background step of a final pass, resumable (PLAN.md 18.10); never
+    /// counted as foreground work. Yields (returns a suspended step) when
+    /// <paramref name="shouldYield"/> says so at a 30 s window.
+    /// </summary>
+    public Task<TranscriptionStep> TranscribeStepAsync(
+        string modelPath, float[] samples, TranscriptLanguage language, TranscriptionCheckpoint? resumeFrom,
+        IProgress<double>? progress, Func<bool> shouldYield, CancellationToken cancellationToken) =>
+        Engine.TranscribeStepAsync(
+            modelPath, samples, TranscriptionOptions.App(language), resumeFrom, progress, shouldYield, cancellationToken);
 
     /// <summary>
     /// Detects the language of <paramref name="samples"/> among the four
     /// supported languages (up to three speech windows averaged; the caller
-    /// applies <see cref="LanguageDecision.Decide"/>).
+    /// applies <see cref="LanguageDecision.Decide"/>). Foreground work, like
+    /// <see cref="TranscribeAsync"/>.
     /// </summary>
-    public Task<DetectionResult> DetectLanguageAsync(string modelPath, float[] samples, CancellationToken cancellationToken = default) =>
-        Task.Run(() => Engine.DetectLanguage(modelPath, samples, cancellationToken), CancellationToken.None);
+    public async Task<DetectionResult> DetectLanguageAsync(string modelPath, float[] samples, CancellationToken cancellationToken = default)
+    {
+        using var foreground = Engine.EnterForeground();
+        return await Task.Run(() => Engine.DetectLanguage(modelPath, samples, cancellationToken), CancellationToken.None)
+            .ConfigureAwait(false);
+    }
 
     /// <summary>
     /// The speed probe of <paramref name="modelPath"/>, measured once per

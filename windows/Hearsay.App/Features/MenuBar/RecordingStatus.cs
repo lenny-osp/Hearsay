@@ -28,6 +28,7 @@ internal sealed class RecordingStatus : INotifyPropertyChanged
 {
     private Action? startStop;
     private Action? pause;
+    private Action? stopStartNext;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -78,10 +79,18 @@ internal sealed class RecordingStatus : INotifyPropertyChanged
     }
 
     /// <summary>Routes the tray and hotkey commands to the recording controller.</summary>
-    public void Connect(Action toggleStartStop, Action togglePause)
+    public void Connect(Action toggleStartStop, Action togglePause, Action? stopAndStartNext = null)
     {
         startStop = toggleStartStop;
         pause = togglePause;
+        stopStartNext = stopAndStartNext;
+    }
+
+    /// <summary>The Stop &amp; Start Next hotkey and menu command (<c>stopAndStartNext()</c>); nothing unless recording.</summary>
+    public void StopAndStartNext()
+    {
+        AppLog.Write($"recording: stop and start next command in {Phase}");
+        stopStartNext?.Invoke();
     }
 
     /// <summary>The Start / Stop hotkey and menu command (<c>toggleStartStop()</c>).</summary>

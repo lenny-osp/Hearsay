@@ -1,8 +1,10 @@
 using System.ComponentModel;
 using Hearsay.App.Features.FileTranscription;
 using Hearsay.App.Features.Main;
+using Hearsay.App.Features.Notes;
 using Hearsay.App.Features.Transcription;
 using Hearsay.Core.Audio;
+using Hearsay.Core.Settings;
 using Hearsay.Core.Transcription;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
@@ -15,18 +17,24 @@ namespace Hearsay.App.Features.Recording;
 /// <summary>
 /// The Record tab: microphone, system audio, language, controls, level
 /// meters, the live preview, the language banner, the final-pass progress and
-/// the saved recording (PLAN.md 4.1). The session lives in the app-level
-/// <see cref="RecordingController"/>, so this view only reflects it and
-/// closing the window never stops a recording. Port of
+/// the saved recording (PLAN.md 4.1, 4.9). The session lives in the app-level
+/// <see cref="RecordingController"/> and the finished recordings in the
+/// <see cref="TranscriptionQueue"/>, so this view only reflects them and
+/// closing the window never stops a recording or a transcription. With no
+/// session and one recording in the queue, that recording is shown as the
+/// single meeting always was (live preview, progress, "Use live preview
+/// instead", the saved files, the language banner, the notes); the queue list
+/// for several recordings is WI-4. Port of
 /// mac/Hearsay/Features/Recording/RecordView.swift. The Mac's permission
-/// section has no Windows counterpart (PLAN.md 18.4, W3), and the notes flow
-/// is W6: <see cref="GenerateNotes"/> is its hook (the Mac starts the flow by
-/// itself from <c>notesRequest</c>; see <see cref="RecordingController.NotesRequested"/>).
+/// section has no Windows counterpart (PLAN.md 18.4, W3); <see cref="GenerateNotes"/>
+/// is the hook of the notes flow (the Mac starts the flow by itself from the
+/// queue's notes request; see <see cref="TranscriptionQueue.NotesRequested"/>).
 /// </summary>
 internal sealed partial class RecordView : UserControl
 {
     private readonly AppShell shell;
     private readonly RecordingController model;
+    private readonly TranscriptionQueue queue;
 
     private readonly ComboBox microphone = new() { MinWidth = 260, MaxWidth = 380 };
     private readonly ToggleSwitch systemAudio;
@@ -57,6 +65,9 @@ internal sealed partial class RecordView : UserControl
     };
     private readonly TextBlock liveFooter;
     private int shownLiveCount = -1;
+    private object? shownLiveSource;
+    /// <summary>The job whose language notice the banner shows; null for the session's.</summary>
+    private TranscriptionJob? noticeJob;
 
     private readonly Border noticeCard;
     private readonly LanguageNoticeView noticeView;
@@ -83,6 +94,7 @@ internal sealed partial class RecordView : UserControl
         ArgumentNullException.ThrowIfNull(shell);
         this.shell = shell;
         model = shell.RecordingController;
+        queue = shell.Queue;
         var page = Page();
         page.Padding = new Thickness(24, 4, 24, 24);
         page.MaxWidth = 760;
@@ -134,12 +146,25 @@ internal sealed partial class RecordView : UserControl
         page.Children.Add(liveCard);
 
         // Language banner.
-        noticeView = new LanguageNoticeView(model.TranscribeAgain, model.DismissLanguageNotice);
+        noticeView = new LanguageNoticeView(
+            language =>
+            {
+                if (noticeJob is { } job) queue.TranscribeAgain(job, language);
+                else model.TranscribeAgain(language);
+            },
+            () =>
+            {
+                if (noticeJob is { } job) queue.DismissLanguageNotice(job);
+                else model.DismissLanguageNotice();
+            });
         noticeCard = Card(noticeView);
         page.Children.Add(noticeCard);
 
         // Final pass.
-        useLivePreview.Click += (_, _) => model.UseLivePreviewInstead();
+        useLivePreview.Click += (_, _) =>
+        {
+            if (queue.FeaturedJob is { } job) queue.UseLivePreviewInstead(job);
+        };
         ToolTipService.SetToolTip(useLivePreview, Strings.UseLivePreviewTooltip);
         var progressRow = new Grid();
         progressRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -163,7 +188,7 @@ internal sealed partial class RecordView : UserControl
 
         Content = new ScrollViewer { Content = page, HorizontalScrollMode = ScrollMode.Disabled };
         model.PropertyChanged += OnModelChanged;
-        model.NotesRequested += (_, _) => Render();
+        queue.Changed += (_, _) => Render();
         Loaded += (_, _) =>
         {
             model.Activate();
@@ -174,9 +199,10 @@ internal sealed partial class RecordView : UserControl
 
     /// <summary>
     /// The notes flow's hook (W6): called with the finished SRT and the
-    /// session language when "Generate notes…" is pressed. Null leaves the
-    /// button disabled. The automatic start the Mac does after every finished
-    /// transcript is <see cref="RecordingController.NotesRequested"/>.
+    /// job's language when "Generate notes…" is pressed on a finished job
+    /// that could not open them by itself. Null leaves the button disabled.
+    /// The automatic start after every finished transcript is
+    /// <see cref="TranscriptionQueue.NotesRequested"/>.
     /// </summary>
     public Action<NotesRequest>? GenerateNotes { get; set; }
 
@@ -184,6 +210,9 @@ internal sealed partial class RecordView : UserControl
 
     private void Render()
     {
+        // With no session and one job in the queue, that job is shown as the
+        // single meeting always was (PLAN.md 4.9 item 5).
+        var job = queue.FeaturedJob;
         updating = true;
         try
         {
@@ -199,7 +228,7 @@ internal sealed partial class RecordView : UserControl
         }
 
         elapsed.Text = LevelMeter.FormatElapsed(model.Elapsed);
-        RenderStatus();
+        RenderStatus(job);
         level.Value = model.LevelFraction;
         level.Foreground = model.SilenceWarning is null ? Green() : FileView.Caution();
         micMeter.Value = model.MicLevelFraction;
@@ -219,51 +248,59 @@ internal sealed partial class RecordView : UserControl
             shownControls = controlState;
             RenderControls();
         }
-        RenderLive();
+        RenderLive(job);
 
-        if (model.LanguageNotice is { } notice)
+        if (model.LanguageNotice is { } sessionNotice)
         {
-            noticeView.Show(notice, model.CanChangeSessionLanguage);
+            noticeJob = null;
+            noticeView.Show(sessionNotice, model.CanChangeSessionLanguage);
+            noticeCard.Visibility = Visibility.Visible;
+        }
+        else if (job?.LanguageNotice is { } jobNotice)
+        {
+            noticeJob = job;
+            noticeView.Show(jobNotice, job.CanChangeLanguage);
             noticeCard.Visibility = Visibility.Visible;
         }
         else
         {
+            noticeJob = null;
             noticeCard.Visibility = Visibility.Collapsed;
         }
 
-        if (model.TranscriptionProgress is { } fraction)
+        if (job?.DisplayProgress is { } fraction)
         {
             progressCard.Visibility = Visibility.Visible;
             progress.Value = fraction;
             progressText.Text = FileView.Percent(fraction);
-            useLivePreview.Visibility = model.CanUseLivePreview ? Visibility.Visible : Visibility.Collapsed;
-            savingLivePreview.Visibility = !model.CanUseLivePreview && model.IsUsingLivePreview ? Visibility.Visible : Visibility.Collapsed;
+            useLivePreview.Visibility = job.CanUseLivePreview ? Visibility.Visible : Visibility.Collapsed;
+            savingLivePreview.Visibility = !job.CanUseLivePreview && job.IsUsingLivePreview && job.IsPending ? Visibility.Visible : Visibility.Collapsed;
         }
         else
         {
             progressCard.Visibility = Visibility.Collapsed;
         }
 
-        var error = $"{model.ErrorMessage}|{model.NeedsModel}|{model.CanRetryTranscription}|{model.FinishedRecording}";
+        var error = $"{model.ErrorMessage}|{model.NeedsModel}|{model.CanRetryTranscription}|{model.FinishedRecording}|{job?.Id}|{job?.State}|{job?.ErrorMessage}|{job?.NeedsModel}|{job?.Wav}";
         if (error != shownError)
         {
             shownError = error;
-            RenderError();
+            RenderError(job);
         }
-        var saved = $"{model.FinishedTranscript}|{model.FinishedRecording}|{model.SessionLanguage}|{model.RerunError}|{model.IsTranscribing}|{GenerateNotes is null}";
+        var saved = $"{model.ErrorMessage}|{model.FinishedTranscript}|{model.FinishedRecording}|{job?.Id}|{job?.State}|{job?.Srt}|{job?.Wav}|{job?.Language}|{job?.RerunError}|{job?.OffersNotes}|{job?.IsRerunning}|{GenerateNotes is null}|{NotesFlowViewModel.IsAnyRunning}";
         if (saved != shownSaved)
         {
             shownSaved = saved;
-            RenderSaved();
+            RenderSaved(job);
         }
     }
 
     private void RenderNotices()
     {
         noticeArea.Children.Clear();
-        if (model.SystemAudioNotice is { } systemNotice) noticeArea.Children.Add(FileView.IconLine("\uE74F", systemNotice, FileView.Secondary()));
-        if (model.SilenceWarning is { } warning) noticeArea.Children.Add(FileView.IconLine("\uE7BA", warning, FileView.Caution()));
-        if (model.CpuSpeedNotice is { } cpu) noticeArea.Children.Add(FileView.IconLine("\uE946", cpu, FileView.Secondary()));
+        if (model.SystemAudioNotice is { } systemNotice) noticeArea.Children.Add(FileView.IconLine("", systemNotice, FileView.Secondary()));
+        if (model.SilenceWarning is { } warning) noticeArea.Children.Add(FileView.IconLine("", warning, FileView.Caution()));
+        if (model.CpuSpeedNotice is { } cpu) noticeArea.Children.Add(FileView.IconLine("", cpu, FileView.Secondary()));
         noticeArea.Visibility = noticeArea.Children.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
@@ -285,16 +322,16 @@ internal sealed partial class RecordView : UserControl
         if (!ReferenceEquals(microphone.SelectedItem, selected)) microphone.SelectedItem = selected;
     }
 
-    private void RenderStatus()
+    private void RenderStatus(TranscriptionJob? job)
     {
         var (text, brush) = model.Phase switch
         {
-            ControllerPhase.Transcribing => (Strings.Finalizing, FileView.Secondary()),
-            ControllerPhase.Finished => (Strings.Saved, FileView.Secondary()),
             ControllerPhase.Starting => (Strings.StartingState, FileView.Secondary()),
             ControllerPhase.Recording => ("● " + Strings.RecordingState, FileView.Critical()),
             ControllerPhase.Paused => ("❚❚ " + Strings.PausedState, FileView.Secondary()),
             ControllerPhase.Stopping => (Strings.Saving, FileView.Secondary()),
+            _ when job is not null && model.ErrorMessage is null && (job.IsPending || job.IsRerunning) => (Strings.Finalizing, FileView.Secondary()),
+            _ when job is { State: TranscriptionJobState.Done } && model.ErrorMessage is null => (Strings.Saved, FileView.Secondary()),
             _ => (Strings.Ready, FileView.Secondary()),
         };
         status.Text = text;
@@ -307,49 +344,68 @@ internal sealed partial class RecordView : UserControl
         switch (model.Phase)
         {
             case ControllerPhase.Recording:
-                controls.Children.Add(IconButton("\uE769", Strings.Pause, model.Pause, accent: false));
-                controls.Children.Add(IconButton("\uE71A", Strings.Stop, () => _ = model.StopAsync(), accent: true));
+                controls.Children.Add(IconButton("", Strings.Pause, model.Pause, accent: false));
+                controls.Children.Add(IconButton("", Strings.Stop, () => _ = model.StopAsync(), accent: true));
+                controls.Children.Add(StopStartNextButton());
                 break;
             case ControllerPhase.Paused:
-                controls.Children.Add(IconButton("\uE768", Strings.Resume, model.Resume, accent: false));
-                controls.Children.Add(IconButton("\uE71A", Strings.Stop, () => _ = model.StopAsync(), accent: true));
+                controls.Children.Add(IconButton("", Strings.Resume, model.Resume, accent: false));
+                controls.Children.Add(IconButton("", Strings.Stop, () => _ = model.StopAsync(), accent: true));
+                controls.Children.Add(StopStartNextButton());
                 break;
             case ControllerPhase.Stopping:
                 controls.Children.Add(new ProgressRing { IsActive = true, Width = 20, Height = 20 });
                 break;
             default:
-                var start = IconButton("\uE7C8", Strings.Start, model.Start, accent: true);
+                var start = IconButton("", Strings.Start, model.Start, accent: true);
                 start.IsEnabled = model.CanStart;
                 controls.Children.Add(start);
                 break;
         }
     }
 
-    private void RenderLive()
+    /// <summary>The Mac's "Stop &amp; Start Next" button, with the shortcut in its tooltip.</summary>
+    private Button StopStartNextButton()
     {
-        var shown = model.IsCapturing || model.Phase is ControllerPhase.Stopping || model.LiveSegments.Count > 0 || model.LiveNotice is not null;
+        var button = IconButton("", Strings.StopAndStartNext, model.StopAndStartNext, accent: false);
+        ToolTipService.SetToolTip(button, Strings.StopAndStartNextTooltip(shell.Settings.StopStartNextHotkey.DisplayString));
+        return button;
+    }
+
+    private void RenderLive(TranscriptionJob? job)
+    {
+        // The session's live preview while it lasts; else the single job's.
+        var session = model.IsCapturing || model.Phase is ControllerPhase.Stopping || model.LiveSegments.Count > 0 || model.LiveNotice is not null;
+        var jobLive = !session && job is not null && (job.LiveSegments.Count > 0 || job.LiveNotice is not null);
+        var shown = session || jobLive;
         liveCard.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
         if (!shown) return;
-        if (model.IsDetectingLanguage)
+        var segments = session ? model.LiveSegments : job?.LiveSegments ?? [];
+        var waiting = session ? model.LiveChunksWaiting : job?.LiveChunksWaiting ?? 0;
+        var detecting = session ? model.IsDetectingLanguage : job?.IsDetectingLanguage ?? false;
+        var enabled = session ? model.IsLivePreviewEnabled : job?.LiveEnabled ?? false;
+        var notice = session ? model.LiveNotice : job?.LiveNotice;
+        if (detecting)
         {
             liveIndicator.Text = Strings.DetectingLanguage;
             liveIndicator.Foreground = FileView.Secondary();
         }
-        else if (model.IsLiveLagging)
+        else if (waiting > 1)
         {
-            liveIndicator.Text = Strings.ChunksWaiting(model.LiveChunksWaiting);
+            liveIndicator.Text = Strings.ChunksWaiting(waiting);
             liveIndicator.Foreground = FileView.Caution();
             ToolTipService.SetToolTip(liveIndicator, Strings.ChunksWaitingTooltip);
         }
         else
         {
-            liveIndicator.Text = model.LiveChunksWaiting == 1 ? Strings.TranscribingChunk : "";
+            liveIndicator.Text = waiting == 1 ? Strings.TranscribingChunk : "";
             liveIndicator.Foreground = FileView.Secondary();
         }
-        var cues = model.LiveSegments.Where(cue => cue.Text.Length > 0).ToList();
-        if (cues.Count != shownLiveCount)
+        var cues = segments.Where(cue => cue.Text.Length > 0).ToList();
+        if (cues.Count != shownLiveCount || !ReferenceEquals(segments, shownLiveSource))
         {
             shownLiveCount = cues.Count;
+            shownLiveSource = segments;
             liveLines.Children.Clear();
             foreach (var cue in cues)
             {
@@ -373,64 +429,107 @@ internal sealed partial class RecordView : UserControl
             liveScroll.ChangeView(null, liveScroll.ScrollableHeight, null, disableAnimation: true);
         }
         livePlaceholder.Visibility = cues.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        livePlaceholder.Text = model.IsDetectingLanguage
+        livePlaceholder.Text = detecting
             ? Strings.DetectingLanguage
-            : model.IsLivePreviewEnabled ? Strings.FirstLinesAppear : "";
-        liveFooter.Text = model.LiveNotice ?? "";
-        liveFooter.Visibility = model.LiveNotice is null ? Visibility.Collapsed : Visibility.Visible;
+            : enabled ? Strings.FirstLinesAppear : "";
+        liveFooter.Text = notice ?? "";
+        liveFooter.Visibility = notice is null ? Visibility.Collapsed : Visibility.Visible;
     }
 
-    private void RenderError()
+    /// <summary>The capture failure's card, else the single job's failure (PLAN.md 4.1 failure rules).</summary>
+    private void RenderError(TranscriptionJob? job)
     {
         errorArea.Children.Clear();
-        if (model.ErrorMessage is not { } message)
+        string? message;
+        bool needsModel;
+        Action? retry;
+        string? transcribe;
+        if (model.ErrorMessage is { } captureError)
+        {
+            message = captureError;
+            needsModel = model.NeedsModel;
+            retry = model.CanRetryTranscription ? model.RetryTranscription : null;
+            transcribe = model.FinishedRecording;
+        }
+        else if (job is { State: TranscriptionJobState.Failed, ErrorMessage: { } jobError })
+        {
+            message = jobError;
+            needsModel = job.NeedsModel;
+            retry = () => queue.Retry(job);
+            transcribe = job.Wav;
+        }
+        else
         {
             errorCard.Visibility = Visibility.Collapsed;
             return;
         }
         errorCard.Visibility = Visibility.Visible;
-        errorArea.Children.Add(FileView.IconLine("\uEA39", message, FileView.Critical()));
+        errorArea.Children.Add(FileView.IconLine("", message, FileView.Critical()));
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        if (model.NeedsModel) buttons.Children.Add(IconButton("\uE896", Strings.OpenModels, () => shell.Tabs.Tab = MainTab.Models, accent: false));
-        if (model.CanRetryTranscription) buttons.Children.Add(IconButton("\uE72C", Strings.TryAgain, model.RetryTranscription, accent: false));
-        if (model.FinishedRecording is not null)
+        if (needsModel) buttons.Children.Add(IconButton("", Strings.OpenModels, () => shell.Tabs.Tab = MainTab.Models, accent: false));
+        if (retry is not null) buttons.Children.Add(IconButton("", Strings.TryAgain, retry, accent: false));
+        if (transcribe is not null)
         {
-            buttons.Children.Add(IconButton("\uE8E5", Strings.TranscribeThisFile, model.RequestTranscribeFile, accent: false));
+            buttons.Children.Add(IconButton("", Strings.TranscribeThisFile, () => model.RequestTranscribeFile(transcribe), accent: false));
         }
         if (buttons.Children.Count > 0) errorArea.Children.Add(buttons);
     }
 
-    private void RenderSaved()
+    /// <summary>The kept files of a capture failure, or the single finished (or failed) job's files.</summary>
+    private void RenderSaved(TranscriptionJob? job)
     {
         savedArea.Children.Clear();
-        if (model.FinishedTranscript is null && model.FinishedRecording is null)
+        string? srt;
+        string? wav;
+        if (model.ErrorMessage is not null)
+        {
+            srt = model.FinishedTranscript;
+            wav = model.FinishedRecording;
+            job = null;
+        }
+        else if (job is { IsPending: false })
+        {
+            srt = job.Srt;
+            wav = job.Wav;
+        }
+        else
+        {
+            srt = null;
+            wav = null;
+            job = null;
+        }
+        if (srt is null && wav is null)
         {
             savedCard.Visibility = Visibility.Collapsed;
             return;
         }
         savedCard.Visibility = Visibility.Visible;
         savedArea.Children.Add(new TextBlock { Text = Strings.Saved, Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"] });
-        if (model.FinishedTranscript is { } srt) savedArea.Children.Add(PathRow(Strings.Transcript, srt));
-        if (model.FinishedRecording is { } wav) savedArea.Children.Add(PathRow(Strings.RecordingLabel, wav));
-        if (model.SessionLanguage is { } language && model.FinishedTranscript is not null)
+        if (srt is not null) savedArea.Children.Add(PathRow(Strings.Transcript, srt));
+        if (wav is not null) savedArea.Children.Add(PathRow(Strings.RecordingLabel, wav));
+        if (job is { State: TranscriptionJobState.Done, Language: { } language })
         {
             savedArea.Children.Add(Labeled(Strings.LanguageLabel, new TextBlock { Text = language.DisplayName() }));
         }
-        if (model.RerunError is { } rerunError) savedArea.Children.Add(FileView.IconLine("\uE7BA", rerunError, FileView.Caution()));
+        if (job?.RerunError is { } rerunError) savedArea.Children.Add(FileView.IconLine("", rerunError, FileView.Caution()));
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        buttons.Children.Add(IconButton("\uE838", Strings.RevealInExplorer, () =>
-            ResultActions.Reveal(shell, new[] { model.FinishedTranscript, model.FinishedRecording }.OfType<string>().ToList()), accent: false));
-        if (model.FinishedTranscript is { } transcript)
+        var files = new[] { srt, wav }.OfType<string>().ToList();
+        buttons.Children.Add(IconButton("", Strings.RevealInExplorer, () => ResultActions.Reveal(shell, files), accent: false));
+        if (job is { State: TranscriptionJobState.Done, Srt: { } transcript } done)
         {
-            buttons.Children.Add(IconButton("\uE8A5", Strings.OpenSrt, () => ResultActions.Open(shell, transcript), accent: false));
-            var canNotes = GenerateNotes is not null && model.SessionLanguage is not null && !model.IsTranscribing;
-            var notes = IconButton("\uE70B", Strings.GenerateNotes, () =>
+            buttons.Children.Add(IconButton("", Strings.OpenSrt, () => ResultActions.Open(shell, transcript), accent: false));
+            if (done.OffersNotes && done.Language is { } notesLanguage)
             {
-                if (GenerateNotes is { } generate && model.SessionLanguage is { } lang) generate(new NotesRequest(transcript, lang));
-            }, accent: false);
-            notes.IsEnabled = canNotes;
-            if (GenerateNotes is null) ToolTipService.SetToolTip(notes, Strings.GenerateNotesUnavailable);
-            buttons.Children.Add(notes);
+                var notes = IconButton("", Strings.GenerateNotes, () =>
+                {
+                    if (GenerateNotes is not { } generate) return;
+                    queue.NotesStarted(done);
+                    generate(new NotesRequest(transcript, notesLanguage, done.Id));
+                }, accent: false);
+                notes.IsEnabled = GenerateNotes is not null && !NotesFlowViewModel.IsAnyRunning;
+                if (GenerateNotes is null) ToolTipService.SetToolTip(notes, Strings.GenerateNotesUnavailable);
+                buttons.Children.Add(notes);
+            }
         }
         savedArea.Children.Add(buttons);
     }

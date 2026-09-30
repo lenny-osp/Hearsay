@@ -2,7 +2,6 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Threading.Channels;
-using Hearsay.App.Features.FileTranscription;
 using Hearsay.App.Features.Transcription;
 using Hearsay.Core.Audio;
 using Hearsay.Core.ModelStore;
@@ -15,7 +14,9 @@ namespace Hearsay.App.Features.Recording;
 
 /// <summary>
 /// The phases of <see cref="RecordingController"/> (the Mac's
-/// <c>RecordingController.Phase</c>).
+/// <c>RecordingController.Phase</c>). A finished recording is no longer a
+/// phase: Stop hands it to the <see cref="TranscriptionQueue"/> and the
+/// controller is idle again (PLAN.md 4.9).
 /// </summary>
 internal abstract record ControllerPhase
 {
@@ -35,24 +36,15 @@ internal abstract record ControllerPhase
 
     public sealed record Stopping : ControllerPhase;
 
-    /// <summary>The WAV is closed and the final pass (or a retry) is running.</summary>
-    public sealed record Transcribing(double Progress) : ControllerPhase;
-
-    /// <summary>The transcript was written to <paramref name="Srt"/>; the recording is at <paramref name="Wav"/>, or null when it was not kept.</summary>
-    public sealed record Finished(string? Srt, string? Wav) : ControllerPhase;
-
-    /// <summary>The last recording, its transcription, or the last start had a problem; captured audio is at <see cref="RecordingController.FinishedRecording"/>.</summary>
+    /// <summary>The last recording or the last start had a problem; captured audio is at <see cref="RecordingController.FinishedRecording"/>.</summary>
     public sealed record Failed(string Message) : ControllerPhase;
 }
 
-/// <summary>A finished SRT for the notes flow (PLAN.md 4.3 step 1) and the session language it was written in.</summary>
-internal sealed record NotesRequest(string Srt, TranscriptLanguage Language);
-
 /// <summary>
 /// Owns the one recording session the app can run at a time (PLAN.md 4.1,
-/// 4.4). It lives in <see cref="AppShell"/>, not in a view, so closing the
-/// main window never stops a recording; the Record tab, the tray menu, the
-/// global hotkeys, and the quit prompt all drive this same object.
+/// 4.4, 4.9). It lives in <see cref="AppShell"/>, not in a view, so closing
+/// the main window never stops a recording; the Record tab, the tray menu,
+/// the global hotkeys, and the quit prompt all drive this same object.
 /// Port of mac/Hearsay/Features/Recording/RecordingController.swift.
 /// </summary>
 /// <remarks>
@@ -62,19 +54,21 @@ internal sealed record NotesRequest(string Srt, TranscriptLanguage Language);
 /// cannot start never blocks a recording: it goes on mic-only with a notice.
 /// Elapsed time is derived from the number of samples written, so paused
 /// time never counts and the display matches the WAV exactly.</para>
-/// <para>Transcription (PLAN.md 4.1 steps 4 to 7): while recording,
+/// <para>Transcription (PLAN.md 4.1 step 4, 4.9): while recording,
 /// <see cref="LiveChunker"/> cuts the mixed stream into chunks that the
-/// engine transcribes in order for the live preview. After Stop the WAV is
-/// closed and one full pass over the in-memory samples produces
-/// <c>&lt;timestamp&gt;.srt</c> in the output folder; the WAV is then moved
-/// beside it (or deleted when "Keep the recording" is off). If the pass fails,
-/// the WAV is always kept, the live preview is saved as the SRT when there is
-/// one, and the recording can be retried here or sent to the File tab.
-/// Without an installed model the recording still works; the live preview is
-/// skipped and the WAV is kept.</para>
-/// <para>Phase transitions: idle/finished/failed → starting → recording ⇄
-/// paused → stopping → transcribing(progress) → finished(srt, wav) or
-/// failed(message), exactly as on the Mac.</para>
+/// engine transcribes in order for the live preview (through the session's
+/// <see cref="LiveSink"/>). Stop closes the WAV and hands the session to the
+/// <see cref="TranscriptionQueue"/> as a job (the WAV, the live segments and
+/// the live tail still in flight, the language tracker and script, the
+/// keep-recording choice); the controller is ready for the next Start at
+/// once, and the queue runs the final pass. A capture problem keeps the WAV
+/// and the live preview in the output folder instead (PLAN.md 4.1 failure
+/// rules); "Try Again" queues that WAV. Without an installed model the
+/// recording still works; the live preview is skipped and the job fails with
+/// the WAV kept.</para>
+/// <para>Phase transitions: idle/failed → starting → recording ⇄ paused →
+/// stopping → idle (handed to the queue) or failed(message), as on the Mac.
+/// <c>starting</c> can also end in idle (stop while starting) or failed.</para>
 /// <para>Windows differences (PLAN.md 18.4): the live preview runs only when
 /// the model's speed probe (<see cref="TranscriptionEngine.MeasureSpeedAsync"/>)
 /// finished a warm 30 s window in under 15 s; otherwise the Record tab says
@@ -88,6 +82,7 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
     private readonly AppSettings settings;
     private readonly ModelStore modelStore;
     private readonly TranscriptionEngine engine;
+    private readonly TranscriptionQueue queue;
     private readonly SynchronizationContext? context;
     private RecordingSpool spool;
     private CaptureSources sources;
@@ -102,6 +97,8 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
     private Task? startTask;
     private Task? consumer;
     private bool stopRequestedWhileStarting;
+    private bool continuesWithNextSession;
+    private bool isQuitting;
     private AudioDeviceListObservation? deviceObservation;
     private string recordingDeviceName = Strings.TheInputDevice;
     private MicrophoneRecorderException? noAudioFailure;
@@ -112,18 +109,14 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
     private LiveChunker chunker = new();
     private int chunkedSamples;
     private ChannelWriter<LiveJob>? liveWriter;
-    private Task? liveTask;
-    private CancellationTokenSource? liveCancellation;
-    private CancellationTokenSource? transcription;
-    private Task? transcriptionTask;
-    private string? pendingSpoolWav;
+    private LiveSink? liveSink;
+    private EventHandler? liveSinkChanged;
     private string? retryableRecording;
     private int session;
     private int liveJobCount;
     private string? liveLocation;
     private Task? detectionTask;
-    private List<TaskCompletionSource> languageWaiters = [];
-    private float[]? rerunSamples;
+    private CancellationTokenSource? detectionCancellation;
     private ChineseScript? sessionChineseScript;
     private List<TranscriptSegment> liveSegments = [];
     private bool? cpuRuntime;
@@ -131,16 +124,18 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
     private bool startedThisRun;
 
     public RecordingController(
-        AppSettings settings, ModelStore modelStore, TranscriptionEngine engine, RecordingSpool spool,
-        CaptureSources? sources = null)
+        AppSettings settings, ModelStore modelStore, TranscriptionEngine engine, TranscriptionQueue queue,
+        RecordingSpool spool, CaptureSources? sources = null)
     {
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(modelStore);
         ArgumentNullException.ThrowIfNull(engine);
+        ArgumentNullException.ThrowIfNull(queue);
         ArgumentNullException.ThrowIfNull(spool);
         this.settings = settings;
         this.modelStore = modelStore;
         this.engine = engine;
+        this.queue = queue;
         this.spool = spool;
         this.sources = sources ?? CaptureSources.Live;
         context = SynchronizationContext.Current;
@@ -149,14 +144,14 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    /// <summary>A finished SRT is waiting for the notes flow; see <see cref="TakeNotesRequest"/>.</summary>
-    public event EventHandler? NotesRequested;
-
     /// <summary>A live job's progress, for the debug replay's timing log.</summary>
     public Action<LiveJobEvent>? LiveJobObserver { get; set; }
 
-    /// <summary>Debug only: the replay never starts the notes flow, so no transcript reaches an AI provider.</summary>
-    internal bool SuppressNotesRequests { get; set; }
+    /// <summary>Debug only: a session reached <see cref="ControllerPhase.Recording"/> (the replay measures the Stop &amp; Start Next gap with it); gets the session's WAV path.</summary>
+    public Action<string>? SessionStartObserver { get; set; }
+
+    /// <summary>The background queue the ended sessions go to.</summary>
+    public TranscriptionQueue Queue => queue;
 
     public ControllerPhase Phase
     {
@@ -165,6 +160,7 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
         {
             if (phase == value) return;
             phase = value;
+            queue.SetSessionActive(IsSessionActive);
             Notify(nameof(Phase));
         }
     }
@@ -188,17 +184,17 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
 
     public string? SilenceWarning { get; private set; }
 
-    /// <summary>Where the last recording ended up, also after a failure.</summary>
+    /// <summary>Where the recording of a capture failure was kept.</summary>
     public string? FinishedRecording { get; private set; }
 
-    /// <summary>The SRT of the last recording: the final transcript, or the live preview saved after a failed final pass.</summary>
+    /// <summary>The live preview saved after a capture failure.</summary>
     public string? FinishedTranscript { get; private set; }
 
-    /// <summary>Cues of the live preview, in recording time, in order.</summary>
+    /// <summary>Cues of the live preview of the current session, in recording time, in order.</summary>
     public IReadOnlyList<TranscriptSegment> LiveSegments => liveSegments;
 
-    /// <summary>Live chunks queued or being transcribed.</summary>
-    public int LiveChunksWaiting { get; private set; }
+    /// <summary>Live chunks of the current session queued or being transcribed.</summary>
+    public int LiveChunksWaiting => liveSink?.Waiting ?? 0;
 
     /// <summary>The newest non-empty live line, for the tray.</summary>
     public string? LatestLiveLine { get; private set; }
@@ -218,29 +214,17 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
     /// <summary>The current session transcribes live chunks.</summary>
     public bool IsLivePreviewEnabled { get; private set; }
 
-    /// <summary>"Use live preview instead" was chosen for the current final pass.</summary>
-    public bool IsUsingLivePreview { get; private set; }
-
     /// <summary>The last failure was the missing model; the view links to Models.</summary>
     public bool NeedsModel { get; private set; }
 
     /// <summary>A recording the File tab should pick up ("Transcribe this file"); the File tab clears it.</summary>
     public string? TranscribeFileRequest { get; set; }
 
-    /// <summary>A finished SRT waiting for the notes flow; see <see cref="TakeNotesRequest"/>.</summary>
-    public NotesRequest? PendingNotesRequest { get; private set; }
-
     /// <summary>When the session detects its language and what it settled on (PLAN.md section 1, "Languages").</summary>
     public SessionLanguageTracker LanguageTracker { get; private set; }
 
-    /// <summary>The suggestion or fallback banner of the current or last recording.</summary>
+    /// <summary>The suggestion or fallback banner of the current session.</summary>
     public LanguageNotice? LanguageNotice { get; private set; }
-
-    /// <summary>Why the last "Transcribe again" failed, shown under the transcript.</summary>
-    public string? RerunError { get; private set; }
-
-    /// <summary>A "Transcribe again" pass over the finished recording is running.</summary>
-    public bool IsRerunning { get; private set; }
 
     /// <summary>The last detection result, for the debug replay.</summary>
     public DetectionResult? LastDetection { get; private set; }
@@ -259,70 +243,38 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
         set => settings.CaptureSystemAudio = value;
     }
 
-    /// <summary>The language of the current or last recording; null while Auto is still undecided.</summary>
+    /// <summary>The language of the current session; null while Auto is still undecided.</summary>
     public TranscriptLanguage? SessionLanguage => LanguageTracker.Language;
 
     /// <summary>The current or last session's decision, for the debug replay.</summary>
     public LanguageDecision? SessionDecision => LanguageTracker.Decision;
 
     /// <summary>Auto has not decided yet, and a model is there to decide it: "Detecting language…".</summary>
-    public bool IsDetectingLanguage
-    {
-        get
-        {
-            if (!LanguageTracker.IsUndecided) return false;
-            return phase switch
-            {
-                ControllerPhase.Recording or ControllerPhase.Paused or ControllerPhase.Stopping => IsLivePreviewEnabled,
-                ControllerPhase.Transcribing => true,
-                _ => false,
-            };
-        }
-    }
+    public bool IsDetectingLanguage =>
+        LanguageTracker.IsUndecided
+        && phase is ControllerPhase.Recording or ControllerPhase.Paused or ControllerPhase.Stopping
+        && IsLivePreviewEnabled;
 
-    /// <summary>The language notice's buttons apply now.</summary>
-    public bool CanChangeSessionLanguage => phase switch
-    {
-        ControllerPhase.Recording or ControllerPhase.Paused or ControllerPhase.Stopping => true,
-        ControllerPhase.Finished finished => finished.Srt is not null && (finished.Wav is not null || rerunSamples is not null),
-        _ => false,
-    };
+    /// <summary>The language notice's buttons apply now: while recording, the rest of the live preview and the final pass use the picked language.</summary>
+    public bool CanChangeSessionLanguage => phase is ControllerPhase.Recording or ControllerPhase.Paused or ControllerPhase.Stopping;
 
     /// <summary>A session is being set up, is running, or is being saved: recording settings are locked and quitting asks first.</summary>
     public bool IsSessionActive =>
         phase is ControllerPhase.Starting or ControllerPhase.Recording or ControllerPhase.Paused or ControllerPhase.Stopping;
 
-    /// <summary>The final pass or a retry is running.</summary>
-    public bool IsTranscribing => phase is ControllerPhase.Transcribing;
-
-    public double? TranscriptionProgress => phase is ControllerPhase.Transcribing t ? t.Progress : null;
-
-    /// <summary>Start is allowed: nothing is recording or transcribing.</summary>
-    public bool CanStart => !IsSessionActive && !IsTranscribing;
+    /// <summary>Start is allowed: nothing is recording. Finished recordings being transcribed in the queue never block it (PLAN.md 4.9).</summary>
+    public bool CanStart => !IsSessionActive;
 
     /// <summary>The live preview has fallen more than one chunk behind.</summary>
     public bool IsLiveLagging => LiveChunksWaiting > 1;
 
-    /// <summary>"Use live preview instead" applies to the running pass.</summary>
-    public bool CanUseLivePreview => IsTranscribing && IsLivePreviewEnabled && pendingSpoolWav is not null && !IsUsingLivePreview;
-
-    /// <summary>A failed transcription can be retried from the kept WAV.</summary>
+    /// <summary>A capture failure's kept WAV can be queued again.</summary>
     public bool CanRetryTranscription => phase is ControllerPhase.Failed && retryableRecording is not null;
 
     /// <summary>Audio is being captured or is paused; Stop applies.</summary>
     public bool IsCapturing => phase is ControllerPhase.Recording or ControllerPhase.Paused;
 
     public string? ErrorMessage => phase is ControllerPhase.Failed failed ? failed.Message : null;
-
-    /// <summary>
-    /// The files History must not rename (PLAN.md 4.8): the recording's WAV
-    /// and SRT while it is recorded or transcribed.
-    /// </summary>
-    public IReadOnlyList<string> BusyFiles =>
-        IsSessionActive || IsTranscribing
-            ? new[] { FinishedTranscript, FinishedRecording, pendingSpoolWav, retryableRecording }
-                .OfType<string>().Distinct(StringComparer.OrdinalIgnoreCase).ToList()
-            : [];
 
     // MARK: - Devices
 
@@ -375,21 +327,31 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
 
     // MARK: - Controls
 
-    /// <summary>Starts a new recording unless one is active. Returns at once; the phase moves through starting to recording or failed.</summary>
-    public void Start()
+    /// <summary>
+    /// Starts a new recording unless one is active. Returns at once; the phase
+    /// moves through starting to recording or failed. A plain Start clears
+    /// finished queue rows whose notes already opened, as it cleared the
+    /// finished card before; Stop &amp; Start Next keeps them.
+    /// </summary>
+    public void Start() => Start(clearingFinished: true);
+
+    private void Start(bool clearingFinished)
     {
-        if (!CanStart) return;
+        if (!CanStart || isQuitting) return;
+        BeginStart(clearingFinished);
+    }
+
+    private void BeginStart(bool clearingFinished)
+    {
         startedThisRun = true;
         Phase = new ControllerPhase.Starting();
+        if (clearingFinished) queue.DismissFinishedForNewSession();
         FinishedRecording = null;
         FinishedTranscript = null;
         retryableRecording = null;
         TranscribeFileRequest = null;
-        PendingNotesRequest = null;
         NeedsModel = false;
         LanguageNotice = null;
-        RerunError = null;
-        rerunSamples = null;
         session += 1;
         ResetLivePreview();
         stopRequestedWhileStarting = false;
@@ -409,6 +371,23 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
             Phase = new ControllerPhase.Failed(Strings.Describe(error));
         }
         startTask = null;
+    }
+
+    /// <summary>
+    /// Stop &amp; Start Next (PLAN.md 4.9 item 2): the session becomes a queue
+    /// job and a new one starts with the same input device, system-audio
+    /// choice, and language choice (Auto detects again). The device and the
+    /// two choices cannot change while a session is active, so the new session
+    /// reads the same values. The new session starts right at the handover, so
+    /// the session-active flag never drops in between (a whenIdle job does not
+    /// start in the gap). A capture failure keeps its failure card and starts
+    /// nothing. Returns at once.
+    /// </summary>
+    public void StopAndStartNext()
+    {
+        if (!IsCapturing || isQuitting) return;
+        continuesWithNextSession = true;
+        _ = StopAsync();
     }
 
     public void Pause()
@@ -459,9 +438,9 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
     }
 
     /// <summary>
-    /// Stops the recording and returns once the WAV is closed (the final
-    /// pass then runs on its own). A start in progress is finished first.
-    /// Does nothing when no session is active.
+    /// Stops the recording and returns once the WAV is closed and handed to
+    /// the queue (or kept after a capture problem). A start in progress is
+    /// finished first. Does nothing when no session is active.
     /// </summary>
     public async Task StopAsync()
     {
@@ -476,118 +455,71 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
             recorder?.Stop();
             systemRecorder?.Stop();
         }
-        // The consumer finishes once both streams drain, then saves.
+        // The consumer finishes once both streams drain, then hands over.
         if (consumer is { } running) await running.ConfigureAwait(true);
     }
 
-    /// <summary>"Use live preview instead": cancels the final pass and writes the live segments as the SRT.</summary>
-    public void UseLivePreviewInstead()
-    {
-        if (!CanUseLivePreview) return;
-        IsUsingLivePreview = true;
-        transcription?.Cancel();
-        var id = session;
-        Notify();
-        _ = CompleteWithLivePreviewAsync(id);
-    }
-
-    private async Task CompleteWithLivePreviewAsync(int id)
-    {
-        if (liveTask is { } live) await live.ConfigureAwait(true);
-        if (session != id || !IsTranscribing) return;
-        CompleteTranscription(liveSegments.ToList());
-    }
-
     /// <summary>
-    /// Quit while transcribing: cancels the pass and the live queue, then
-    /// saves the live preview as the SRT when there is one. The WAV is kept
-    /// either way, whatever "Keep the recording" says, because the full pass
-    /// never ran. Returns once the files are written.
+    /// Quit: stops the session like <see cref="StopAsync"/>, but a Stop &amp;
+    /// Start Next still in progress starts no new session, and nothing starts
+    /// afterwards. The recording becomes a queue job the next launch continues.
     /// </summary>
-    public async Task CancelTranscriptionForQuitAsync()
+    public async Task StopForQuitAsync()
     {
-        if (!IsTranscribing) return;
-        if (IsRerunning)
-        {
-            // The previous SRT stays as it is.
-            transcription?.Cancel();
-            if (transcriptionTask is { } rerun) await rerun.ConfigureAwait(true);
-            return;
-        }
-        IsUsingLivePreview = true;
-        transcription?.Cancel();
-        liveWriter?.TryComplete();
-        liveWriter = null;
-        liveCancellation?.Cancel();
-        if (transcriptionTask is { } pass) await pass.ConfigureAwait(true);
-        if (!IsTranscribing) return;
-        if (liveSegments.Count == 0)
-        {
-            FailTranscription(Strings.CancelledBecauseQuit);
-        }
-        else
-        {
-            CompleteTranscription(liveSegments.ToList(), keepRecording: true);
-        }
+        isQuitting = true;
+        continuesWithNextSession = false;
+        await StopAsync().ConfigureAwait(true);
+        // A Stop & Start Next may have started the next session just before.
+        if (IsSessionActive) await StopAsync().ConfigureAwait(true);
     }
 
-    /// <summary>Runs the full pass again on the kept WAV of a failed transcription.</summary>
+    /// <summary>The quit did not happen after all.</summary>
+    public void QuitCancelled() => isQuitting = false;
+
+    /// <summary>"Try Again" after a capture failure: the kept WAV goes to the queue.</summary>
     public void RetryTranscription()
     {
         if (!CanRetryTranscription || retryableRecording is not { } recording) return;
-        Phase = new ControllerPhase.Transcribing(0);
-        IsUsingLivePreview = false;
-        var id = session;
-        transcription = new CancellationTokenSource();
-        transcriptionTask = RunRetryAsync(recording, id, transcription.Token);
+        queue.EnqueueRetry(
+            new TranscriptOutput.PendingRecording(recording, InSpool: false), LanguageTracker, sessionChineseScript,
+            settings.KeepRecording, liveSegments.ToList(), FinishedTranscript);
+        retryableRecording = null;
+        FinishedRecording = null;
+        FinishedTranscript = null;
+        NeedsModel = false;
+        liveSegments = [];
+        LiveNotice = null;
+        LanguageNotice = null;
+        Phase = ControllerPhase.IdleState;
+        Notify();
     }
 
     /// <summary>
-    /// A language notice button: transcribe this recording in
-    /// <paramref name="language"/>. While recording, the rest of the live
-    /// preview and the final pass use it; after a finished recording, the
-    /// final pass runs again in it and rewrites the same SRT. Never changes
-    /// the language choice or the preferred language.
+    /// A language notice button while recording: the rest of the live preview
+    /// and the final pass use <paramref name="language"/>. Never changes the
+    /// language choice or the preferred language.
     /// </summary>
     public void TranscribeAgain(TranscriptLanguage language)
     {
         if (!CanChangeSessionLanguage) return;
         LanguageTracker.Choose(language);
         LanguageNotice = null;
-        RerunError = null;
         LanguageSettled();
         Notify();
-        if (phase is not ControllerPhase.Finished { Srt: { } srt } finished) return;
-        var samples = rerunSamples;
-        Phase = new ControllerPhase.Transcribing(0);
-        IsRerunning = true;
-        IsUsingLivePreview = false;
-        var id = session;
-        transcription = new CancellationTokenSource();
-        transcriptionTask = RunRerunAsync(srt, finished.Wav, samples, language, id, transcription.Token);
     }
 
     /// <summary>"Dismiss" on the suggestion banner.</summary>
     public void DismissLanguageNotice()
     {
         LanguageNotice = null;
-        if (!IsTranscribing) rerunSamples = null;
         Notify();
     }
 
-    /// <summary>Hands the kept WAV to the File tab ("Transcribe this file").</summary>
-    public void RequestTranscribeFile()
+    /// <summary>Hands the kept WAV to the File tab ("Transcribe this file"); <paramref name="file"/> is the recording, or the last one kept after a failure.</summary>
+    public void RequestTranscribeFile(string? file = null)
     {
-        TranscribeFileRequest = retryableRecording ?? FinishedRecording;
+        TranscribeFileRequest = file ?? retryableRecording ?? FinishedRecording;
         Notify(nameof(TranscribeFileRequest));
-    }
-
-    /// <summary>The finished SRT waiting for the notes flow, once.</summary>
-    public NotesRequest? TakeNotesRequest()
-    {
-        var request = PendingNotesRequest;
-        PendingNotesRequest = null;
-        return request;
     }
 
     /// <summary>Debug only (<see cref="RecordingReplay"/>): the replay's fake capture and its own spool. Idle only.</summary>
@@ -669,6 +601,7 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
         sessionChineseScript = LanguageTracker.Language?.ChineseScript();
         StartLivePreview();
         Phase = new ControllerPhase.Recording();
+        SessionStartObserver?.Invoke(path);
 
         var mixed = AudioMixer.Mix(
             mic.TimedSamples.ReadAllAsync(),
@@ -813,6 +746,8 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
     private void RecordingEnded()
     {
         Phase = new ControllerPhase.Stopping();
+        var continues = continuesWithNextSession;
+        continuesWithNextSession = false;
         watchdog?.Cancel();
         watchdog = null;
         Elapsed = (double)sampleCount / WavWriter.SampleRate;
@@ -884,19 +819,67 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
             Phase = new ControllerPhase.Failed(string.Join("\n", lines));
             return;
         }
-        pendingSpoolWav = closed;
         if (problems.Count > 0)
         {
             // Capture failed: keep what exists and let the user transcribe it.
-            FailTranscription(string.Join("\n", problems));
+            FailCapture(string.Join("\n", problems), closed);
             return;
         }
-        Phase = new ControllerPhase.Transcribing(0);
-        IsUsingLivePreview = false;
-        var id = session;
-        transcription = new CancellationTokenSource();
-        transcriptionTask = RunFinalPassAsync(id, transcription.Token);
+        HandOver(closed, startingNext: continues);
     }
+
+    /// <summary>
+    /// The session ended normally: it becomes a queue job with its live tail
+    /// still in flight, and the controller is ready for the next Start.
+    /// </summary>
+    private void HandOver(string recording, bool startingNext)
+    {
+        // A detection still running belongs to this session; the job detects
+        // over the whole recording when the language is still open.
+        detectionCancellation?.Cancel();
+        detectionCancellation = null;
+        detectionTask = null;
+        session += 1;
+        var handover = new RecordingHandover(
+            recording, DateTimeOffset.Now, LanguageTracker, sessionChineseScript, settings.KeepRecording,
+            liveSegments.ToList(), IsLivePreviewEnabled, liveSink, LanguageNotice, LiveNotice);
+        DetachLiveSink();
+        recordedSamples = [];
+        liveSegments = [];
+        LatestLiveLine = null;
+        LiveNotice = null;
+        LanguageNotice = null;
+        IsLivePreviewEnabled = false;
+        // The job owns the tracker now; the next session makes its own.
+        LanguageTracker = new SessionLanguageTracker(settings.LanguageChoice, settings.PreferredLanguage);
+        sessionChineseScript = null;
+        queue.Enqueue(handover);
+        if (startingNext && !isQuitting)
+        {
+            BeginStart(clearingFinished: false);
+        }
+        else
+        {
+            Phase = ControllerPhase.IdleState;
+        }
+        Notify();
+    }
+
+    /// <summary>A capture problem: keeps the WAV (in the output folder) and the live preview as its SRT, and reports <paramref name="message"/> with the paths.</summary>
+    private void FailCapture(string message, string recording)
+    {
+        var kept = TranscriptOutput.KeepAfterFailure(
+            message, new TranscriptOutput.PendingRecording(recording, InSpool: true), liveSegments, null, settings);
+        // "Try Again" reads the kept WAV.
+        recordedSamples = [];
+        retryableRecording = kept.Recording?.Path;
+        FinishedRecording = kept.Recording?.Path;
+        FinishedTranscript = kept.Srt;
+        NeedsModel = false;
+        Phase = new ControllerPhase.Failed(kept.Message);
+        Notify();
+    }
+
 
     // MARK: - Live preview
 
@@ -904,22 +887,28 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
     {
         liveWriter?.TryComplete();
         liveWriter = null;
-        liveTask = null;
-        liveCancellation?.Cancel();
-        liveCancellation = null;
+        // A sink still here was never handed over; its chunks are dropped.
+        liveSink?.Close();
+        DetachLiveSink();
         liveSegments = [];
-        LiveChunksWaiting = 0;
         LatestLiveLine = null;
         LiveNotice = null;
         IsLivePreviewEnabled = false;
-        IsUsingLivePreview = false;
         chunker = new LiveChunker();
         chunkedSamples = 0;
         liveJobCount = 0;
         liveLocation = null;
+        detectionCancellation?.Cancel();
+        detectionCancellation = null;
         detectionTask = null;
-        // Waiters of an older session wake up, see the session changed, and drop their job.
-        ResumeLanguageWaiters();
+    }
+
+    /// <summary>The session's sink goes (to the queue job, or away); the controller stops listening to it.</summary>
+    private void DetachLiveSink()
+    {
+        if (liveSink is { } sink && liveSinkChanged is { } handler) sink.Changed -= handler;
+        liveSink = null;
+        liveSinkChanged = null;
     }
 
     /// <summary>
@@ -948,13 +937,20 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
         liveLocation = location;
         var channel = Channel.CreateUnbounded<LiveJob>(new UnboundedChannelOptions { SingleReader = true });
         liveWriter = channel.Writer;
-        liveCancellation = new CancellationTokenSource();
-        liveTask = RunLiveQueueAsync(channel.Reader, location, engine.MeasureSpeedAsync(location), session, liveCancellation.Token);
+        var id = session;
+        var sink = new LiveSink(LanguageTracker.Language);
+        sink.OnResult = (index, outcome) => LiveChunkDone(outcome, index, id);
+        liveSinkChanged = (_, _) => Notify();
+        sink.Changed += liveSinkChanged;
+        liveSink = sink;
+        // One consumer, so chunks are transcribed strictly in order. In Auto,
+        // chunks that close before the language is decided wait in the sink.
+        // After Stop the sink (and this task) belong to the queue job.
+        sink.Task = RunLiveQueueAsync(sink, channel.Reader, location, engine.MeasureSpeedAsync(location), id);
     }
 
-    /// <summary>One consumer, so chunks are transcribed strictly in order. In Auto, chunks that close before the language is decided wait here.</summary>
     private async Task RunLiveQueueAsync(
-        ChannelReader<LiveJob> reader, string location, Task<SpeedProbeResult> speed, int id, CancellationToken token)
+        LiveSink sink, ChannelReader<LiveJob> reader, string location, Task<SpeedProbeResult> speed, int id)
     {
         var feasible = true;
         try
@@ -966,72 +962,53 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
             // A model that cannot load fails each chunk with its own message.
             AppLog.Write($"recording: speed probe failed: {error.Message}");
         }
-        if (!feasible && session == id)
+        if (!feasible)
         {
-            IsLivePreviewEnabled = false;
-            LiveNotice = Strings.LivePreviewTooSlow;
-            liveLocation = null;
-            liveWriter?.TryComplete();
-            liveWriter = null;
-            LiveChunksWaiting = 0;
-            Notify();
+            sink.Close();
+            if (session == id)
+            {
+                IsLivePreviewEnabled = false;
+                LiveNotice = Strings.LivePreviewTooSlow;
+                liveLocation = null;
+                liveWriter?.TryComplete();
+                liveWriter = null;
+                Notify();
+            }
         }
         await foreach (var job in reader.ReadAllAsync(CancellationToken.None).ConfigureAwait(true))
         {
-            if (!feasible || token.IsCancellationRequested)
+            if (await sink.WaitForLanguageAsync().ConfigureAwait(true) is not { } language)
             {
-                if (session == id) LiveChunksWaiting = Math.Max(0, LiveChunksWaiting - 1);
+                sink.Deliver(job.Index, null);
                 continue;
             }
-            if (await WaitForSessionLanguageAsync(id).ConfigureAwait(true) is not { } language) continue;
-            if (token.IsCancellationRequested)
-            {
-                if (session == id) LiveChunksWaiting = Math.Max(0, LiveChunksWaiting - 1);
-                continue;
-            }
-            var script = sessionChineseScript;
-            LiveJobObserver?.Invoke(new LiveJobEvent.Started(job.Index));
-            IReadOnlyList<TranscriptSegment>? cues = null;
-            Exception? failure = null;
+            var script = sink.Script;
+            LiveJobObserver?.Invoke(new LiveJobEvent.Started(id, job.Index));
+            SinkOutcome outcome;
             try
             {
-                var result = await engine.TranscribeAsync(location, job.Samples, language, null, token).ConfigureAwait(true);
-                cues = result.Cues(job.Start, script);
+                var result = await engine.TranscribeAsync(location, job.Samples, language).ConfigureAwait(true);
+                var cues = result.Cues(job.Start, script);
+                LiveJobObserver?.Invoke(new LiveJobEvent.Finished(id, job.Index, cues.Count, null));
+                outcome = new SinkOutcome(cues, null);
             }
             catch (Exception error) when (error is not OutOfMemoryException)
             {
-                failure = error;
+                LiveJobObserver?.Invoke(new LiveJobEvent.Finished(id, job.Index, 0, TranscriptionEngine.Describe(error)));
+                outcome = new SinkOutcome(null, error);
             }
-            LiveChunkDone(cues, failure, job.Index, id);
+            sink.Deliver(job.Index, outcome);
         }
     }
 
     // MARK: - Session language
 
-    /// <summary>The session language once it is known; null when the session changed while waiting.</summary>
-    private async Task<TranscriptLanguage?> WaitForSessionLanguageAsync(int id)
-    {
-        while (session == id && LanguageTracker.Language is null)
-        {
-            var waiter = new TaskCompletionSource();
-            languageWaiters.Add(waiter);
-            await waiter.Task.ConfigureAwait(true);
-        }
-        return session == id ? LanguageTracker.Language : null;
-    }
-
-    private void ResumeLanguageWaiters()
-    {
-        var waiters = languageWaiters;
-        languageWaiters = [];
-        foreach (var waiter in waiters) waiter.TrySetResult();
-    }
-
     /// <summary>The tracker settled or the user picked a language: the Chinese conversion, the banner, and waiting live jobs follow it.</summary>
     private void LanguageSettled()
     {
-        if (LanguageTracker.Language is { } language) sessionChineseScript = language.ChineseScript();
-        ResumeLanguageWaiters();
+        if (LanguageTracker.Language is not { } language) return;
+        sessionChineseScript = language.ChineseScript();
+        liveSink?.SetLanguage(language);
     }
 
     /// <summary>Runs one detection attempt when the tracker says one is due and none is in flight (every 30 s of audio).</summary>
@@ -1043,19 +1020,20 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
             return;
         }
         var samples = CollectionsMarshal.AsSpan(recordedSamples)[..count].ToArray();
-        detectionTask = RunDetectionAsync(location, samples, count, session);
+        detectionCancellation = new CancellationTokenSource();
+        detectionTask = RunDetectionAsync(location, samples, count, session, detectionCancellation.Token);
     }
 
-    private async Task RunDetectionAsync(string location, float[] samples, int count, int id)
+    private async Task RunDetectionAsync(string location, float[] samples, int count, int id, CancellationToken token)
     {
         DetectionResult? result = null;
         try
         {
-            result = await engine.DetectLanguageAsync(location, samples).ConfigureAwait(true);
+            result = await engine.DetectLanguageAsync(location, samples, token).ConfigureAwait(true);
         }
         catch (Exception error) when (error is not OutOfMemoryException)
         {
-            AppLog.Write($"recording: detection failed: {error.Message}");
+            if (!TranscriptionEngine.IsCancellation(error)) AppLog.Write($"recording: detection failed: {error.Message}");
         }
         DetectionDone(result, count, id);
     }
@@ -1066,7 +1044,7 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
         detectionTask = null;
         LastDetection = result;
         var decision = LanguageTracker.Record(result?.Detection, samplesUsed);
-        LiveJobObserver?.Invoke(new LiveJobEvent.Detection((double)samplesUsed / WavWriter.SampleRate, result, decision));
+        LiveJobObserver?.Invoke(new LiveJobEvent.Detection(id, (double)samplesUsed / WavWriter.SampleRate, result, decision));
         if (decision is not null)
         {
             LanguageNotice = LanguageNotice.From(LanguageTracker.Decision);
@@ -1077,34 +1055,6 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
         {
             StartDetectionIfDue();
         }
-    }
-
-    /// <summary>
-    /// Settles the session language before a final pass: waits for an attempt
-    /// in flight, then, if the language is still open, detects over the whole
-    /// recording and locks the result (the preferred language when detection
-    /// is unsure or fails).
-    /// </summary>
-    private async Task SettleLanguageAsync(float[] samples, string location, int id)
-    {
-        if (detectionTask is { } running) await running.ConfigureAwait(true);
-        if (session != id || LanguageTracker.IsSettled) return;
-        DetectionResult? result = null;
-        try
-        {
-            result = await engine.DetectLanguageAsync(location, samples).ConfigureAwait(true);
-        }
-        catch (Exception error) when (error is not OutOfMemoryException)
-        {
-            AppLog.Write($"recording: detection failed: {error.Message}");
-        }
-        if (session != id || LanguageTracker.IsSettled) return;
-        LastDetection = result;
-        var decision = LanguageTracker.Finish(result?.Detection);
-        LiveJobObserver?.Invoke(new LiveJobEvent.Detection((double)samples.Length / WavWriter.SampleRate, result, decision));
-        LanguageNotice = LanguageNotice.From(decision);
-        LanguageSettled();
-        Notify();
     }
 
     /// <summary>Measures the new samples in 0.1 s windows and queues every chunk the chunker closes; <paramref name="final"/> also flushes the open chunk.</summary>
@@ -1123,329 +1073,27 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
 
     private void EnqueueLive(SampleRange range)
     {
-        if (liveWriter is not { } queue || range.End > recordedSamples.Count) return;
-        LiveChunksWaiting += 1;
+        if (liveWriter is not { } queueWriter || range.End > recordedSamples.Count) return;
+        liveSink?.ChunkQueued();
         liveJobCount += 1;
         var start = (double)range.Start / LiveChunker.SampleRate;
-        LiveJobObserver?.Invoke(new LiveJobEvent.Queued(liveJobCount, start, (double)range.Count / LiveChunker.SampleRate));
-        queue.TryWrite(new LiveJob(liveJobCount, CollectionsMarshal.AsSpan(recordedSamples)[range.Start..range.End].ToArray(), start));
+        LiveJobObserver?.Invoke(new LiveJobEvent.Queued(session, liveJobCount, start, (double)range.Count / LiveChunker.SampleRate));
+        queueWriter.TryWrite(new LiveJob(liveJobCount, CollectionsMarshal.AsSpan(recordedSamples)[range.Start..range.End].ToArray(), start));
     }
 
-    private void LiveChunkDone(IReadOnlyList<TranscriptSegment>? cues, Exception? failure, int index, int id)
+    private void LiveChunkDone(SinkOutcome outcome, int index, int id)
     {
         if (session != id) return;
-        LiveJobObserver?.Invoke(new LiveJobEvent.Finished(index, cues?.Count ?? 0, failure is null ? null : TranscriptionEngine.Describe(failure)));
-        LiveChunksWaiting = Math.Max(0, LiveChunksWaiting - 1);
-        if (cues is not null)
+        if (outcome.Cues is { } cues)
         {
             liveSegments.AddRange(cues);
             if (cues.LastOrDefault(cue => cue.Text.Length > 0) is { Text.Length: > 0 } last) LatestLiveLine = last.Text;
         }
-        else if (failure is not null)
+        else if (outcome.Error is { } error)
         {
-            LiveNotice = Strings.LivePreviewMissedChunk(TranscriptionEngine.Describe(failure));
+            LiveNotice = Strings.LivePreviewMissedChunk(TranscriptionEngine.Describe(error));
         }
         Notify();
-    }
-
-    // MARK: - Final pass
-
-    private async Task RunFinalPassAsync(int id, CancellationToken token)
-    {
-        string location;
-        try
-        {
-            location = sources.ModelPath(modelStore);
-        }
-        catch (WhisperEngineException error)
-        {
-            if (liveTask is { } live) await live.ConfigureAwait(true);
-            if (session != id) return;
-            FailTranscription(error.Message, missingModel: true);
-            return;
-        }
-        var samples = recordedSamples.ToArray();
-        // Lock the language first: live chunks still waiting for it are
-        // transcribed in it, and the final pass uses it.
-        await SettleLanguageAsync(samples, location, id).ConfigureAwait(true);
-        // Finish the live preview first so "Use live preview instead" always has every chunk.
-        if (liveTask is { } preview) await preview.ConfigureAwait(true);
-        if (session != id || !IsTranscribing || IsUsingLivePreview) return;
-        if (LanguageTracker.Language is not { } language)
-        {
-            FailTranscription(Strings.LanguageNotDecided);
-            return;
-        }
-        try
-        {
-            var result = await engine.TranscribeAsync(location, samples, language, ProgressHandler(id), token).ConfigureAwait(true);
-            if (session != id || !IsTranscribing || IsUsingLivePreview) return;
-            CompleteTranscription(result.Cues(0, sessionChineseScript));
-        }
-        catch (Exception error) when (error is not OutOfMemoryException)
-        {
-            // Cancelled by "Use live preview instead" or by quitting; whoever cancelled writes the SRT.
-            if (TranscriptionEngine.IsCancellation(error)) return;
-            if (session != id || !IsTranscribing || IsUsingLivePreview) return;
-            FailTranscription(Strings.TranscriptionFailed(TranscriptionEngine.Describe(error)));
-        }
-    }
-
-    private async Task RunRetryAsync(string recording, int id, CancellationToken token)
-    {
-        string location;
-        try
-        {
-            location = sources.ModelPath(modelStore);
-        }
-        catch (WhisperEngineException error)
-        {
-            if (session != id) return;
-            FailTranscription(error.Message, missingModel: true);
-            return;
-        }
-        try
-        {
-            var samples = recordedSamples.Count > 0
-                ? recordedSamples.ToArray()
-                : await Task.Run(() => AudioFileLoader.LoadMono16k(recording), token).ConfigureAwait(true);
-            await SettleLanguageAsync(samples, location, id).ConfigureAwait(true);
-            if (session != id || !IsTranscribing) return;
-            if (LanguageTracker.Language is not { } language)
-            {
-                FailTranscription(Strings.LanguageNotDecided);
-                return;
-            }
-            var result = await engine.TranscribeAsync(location, samples, language, ProgressHandler(id), token).ConfigureAwait(true);
-            if (session != id || !IsTranscribing || IsUsingLivePreview) return;
-            CompleteTranscription(result.Cues(0, sessionChineseScript));
-        }
-        catch (Exception error) when (error is not OutOfMemoryException)
-        {
-            if (TranscriptionEngine.IsCancellation(error)) return;
-            if (session != id || !IsTranscribing || IsUsingLivePreview) return;
-            FailTranscription(Strings.TranscriptionFailed(TranscriptionEngine.Describe(error)));
-        }
-    }
-
-    /// <summary>
-    /// "Transcribe again" after a finished recording: one full pass in
-    /// <paramref name="language"/> over the same audio, written over the same
-    /// SRT. On failure or cancellation the previous SRT stays and the phase
-    /// returns to finished.
-    /// </summary>
-    private async Task RunRerunAsync(string srt, string? wav, float[]? held, TranscriptLanguage language, int id, CancellationToken token)
-    {
-        void Restore(string? message)
-        {
-            if (session != id) return;
-            RerunError = message;
-            Phase = new ControllerPhase.Finished(srt, wav);
-            Notify();
-        }
-        try
-        {
-            string location;
-            try
-            {
-                location = sources.ModelPath(modelStore);
-            }
-            catch (WhisperEngineException error)
-            {
-                Restore(Strings.CouldNotTranscribeAgain(error.Message));
-                return;
-            }
-            float[] samples;
-            if (held is not null)
-            {
-                samples = held;
-            }
-            else if (wav is not null)
-            {
-                samples = await Task.Run(() => AudioFileLoader.LoadMono16k(wav), token).ConfigureAwait(true);
-            }
-            else
-            {
-                Restore(Strings.CouldNotTranscribeAgainNotKept);
-                return;
-            }
-            var result = await engine.TranscribeAsync(location, samples, language, ProgressHandler(id), token).ConfigureAwait(true);
-            if (session != id || !IsTranscribing) return;
-            if (!File.Exists(srt))
-            {
-                Restore(Strings.CouldNotTranscribeAgainMoved(Path.GetFileName(srt)));
-                return;
-            }
-            TranscriptOutput.WriteSrt(result.Cues(0, sessionChineseScript), srt);
-            rerunSamples = null;
-            Restore(null);
-            RequestNotes(srt);
-        }
-        catch (Exception error) when (error is not OutOfMemoryException)
-        {
-            Restore(TranscriptionEngine.IsCancellation(error) ? null : Strings.CouldNotTranscribeAgain(TranscriptionEngine.Describe(error)));
-        }
-        finally
-        {
-            if (session == id)
-            {
-                IsRerunning = false;
-                Notify();
-            }
-        }
-    }
-
-    private Progress<double> ProgressHandler(int id) => new(value =>
-    {
-        if (session != id || !IsTranscribing) return;
-        Phase = new ControllerPhase.Transcribing(Math.Clamp(value, 0, 1));
-    });
-
-    /// <summary>
-    /// Writes <c>&lt;stem&gt;.srt</c> into the output folder beside the
-    /// recording and then keeps or deletes the WAV as the setting says. After
-    /// a failed pass the WAV is already in the output folder and its SRT
-    /// (possibly the saved live preview) is replaced.
-    /// <paramref name="keepRecording"/> overrides the setting (quit keeps the WAV).
-    /// </summary>
-    private void CompleteTranscription(IReadOnlyList<TranscriptSegment> cues, bool? keepRecording = null)
-    {
-        string folder;
-        try
-        {
-            folder = TranscriptOutput.ResolveFolder(settings);
-        }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-        {
-            FailTranscription(Strings.OutputFolderOpenFailed(error.Message));
-            return;
-        }
-
-        // The WAV is either still in the spool (after a recording) or already
-        // in the output folder (after a failed pass).
-        if ((pendingSpoolWav ?? retryableRecording) is not { } source)
-        {
-            FailTranscription(Strings.RecordingMissing);
-            return;
-        }
-        var inSpool = pendingSpoolWav is not null;
-        var baseStem = Path.GetFileNameWithoutExtension(source);
-        var directory = inSpool ? folder : Path.GetDirectoryName(source) ?? folder;
-        var stem = inSpool ? TranscriptOutput.FreeStem(baseStem, directory, [".srt", ".wav"]) : baseStem;
-        var srt = Path.Combine(directory, stem + ".srt");
-        try
-        {
-            TranscriptOutput.WriteSrt(cues, srt);
-        }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-        {
-            FailTranscription(Strings.CouldNotWriteTranscript(error.Message));
-            return;
-        }
-
-        string? wav = null;
-        if (keepRecording ?? settings.KeepRecording)
-        {
-            if (inSpool)
-            {
-                var destination = Path.Combine(directory, stem + ".wav");
-                try
-                {
-                    File.Move(source, destination, overwrite: false);
-                    wav = destination;
-                }
-                catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-                {
-                    wav = source;
-                    LiveNotice = Strings.CouldNotMoveRecordingKeptAt(error.Message, source);
-                }
-            }
-            else
-            {
-                wav = source;
-            }
-        }
-        else
-        {
-            TryDelete(source);
-        }
-
-        pendingSpoolWav = null;
-        retryableRecording = null;
-        // A re-run needs the audio; hold it only when the WAV is gone.
-        rerunSamples = LanguageNotice is not null && wav is null ? recordedSamples.ToArray() : null;
-        recordedSamples = [];
-        NeedsModel = false;
-        FinishedTranscript = srt;
-        FinishedRecording = wav;
-        Phase = new ControllerPhase.Finished(srt, wav);
-        RequestNotes(srt);
-        Notify();
-    }
-
-    /// <summary>
-    /// Keeps the WAV (moved to the output folder when it is still in the
-    /// spool), saves the live preview as its SRT when there is one, and
-    /// reports <paramref name="message"/> with the WAV path.
-    /// </summary>
-    private void FailTranscription(string message, bool missingModel = false)
-    {
-        var lines = new List<string> { message };
-        var wav = pendingSpoolWav ?? retryableRecording;
-        string? folder = null;
-        try
-        {
-            folder = TranscriptOutput.ResolveFolder(settings);
-        }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-        {
-            AppLog.Write($"recording: output folder: {error.Message}");
-        }
-
-        if (pendingSpoolWav is { } spoolWav)
-        {
-            if (folder is not null)
-            {
-                try
-                {
-                    wav = RecordingSpool.Finalize(spoolWav, keep: true, folder);
-                }
-                catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-                {
-                    wav = spoolWav;
-                    lines.Add(Strings.CouldNotMoveRecording(error.Message));
-                }
-            }
-            pendingSpoolWav = null;
-        }
-
-        if (wav is not null && liveSegments.Count > 0 && FinishedTranscript is null)
-        {
-            var srt = Path.ChangeExtension(wav, ".srt");
-            try
-            {
-                TranscriptOutput.WriteSrt(liveSegments, srt);
-                FinishedTranscript = srt;
-                lines.Add(Strings.LivePreviewSavedAs(srt));
-            }
-            catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-            {
-                lines.Add(Strings.LivePreviewNotSaved(error.Message));
-            }
-        }
-        if (wav is not null) lines.Add(Strings.RecordingKeptAt(wav));
-        retryableRecording = wav;
-        FinishedRecording = wav;
-        NeedsModel = missingModel;
-        Phase = new ControllerPhase.Failed(string.Join("\n", lines));
-        Notify();
-    }
-
-    private void RequestNotes(string srt)
-    {
-        if (SessionLanguage is not { } language || SuppressNotesRequests) return;
-        PendingNotesRequest = new NotesRequest(srt, language);
-        NotesRequested?.Invoke(this, EventArgs.Empty);
     }
 
     // MARK: - UI snapshots
@@ -1464,17 +1112,22 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
         SilenceWarning = sample.SilenceWarning;
         SystemAudioNotice = sample.SystemAudioNotice;
         liveSegments = [.. sample.LiveSegments];
-        LiveChunksWaiting = sample.LiveChunksWaiting;
+        DetachLiveSink();
+        if (sample.LiveChunksWaiting > 0)
+        {
+            liveSink = new LiveSink(null);
+            for (var i = 0; i < sample.LiveChunksWaiting; i++) liveSink.ChunkQueued();
+        }
         LiveNotice = sample.LiveNotice;
         IsLivePreviewEnabled = sample.LivePreviewEnabled;
         LanguageTracker = sample.Tracker;
         LanguageNotice = sample.Notice;
         FinishedTranscript = sample.FinishedTranscript;
         FinishedRecording = sample.FinishedRecording;
-        pendingSpoolWav = sample.CanUseLivePreview ? sample.FinishedRecording ?? "sample.wav" : null;
-        rerunSamples = sample.Notice is not null ? Array.Empty<float>() : null;
+        retryableRecording = sample.FinishedRecording;
         cpuRuntime = sample.CpuRuntime;
         phase = sample.Phase;
+        queue.SetSessionActive(IsSessionActive);
         Notify();
     }
 
@@ -1486,10 +1139,8 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
         watchdog?.Cancel();
         watchdog?.Dispose();
         watchdog = null;
-        liveCancellation?.Dispose();
-        liveCancellation = null;
-        transcription?.Dispose();
-        transcription = null;
+        detectionCancellation?.Cancel();
+        detectionCancellation = null;
     }
 
     // MARK: - Helpers
@@ -1524,21 +1175,25 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
     private sealed record LiveJob(int Index, float[] Samples, double Start);
 }
 
-/// <summary>A live job's progress, for the debug replay's timing log (the Mac's <c>LiveJobEvent</c>).</summary>
+/// <summary>
+/// A live job's progress, for the debug replay's timing log (the Mac's
+/// <c>LiveJobEvent</c>). <c>Session</c> tells the sessions apart: the tail of
+/// an ended session still reports after the next one started.
+/// </summary>
 internal abstract record LiveJobEvent
 {
     private LiveJobEvent()
     {
     }
 
-    public sealed record Queued(int Index, double Start, double Seconds) : LiveJobEvent;
+    public sealed record Queued(int Session, int Index, double Start, double Seconds) : LiveJobEvent;
 
-    public sealed record Started(int Index) : LiveJobEvent;
+    public sealed record Started(int Session, int Index) : LiveJobEvent;
 
-    public sealed record Finished(int Index, int Cues, string? Error) : LiveJobEvent;
+    public sealed record Finished(int Session, int Index, int Cues, string? Error) : LiveJobEvent;
 
     /// <summary>A language detection over the first <paramref name="Seconds"/> finished; <paramref name="Decision"/> is set when it settled the session.</summary>
-    public sealed record Detection(double Seconds, DetectionResult? Result, LanguageDecision? Decision) : LiveJobEvent;
+    public sealed record Detection(int Session, double Seconds, DetectionResult? Result, LanguageDecision? Decision) : LiveJobEvent;
 }
 
 /// <summary>A stubbed Record tab state for the UI snapshots.</summary>
@@ -1569,8 +1224,6 @@ internal sealed record RecordingSample(ControllerPhase Phase, SessionLanguageTra
     public string? FinishedTranscript { get; init; }
 
     public string? FinishedRecording { get; init; }
-
-    public bool CanUseLivePreview { get; init; }
 
     /// <summary>True shows the CPU runtime's final-pass notice while idle.</summary>
     public bool? CpuRuntime { get; init; }

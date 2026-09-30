@@ -19,21 +19,31 @@ namespace Hearsay.App.Features.Recording;
 /// microphone yields it in 0.1 s chunks paced in real time from a timer on
 /// the thread pool (like a capture callback), through <see cref="AudioMixer"/>,
 /// the WAV spool, <see cref="LiveChunker"/>, and the live queue. When the file
-/// is used up it presses Stop, waits for the final pass, prints one line per
-/// live job (queued, started, finished, audio seconds, cues) and the totals
-/// to stderr, and quits with status 0 (1 when the final pass failed).
+/// is used up it presses Stop; the session becomes a job of the real
+/// <see cref="TranscriptionQueue"/>, which runs the final pass.
 /// Port of mac/Hearsay/Features/Recording/RecordingReplay.swift.
 /// </summary>
 /// <remarks>
-/// <c>HEARSAY_LANGUAGE</c> (auto, en, zh-TW, zh-CN, de, es; zh is an alias for
-/// zh-TW; default en) is optional. Every language detection and the session's
-/// final decision are printed to stdout, and so is the final SRT (Windows
-/// only: it lives in the throwaway folder, removed at exit).
+/// <para><c>HEARSAY_REPLAY_FILE=&lt;a&gt;,&lt;b&gt;[,...]</c> replays the files as
+/// consecutive sessions joined by Stop &amp; Start Next (PLAN.md 4.9): when a
+/// file is used up the next one starts at once, and Stop follows the last.
+/// Every live job (queued, started, finished, with its session), every queue
+/// event (queued, running, suspended, resumed, language, done with the SRT
+/// path, failed), and the gap between two sessions are printed with
+/// timestamps to stderr. The run ends when the queue has nothing left, prints
+/// the tables and totals, deletes everything it wrote, and quits with status
+/// 0 (1 when a job failed).</para>
+/// <para><c>HEARSAY_LANGUAGE</c> (auto, en, zh-TW, zh-CN, de, es; zh is an
+/// alias for zh-TW; default en) is optional and applies to every session.
+/// Every language detection and each job's final language decision are
+/// printed to stdout, and so is each final SRT (Windows only: it lives in the
+/// throwaway folder, removed at exit). <c>HEARSAY_REPLAY_TIMING=immediate|whenIdle</c>
+/// picks the final-pass timing (default immediate, as on the Mac).
 /// <c>HEARSAY_REPLAY_SYSTEM=silence</c> adds a second, silent source in place
 /// of system audio; <c>HEARSAY_REPLAY_UI=1</c> also shows the Record tab for
 /// the session. Settings, spool and output are in the throwaway settings
 /// folder, so the user's settings, spool and output folder are never
-/// touched. The Mac's <c>HEARSAY_REPLAY_SNAPSHOTS</c> is not ported.
+/// touched. The Mac's <c>HEARSAY_REPLAY_SNAPSHOTS</c> is not ported.</para>
 /// </remarks>
 internal static class RecordingReplay
 {
@@ -50,16 +60,18 @@ internal static class RecordingReplay
             shell.FinishDebugRun(1);
             return true;
         }
-        _ = RunAndFinishAsync(shell, file, model);
+        var files = file.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(Path.GetFullPath).ToList();
+        _ = RunAndFinishAsync(shell, files, model);
         return true;
     }
 
-    private static async Task RunAndFinishAsync(AppShell shell, string file, string modelValue)
+    private static async Task RunAndFinishAsync(AppShell shell, IReadOnlyList<string> files, string modelValue)
     {
         var status = 1;
         try
         {
-            status = await RunAsync(shell, Path.GetFullPath(file), modelValue).ConfigureAwait(true);
+            status = await RunAsync(shell, files, modelValue).ConfigureAwait(true);
         }
         catch (Exception error) when (error is not OutOfMemoryException)
         {
@@ -83,7 +95,26 @@ internal static class RecordingReplay
         public int Cues { get; set; }
     }
 
-    private static async Task<int> RunAsync(AppShell shell, string file, string modelValue)
+    /// <summary>Numbers sessions and queue jobs 1, 2, 3... in the order they appear.</summary>
+    private sealed class ReplayNumbers
+    {
+        private readonly Dictionary<int, int> sessions = [];
+        private readonly Dictionary<string, int> jobs = [];
+
+        public int Session(int id)
+        {
+            if (sessions.TryGetValue(id, out var known)) return known;
+            return sessions[id] = sessions.Count + 1;
+        }
+
+        public int Job(string id)
+        {
+            if (jobs.TryGetValue(id, out var known)) return known;
+            return jobs[id] = jobs.Count + 1;
+        }
+    }
+
+    private static async Task<int> RunAsync(AppShell shell, IReadOnlyList<string> files, string modelValue)
     {
         var environment = DebugEnvironment.Environment;
         var (modelPath, modelError) = DebugModel.Resolve(modelValue, shell.Models.Catalog);
@@ -92,19 +123,25 @@ internal static class RecordingReplay
             Say(modelError ?? "no model");
             return 1;
         }
-        float[] samples;
-        try
+        var loaded = new List<float[]>();
+        foreach (var file in files)
         {
-            samples = await Task.Run(() => AudioFileLoader.LoadMono16k(file)).ConfigureAwait(true);
-        }
-        catch (AudioFileLoaderException error)
-        {
-            Say($"cannot read {file}: {error.Message}");
-            return 1;
+            try
+            {
+                loaded.Add(await Task.Run(() => AudioFileLoader.LoadMono16k(file)).ConfigureAwait(true));
+            }
+            catch (AudioFileLoaderException error)
+            {
+                Say($"cannot read {file}: {error.Message}");
+                return 1;
+            }
         }
         var language = environment.TryGetValue("HEARSAY_LANGUAGE", out var value) && value.Length > 0
             ? LanguageChoice.FromDebugValue(value) ?? LanguageChoice.Fixed(TranscriptLanguage.English)
             : LanguageChoice.Fixed(TranscriptLanguage.English);
+        var timing = environment.TryGetValue("HEARSAY_REPLAY_TIMING", out var timingValue)
+            ? FinalPassTimings.FromStorageValue(timingValue) ?? FinalPassTiming.Immediate
+            : FinalPassTiming.Immediate;
         var silentSystem = environment.TryGetValue("HEARSAY_REPLAY_SYSTEM", out var system) && system == "silence";
 
         var root = Path.Combine(shell.SettingsFile.Folder, "replay");
@@ -115,47 +152,113 @@ internal static class RecordingReplay
         settings.LanguageChoice = language;
         settings.CaptureSystemAudio = silentSystem;
         settings.KeepRecording = false;
+        settings.FinalPassTiming = timing;
 
         var clock = Stopwatch.StartNew();
         double Now() => clock.Elapsed.TotalSeconds;
-        var exhausted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var exhausted = Channel.CreateUnbounded<int>();
+        var nextSession = 0;
         var sources = new CaptureSources(
-            () => new ReplayMicrophone(new ReplayFeed(samples, () => exhausted.TrySetResult())),
+            () =>
+            {
+                var index = nextSession++;
+                var samples = index < loaded.Count ? loaded[index] : [];
+                return new ReplayMicrophone(new ReplayFeed(samples, () => exhausted.Writer.TryWrite(index)));
+            },
             () => new ReplaySystemAudio(new ReplayFeed(null, () => { })),
             _ => modelPath);
         var controller = shell.RecordingController;
-        controller.UseForDebug(sources, new RecordingSpool(Path.Combine(root, "spool")));
-        controller.SuppressNotesRequests = true;
+        var queue = shell.Queue;
+        var spool = new RecordingSpool(Path.Combine(root, "spool"));
+        controller.UseForDebug(sources, spool);
+        queue.UseForDebug(spool, () => modelPath);
+        // No notes flow in a replay: no transcript reaches an AI provider.
+        queue.NotesOnScreen = () => true;
 
-        var jobs = new SortedDictionary<int, JobTiming>();
+        var numbers = new ReplayNumbers();
+        var jobs = new SortedDictionary<(int Session, int Index), JobTiming>();
         controller.LiveJobObserver = job =>
         {
             var now = Now();
             switch (job)
             {
                 case LiveJobEvent.Queued queued:
-                    jobs[queued.Index] = new JobTiming(queued.Start, queued.Seconds, now);
-                    Say(Format($"{now,7:F2}  job {queued.Index} queued ({queued.Start:F1}-{queued.Start + queued.Seconds:F1} s)"));
+                    var qs = numbers.Session(queued.Session);
+                    jobs[(qs, queued.Index)] = new JobTiming(queued.Start, queued.Seconds, now);
+                    Say(Format($"{now,7:F2}  s{qs} live {queued.Index} queued ({queued.Start:F1}-{queued.Start + queued.Seconds:F1} s)"));
                     break;
                 case LiveJobEvent.Started started:
-                    if (jobs.TryGetValue(started.Index, out var s)) s.Started = now;
-                    Say(Format($"{now,7:F2}  job {started.Index} started"));
+                    var ss = numbers.Session(started.Session);
+                    if (jobs.TryGetValue((ss, started.Index), out var s)) s.Started = now;
+                    Say(Format($"{now,7:F2}  s{ss} live {started.Index} started"));
                     break;
                 case LiveJobEvent.Finished finished:
-                    if (jobs.TryGetValue(finished.Index, out var f))
+                    var fs = numbers.Session(finished.Session);
+                    if (jobs.TryGetValue((fs, finished.Index), out var f))
                     {
                         f.Finished = now;
                         f.Cues = finished.Cues;
                     }
-                    Say(Format($"{now,7:F2}  job {finished.Index} finished, {finished.Cues} cues{(finished.Error is { } e ? $", error: {e}" : "")}"));
+                    Say(Format($"{now,7:F2}  s{fs} live {finished.Index} finished, {finished.Cues} cues{(finished.Error is { } e ? $", error: {e}" : "")}"));
                     break;
                 case LiveJobEvent.Detection detection:
-                    var line = Format($"{now,7:F2}  detection over {detection.Seconds:F1} s: ")
+                    var line = Format($"{now,7:F2}  s{numbers.Session(detection.Session)} detection over {detection.Seconds:F1} s: ")
                         + (detection.Result is { } result ? TranscriptionEngine.DebugSummary(result) : "failed")
                         + (detection.Decision is { } decision ? "; settled: " + decision.DebugSummary() : "; not settled");
                     Say(line);
                     Print(line);
                     break;
+            }
+        };
+
+        var failed = false;
+        queue.EventObserver = queueEvent =>
+        {
+            var now = Now();
+            string Label(string id) => $"queue job {numbers.Job(id)}";
+            switch (queueEvent)
+            {
+                case QueueEvent.Queued queued:
+                    Say(Format($"{now,7:F2}  {Label(queued.Id)} queued ({Path.GetFileName(queued.Recording)})"));
+                    break;
+                case QueueEvent.Running running:
+                    Say(Format($"{now,7:F2}  {Label(running.Id)} running"));
+                    break;
+                case QueueEvent.Suspended suspended:
+                    Say(Format($"{now,7:F2}  {Label(suspended.Id)} suspended at {suspended.Progress * 100:F0}%"));
+                    break;
+                case QueueEvent.Resumed resumed:
+                    Say(Format($"{now,7:F2}  {Label(resumed.Id)} resumed"));
+                    break;
+                case QueueEvent.Language languageEvent:
+                    var line = Format($"{now,7:F2}  {Label(languageEvent.Id)} language: {languageEvent.Decision.DebugSummary()}");
+                    Say(line);
+                    Print(line);
+                    break;
+                case QueueEvent.Done done:
+                    Say(Format($"{now,7:F2}  {Label(done.Id)} done: {done.Srt}"));
+                    break;
+                case QueueEvent.Failed fail:
+                    failed = true;
+                    Say(Format($"{now,7:F2}  {Label(fail.Id)} failed: {fail.Message}"));
+                    break;
+            }
+        };
+
+        double? stopPressedAt = null;
+        var gaps = new List<double>();
+        controller.SessionStartObserver = wav =>
+        {
+            var now = Now();
+            if (stopPressedAt is { } pressed)
+            {
+                gaps.Add(now - pressed);
+                Say(Format($"{now,7:F2}  next session recording ({Path.GetFileName(wav)}), {now - pressed:F3} s after Stop & Start Next"));
+                stopPressedAt = null;
+            }
+            else
+            {
+                Say(Format($"{now,7:F2}  session recording ({Path.GetFileName(wav)})"));
             }
         };
 
@@ -165,18 +268,32 @@ internal static class RecordingReplay
             shell.MainWindow.Activate();
             Say("showing the Record tab");
         }
-        Say(Format($"replaying {Path.GetFileName(file)} ({samples.Length / 16_000.0:F2} s), language {language.StorageValue}, preferred {settings.PreferredLanguage.Code()}, system audio {(silentSystem ? "silence" : "off")}, model {Path.GetFileName(modelPath)}"));
+        var names = string.Join(", ", files.Select((file, i) => Format($"{Path.GetFileName(file)} ({loaded[i].Length / 16_000.0:F2} s)")));
+        Say(Format($"replaying {names}, language {language.StorageValue}, preferred {settings.PreferredLanguage.Code()}, timing {timing.StorageValue()}, system audio {(silentSystem ? "silence" : "off")}, model {Path.GetFileName(modelPath)}"));
         clock.Restart();
         controller.Start();
         using var statusTimer = new CancellationTokenSource();
-        var statusTask = ReportStatusAsync(controller, Now, statusTimer.Token);
+        var statusTask = ReportStatusAsync(controller, queue, Now, statusTimer.Token);
 
-        await exhausted.Task.ConfigureAwait(true);
-        var stopAt = Now();
-        var waitingAtStop = controller.LiveChunksWaiting;
-        Say(Format($"{stopAt,7:F2}  file used up; Stop with {waitingAtStop} live chunks waiting"));
-        await controller.StopAsync().ConfigureAwait(true);
-        while (controller.IsTranscribing || controller.Phase is ControllerPhase.Stopping)
+        double stopAt = 0;
+        while (await exhausted.Reader.WaitToReadAsync().ConfigureAwait(true))
+        {
+            if (!exhausted.Reader.TryRead(out var index)) continue;
+            if (index + 1 < loaded.Count)
+            {
+                stopPressedAt = Now();
+                Say(Format($"{Now(),7:F2}  file {index + 1} used up; Stop & Start Next with {controller.LiveChunksWaiting} live chunks waiting"));
+                controller.StopAndStartNext();
+            }
+            else
+            {
+                stopAt = Now();
+                Say(Format($"{stopAt,7:F2}  file {index + 1} used up; Stop with {controller.LiveChunksWaiting} live chunks waiting"));
+                await controller.StopAsync().ConfigureAwait(true);
+                break;
+            }
+        }
+        while (controller.IsSessionActive || queue.PendingCount > 0 || queue.HasWorkInFlight || queue.Jobs.Any(job => job.HasLiveTail))
         {
             await Task.Delay(100).ConfigureAwait(true);
         }
@@ -184,42 +301,52 @@ internal static class RecordingReplay
         await statusTask.ConfigureAwait(true);
         var doneAt = Now();
 
-        Say("job  audio (s)        len   queued  started finished  latency  cues");
+        Say("sess live  audio (s)        len   queued  started finished  latency  cues");
         static string Time(double? t) => t is { } v ? v.ToString("F2", CultureInfo.InvariantCulture).PadLeft(8) : "       -";
-        foreach (var (index, job) in jobs)
+        foreach (var ((session, index), job) in jobs)
         {
             var latency = job.Finished is { } done ? (done - job.Queued).ToString("F2", CultureInfo.InvariantCulture).PadLeft(8) : "       -";
-            Say(Format($"{index,3}  {job.Start,6:F1}-{job.Start + job.Seconds,6:F1}  {job.Seconds,5:F1} {Time(job.Queued)} {Time(job.Started)} {Time(job.Finished)} {latency}  {job.Cues,4}"));
+            Say(Format($"s{session,-3} {index,4}  {job.Start,6:F1}-{job.Start + job.Seconds,6:F1}  {job.Seconds,5:F1} {Time(job.Queued)} {Time(job.Started)} {Time(job.Finished)} {latency}  {job.Cues,4}"));
         }
         var latencies = jobs.Values.Where(j => j.Finished is not null).Select(j => (j.Finished ?? 0) - j.Queued).ToList();
-        var duringRecording = jobs.Values.Count(j => (j.Finished ?? double.PositiveInfinity) <= stopAt);
-        Say(Format($"totals: {jobs.Count} jobs, {duringRecording} finished before Stop, {waitingAtStop} waiting at Stop, max latency {(latencies.Count == 0 ? 0 : latencies.Max()):F2} s, live cues {controller.LiveSegments.Count}, final pass done {doneAt - stopAt:F2} s after Stop"));
-        if (controller.LiveNotice is { } liveNotice) Say($"live notice: {liveNotice}");
+        Say(Format($"totals: {jobs.Count} live jobs, max latency {(latencies.Count == 0 ? 0 : latencies.Max()):F2} s, queue empty {doneAt - stopAt:F2} s after the last Stop{(gaps.Count == 0 ? "" : ", session gaps " + string.Join(", ", gaps.Select(g => Format($"{g:F3} s"))))}"));
 
-        Print("decision: " + (controller.SessionDecision?.DebugSummary() ?? "none"));
-        if (controller.LanguageNotice is { } notice) Print("notice: " + notice.Message);
-        var failed = false;
-        switch (controller.Phase)
+        var number = 0;
+        foreach (var job in queue.Jobs)
         {
-            case ControllerPhase.Finished finished:
-                var text = finished.Srt is { } srt && File.Exists(srt) ? await File.ReadAllTextAsync(srt).ConfigureAwait(true) : "";
-                Say($"final pass: {text.Split(" --> ").Length - 1} cues, {finished.Srt}");
-                Print("--- srt ---");
-                Print(text.TrimEnd('\n'));
-                Print("--- end ---");
-                break;
-            case ControllerPhase.Failed failure:
-                Say($"final pass failed: {failure.Message}");
-                failed = true;
-                break;
-            default:
-                Say($"ended in {controller.Phase}");
-                failed = true;
-                break;
+            number++;
+            Print($"queue job {number} decision: " + (job.Tracker.Decision?.DebugSummary() ?? "none"));
+            if (job.LanguageNotice is { } notice) Print($"queue job {number} notice: " + notice.Message);
+            switch (job.State)
+            {
+                case TranscriptionJobState.Done:
+                    var text = job.Srt is { } srt && File.Exists(srt) ? await File.ReadAllTextAsync(srt).ConfigureAwait(true) : "";
+                    var first = Srt.Parse(text).Where(cue => cue.Text.Length > 0).Select(cue => cue.Text).FirstOrDefault() ?? "";
+                    Say($"queue job {number} final pass: {text.Split(" --> ").Length - 1} cues, first: {first}");
+                    Print($"--- srt (queue job {number}) ---");
+                    Print(text.TrimEnd('\n'));
+                    Print("--- end ---");
+                    break;
+                case TranscriptionJobState.Failed:
+                    Say($"queue job {number} failed: {job.ErrorMessage}");
+                    failed = true;
+                    break;
+                default:
+                    Say($"queue job {number} ended in {job.State.StorageValue()}");
+                    failed = true;
+                    break;
+            }
+        }
+        if (controller.Phase is ControllerPhase.Failed failure)
+        {
+            Say($"session failed: {failure.Message}");
+            failed = true;
         }
         controller.LiveJobObserver = null;
+        controller.SessionStartObserver = null;
+        queue.EventObserver = null;
         // Everything was written below the throwaway folder; remove anything that was not.
-        foreach (var path in new[] { controller.FinishedTranscript, controller.FinishedRecording }.OfType<string>())
+        foreach (var path in queue.Jobs.SelectMany(job => new[] { job.Srt, job.Wav }).OfType<string>())
         {
             if (!Path.GetFullPath(path).StartsWith(Path.GetFullPath(root), StringComparison.OrdinalIgnoreCase))
             {
@@ -230,7 +357,7 @@ internal static class RecordingReplay
         return failed ? 1 : 0;
     }
 
-    private static async Task ReportStatusAsync(RecordingController controller, Func<double> now, CancellationToken token)
+    private static async Task ReportStatusAsync(RecordingController controller, TranscriptionQueue queue, Func<double> now, CancellationToken token)
     {
         while (!token.IsCancellationRequested)
         {
@@ -242,7 +369,8 @@ internal static class RecordingReplay
             {
                 return;
             }
-            Say(Format($"{now(),7:F2}  status: recorded {controller.Elapsed:F1} s, waiting {controller.LiveChunksWaiting}, live cues {controller.LiveSegments.Count}, phase {controller.Phase.GetType().Name}"));
+            var states = string.Join(", ", queue.Jobs.Select(job => Format($"{job.State.StorageValue()} {Math.Round(job.Progress * 100):F0}%")));
+            Say(Format($"{now(),7:F2}  status: recorded {controller.Elapsed:F1} s, live waiting {controller.LiveChunksWaiting}, live cues {controller.LiveSegments.Count}, queue [{states}]"));
         }
     }
 

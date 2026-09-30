@@ -204,4 +204,24 @@ public sealed class NotesFlowViewModelTests : IDisposable
         model.CancelNaming();
         Assert.IsType<NotesPhase.Idle>(model.Phase);
     }
+
+    [Fact]
+    public void AnyRunningFlowIsTrackedForTheQueuesNotesRule()
+    {
+        // The Mac's isAnyRunning (PLAN.md 4.9 item 4): a flow on screen stops a finished
+        // recording from opening another one.
+        // Flows of earlier tests are unreachable by now; the tracker holds them weakly.
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+        var model = Model(Returning(Notes));
+        Assert.False(NotesFlowViewModel.IsAnyRunning);
+        model.Run(WriteSrt(), TranscriptLanguage.English);
+        Assert.IsType<NotesPhase.Confirming>(model.Phase);
+        Assert.True(NotesFlowViewModel.IsAnyRunning);
+        model.SheetDismissed();
+        model.Reset();
+        Assert.False(model.IsRunning);
+        Assert.False(NotesFlowViewModel.IsAnyRunning);
+    }
 }

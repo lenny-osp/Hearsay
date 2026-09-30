@@ -10,22 +10,28 @@ internal enum HotkeyAction
 {
     StartStop = 1,
     Pause = 2,
+
+    /// <summary>Stop the recording and start the next one (PLAN.md 4.9, 18.10).</summary>
+    StopStartNext = 3,
 }
 
 /// <summary>
-/// Global hotkeys for Start / Stop and Pause / Resume (PLAN.md 4.4, 18.3).
+/// Global hotkeys for Start / Stop, Pause / Resume (PLAN.md 4.4, 18.3) and
+/// Stop &amp; Start Next (PLAN.md 4.9, 18.10).
 /// Port of mac/Hearsay/Features/Hotkeys/HotkeyManager.swift: Win32
 /// <c>RegisterHotKey</c> in place of Carbon <c>RegisterEventHotKey</c>, with
 /// <see cref="HotkeyBinding"/>'s values (MOD_* flags plus MOD_NOREPEAT, VK
 /// codes), targeting a message-only window on the UI thread. Bindings come
-/// from <see cref="AppSettings"/> and are re-registered whenever either one
-/// changes; <see cref="Dispose"/> unregisters them (on quit). Neither needs
+/// from <see cref="AppSettings"/> and are re-registered whenever one
+/// changes; two actions bound to the same chord make the second registration
+/// fail, which <see cref="RegistrationError"/> reports like a chord another
+/// app owns; <see cref="Dispose"/> unregisters them (on quit). Neither needs
 /// any permission. Use from the UI thread.
 /// </summary>
 internal sealed class HotkeyManager : INotifyPropertyChanged, IDisposable
 {
     /// <summary>The hotkey id of <see cref="Probe"/>'s trial registration, apart from the actions' ids.</summary>
-    private const int ProbeId = 3;
+    private const int ProbeId = 100;
 
     private readonly AppSettings settings;
     private readonly Action<HotkeyAction> perform;
@@ -123,7 +129,8 @@ internal sealed class HotkeyManager : INotifyPropertyChanged, IDisposable
 
     private void OnSettingsChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(AppSettings.StartStopHotkey) or nameof(AppSettings.PauseHotkey))
+        if (e.PropertyName is nameof(AppSettings.StartStopHotkey) or nameof(AppSettings.PauseHotkey)
+            or nameof(AppSettings.StopStartNextHotkey))
         {
             Register();
         }
@@ -138,6 +145,7 @@ internal sealed class HotkeyManager : INotifyPropertyChanged, IDisposable
         [
             (HotkeyAction.StartStop, settings.StartStopHotkey),
             (HotkeyAction.Pause, settings.PauseHotkey),
+            (HotkeyAction.StopStartNext, settings.StopStartNextHotkey),
         ];
         foreach (var (action, binding) in bindings)
         {
@@ -170,7 +178,7 @@ internal sealed class HotkeyManager : INotifyPropertyChanged, IDisposable
     {
         if (message != NativeMethods.WM_HOTKEY) return false;
         var id = (int)wParam.ToInt64();
-        if (id is not ((int)HotkeyAction.StartStop or (int)HotkeyAction.Pause)) return false;
+        if (id is not ((int)HotkeyAction.StartStop or (int)HotkeyAction.Pause or (int)HotkeyAction.StopStartNext)) return false;
         var action = (HotkeyAction)id;
         AppLog.Write($"hotkeys: {action} pressed");
         perform(action);

@@ -569,6 +569,10 @@
     <value>重新產生筆記…</value>
     <comment>app: Regenerate Notes…</comment>
   </data>
+  <data name="app_7712f7a25c48e02b" xml:space="preserve">
+    <value>尚未轉錄的錄音：{0}</value>
+    <comment>app: Recordings not transcribed yet: %lld</comment>
+  </data>
   <data name="app_7812445c87bc6e1c" xml:space="preserve">
     <value>正在讀取 {0}…</value>
     <comment>app: Reading %@…</comment>
@@ -680,6 +684,10 @@
   <data name="app_8a7525b1492fb848" xml:space="preserve">
     <value>筆記</value>
     <comment>app: Notes</comment>
+  </data>
+  <data name="app_8e8a51b606c9e743" xml:space="preserve">
+    <value>Hearsay 下次開啟時會繼續轉錄。</value>
+    <comment>app: Hearsay continues with them the next time it opens.</comment>
   </data>
   <data name="app_8f24c982c3912ed1" xml:space="preserve">
     <value>安裝並重新啟動</value>
@@ -829,6 +837,10 @@
     <value>保留時間戳記名稱</value>
     <comment>app: Keep Timestamp Names</comment>
   </data>
+  <data name="app_b1044171204a6cdb" xml:space="preserve">
+    <value>請等轉錄完成。</value>
+    <comment>app: Wait until the transcriptions are finished.</comment>
+  </data>
   <data name="app_b2439bcb8dee14b6" xml:space="preserve">
     <value>輸出</value>
     <comment>app: Output</comment>
@@ -841,6 +853,10 @@
     <value>無法建立錄音檔：{0}</value>
     <comment>app: Could not create the recording file: %@</comment>
   </data>
+  <data name="app_b3eb37acb66ba4bb" xml:space="preserve">
+    <value>結束</value>
+    <comment>app: Quit</comment>
+  </data>
   <data name="app_b4abd7a6309ed1c3" xml:space="preserve">
     <value>無法重新命名會議</value>
     <comment>app: Could not rename the meeting</comment>
@@ -848,6 +864,10 @@
   <data name="app_b5c120b316c237a0" xml:space="preserve">
     <value>已儲存</value>
     <comment>app: Saved</comment>
+  </data>
+  <data name="app_b850883eb8f79344" xml:space="preserve">
+    <value>儲存這場錄音並立即開始下一場（{0}）。這場會在背景轉錄。</value>
+    <comment>app: Save this recording and start the next one at once (%@). This one is transcribed in the background.</comment>
   </data>
   <data name="app_bbe5fc3b9ef39f99" xml:space="preserve">
     <value>正在開始…</value>
@@ -1020,6 +1040,10 @@
   <data name="app_dca058acc8d6fb58" xml:space="preserve">
     <value>Hearsay 無法驗證下載的更新。</value>
     <comment>app: Hearsay could not verify the downloaded update.</comment>
+  </data>
+  <data name="app_dda386a499f6fd17" xml:space="preserve">
+    <value>結束並開始下一場</value>
+    <comment>app: Stop &amp; Start Next</comment>
   </data>
   <data name="app_de3ab6b30c87483b" xml:space="preserve">
     <value>新 App 的版本是 {0}，而不是 {1}。</value>

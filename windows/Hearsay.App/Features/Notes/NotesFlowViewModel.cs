@@ -67,6 +67,32 @@ internal sealed class NotesFlowViewModel
         this.generate = generate ?? DefaultGenerate;
         context = SynchronizationContext.Current;
         templateId = store.Configuration.SelectedTemplateId;
+        lock (InstancesGate)
+        {
+            Instances.RemoveAll(flow => !flow.TryGetTarget(out _));
+            Instances.Add(new WeakReference<NotesFlowViewModel>(this));
+        }
+    }
+
+    private static readonly Lock InstancesGate = new();
+
+    /// <summary>Every flow created in this process (weakly), for <see cref="IsAnyRunning"/> (the Mac's <c>instances</c>).</summary>
+    private static readonly List<WeakReference<NotesFlowViewModel>> Instances = [];
+
+    /// <summary>
+    /// A notes flow (Record, File, or History tab) is running: a sheet is up
+    /// or notes are being generated. A queue job that finishes now does not
+    /// open another one (PLAN.md 4.9 item 4).
+    /// </summary>
+    public static bool IsAnyRunning
+    {
+        get
+        {
+            lock (InstancesGate)
+            {
+                return Instances.Any(flow => flow.TryGetTarget(out var model) && model.IsRunning);
+            }
+        }
     }
 
     /// <summary>The app's one pipeline (Settings > AI uses it for Check and Test connection).</summary>

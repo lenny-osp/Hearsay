@@ -1011,6 +1011,17 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
     ("Paused while recording") until the second stops. Quit with a job
     waiting, reopen, and check it resumes.
 
+27. Windows, back-to-back recordings (section 18.10, added 2026-09-30): with
+    a real microphone record a minute, press Stop & Start Next (button, then
+    Ctrl+Alt+Win+N), and record another minute; the gap between the two
+    recordings is the device restart (WASAPI start to the first buffer, and
+    the loopback capture with "Also capture system audio"): note it in
+    18.10. In "When no recording is running" (the default) the first
+    recording waits until the second stops; switch to "Right away" and
+    check the live preview of the second keeps up while the first
+    transcribes. Quit with a job waiting ("Recordings not transcribed yet:
+    N"), reopen, and check it continues.
+
 ## 17. Polish list (found during review, not yet scheduled)
 
 - **Decided 2026-09-28: Antigravity CLI isolation.** agy honors the
@@ -2093,3 +2104,95 @@ its own file under `%LOCALAPPDATA%\Hearsay\Recording\`, same fields).
   keys `finalPassTiming` and `stopStartNextHotkey`. The Core layer has no
   other list of hotkeys; registration and the Settings rows are WI-4. The
   picker labels are the app's (no Core string is surfaced).
+
+**As built (Windows, WI-3 App, 2026-09-30).**
+- `Features/Transcription/TranscriptionQueue.cs` (`TranscriptionQueue`,
+  `TranscriptionJob`, `RecordingHandover`, `QueueEvent`, `NotesRequest`) is
+  the port of `TranscriptionQueue.swift`; `LiveSink.cs` and the output half
+  of `TranscriptOutput.cs` (`SaveTranscript`, `KeepAfterFailure`,
+  `PendingRecording`) are the ports of `LiveSink.swift` and
+  `TranscriptOutput.swift`. `AppShell` owns the queue (`Queue`) next to the
+  controller and calls `Queue.Restore()` at launch. The queue takes an
+  `IQueueEngine` (step, detection, whole pass; `TranscriptionEngine`
+  implements it, a fake does in the tests), a model-path function and a WAV
+  loader, so the tests need no model.
+- Threading: the queue, its jobs and the controller are UI-thread objects.
+  Every continuation returns to the UI context (`ConfigureAwait(true)`),
+  `PropertyChanged` and `Changed` are raised there only, and a test UI
+  thread (a dedicated thread with a `SynchronizationContext`) checks it. The
+  decoder's `shouldYield` runs on the engine's thread and reads only
+  `engine.ForegroundWaiting` and a volatile hold flag (timing is whenIdle and
+  a session is active). Public surface for the queue list and the tray
+  (WI-4): `Jobs` (a `ReadOnlyObservableCollection`), per-job
+  `INotifyPropertyChanged` (`State`, `Progress`, `DisplayProgress`, `Title`,
+  `Srt`, `Wav`, `Files`, `ErrorMessage`, `NeedsModel`, `LanguageNotice`,
+  `CanUseLivePreview`, `CanChangeLanguage`, `CanRetry`, `CanDismiss`,
+  `OffersNotes`, `IsRerunning`, `RerunProgress`, `RerunError`), queue
+  `PropertyChanged` (`PendingCount`, `ActiveJob`, `FeaturedJob`,
+  `IsSessionActive`, `IsHeldForSession`) and the catch-all `Changed`, and the
+  row commands `UseLivePreviewInstead`, `Retry`, `Dismiss`, `TranscribeAgain`,
+  `DismissLanguageNotice`, `NotesStarted`, `IsPausedForSession`.
+- Foreground marking is in `TranscriptionEngine`, not at each call site: its
+  `TranscribeAsync` and `DetectLanguageAsync` take `EnterForeground()` before
+  they wait for the engine (live chunks, session detection, File mode, the
+  queue's language settling and "Transcribe again" all go through them),
+  and `TranscribeStepAsync`, the queue's only background call, does not.
+  The queue checks `MayRun` again just before every step and puts the job back
+  ("suspended", or waiting when it has no checkpoint) when a session started
+  or foreground work arrived while the samples were read or the language
+  detected.
+- Differences from the Mac: the queue also closes every job's live sink at
+  quit (the engine's dispose waits for the running chunk, so a long live
+  tail would hold the exit; the live segments so far are saved, and the next
+  launch's job has no live tail); `NotesRequested` is an event that
+  `MainWindow` answers at once by taking the request (the queue re-checks it
+  then), because the notes panel exists whether or not the Record tab is
+  showing, where the Mac's tab takes it in `onAppear`;
+  `NotesFlowViewModel.IsAnyRunning` is the weak tracker of every flow
+  (Record, File and History); the tray keeps its `Transcribing` phase and
+  `AppShell` maps the running job's percentage into it while no session is
+  active (the tray menu and tooltip wording are WI-4); the finished card shows
+  "Generate Notes…" only when the job offers it (the Windows Record tab
+  used to show it always).
+- Record tab (WI-3 scope): the session on top, the single job as the single
+  meeting (live preview, progress, "Use live preview instead", language
+  banner, saved files, Try Again, notes), a capture failure's card with
+  Try Again (queues the kept WAV), and Stop & Start Next next to Stop while
+  recording or paused (tooltip with the shortcut). The "Transcription queue"
+  list for two or more jobs, the tray menu entry, the Settings timing picker
+  and shortcut row, snapshots of the queue, help and README are WI-4: until
+  then the jobs of a busy queue (a session running, or two recordings) have no
+  row on the Record tab, and their notes offers and failures are not shown.
+- Hotkeys: `HotkeyAction.StopStartNext = 3` is registered with the other two
+  (probe id moved to 100); two actions bound to the same chord fail at
+  `RegisterHotKey` and show in `RegistrationError`. The recorder's
+  "same as the other action" check still knows only one other binding (WI-4).
+- Quit: "Stop & Quit" hands the recording to the queue and quits without
+  transcribing; pending jobs give "Recordings not transcribed yet: N" /
+  "Hearsay continues with them the next time it opens." with Quit / Cancel; a
+  running step or re-run is cancelled at its next window without a question;
+  `UpdateService.InstallBlocker` says "Wait until the transcriptions are
+  finished." while jobs are pending. A debug run quits without the question.
+- Replay: `HEARSAY_REPLAY_FILE=<a>,<b>[,...]` as on the Mac, with
+  `HEARSAY_REPLAY_TIMING=immediate|whenIdle` (default `immediate`, the Mac's
+  replay default; the setting's own default stays whenIdle); the Windows
+  replay also prints each job's SRT to stdout between `--- srt (queue job N)
+  ---` lines, because the scratch folder is removed at exit.
+- Measured (2026-09-30, `en-30s.wav` then `de-30s.wav`, language Auto, turbo
+  q5_0 on Vulkan, fake microphone, the replay's own scratch folders): the
+  next session reaches Recording 68 ms (immediate) and 53 ms (whenIdle)
+  after Stop & Start Next, which includes the mixer drain, closing the WAV,
+  the hand-over, the device list refresh and the thread-pool hops of the
+  start; the session-active flag does not drop. immediate: job 1 ran at once
+  (detection, then put back for 7 s because the last live chunk of session 1
+  was foreground work, then its pass), finished 20 s after the Stop & Start
+  Next and 1.5 s before session 2 ended; job 2 finished 21 s after the last
+  Stop. whenIdle: job 1 did nothing but settle its Auto language (foreground
+  detection, 5 s after Stop) until session 2 stopped, then both passes ran
+  one after the other, 27 s after the last Stop. Both exit 0, and the
+  final SRTs have the same text. The real device restart (WASAPI start to the
+  first buffer, and the loopback capture for system audio) comes on top and
+  is not measured: item 27 of section 16.
+- Not tested here: nothing of this ran with the CUDA runtime (there is no
+  NVIDIA GPU on the dev machine), and the registration of the third hotkey
+  was only exercised by the snapshot run (all three registered).

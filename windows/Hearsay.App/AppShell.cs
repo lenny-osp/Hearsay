@@ -18,6 +18,7 @@ using Hearsay.Core.ModelStore;
 using Hearsay.Core.Notes;
 using Hearsay.Core.Settings;
 using Hearsay.Core.Updates;
+using Hearsay.Whisper;
 using Microsoft.UI.Dispatching;
 
 namespace Hearsay.App;
@@ -98,10 +99,14 @@ internal sealed class AppShell
         // %LOCALAPPDATA%\Hearsay\Recording, debug runs use the scratch folder.
         Engine = new TranscriptionEngine();
         Spool = new RecordingSpool(scratchFolder is not null ? Path.Combine(scratchFolder, "Recording") : RecordingSpool.DefaultRoot());
-        RecordingController = new RecordingController(Settings, Models, Engine, Spool);
+        // PLAN.md 4.9: finished recordings wait in the background queue (its
+        // queue.json lives in the spool) while the controller is free for the next one.
+        Queue = new TranscriptionQueue(Settings, Engine, Spool, () => WhisperModelLocation.Active(Models));
+        RecordingController = new RecordingController(Settings, Models, Engine, Queue, Spool);
         FileModel = new FileViewModel(Settings, Models, Engine);
-        Recording.Connect(RecordingController.ToggleStartStop, RecordingController.TogglePause);
+        Recording.Connect(RecordingController.ToggleStartStop, RecordingController.TogglePause, RecordingController.StopAndStartNext);
         RecordingController.PropertyChanged += (_, _) => SyncRecordingStatus();
+        Queue.Changed += (_, _) => SyncRecordingStatus();
         // PLAN.md 4.6 and 18.4: the update check and install (the Mac's
         // UpdateService); the cache is %LOCALAPPDATA%\Hearsay\Updates, debug
         // runs use the scratch folder and never check or install.
@@ -134,6 +139,9 @@ internal sealed class AppShell
 
     /// <summary>Where recordings are written while they are made (PLAN.md 4.5).</summary>
     public RecordingSpool Spool { get; }
+
+    /// <summary>The background transcription queue (the Mac's <c>TranscriptionQueue</c>, PLAN.md 4.9).</summary>
+    public TranscriptionQueue Queue { get; }
 
     /// <summary>The one recording session (the Mac's <c>RecordingController</c>).</summary>
     public RecordingController RecordingController { get; }
@@ -214,6 +222,8 @@ internal sealed class AppShell
         Settings.PropertyChanged += OnSettingsChanged;
         Hotkeys.Start();
         RecordingController.Activate();
+        // Recordings a previous run did not transcribe continue (PLAN.md 4.9).
+        Queue.Restore();
         MainWindow.Activate();
         // PLAN.md 4.5: unfinished spool recordings, once the window can show a sheet.
         dispatcher.TryEnqueue(DispatcherQueuePriority.Low, () => _ = OfferRecoveryAsync());
@@ -232,14 +242,18 @@ internal sealed class AppShell
     }
 
     /// <summary>
-    /// Why Install and Relaunch must wait: a recording session, its final
-    /// pass, or a Whisper job (File mode) runs; notes and model downloads are
-    /// not checked (the Mac's <c>AppDelegate.updateInstallBlocker</c>).
+    /// Why Install and Relaunch must wait: a recording still waiting for its
+    /// transcription, a recording session, or a Whisper job (File mode, a
+    /// re-run) runs; notes and model downloads are not checked (the Mac's
+    /// <c>AppDelegate.updateInstallBlocker</c>).
     /// </summary>
-    private string? UpdateInstallBlocker() =>
-        RecordingController.IsSessionActive || RecordingController.IsTranscribing || Engine.IsBusy || FileModel.IsBusy
+    private string? UpdateInstallBlocker()
+    {
+        if (Queue.BlocksUpdateInstall) return Strings.WaitUntilTranscriptionsFinished;
+        return RecordingController.IsSessionActive || Engine.IsBusy || FileModel.IsBusy
             ? Strings.UpdateFinishRecordingFirst
             : null;
+    }
 
     /// <summary>
     /// The recovery sheet for spool recordings a crash left behind (the Mac's
@@ -277,17 +291,19 @@ internal sealed class AppShell
     private void SyncRecordingStatus()
     {
         var controller = RecordingController;
+        // With no session the tray shows the running job's percentage (the
+        // Mac's menu bar label, PLAN.md 4.9).
+        var job = controller.IsSessionActive ? null : Queue.ActiveJob;
         var phase = controller.Phase switch
         {
             ControllerPhase.Starting => RecordingPhase.Starting,
             ControllerPhase.Recording => RecordingPhase.Recording,
             ControllerPhase.Paused => RecordingPhase.Paused,
             ControllerPhase.Stopping => RecordingPhase.Stopping,
-            ControllerPhase.Transcribing => RecordingPhase.Transcribing,
-            _ => RecordingPhase.Idle,
+            _ => job is null ? RecordingPhase.Idle : RecordingPhase.Transcribing,
         };
-        Recording.Update(phase, TimeSpan.FromSeconds(controller.Elapsed), controller.TranscriptionProgress);
-        Recording.SetBusyFiles(controller.BusyFiles);
+        Recording.Update(phase, TimeSpan.FromSeconds(controller.Elapsed), phase == RecordingPhase.Transcribing ? job?.Progress : null);
+        Recording.SetBusyFiles(Queue.BusyFiles);
         if (controller.TranscribeFileRequest is { } file && !FileModel.IsBusy)
         {
             // "Transcribe this file" on the Record tab (the Mac's MainView.takeTranscribeFileRequest).
@@ -333,16 +349,24 @@ internal sealed class AppShell
 
     /// <summary>
     /// Quits Hearsay (tray menu, or closing the window in taskbar-only mode).
-    /// While a recording is active it asks first, then stops and saves it;
-    /// while the final pass runs it is cancelled and the live preview saved,
-    /// the WAV kept (the Mac's <c>applicationShouldTerminate</c>, PLAN.md 4.4).
+    /// While a recording is active it asks first, then stops it: the
+    /// recording becomes a queue job and the next launch transcribes it. With
+    /// recordings waiting for their transcription it asks "Recordings not
+    /// transcribed yet: N"; a step that runs is cancelled at its next 30 s
+    /// window, and the WAVs and queue.json stay (the Mac's
+    /// <c>applicationShouldTerminate</c>, PLAN.md 4.4, 4.9).
     /// </summary>
     public void Quit()
     {
         if (IsQuitting || isStoppingForQuit) return;
-        if (RecordingController.IsSessionActive || RecordingController.IsTranscribing)
+        if (RecordingController.IsSessionActive)
         {
             _ = QuitAfterRecordingAsync();
+            return;
+        }
+        if (Queue.PendingCount > 0 || Queue.HasWorkInFlight)
+        {
+            _ = QuitWithQueueAsync();
             return;
         }
         QuitNow();
@@ -371,29 +395,50 @@ internal sealed class AppShell
 
     private async Task QuitAfterRecordingAsync()
     {
-        var controller = RecordingController;
-        if (controller.IsSessionActive)
+        ShowMain();
+        if (MainWindow.RenderRoot.XamlRoot is not { } root) return;
+        var dialog = Alert.Make(root, Strings.StopRecordingAndQuit, Alert.Message(Strings.RecordingSavedBeforeQuit));
+        dialog.PrimaryButtonText = Strings.StopAndQuit;
+        dialog.CloseButtonText = Strings.Cancel;
+        if (await Alert.PresentAsync(dialog).ConfigureAwait(true) != Microsoft.UI.Xaml.Controls.ContentDialogResult.Primary)
+        {
+            relaunchRequested = false;
+            return;
+        }
+        if (isStoppingForQuit || IsQuitting) return;
+        isStoppingForQuit = true;
+        // The recording becomes a queue job; the next launch transcribes it (PLAN.md 4.9).
+        await RecordingController.StopForQuitAsync().ConfigureAwait(true);
+        await Queue.PrepareForQuitAsync().ConfigureAwait(true);
+        QuitNow();
+    }
+
+    /// <summary>
+    /// No session, but recordings wait for their transcription (ask first) or
+    /// a step or re-run is in flight (it stops at its next 30 s window, the
+    /// previous SRT stays, no alert).
+    /// </summary>
+    private async Task QuitWithQueueAsync()
+    {
+        var pending = Queue.PendingCount;
+        if (pending > 0)
         {
             ShowMain();
             if (MainWindow.RenderRoot.XamlRoot is not { } root) return;
-            var dialog = Alert.Make(root, Strings.StopRecordingAndQuit, Alert.Message(Strings.RecordingSavedBeforeQuit));
-            dialog.PrimaryButtonText = Strings.StopAndQuit;
+            var dialog = Alert.Make(root, Strings.RecordingsNotTranscribedYet(pending), Alert.Message(Strings.HearsayContinuesNextTime));
+            dialog.PrimaryButtonText = Strings.QuitButton;
             dialog.CloseButtonText = Strings.Cancel;
             if (await Alert.PresentAsync(dialog).ConfigureAwait(true) != Microsoft.UI.Xaml.Controls.ContentDialogResult.Primary)
             {
                 relaunchRequested = false;
                 return;
             }
-            if (isStoppingForQuit || IsQuitting) return;
-            isStoppingForQuit = true;
-            await controller.StopAsync().ConfigureAwait(true);
         }
-        else
-        {
-            isStoppingForQuit = true;
-        }
-        // Stopping starts the final pass; do not wait for it.
-        await controller.CancelTranscriptionForQuitAsync().ConfigureAwait(true);
+        if (isStoppingForQuit || IsQuitting) return;
+        isStoppingForQuit = true;
+        // No session is active; this only keeps one from starting.
+        await RecordingController.StopForQuitAsync().ConfigureAwait(true);
+        await Queue.PrepareForQuitAsync().ConfigureAwait(true);
         QuitNow();
     }
 
@@ -413,6 +458,7 @@ internal sealed class AppShell
         Tray.Dispose();
         Models.Dispose();
         RecordingController.Dispose();
+        Queue.Dispose();
         Engine.Dispose();
         HelpWindow?.Close();
         LicensesWindow?.Close();
@@ -428,7 +474,17 @@ internal sealed class AppShell
     public void FinishDebugRun(int status)
     {
         App.ExitCode = status;
-        Quit();
+        // No "Recordings not transcribed yet" question in a headless run.
+        _ = FinishDebugRunAsync();
+    }
+
+    private async Task FinishDebugRunAsync()
+    {
+        if (IsQuitting || isStoppingForQuit) return;
+        isStoppingForQuit = true;
+        await RecordingController.StopForQuitAsync().ConfigureAwait(true);
+        await Queue.PrepareForQuitAsync().ConfigureAwait(true);
+        QuitNow();
     }
 
     /// <summary>A <c>hearsay://open/...</c> link in the help page.</summary>
@@ -447,6 +503,9 @@ internal sealed class AppShell
                 break;
             case HotkeyAction.Pause:
                 Recording.TogglePause();
+                break;
+            case HotkeyAction.StopStartNext:
+                Recording.StopAndStartNext();
                 break;
         }
     }
