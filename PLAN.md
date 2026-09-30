@@ -24,6 +24,7 @@ output rule ported here.
 | Topic | Decision |
 |---|---|
 | Language / UI | Swift 6, SwiftUI, AppKit only where SwiftUI has no API (activation policy, CoreAudio device pick). |
+| Back-to-back recordings | 2026-09-30 (owner request): Stop hands the recording to a background transcription queue, so the next recording can start at once; Stop & Start Next button and shortcut; final-pass timing "right away (background)" (Mac default) or "when no recording is running" (Windows default); notes sheets wait while recording. Section 4.9, Windows 18.10. |
 | Inference | MLX. The Whisper module of `Blaizzy/mlx-audio-swift` (MIT, 1,526 lines, commit `01dec7c9`) is vendored into `mac/HearsayCore/Whisper/` and its decode loop is replaced with a timestamped decoder ported from `mlx_whisper` 0.4.3. Reason: section 15. Direct dependencies become `ml-explore/mlx-swift` and `huggingface/swift-transformers` only. |
 | Models | Downloaded on demand from Hugging Face `mlx-community/whisper-*` repos into the app's own model directory. User picks the model. Nothing ships inside the bundle. |
 | Audio I/O | AVFoundation. Mic via `AVCaptureSession` + `AVCaptureAudioDataOutput` (16 kHz mono Float32), chosen by CoreAudio UID; `AVAudioFile` for files. No FFmpeg. Changed 2026-09-28: the `AVAudioEngine` tap got no buffers after switching input device, because the input node kept reporting the previous device's rate. |
@@ -454,6 +455,105 @@ entry's meeting name, button "Rename"). `OutputWriter.renameEntry`:
 - After success History rescans and selects the renamed entry; errors go
   to an alert with the error text (which says what was restored).
 
+### 4.9 Back-to-back recordings (background transcription queue)
+
+Decided 2026-09-30 (owner request): a finished recording no longer blocks
+the next one. Before, `RecordingController` held one session from Start
+to the end of the final pass (`canStart` was false while transcribing),
+so a second meeting straight after the first could not be recorded.
+The owner chose items 1, 2, and 4 below and item 3 with two timings only;
+"skip the final pass and keep the live preview" was rejected because a
+machine whose live preview cannot keep up (or has it off) would end up
+with no complete transcript.
+
+1. **Queue.** Stop closes the WAV and hands the session to
+   `TranscriptionQueue` as a job; the Record tab is ready for Start at
+   once. A job owns what the session owned after Stop: the spool WAV, its
+   live segments (and the live tail still being transcribed), its
+   language tracker and Chinese script, and its banners (language
+   mismatch, Auto fallback, errors). Jobs run first in, first out, one at
+   a time, on the one loaded model. The samples are not held in memory:
+   a job reads its WAV from the spool when it runs.
+2. **Stop & Start Next.** A button on the Record tab and in the menu bar
+   panel while recording or paused, and a global shortcut (default
+   ⌃⌥⌘N, editable in Settings > General like the others). It stops the
+   session (which becomes a job) and starts a new one with the same
+   input device, system-audio choice, and language choice (Auto detects
+   again for the new session). The gap is the capture restart; measure it
+   and write it here.
+3. **Final-pass timing** (Settings > General > Transcription, key
+   `finalPassTiming`):
+   - `immediate` "Right away (in the background)", the Mac default: a job
+     starts as soon as it is first in line and the engine has no
+     foreground work.
+   - `whenIdle` "When no recording is running", the Windows default:
+     jobs start only while no session is active (Starting, Recording,
+     Paused, Stopping). A job running when a session starts suspends at
+     its next window and resumes after the session stops.
+   Either way the current session's live chunks and language detection,
+   File-mode transcriptions, and History re-runs are foreground work: a
+   running job suspends at the next 30 s window while any foreground job
+   waits, and resumes when none does. A suspended job keeps its place at
+   the head of the line.
+4. **Notes do not interrupt.** When a job finishes while a session is
+   active, or while a notes sheet or another job's notes flow is on
+   screen, no sheet opens: the job's row offers "Generate Notes…" and
+   History offers it as usual. Otherwise the notes flow opens as today.
+   There is no system notification (it would need a new permission).
+5. **Single meeting unchanged.** With one recording and nothing queued
+   the Record tab looks and behaves as before: progress, "Use live
+   preview instead", the finished card, the notes sheet.
+
+**Resumable decoding (Mac).** `Transcriber` gains a checkpoint: the
+state its loop carries between windows (`seek`, `allTokens`,
+`allSegments`, `promptResetSince`, the resolved language, the initial
+prompt length). `shouldYield`, checked where `shouldCancel` is (before a
+window, and only after at least one window of this call, so a resumed
+job always advances), returns `.suspended(checkpoint)`; calling again
+with the checkpoint continues. Suspending and resuming must give the same
+segments and text as one uninterrupted call: tested on a multi-window
+input made from the fixtures, yielding after every window. The fixture
+SRTs stay byte-identical (section 6 unchanged). `WhisperEngine` counts
+waiting foreground calls in a lock-protected counter outside the actor
+(a foreground call increments it before awaiting the actor), so the
+decoder's `shouldYield` can read it without entering the actor.
+
+**Queue rules** (`TranscriptionQueuePolicy` in HearsayCore, pure, with
+the vectors in `shared/transcription-queue-tests.json` that Windows runs
+too):
+- `next(timing, sessionActive, foregroundWaiting, jobs)` returns run
+  or resume the first job that is waiting or suspended, suspend the
+  running job, or wait.
+- `presentsNotes(sessionActive, notesOnScreen)` for a finished job.
+- Quit: with jobs waiting, running, or suspended, Quit asks "N
+  recordings are not transcribed yet. Hearsay continues with them the
+  next time it opens." (Quit / Cancel). Update install refuses while jobs
+  exist, like a recording.
+
+**Persistence and recovery.** The queue is written to
+`<spool>/queue.json` (job id, WAV name, stop time, language choice,
+settled language and script, keep-recording choice, state) and each
+job's live segments to `<spool>/<id>.live.srt`, updated as they change.
+On launch the jobs in `queue.json` are queued again without asking (a
+job that was running starts over). A spool WAV that is in no job and has
+no SRT is still an unfinished recording (4.5, unchanged). A job that
+fails keeps today's failure rules (4.1): WAV moved to the output folder,
+the live preview saved as the SRT, Retry on its row.
+
+**UI.** The Record tab shows the current session on top and, below it,
+the queue: one row per job with its name and time, the state (Waiting,
+Transcribing N%, Paused while recording, Done, Failed), and its actions
+(Use Live Preview Instead, Open Transcript, Generate Notes…, Retry,
+Show in Finder, dismiss for Done and Failed rows). The menu bar label
+shows the recording status as today and, with no session, the running
+job's percentage; the menu bar panel shows one queue line and
+Stop & Start Next.
+
+**Debug.** `HEARSAY_REPLAY_FILE=<a.wav>,<b.wav>` replays the files as
+consecutive sessions joined by Stop & Start Next and prints each queue
+event (queued, running, suspended, resumed, done with the SRT path), so
+the queue is checked headless.
+
 ## 5. Model catalog and download
 
 Built-in `ModelCatalog.json`, editable later without a code change. Every
@@ -561,6 +661,9 @@ a one-line prompt.
 - Prompt templates: list, add, edit, delete, set default.
 - Check for updates automatically: on (default) / off, with Check Now and
   the version (section 4.6).
+- Final-pass timing: right away in the background (Mac default) / when
+  no recording is running (Windows default), section 4.9.
+- Global shortcut for Stop & Start Next (default ⌃⌥⌘N), section 4.9.
 
 ## 9. Entitlements and privacy
 
@@ -825,6 +928,16 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
     (the shell takes it; nothing happens), an AltGr chord on a German
     layout, Escape (keeps the old one) and Backspace (default). While it
     listens, the old chord must not start a recording.
+
+26. Mac, back-to-back recordings (section 4.9, added 2026-09-30): record
+    a minute, press Stop & Start Next (button, then ⌃⌥⌘N), and record
+    another minute. The first recording shows in the queue as
+    Transcribing while the second records, its live preview keeps up,
+    and no notes sheet opens until you stop. Stop the second; it finishes
+    after the first and its notes sheet opens. Switch Settings > General
+    to "When no recording is running" and repeat: the first job waits
+    ("Paused while recording") until the second stops. Quit with a job
+    waiting, reopen, and check it resumes.
 
 ## 17. Polish list (found during review, not yet scheduled)
 
@@ -1814,3 +1927,36 @@ findings only in a chat report.
   on a PC without a Vulkan driver; `Hearsay.App.Tests` copies
   every Whisper.net native build into its output (it does not import
   `TrimWhisperRuntimes.targets`), harmless for tests.
+
+### 18.10 Back-to-back recordings (port of section 4.9, added 2026-09-30)
+
+The Mac builds this first; Windows ports it after. Same behavior as 4.9
+unless listed here. Shared contract: `shared/transcription-queue-tests.json`
+(queue decisions, notes presentation, quit and update blockers), the
+`finalPassTiming` setting (`immediate` | `whenIdle`), the strings in
+`shared/localization`, and the `queue.json` fields in 4.9 (Windows keeps
+its own file under `%LOCALAPPDATA%\Hearsay\Recording\`, same fields).
+
+- **Default timing `whenIdle`.** This dev machine (18.6) cannot run a
+  final pass and the live preview together, and on a PC whose live
+  preview is off (the speed gate above) `immediate` would still slow the
+  capture machine down. `immediate` stays available.
+- **Suspend and resume on whisper.cpp.** whisper.cpp cannot continue a
+  decode from saved state. Suspend stops reading segments from
+  `ProcessAsync` at the next segment when `shouldYield` fires (cancel the
+  enumeration); the checkpoint is the end time of the last complete
+  segment plus the segments so far. Resume starts a new pass at that
+  offset (`WithOffset`), which matches the Mac closely because both
+  platforms decode with `conditionOnPreviousText` off. Measure on a
+  multi-window input built from the fixtures: resumed text similarity at
+  least 0.98 of an uninterrupted pass, and no duplicated or missing cue at
+  the resume point (drop a first cue that ends before the offset).
+- **Foreground counter.** Same rule as the Mac: live chunks, detection,
+  File mode, and History re-runs increment it before waiting for the
+  engine; the running job checks it between segments.
+- **Shortcut.** Stop & Start Next is `RegisterHotKey` like the other two,
+  default Ctrl+Alt+Win+N (the Windows equivalents of ⌃⌥⌘N), editable in
+  the shortcut recorder.
+- **Tray.** The tray tooltip shows the recording status and, with no
+  session, the running job's percentage; the tray menu gets Stop & Start
+  Next.
