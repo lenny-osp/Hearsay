@@ -41,6 +41,9 @@ namespace Hearsay.Whisper;
 /// (the Mac checks before every window); the CPU backend also polls it
 /// during a window through the abort callback. Either way the call throws
 /// <see cref="TranscriptionCancelledException"/> with the segments finished so far.</para>
+/// <para><b>Suspend and resume</b> (PLAN.md 18.10): <c>TranscribeStep</c> asks <c>shouldYield</c>
+/// at the same two places, after at least one window of the call; the checkpoint holds the
+/// segments so far and the end of the last complete segment, and a resume slices the samples there.</para>
 /// </remarks>
 public sealed unsafe class WhisperEngine : IDisposable
 {
@@ -50,7 +53,14 @@ public sealed unsafe class WhisperEngine : IDisposable
     /// <summary>A warm 30 s window slower than this turns live preview off (PLAN.md 18.4, "Speed").</summary>
     public const double LivePreviewMaxWindowSeconds = 15;
 
+    /// <summary>Audio kept before a resume offset so the mel frames there are exact (one second).</summary>
+    private const int PreRollSamples = SilenceGate.SampleRate;
+
+    /// <summary>One log-mel frame, 10 ms.</summary>
+    private const int MelHopSamples = 160;
+
     private readonly Lock gate = new();
+    private readonly ForegroundWork foreground = new();
     private readonly Action<string>? log;
     private readonly TimeSpan idleUnload;
     private readonly Timer idleTimer;
@@ -192,6 +202,102 @@ public sealed unsafe class WhisperEngine : IDisposable
             EndJob();
         }
     }
+
+    /// <summary>
+    /// Lock-free count of foreground calls waiting for or running in the
+    /// engine (see <see cref="EnterForeground"/>). A background job's
+    /// <c>shouldYield</c> reads it: <c>() =&gt; engine.ForegroundWaiting &gt; 0 || queueSaysStop()</c>.
+    /// </summary>
+    public int ForegroundWaiting => foreground.Waiting;
+
+    /// <summary>
+    /// Counts the caller as foreground work until the returned token is
+    /// disposed. Take it BEFORE calling the engine, so the call is counted
+    /// while it waits for the lock a background pass holds:
+    /// <c>using var fg = engine.EnterForeground(); engine.Transcribe(...);</c>.
+    /// Marking is explicit, not per method, because the same entry points
+    /// serve foreground callers (live chunks, detection, File mode, History
+    /// re-runs); the Mac can decide by method only because its background
+    /// step is a separate method. <c>TranscribeStep</c> never counts itself.
+    /// </summary>
+    public ForegroundScope EnterForeground() => foreground.Enter();
+
+    /// <summary>
+    /// Background, resumable <see cref="Transcribe(ReadOnlyMemory{float}, TranscriptionOptions, IProgress{double}?, CancellationToken)"/>
+    /// (PLAN.md 4.9, 18.10). Decodes from <paramref name="resumeFrom"/> (null:
+    /// the start) to the end, or until <paramref name="shouldYield"/> returns
+    /// true before a speech run or a 30 s window, only after at least one
+    /// window of this call has begun; then it returns a step with
+    /// <see cref="TranscriptionStep.Suspended"/> set (it does not throw) and
+    /// the window that was about to start is not decoded. Cancellation wins
+    /// over yielding and throws <see cref="TranscriptionCancelledException"/>
+    /// with every segment so far, the checkpoint's included. Progress is for
+    /// the whole input: a resumed call first reports the checkpoint's fraction.
+    /// Not counted as foreground work. Without <paramref name="shouldYield"/>
+    /// it behaves exactly like <c>Transcribe</c>.
+    /// </summary>
+    /// <exception cref="TranscriptionCheckpointException">The checkpoint is from other samples, options or another model.</exception>
+    public TranscriptionStep TranscribeStep(
+        ReadOnlyMemory<float> samples,
+        TranscriptionOptions options,
+        TranscriptionCheckpoint? resumeFrom = null,
+        IProgress<double>? progress = null,
+        Func<bool>? shouldYield = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        BeginJob();
+        try
+        {
+            lock (gate)
+            {
+                RequireLoaded();
+                return TranscribeStepLocked(samples, options, resumeFrom, progress, shouldYield, cancellationToken);
+            }
+        }
+        finally
+        {
+            EndJob();
+        }
+    }
+
+    /// <summary>Loads <paramref name="path"/> if needed, then <c>TranscribeStep</c>; the load and the step count as one job.</summary>
+    public TranscriptionStep TranscribeStep(
+        string path,
+        ReadOnlyMemory<float> samples,
+        TranscriptionOptions options,
+        TranscriptionCheckpoint? resumeFrom = null,
+        IProgress<double>? progress = null,
+        Func<bool>? shouldYield = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(path);
+        ArgumentNullException.ThrowIfNull(options);
+        BeginJob();
+        try
+        {
+            lock (gate)
+            {
+                LoadLocked(path);
+                return TranscribeStepLocked(samples, options, resumeFrom, progress, shouldYield, cancellationToken);
+            }
+        }
+        finally
+        {
+            EndJob();
+        }
+    }
+
+    /// <summary><c>TranscribeStep(string, ...)</c> on a thread-pool thread.</summary>
+    public Task<TranscriptionStep> TranscribeStepAsync(
+        string path,
+        ReadOnlyMemory<float> samples,
+        TranscriptionOptions options,
+        TranscriptionCheckpoint? resumeFrom = null,
+        IProgress<double>? progress = null,
+        Func<bool>? shouldYield = null,
+        CancellationToken cancellationToken = default) =>
+        Task.Run(() => TranscribeStep(path, samples, options, resumeFrom, progress, shouldYield, cancellationToken), CancellationToken.None);
 
     /// <summary><see cref="Transcribe(string, ReadOnlyMemory{float}, TranscriptionOptions, IProgress{double}?, CancellationToken)"/> on a thread-pool thread.</summary>
     public Task<WhisperTranscription> TranscribeAsync(
@@ -516,23 +622,71 @@ public sealed unsafe class WhisperEngine : IDisposable
         ReadOnlyMemory<float> samples,
         TranscriptionOptions options,
         IProgress<double>? progress,
+        CancellationToken cancellationToken) =>
+        TranscribeStepLocked(samples, options, null, progress, null, cancellationToken).Finished
+        ?? throw new InvalidOperationException("A pass without shouldYield cannot suspend.");
+
+    private TranscriptionStep TranscribeStepLocked(
+        ReadOnlyMemory<float> samples,
+        TranscriptionOptions options,
+        TranscriptionCheckpoint? checkpoint,
+        IProgress<double>? progress,
+        Func<bool>? shouldYield,
         CancellationToken cancellationToken)
     {
+        IReadOnlyList<TranscriptSegment> prior = checkpoint?.Segments ?? [];
         if (cancellationToken.IsCancellationRequested)
         {
-            throw new TranscriptionCancelledException([], cancellationToken);
+            throw new TranscriptionCancelledException(prior, cancellationToken);
+        }
+        if (checkpoint is not null)
+        {
+            if (!checkpoint.IsForModel(modelPath)) throw new TranscriptionCheckpointException(TranscriptionCheckpointError.ModelMismatch);
+            if (checkpoint.SampleCount != samples.Length
+                || checkpoint.SampleFingerprint != TranscriptionCheckpoint.Fingerprint(samples.Span))
+            {
+                throw new TranscriptionCheckpointException(TranscriptionCheckpointError.SamplesMismatch);
+            }
+            if (!TranscriptionCheckpoint.SameOptions(checkpoint.Options, options))
+            {
+                throw new TranscriptionCheckpointException(TranscriptionCheckpointError.OptionsMismatch);
+            }
         }
         _ = TranscriptionOptions.TemperatureSchedule(options.Temperatures);
         var runs = SilenceGate.SpeechRuns(samples.Span);
-        string language = ResolveLanguage(options.Language, samples, runs);
+        string language = checkpoint?.Language ?? ResolveLanguage(options.Language, samples, runs);
         int threads = options.Threads ?? DefaultThreads;
         var api = Api;
 
-        var job = new RunJob(progress, samples.Length, cancellationToken);
+        // Resume: the pass starts at the checkpoint's offset (whole
+        // centiseconds, so a sample on the 10 ms mel grid). Speech runs that
+        // end before it are skipped; the run that contains it is sliced to
+        // start PreRollSamples before the offset and whisper_full is told
+        // to start there with offset_ms, so the log-mel frames at and after
+        // the offset see real audio on their left instead of the reflect
+        // padding a slice edge would give (a bare slice at the offset made
+        // the silent tail of a run hallucinate; see PLAN.md 18.10).
+        // Timestamps stay absolute because the segments of every call are
+        // shifted by the slice's start; the silence gate was computed on
+        // the whole input, so its 30 s grid and cue rule do not move.
+        double callOffset = checkpoint?.ResumeSeconds ?? 0;
+        int offsetSample = checkpoint is null
+            ? 0
+            : (int)Math.Clamp(Math.Round(callOffset * SilenceGate.SampleRate), 0, samples.Length) / MelHopSamples * MelHopSamples;
+
+        var job = new RunJob(progress, samples.Length, shouldYield, cancellationToken);
         var handle = GCHandle.Alloc(job);
         IntPtr languageUtf8 = Marshal.StringToCoTaskMemUTF8(language);
         IntPtr promptUtf8 = options.InitialPrompt is { } prompt ? Marshal.StringToCoTaskMemUTF8(prompt) : IntPtr.Zero;
-        var segments = new List<TranscriptSegment>();
+        var fresh = new List<TranscriptSegment>();
+        IReadOnlyList<TranscriptSegment> Everything() =>
+            DropSilent(CheckpointMerge.Merge(prior, callOffset, fresh), samples);
+        TranscriptionStep Suspend(double resume)
+        {
+            return TranscriptionStep.Suspend(new TranscriptionCheckpoint(
+                Everything(), resume, language, modelPath ?? "", samples.Length,
+                TranscriptionCheckpoint.Fingerprint(samples.Span), options));
+        }
         try
         {
             var defaults = api.FullDefaultParamsByRef(WhisperSamplingStrategy.Greedy);
@@ -550,24 +704,47 @@ public sealed unsafe class WhisperEngine : IDisposable
             p.NewSegmentCallback = IntPtr.Zero;
             p.LogitsFilterCallback = IntPtr.Zero;
 
+            if (checkpoint is not null) job.Report(offsetSample);
             foreach (var run in runs)
             {
+                if (checkpoint is not null && run.End <= offsetSample) continue;
+                int start = Math.Max(run.Start, offsetSample);
+                int sliceStart = Math.Max(run.Start, start - PreRollSamples);
                 if (cancellationToken.IsCancellationRequested)
                 {
-                    throw new TranscriptionCancelledException(DropSilent(segments, samples), cancellationToken);
+                    throw new TranscriptionCancelledException(Everything(), cancellationToken);
                 }
-                job.RunStart = run.Start;
-                job.RunLength = run.Length;
+                // Between runs the previous run is complete, so the next pass
+                // starts at this run rather than at the last cue's end.
+                if (job.CheckYield()) return Suspend(start / (double)SilenceGate.SampleRate);
+                int windowsBefore = job.WindowsBegun;
+                int segmentsBefore = fresh.Count;
+                job.RunStart = start;
+                job.RunLength = run.End - start;
+                p.OffsetMs = (start - sliceStart) * 1000 / SilenceGate.SampleRate;
                 int status;
-                fixed (float* pcm = samples.Span[run.Start..run.End])
+                fixed (float* pcm = samples.Span[sliceStart..run.End])
                 {
-                    status = api.FullWithState(context, state, p, pcm, run.Length);
+                    status = api.FullWithState(context, state, p, pcm, run.End - sliceStart);
                 }
                 warm = true;
-                segments.AddRange(ReadSegments(api, run.Start / (double)SilenceGate.SampleRate));
+                fresh.AddRange(ReadSegments(api, sliceStart / (double)SilenceGate.SampleRate));
+                job.ThrowFault();
                 if (cancellationToken.IsCancellationRequested)
                 {
-                    throw new TranscriptionCancelledException(DropSilent(segments, samples), cancellationToken);
+                    throw new TranscriptionCancelledException(Everything(), cancellationToken);
+                }
+                // whisper.cpp stopped at a window boundary (encoder-begin returned
+                // false): the completed windows' segments are in fresh, the
+                // window that was about to start produced nothing.
+                if (job.Yielded)
+                {
+                    return Suspend(ResumeSeconds(
+                        callOffset,
+                        start / (double)SilenceGate.SampleRate,
+                        run.End / (double)SilenceGate.SampleRate,
+                        fresh.Count > segmentsBefore ? fresh[^1].End : null,
+                        job.WindowsBegun - windowsBefore));
                 }
                 if (status != 0) throw new InvalidOperationException($"whisper_full failed ({status}).");
                 job.Report(run.End);
@@ -580,10 +757,29 @@ public sealed unsafe class WhisperEngine : IDisposable
             if (promptUtf8 != IntPtr.Zero) Marshal.FreeCoTaskMem(promptUtf8);
         }
         progress?.Report(1.0);
-        return new WhisperTranscription(DropSilent(segments, samples), language);
+        return TranscriptionStep.Done(new WhisperTranscription(Everything(), language));
     }
 
-    private static IReadOnlyList<TranscriptSegment> DropSilent(List<TranscriptSegment> segments, ReadOnlyMemory<float> samples) =>
+    /// <summary>
+    /// Where a pass that yielded inside a speech run resumes. With segments
+    /// from this run: the end of the last one (whisper.cpp seeks there).
+    /// With none, every window decoded in the run was empty and whisper
+    /// advanced a full 30 s per window from <paramref name="runStart"/>, so
+    /// resume there, capped at the run's end; either way a call that
+    /// completed a window moves past <paramref name="callOffset"/>, so a
+    /// resumed job always advances (Mac rule), however often it yields.
+    /// </summary>
+    internal static double ResumeSeconds(
+        double callOffset, double runStart, double runEnd, double? lastSegmentEndInRun, int windowsInRun)
+    {
+        double resume = lastSegmentEndInRun is { } end
+            ? Math.Max(end, runStart)
+            : Math.Min(runEnd, runStart + Math.Max(windowsInRun, 0) * (SilenceGate.WindowSamples / (double)SilenceGate.SampleRate));
+        resume = Math.Min(resume, runEnd);
+        return Math.Round(Math.Max(resume, callOffset), 2);
+    }
+
+    private static IReadOnlyList<TranscriptSegment> DropSilent(IReadOnlyList<TranscriptSegment> segments, ReadOnlyMemory<float> samples) =>
         SilenceGate.DropSilentCues(segments, samples.Span);
 
     /// <summary>
@@ -692,15 +888,55 @@ public sealed unsafe class WhisperEngine : IDisposable
     // MARK: - Native callbacks
 
     /// <summary>State of one Transcribe call, shared with the callbacks through a GCHandle.</summary>
-    private sealed class RunJob(IProgress<double>? progress, int total, CancellationToken token)
+    private sealed class RunJob(IProgress<double>? progress, int total, Func<bool>? shouldYield, CancellationToken token)
     {
         private double reported = -1;
+        private Exception? fault;
 
         public CancellationToken Token { get; } = token;
 
         public int RunStart { get; set; }
 
         public int RunLength { get; set; }
+
+        /// <summary>Windows whose encoder run began in this call (across speech runs).</summary>
+        public int WindowsBegun { get; set; }
+
+        /// <summary>The encoder-begin callback stopped whisper.cpp because <c>shouldYield</c> fired.</summary>
+        public bool Yielded { get; set; }
+
+        /// <summary>
+        /// True when <c>shouldYield</c> says stop. Asked only after at least
+        /// one window of this call has begun (and so, at the next window,
+        /// completed), so a resumed job always advances (Mac rule).
+        /// </summary>
+        public bool CheckYield() => shouldYield is not null && WindowsBegun > 0 && shouldYield();
+
+        /// <summary>The encoder-begin decision: false stops whisper_full; an exception in a callback is kept and rethrown by <see cref="ThrowFault"/>.</summary>
+        public bool BeginWindow()
+        {
+            if (Token.IsCancellationRequested) return false;
+            try
+            {
+                if (CheckYield())
+                {
+                    Yielded = true;
+                    return false;
+                }
+            }
+            catch (Exception error) when (error is not OutOfMemoryException)
+            {
+                fault = error;
+                return false;
+            }
+            WindowsBegun++;
+            return true;
+        }
+
+        public void ThrowFault()
+        {
+            if (fault is { } error) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(error);
+        }
 
         /// <summary>Reports the fraction done at <paramref name="position"/> samples (silent windows before it count as done); never goes back.</summary>
         public void Report(double position)
@@ -732,10 +968,19 @@ public sealed unsafe class WhisperEngine : IDisposable
         }
     }
 
-    /// <summary>Called before every 30 s window's encoder run; false stops whisper_full (cancellation between windows).</summary>
+    /// <summary>Called before every 30 s window's encoder run; false stops whisper_full (cancellation, or a yield, between windows).</summary>
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-    private static byte OnEncoderBegin(IntPtr context, IntPtr state, IntPtr userData) =>
-        Job(userData)?.Token.IsCancellationRequested == true ? (byte)0 : (byte)1;
+    private static byte OnEncoderBegin(IntPtr context, IntPtr state, IntPtr userData)
+    {
+        try
+        {
+            return Job(userData) is { } job && !job.BeginWindow() ? (byte)0 : (byte)1;
+        }
+        catch (Exception error) when (error is not OutOfMemoryException)
+        {
+            return 1;  // An exception must not unwind into whisper.cpp.
+        }
+    }
 
     /// <summary>Polled by the CPU backend during a window; true aborts the computation.</summary>
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]

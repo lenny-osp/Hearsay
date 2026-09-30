@@ -2013,19 +2013,59 @@ its own file under `%LOCALAPPDATA%\Hearsay\Recording\`, same fields).
   final pass and the live preview together, and on a PC whose live
   preview is off (the speed gate above) `immediate` would still slow the
   capture machine down. `immediate` stays available.
-- **Suspend and resume on whisper.cpp.** whisper.cpp cannot continue a
-  decode from saved state. Suspend stops reading segments from
-  `ProcessAsync` at the next segment when `shouldYield` fires (cancel the
-  enumeration); the checkpoint is the end time of the last complete
-  segment plus the segments so far. Resume starts a new pass at that
-  offset (`WithOffset`), which matches the Mac closely because both
-  platforms decode with `conditionOnPreviousText` off. Measure on a
-  multi-window input built from the fixtures: resumed text similarity at
-  least 0.98 of an uninterrupted pass, and no duplicated or missing cue at
-  the resume point (drop a first cue that ends before the offset).
+- **Suspend and resume on whisper.cpp (as built, 2026-09-30).** whisper.cpp
+  cannot continue a decode from saved state, and the engine drives the C API
+  (W5 option b), not Whisper.net's `ProcessAsync`. `WhisperEngine.TranscribeStep`
+  takes a `shouldYield` callback and an optional `TranscriptionCheckpoint`.
+  `shouldYield` is asked where cancellation is checked (before a silence-gate
+  speech run, and in whisper.cpp's encoder-begin callback before every 30 s
+  window), cancel wins, and only after at least one window of the call has
+  begun, so every call advances (Mac rule). On yield the call returns, it does
+  not throw, a `TranscriptionStep` whose `Suspended` holds the checkpoint; the
+  window that was about to start is not decoded (the abort is at encoder
+  begin, so no partial window is lost; the CPU abort callback still only
+  serves cancellation). The checkpoint holds the segments so far (silent cues
+  dropped), `ResumeSeconds` (the end of the last complete segment, or, when
+  the windows decoded in the current speech run produced no segment, the
+  run's start plus 30 s per window begun, capped at the run's end, so a
+  resumed job advances even over music or noise; when the
+  pass stopped between two speech runs, the start of the next run, so a
+  finished run's silent tail is not decoded again), the resolved language
+  (not detected again), the full path of the model (`IsForModel`; on another
+  model the engine throws `TranscriptionCheckpointException` with
+  `ModelMismatch` and the queue starts the job over, as on the Mac) and a
+  fingerprint of the samples and the options (mismatches throw too).
+  Resume slices the speech run that contains the offset to begin one second
+  before it and passes `offset_ms` to `whisper_full`, rather than slicing
+  exactly at the offset: a bare slice makes the log-mel frames at its left
+  edge use reflect padding, which made the silent tail of a run hallucinate
+  ("on.", "Thank you."); with the one-second pre-roll the frames at the
+  offset are identical to an uninterrupted pass. Segment times are shifted by
+  the slice start, so they stay absolute, and the silence gate is computed on
+  the whole input, so its 30 s grid and its cue rule do not move. Merging
+  (`CheckpointMerge`) keeps the checkpoint's cues that start before the
+  offset and drops a first new cue that ends at or before it. Progress is
+  for the whole input: a resumed call first reports the checkpoint's
+  fraction. `TranscribeStep` does not change `Transcribe`, which is the same
+  code without `shouldYield`; the fixture outputs are unchanged. Measured on
+  Vulkan, turbo q5_0, yielding at every window boundary of an 82 s input (four
+  fixture clips, one speech run) and of a 159 s input (two speech runs, a
+  between-run yield): normalized text similarity to an uninterrupted pass
+  1.0000 in both (needs at least 0.98), no duplicated, overlapping or missing
+  cue at any resume point. The cue count can differ (14 vs 18 on the 82 s
+  input): whisper.cpp splits a window into cues by its own timestamp tokens,
+  and a window that begins at the offset can split differently from one that
+  follows another window in the same call; the text is the same. A resume
+  recomputes the mel of one second of audio before the offset.
 - **Foreground counter.** Same rule as the Mac: live chunks, detection,
-  File mode, and History re-runs increment it before waiting for the
-  engine; the running job checks it between segments.
+  File mode, and History re-runs are counted while they wait for the engine,
+  and the running job checks the counter before a run and a window. On
+  Windows the marking is explicit, not per engine method:
+  `using var fg = engine.EnterForeground();` before the call (the same
+  `Transcribe`/`DetectLanguage` methods serve foreground and background
+  callers, where the Mac's background step is a separate method), and
+  `engine.ForegroundWaiting` reads the lock-free count. The queue passes
+  `shouldYield: () => engine.ForegroundWaiting > 0 || queueSaysSuspend()`.
 - **Shortcut.** Stop & Start Next is `RegisterHotKey` like the other two,
   default Ctrl+Alt+Win+N (the Windows equivalents of ⌃⌥⌘N), editable in
   the shortcut recorder.
