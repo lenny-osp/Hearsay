@@ -70,6 +70,21 @@ final class NotesFlowViewModel {
         self.store = store
         self.pipeline = pipeline
         self.templateID = store.configuration.selectedTemplateID
+        Self.instances = Self.instances.filter { $0.model != nil } + [WeakFlow(model: self)]
+    }
+
+    private struct WeakFlow {
+        weak var model: NotesFlowViewModel?
+    }
+
+    /// Every flow created in this process (weakly), for `isAnyRunning`.
+    private static var instances: [WeakFlow] = []
+
+    /// A notes flow (Record, File, or History tab) is running: a sheet is up
+    /// or notes are being generated. A queue job that finishes now does not
+    /// open another one (PLAN.md 4.9 item 4).
+    static var isAnyRunning: Bool {
+        instances.contains { $0.model?.isRunning == true }
     }
 
     var isRunning: Bool {

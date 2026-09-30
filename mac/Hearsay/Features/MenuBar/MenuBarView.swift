@@ -2,13 +2,15 @@ import AppKit
 import HearsayCore
 import SwiftUI
 
-/// Content of the menu bar extra window (PLAN.md 4.4): the recording state,
-/// the level bar while recording, Start / Stop and Pause / Resume, and the
-/// app entry points. Everything is driven by the app-level
-/// `RecordingController`, so it works with the main window closed.
+/// Content of the menu bar extra window (PLAN.md 4.4, 4.9): the recording
+/// state, the level bar while recording, Start / Stop, Pause / Resume and
+/// Stop & Start Next, one line for the transcription queue, and the app
+/// entry points. Everything is driven by the app-level `RecordingController`
+/// and `TranscriptionQueue`, so it works with the main window closed.
 struct MenuBarView: View {
     @Environment(MainWindowOpener.self) private var windowOpener
     @Environment(RecordingController.self) private var recording
+    @Environment(TranscriptionQueue.self) private var queue
     @Environment(AppSettings.self) private var settings
 
     var body: some View {
@@ -39,8 +41,15 @@ struct MenuBarView: View {
                 }
             }
 
-            if let progress = recording.transcriptionProgress {
-                ProgressView(value: progress)
+            if let line = queueLine {
+                Text(line)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+
+            if !recording.isSessionActive, let job = queue.activeJob {
+                ProgressView(value: job.progress)
                     .progressViewStyle(.linear)
                     .accessibilityLabel("Transcription progress")
             }
@@ -50,6 +59,7 @@ struct MenuBarView: View {
             }
 
             controls
+            stopStartNextRow
 
             Divider()
 
@@ -86,7 +96,11 @@ struct MenuBarView: View {
     private var stateText: String {
         let elapsed = LevelMeter.formatElapsed(recording.elapsed)
         switch recording.phase {
-        case .idle, .finished, .failed:
+        case .idle, .failed:
+            if let job = queue.activeJob {
+                return String(localized: "Transcribing… \(Int((job.progress * 100).rounded()))%",
+                              comment: "Menu bar panel state. %lld is a percentage; keep the % sign after it.")
+            }
             return String(localized: "Idle", comment: "Menu bar panel state: not recording")
         case .starting:
             return String(localized: "Starting…", comment: "Recording state")
@@ -98,25 +112,55 @@ struct MenuBarView: View {
                           comment: "Menu bar panel state. %@ is the elapsed time, for example 00:12:34.")
         case .stopping:
             return String(localized: "Saving…", comment: "Recording state: the recording is being saved")
-        case .transcribing(let progress):
-            return String(localized: "Transcribing… \(Int((progress * 100).rounded()))%",
-                          comment: "Menu bar panel state. %lld is a percentage; keep the % sign after it.")
         }
     }
 
     private var stateColor: Color {
         switch recording.phase {
         case .recording: .red
-        case .paused, .starting, .stopping, .transcribing: .orange
-        case .idle, .finished, .failed: .secondary
+        case .paused, .starting, .stopping: .orange
+        case .idle, .failed: queue.activeJob == nil ? .secondary : .orange
         }
+    }
+
+    /// One line for the queue: how many recordings are not transcribed yet
+    /// and how far the current one is. Nil when the state line already says
+    /// it all (one job, no session) or the queue is empty.
+    private var queueLine: String? {
+        let pending = queue.pendingCount
+        guard pending > 0 else { return nil }
+        if !recording.isSessionActive, queue.activeJob != nil {
+            // The state line already shows the percentage.
+            guard pending > 1 else { return nil }
+            return String(localized: "Recordings in queue: \(pending)",
+                          comment: "Menu bar panel queue line. %lld is the number of recordings not transcribed yet.")
+        }
+        if queue.isHeldForSession {
+            return String(localized: "Transcription paused while recording · in queue: \(pending)",
+                          comment: "Menu bar panel queue line. %lld is the number of recordings not transcribed yet.")
+        }
+        if let job = queue.activeJob {
+            return String(localized: "Transcribing… \(Int((job.progress * 100).rounded()))% · in queue: \(pending)",
+                          comment: "Menu bar panel queue line. The first %lld is a percentage (keep the % sign after it), the second the number of recordings not transcribed yet.")
+        }
+        return String(localized: "Waiting to transcribe · in queue: \(pending)",
+                      comment: "Menu bar panel queue line. %lld is the number of recordings not transcribed yet.")
     }
 
     /// What happened to the last recording, below the state line.
     private var lastResultCaption: AnyView? {
-        switch recording.phase {
-        case .finished(let srt, let wav):
-            let name = (srt ?? wav)?.lastPathComponent
+        if case .failed(let message) = recording.phase {
+            return AnyView(
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .lineLimit(3)
+            )
+        }
+        guard !recording.isSessionActive, let job = queue.jobs.last else { return nil }
+        switch job.state {
+        case .done:
+            let name = (job.srt ?? job.wav)?.lastPathComponent
                 ?? String(localized: "the recording", comment: "Used in 'Saved %@' when there is no file name")
             return AnyView(
                 Text("Saved \(name)", comment: "Menu bar panel caption. %@ is a file name.")
@@ -125,14 +169,14 @@ struct MenuBarView: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
             )
-        case .failed(let message):
+        case .failed:
             return AnyView(
-                Text(message)
+                Text(job.errorMessage ?? "")
                     .font(.caption)
                     .foregroundStyle(.red)
                     .lineLimit(3)
             )
-        default:
+        case .waiting, .running, .suspended:
             return nil
         }
     }
@@ -176,6 +220,21 @@ struct MenuBarView: View {
         .controlSize(.large)
     }
 
+    /// Stop & Start Next, below Stop and Pause while recording (PLAN.md 4.9).
+    @ViewBuilder
+    private var stopStartNextRow: some View {
+        if recording.isCapturing {
+            Button {
+                recording.stopAndStartNext()
+            } label: {
+                Label("Stop & Start Next", systemImage: "forward.end.fill")
+                    .frame(maxWidth: .infinity)
+            }
+            .controlSize(.large)
+            .help("Stop & Start Next (\(settings.stopStartNextHotkey.displayString))")
+        }
+    }
+
     private func menuRow(_ title: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(title)
@@ -188,11 +247,13 @@ struct MenuBarView: View {
 }
 
 /// The menu bar item itself: `waveform` when idle, a red record symbol
-/// with the elapsed time while recording, and a pause symbol while paused.
+/// with the elapsed time while recording, a pause symbol while paused, and
+/// with no session the percentage of the recording being transcribed.
 /// With "Show recording status in the menu bar" off it is always the
 /// waveform.
 struct MenuBarLabel: View {
     let recording: RecordingController
+    let queue: TranscriptionQueue
     let settings: AppSettings
 
     var body: some View {
@@ -221,14 +282,19 @@ struct MenuBarLabel: View {
         case .paused:
             Image(systemName: "pause.circle")
                 .accessibilityLabel("Hearsay, paused")
-        case .transcribing(let progress):
-            HStack(spacing: 4) {
-                Image(systemName: "text.bubble")
-                Text("\(Int((progress * 100).rounded()))%")
-                    .monospacedDigit()
+        case .idle, .failed:
+            // With no session, the job being transcribed shows its percentage.
+            if let job = queue.activeJob {
+                HStack(spacing: 4) {
+                    Image(systemName: "text.bubble")
+                    Text("\(Int((job.progress * 100).rounded()))%")
+                        .monospacedDigit()
+                }
+                .accessibilityLabel("Hearsay, transcribing")
+            } else {
+                plainLabel
             }
-            .accessibilityLabel("Hearsay, transcribing")
-        default:
+        case .starting, .stopping:
             plainLabel
         }
     }

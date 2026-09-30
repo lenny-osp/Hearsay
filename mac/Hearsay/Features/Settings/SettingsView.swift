@@ -85,6 +85,11 @@ private struct GeneralSettingsView: View {
                      comment: "Settings > General caption under Auto mode default language. 简体中文 and 繁體中文 are language names; keep them as they are.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                FinalPassTimingPicker()
+                Text("Either way, the next recording can start at once.",
+                     comment: "Settings > General caption under the final-pass timing picker (Transcribe finished recordings)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             HotkeySettingsSection()
             SoftwareUpdatesSection()
@@ -174,6 +179,24 @@ private struct PreferredLanguagePicker: View {
         Picker("Auto mode default language", selection: $settings.preferredLanguage) {
             ForEach(TranscriptLanguage.allCases, id: \.self) { language in
                 Text(language.displayName).tag(language)
+            }
+        }
+    }
+}
+
+/// When a finished recording gets its final pass (PLAN.md 4.9 item 3,
+/// `AppSettings.finalPassTiming`): right away in the background, or only
+/// while no recording is running.
+private struct FinalPassTimingPicker: View {
+    @Environment(AppSettings.self) private var settings
+
+    var body: some View {
+        @Bindable var settings = settings
+        Picker(String(localized: "Transcribe finished recordings",
+                      comment: "Settings > General > Transcription picker: when a finished recording gets its final transcription pass"),
+               selection: $settings.finalPassTiming) {
+            ForEach(FinalPassTiming.allCases, id: \.self) { timing in
+                Text(timing.displayName).tag(timing)
             }
         }
     }

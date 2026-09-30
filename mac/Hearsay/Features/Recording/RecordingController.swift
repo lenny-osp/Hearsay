@@ -18,26 +18,26 @@ import Observation
 /// Elapsed time is derived from the number of samples written, so paused
 /// time never counts and the display matches the WAV exactly.
 ///
-/// Transcription (PLAN.md 4.1 steps 4 to 7): while recording, `LiveChunker`
+/// Transcription (PLAN.md 4.1 step 4, 4.9): while recording, `LiveChunker`
 /// cuts the mixed stream into chunks that `WhisperEngine` transcribes in
-/// order for the live preview. After Stop the WAV is closed and one full
-/// pass over the in-memory samples produces `<timestamp>.srt` in the output
-/// folder; the WAV is then moved beside it (or deleted when "Keep the
-/// recording" is off). If the pass fails, the WAV is always kept, the live
-/// preview is saved as the SRT when there is one, and the recording can be
-/// retried here or sent to the File tab. Without an installed model the
-/// recording still works; the live preview is skipped and the WAV is kept.
+/// order for the live preview (through the session's `LiveSink`). Stop
+/// closes the WAV and hands the session to `TranscriptionQueue` as a job
+/// (the WAV, the live segments and the live tail still in flight, the
+/// language tracker and script, the keep-recording choice); the controller
+/// is ready for the next Start at once, and the queue runs the final pass.
+/// A capture problem keeps the WAV and the live preview in the output
+/// folder instead (PLAN.md 4.1 failure rules); "Try Again" queues that WAV.
+/// Without an installed model the recording still works; the live preview
+/// is skipped and the job fails with the WAV kept.
 ///
 /// Phase transitions:
-/// idle/finished/failed -> starting -> recording <-> paused -> stopping
-/// -> transcribing(progress) -> finished(srt:wav:) or failed(message:).
+/// idle/failed -> starting -> recording <-> paused -> stopping -> idle
+/// (handed to the queue) or failed(message:).
 /// `starting` can also end in idle (stop while starting) or failed; a
 /// capture problem goes from stopping straight to failed with the WAV kept;
 /// a microphone that delivers nothing within `NoAudioWatchdog.timeout`
 /// seconds stops the recording, and a recording with no samples at all goes
-/// from stopping to failed with the empty WAV deleted;
-/// "Use live preview instead" ends transcribing in finished at once;
-/// `retryTranscription()` goes from failed to transcribing again.
+/// from stopping to failed with the empty WAV deleted.
 @MainActor
 @Observable
 final class RecordingController {
@@ -47,14 +47,8 @@ final class RecordingController {
         case recording
         case paused
         case stopping
-        /// The WAV is closed and the final pass (or a retry) is running.
-        case transcribing(progress: Double)
-        /// The transcript was written to `srt`; the recording is at `wav`,
-        /// or nil when "Keep the recording" is off.
-        case finished(srt: URL?, wav: URL?)
-        /// The last recording, its transcription, or the last start attempt
-        /// had a problem. Any audio that was captured is still at
-        /// `finishedRecording`.
+        /// The last recording or the last start attempt had a problem. Any
+        /// audio that was captured is still at `finishedRecording`.
         case failed(message: String)
     }
 
@@ -62,7 +56,11 @@ final class RecordingController {
         string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
     )
 
-    private(set) var phase: Phase = .idle
+    private(set) var phase: Phase = .idle {
+        didSet {
+            if phase != oldValue { queue.setSessionActive(isSessionActive) }
+        }
+    }
     private(set) var devices: [AudioInputDevice] = []
     var selectedDeviceUID: String?
     private(set) var elapsed: TimeInterval = 0
@@ -76,48 +74,41 @@ final class RecordingController {
     /// so the badge offers to open System Settings.
     private(set) var systemAudioDenied = false
     private(set) var silenceWarning: String?
-    /// Where the last recording ended up, also after a failure.
+    /// Where the recording of a capture failure was kept.
     private(set) var finishedRecording: URL?
-    /// The SRT of the last recording: the final transcript, or the live
-    /// preview saved after a failed final pass.
+    /// The live preview saved after a capture failure.
     private(set) var finishedTranscript: URL?
 
     // Live preview
     /// Cues of the live preview, in recording time, in order.
     private(set) var liveSegments: [CoreSegment] = []
-    /// Live chunks queued or being transcribed.
-    private(set) var liveChunksWaiting = 0
     /// The newest non-empty live line, for the menu bar.
     private(set) var latestLiveLine: String?
     /// Why the live preview is off or incomplete, shown under it.
     private(set) var liveNotice: String?
     /// The current session transcribes live chunks.
     private(set) var isLivePreviewEnabled = false
-    /// "Use live preview instead" was chosen for the current final pass.
-    private(set) var isUsingLivePreview = false
     /// The last failure was the missing model; the view links to Models.
     private(set) var needsModel = false
     /// A recording the File tab should pick up ("Transcribe this file").
     /// The File tab clears it once taken.
     var transcribeFileRequest: URL?
-    /// A finished SRT waiting for the notes flow; see `takeNotesRequest()`.
-    private(set) var notesRequest: URL?
     /// When the session detects its language and what it settled on
     /// (PLAN.md section 1, "Languages"). In Auto the language is undecided
     /// at Start; detection runs each time another 30 s of audio exists until
     /// it is confident or 90 s have passed, then the language is locked.
     private(set) var languageTracker = SessionLanguageTracker(choice: .auto, preferred: .english)
-    /// The suggestion or fallback banner of the current or last recording.
+    /// The suggestion or fallback banner of the current recording.
     private(set) var languageNotice: LanguageNotice?
-    /// Why the last "Transcribe again" failed, shown under the transcript.
-    private(set) var rerunError: String?
-    /// A "Transcribe again" pass over the finished recording is running.
-    private(set) var isRerunning = false
     /// The last detection result, for the debug replay.
     @ObservationIgnored private(set) var lastDetection: DetectionResult?
     /// Script the session's cues are converted to (zh only).
     @ObservationIgnored private var sessionChineseScript: ChineseScript?
+    /// The current session's live sink; it moves to the queue job at Stop.
+    private var liveSink: LiveSink?
 
+    /// The background transcription queue the ended sessions go to.
+    let queue: TranscriptionQueue
     @ObservationIgnored private let settings: AppSettings
     @ObservationIgnored private let modelStore: ModelStore
     @ObservationIgnored private let engine: WhisperEngine
@@ -132,6 +123,10 @@ final class RecordingController {
     @ObservationIgnored private var startTask: Task<Void, Never>?
     @ObservationIgnored private var consumer: Task<Void, Never>?
     @ObservationIgnored private var stopRequestedWhileStarting = false
+    /// Stop & Start Next was pressed: the handover starts the next session.
+    @ObservationIgnored private var continuesWithNextSession = false
+    /// Hearsay is quitting: no new session starts (Stop & Start Next, hotkeys).
+    @ObservationIgnored private var isQuitting = false
     @ObservationIgnored private var deviceObservation: AudioDeviceListObservation?
     @ObservationIgnored private var engineObservation: NotificationToken?
     /// Name of the device being recorded, for error messages.
@@ -142,41 +137,38 @@ final class RecordingController {
     @ObservationIgnored private var watchdogTask: Task<Void, Never>?
 
     // Transcription state
-    /// Every mixed sample of the current recording, for the final pass.
+    /// Every mixed sample of the current recording, for the live chunks and
+    /// the language detection. Dropped at Stop: the queue reads the WAV.
     @ObservationIgnored private var recordedSamples: [Float] = []
     @ObservationIgnored private var chunker = LiveChunker()
     /// Samples already measured and handed to `chunker`.
     @ObservationIgnored private var chunkedSamples = 0
     @ObservationIgnored private var liveContinuation: AsyncStream<LiveJob>.Continuation?
-    @ObservationIgnored private var liveTask: Task<Void, Never>?
-    @ObservationIgnored private var transcriptionTask: Task<Void, Never>?
-    /// The closed WAV still in the spool while the final pass runs.
-    @ObservationIgnored private var pendingSpoolWAV: URL?
-    /// The kept WAV of a failed transcription, for `retryTranscription()`.
-    @ObservationIgnored private var retryableRecording: URL?
-    /// Bumped on every start; late results of an older session are ignored.
+    /// The kept WAV of a capture failure, for `retryTranscription()`.
+    @ObservationIgnored private var retryableRecording: TranscriptOutput.PendingRecording?
+    /// Bumped on every start and handover; late results of an older session
+    /// are ignored.
     @ObservationIgnored private var session = 0
     /// Debug only: sees every live job (see `RecordingReplay`).
     @ObservationIgnored var liveJobObserver: (@MainActor (LiveJobEvent) -> Void)?
+    /// Debug only: a session reached `.recording` (see `RecordingReplay`).
+    @ObservationIgnored var sessionStartObserver: (@MainActor (URL) -> Void)?
     @ObservationIgnored private var liveJobCount = 0
     /// The model the live preview and the detection use this session.
     @ObservationIgnored private var liveLocation: WhisperModelLocation?
     /// A detection attempt in flight during the recording.
     @ObservationIgnored private var detectionTask: Task<Void, Never>?
-    /// Live jobs waiting for Auto to decide the language.
-    @ObservationIgnored private var languageWaiters: [CheckedContinuation<Void, Never>] = []
-    /// The samples of a finished recording whose WAV was not kept, held
-    /// while a language notice offers a re-run.
-    @ObservationIgnored private var rerunSamples: [Float]?
 
     /// A live job's progress, for the debug replay's timing log.
+    /// `session` tells the sessions apart (the tail of an ended session
+    /// still reports after the next one started).
     enum LiveJobEvent: Sendable {
-        case queued(index: Int, start: TimeInterval, seconds: TimeInterval)
-        case started(index: Int)
-        case finished(index: Int, cues: Int, error: String?)
+        case queued(session: Int, index: Int, start: TimeInterval, seconds: TimeInterval)
+        case started(session: Int, index: Int)
+        case finished(session: Int, index: Int, cues: Int, error: String?)
         /// A language detection over the first `seconds` of audio finished;
         /// `decision` is set when it settled the session.
-        case detection(seconds: TimeInterval, result: DetectionResult?, decision: LanguageDecision?)
+        case detection(session: Int, seconds: TimeInterval, result: DetectionResult?, decision: LanguageDecision?)
     }
 
     private struct LiveJob: Sendable {
@@ -190,12 +182,14 @@ final class RecordingController {
         settings: AppSettings,
         modelStore: ModelStore,
         engine: WhisperEngine,
+        queue: TranscriptionQueue,
         spool: RecordingSpool = RecordingSpool(),
         sources: CaptureSources = .live
     ) {
         self.settings = settings
         self.modelStore = modelStore
         self.engine = engine
+        self.queue = queue
         self.spool = spool
         self.sources = sources
     }
@@ -208,9 +202,8 @@ final class RecordingController {
         set { settings.languageChoice = newValue }
     }
 
-    /// The language of the current or last recording: what the final pass,
-    /// the Chinese conversion, and the notes flow use. nil while Auto is
-    /// still undecided.
+    /// The language of the current recording: what the live preview uses.
+    /// nil while Auto is still undecided.
     var sessionLanguage: TranscriptLanguage? { languageTracker.language }
 
     /// The current or last session's decision, for the debug replay.
@@ -222,22 +215,16 @@ final class RecordingController {
         guard languageTracker.isUndecided else { return false }
         switch phase {
         case .recording, .paused, .stopping: return isLivePreviewEnabled
-        case .transcribing: return true
-        case .idle, .starting, .finished, .failed: return false
+        case .idle, .starting, .failed: return false
         }
     }
 
-    /// The language notice's buttons apply now: while recording (the final
-    /// pass will use the picked language) or after a finished recording
-    /// whose audio is still available.
+    /// The language notice's buttons apply now: while recording, the rest
+    /// of the live preview and the final pass use the picked language.
     var canChangeSessionLanguage: Bool {
         switch phase {
-        case .recording, .paused, .stopping:
-            return true
-        case .finished(let srt, let wav):
-            return srt != nil && (wav != nil || rerunSamples != nil)
-        case .idle, .starting, .transcribing, .failed:
-            return false
+        case .recording, .paused, .stopping: true
+        case .idle, .starting, .failed: false
         }
     }
 
@@ -252,37 +239,25 @@ final class RecordingController {
     var isSessionActive: Bool {
         switch phase {
         case .starting, .recording, .paused, .stopping: true
-        case .idle, .transcribing, .finished, .failed: false
+        case .idle, .failed: false
         }
     }
 
-    /// The final pass or a retry is running.
-    var isTranscribing: Bool {
-        if case .transcribing = phase { return true }
-        return false
-    }
-
-    var transcriptionProgress: Double? {
-        if case .transcribing(let progress) = phase { return progress }
-        return nil
-    }
-
-    /// Start is allowed: nothing is recording or transcribing.
+    /// Start is allowed: nothing is recording. Finished recordings being
+    /// transcribed in the queue never block it (PLAN.md 4.9).
     var canStart: Bool {
-        !isSessionActive && !isTranscribing
+        !isSessionActive
     }
+
+    /// Live chunks of the current session queued or being transcribed.
+    var liveChunksWaiting: Int { liveSink?.waiting ?? 0 }
 
     /// The live preview has fallen more than one chunk behind.
     var isLiveLagging: Bool {
         liveChunksWaiting > 1
     }
 
-    /// "Use live preview instead" applies to the running pass.
-    var canUseLivePreview: Bool {
-        isTranscribing && isLivePreviewEnabled && pendingSpoolWAV != nil && !isUsingLivePreview
-    }
-
-    /// A failed transcription can be retried from the kept WAV.
+    /// A capture failure's kept WAV can be queued again.
     var canRetryTranscription: Bool {
         if case .failed = phase, retryableRecording != nil { return true }
         return false
@@ -329,18 +304,26 @@ final class RecordingController {
 
     /// Starts a new recording unless one is already active. Returns at once;
     /// `phase` moves through `.starting` to `.recording` or `.failed`.
+    /// A plain Start clears finished queue rows whose notes already opened,
+    /// as it cleared the finished card before; Stop & Start Next keeps them.
     func start() {
-        guard canStart else { return }
+        start(clearingFinished: true)
+    }
+
+    private func start(clearingFinished: Bool) {
+        guard canStart, !isQuitting else { return }
+        beginStart(clearingFinished: clearingFinished)
+    }
+
+    private func beginStart(clearingFinished: Bool) {
         phase = .starting
+        if clearingFinished { queue.dismissFinishedForNewSession() }
         finishedRecording = nil
         finishedTranscript = nil
         retryableRecording = nil
         transcribeFileRequest = nil
-        notesRequest = nil
         needsModel = false
         languageNotice = nil
-        rerunError = nil
-        rerunSamples = nil
         session += 1
         resetLivePreview()
         stopRequestedWhileStarting = false
@@ -348,6 +331,21 @@ final class RecordingController {
             await self?.performStart()
             self?.startTask = nil
         }
+    }
+
+    /// Stop & Start Next (PLAN.md 4.9 item 2): the session becomes a queue
+    /// job and a new one starts with the same input device, system-audio
+    /// choice, and language choice (Auto detects again). The device and
+    /// the two choices cannot change while a session is active, so the new
+    /// session reads the same values.
+    ///
+    /// The new session starts right at the handover, so the session-active
+    /// flag never drops in between (a whenIdle job does not start in the
+    /// gap). A capture failure keeps its failure card and starts nothing.
+    func stopAndStartNext() {
+        guard isCapturing, !isQuitting else { return }
+        continuesWithNextSession = true
+        Task { await stop() }
     }
 
     func pause() {
@@ -392,9 +390,9 @@ final class RecordingController {
         }
     }
 
-    /// Stops the recording and returns once the WAV is closed and moved to
-    /// the output folder. A start in progress is cancelled first. Does
-    /// nothing when no session is active.
+    /// Stops the recording and returns once the WAV is closed and handed to
+    /// the queue (or kept after a capture problem). A start in progress is
+    /// cancelled first. Does nothing when no session is active.
     func stop() async {
         if phase == .starting {
             stopRequestedWhileStarting = true
@@ -409,101 +407,62 @@ final class RecordingController {
         await consumer?.value
     }
 
+    /// Quit: stops the session like `stop()`, but a Stop & Start Next still
+    /// in progress starts no new session, and nothing starts afterwards.
+    func stopForQuit() async {
+        isQuitting = true
+        continuesWithNextSession = false
+        await stop()
+        // A Stop & Start Next may have started the next session just before.
+        if isSessionActive { await stop() }
+    }
+
+    /// The quit did not happen after all (a restart failed).
+    func quitCancelled() {
+        isQuitting = false
+    }
+
     func revealInFinder() {
         let files = [finishedTranscript, finishedRecording].compactMap { $0 }
         guard !files.isEmpty else { return }
         NSWorkspace.shared.activateFileViewerSelecting(files)
     }
 
-    /// "Use live preview instead": cancels the final pass (the engine stops
-    /// before its next 30 s window) and writes the live segments as the SRT.
-    /// The cancellation is expected and never shown as an error.
-    func useLivePreviewInstead() {
-        guard canUseLivePreview else { return }
-        isUsingLivePreview = true
-        transcriptionTask?.cancel()
-        let id = session
-        Task { [weak self] in
-            await self?.liveTask?.value
-            guard let self, self.session == id, self.isTranscribing else { return }
-            self.completeTranscription(with: self.liveSegments)
-        }
-    }
-
-    /// Quit while transcribing: cancels the pass and the live queue, then
-    /// saves the live preview as the SRT when there is one. The WAV is kept
-    /// either way (moved to the output folder), whatever "Keep the
-    /// recording" says, because the full pass never ran. Returns once the
-    /// files are written.
-    func cancelTranscriptionForQuit() async {
-        guard isTranscribing else { return }
-        if isRerunning {
-            // The previous SRT stays as it is.
-            transcriptionTask?.cancel()
-            await transcriptionTask?.value
-            return
-        }
-        isUsingLivePreview = true
-        transcriptionTask?.cancel()
-        liveTask?.cancel()
-        await transcriptionTask?.value
-        guard isTranscribing else { return }
-        if liveSegments.isEmpty {
-            failTranscription(String(localized: "Transcription was cancelled because Hearsay quit.",
-                                     comment: "Recording error"))
-        } else {
-            completeTranscription(with: liveSegments, keepRecording: true)
-        }
-    }
-
-    /// Runs the full pass again on the kept WAV of a failed transcription.
+    /// "Try Again" after a capture failure: the kept WAV goes to the queue.
     func retryTranscription() {
         guard canRetryTranscription, let recording = retryableRecording else { return }
-        phase = .transcribing(progress: 0)
-        isUsingLivePreview = false
-        let id = session
-        transcriptionTask = Task { [weak self] in
-            await self?.runRetry(recording: recording, session: id)
-        }
+        queue.enqueueRetry(
+            recording: recording, tracker: languageTracker, chineseScript: sessionChineseScript,
+            keepRecording: settings.keepRecording, liveSegments: liveSegments, transcript: finishedTranscript
+        )
+        retryableRecording = nil
+        finishedRecording = nil
+        finishedTranscript = nil
+        needsModel = false
+        liveSegments = []
+        liveNotice = nil
+        languageNotice = nil
+        phase = .idle
     }
 
-    /// A language notice button: transcribe this recording in `language`.
-    /// While recording, the rest of the live preview and the final pass use
-    /// it; after a finished recording, the final pass runs again in it and
-    /// rewrites the same SRT. Never changes `languageChoice` or
-    /// `preferredLanguage`.
+    /// A language notice button while recording: the rest of the live
+    /// preview and the final pass use `language`. Never changes
+    /// `languageChoice` or `preferredLanguage`.
     func transcribeAgain(in language: TranscriptLanguage) {
         guard canChangeSessionLanguage else { return }
         languageTracker.choose(language)
         languageNotice = nil
-        rerunError = nil
         languageSettled()
-        guard case .finished(let srt?, let wav) = phase else { return }
-        let samples = rerunSamples
-        phase = .transcribing(progress: 0)
-        isRerunning = true
-        isUsingLivePreview = false
-        let id = session
-        transcriptionTask = Task { [weak self] in
-            await self?.runRerun(srt: srt, wav: wav, samples: samples, language: language, session: id)
-        }
     }
 
     /// "Dismiss" on the suggestion banner.
     func dismissLanguageNotice() {
         languageNotice = nil
-        if !isTranscribing { rerunSamples = nil }
     }
 
     /// Hands the kept WAV to the File tab ("Transcribe this file").
     func requestTranscribeFile() {
-        transcribeFileRequest = retryableRecording ?? finishedRecording
-    }
-
-    /// The finished SRT waiting for the notes flow, once.
-    func takeNotesRequest() -> URL? {
-        defer { notesRequest = nil }
-        return notesRequest
+        transcribeFileRequest = retryableRecording?.url ?? finishedRecording
     }
 
     func openScreenCaptureSettings() {
@@ -577,6 +536,7 @@ final class RecordingController {
         sessionChineseScript = languageTracker.language?.chineseScript
         startLivePreview()
         phase = .recording
+        sessionStartObserver?(url)
 
         let mixed = AudioMixer.mix(
             mic: recorder.timedSamples,
@@ -731,6 +691,8 @@ final class RecordingController {
 
     private func recordingEnded() {
         phase = .stopping
+        let continues = continuesWithNextSession
+        continuesWithNextSession = false
         watchdogTask?.cancel()
         watchdogTask = nil
         elapsed = Double(sampleCount) / Double(WavWriter.sampleRate)
@@ -795,17 +757,61 @@ final class RecordingController {
         }
         if !problems.isEmpty {
             // Capture failed: keep what exists and let the user transcribe it.
-            pendingSpoolWAV = closed
-            failTranscription(problems.joined(separator: "\n"))
+            failCapture(problems.joined(separator: "\n"), recording: closed)
             return
         }
-        pendingSpoolWAV = closed
-        phase = .transcribing(progress: 0)
-        isUsingLivePreview = false
-        let id = session
-        transcriptionTask = Task { [weak self] in
-            await self?.runFinalPass(session: id)
+        handOver(closed, startingNext: continues)
+    }
+
+    /// The session ended normally: it becomes a queue job with its live
+    /// tail still in flight, and the controller is ready for the next Start.
+    private func handOver(_ recording: URL, startingNext: Bool) {
+        // A detection still running belongs to this session; the job
+        // detects over the whole recording when the language is still open.
+        detectionTask?.cancel()
+        detectionTask = nil
+        session += 1
+        let handover = RecordingHandover(
+            recording: recording,
+            stopTime: Date(),
+            tracker: languageTracker,
+            chineseScript: sessionChineseScript,
+            keepRecording: settings.keepRecording,
+            liveSegments: liveSegments,
+            liveEnabled: isLivePreviewEnabled,
+            liveSink: liveSink,
+            languageNotice: languageNotice,
+            liveNotice: liveNotice
+        )
+        liveSink = nil
+        recordedSamples = []
+        liveSegments = []
+        latestLiveLine = nil
+        liveNotice = nil
+        languageNotice = nil
+        isLivePreviewEnabled = false
+        queue.enqueue(handover)
+        if startingNext, !isQuitting {
+            beginStart(clearingFinished: false)
+        } else {
+            phase = .idle
         }
+    }
+
+    /// A capture problem: keeps the WAV (in the output folder) and the live
+    /// preview as its SRT, and reports `message` with the paths.
+    private func failCapture(_ message: String, recording: URL) {
+        let kept = TranscriptOutput.keepAfterFailure(
+            message, recording: .init(url: recording, inSpool: true), liveSegments: liveSegments,
+            existingTranscript: nil, settings: settings, spool: spool
+        )
+        // "Try Again" reads the kept WAV.
+        recordedSamples = []
+        retryableRecording = kept.recording
+        finishedRecording = kept.recording?.url
+        finishedTranscript = kept.srt
+        needsModel = false
+        phase = .failed(message: kept.message)
     }
 
     // MARK: - Live preview
@@ -813,22 +819,19 @@ final class RecordingController {
     private func resetLivePreview() {
         liveContinuation?.finish()
         liveContinuation = nil
-        liveTask = nil
+        // A sink still here was never handed over; its chunks are dropped.
+        liveSink?.close()
+        liveSink = nil
         liveSegments = []
-        liveChunksWaiting = 0
         latestLiveLine = nil
         liveNotice = nil
         isLivePreviewEnabled = false
-        isUsingLivePreview = false
         chunker = LiveChunker()
         chunkedSamples = 0
         liveJobCount = 0
         liveLocation = nil
         detectionTask?.cancel()
         detectionTask = nil
-        // Waiters of an older session wake up, see the session changed, and
-        // drop their job.
-        resumeLanguageWaiters()
     }
 
     /// Opens the live queue when a model is ready; otherwise the recording
@@ -847,15 +850,24 @@ final class RecordingController {
         liveLocation = location
         let (stream, continuation) = AsyncStream.makeStream(of: LiveJob.self, bufferingPolicy: .unbounded)
         liveContinuation = continuation
-        let engine = engine
+        let sink = LiveSink(language: languageTracker.language)
         let id = session
+        sink.onResult = { [weak self] index, outcome in
+            self?.liveChunkDone(outcome, index: index, session: id)
+        }
+        liveSink = sink
+        let engine = engine
         // One consumer, so chunks are transcribed strictly in order. In Auto,
-        // chunks that close before the language is decided wait here.
-        liveTask = Task { [weak self] in
+        // chunks that close before the language is decided wait in the sink.
+        // After Stop the sink (and this task) belong to the queue job.
+        sink.task = Task { [weak self, sink] in
             for await job in stream {
-                guard let language = await self?.waitForSessionLanguage(session: id) else { continue }
-                let script = self?.sessionChineseScript
-                self?.liveJobObserver?(.started(index: job.index))
+                guard let language = await sink.waitForLanguage() else {
+                    sink.deliver(index: job.index, outcome: nil)
+                    continue
+                }
+                let script = sink.script
+                self?.liveJobObserver?(.started(session: id, index: job.index))
                 let outcome: Result<[CoreSegment], Error>
                 do {
                     let result = try await engine.transcribe(
@@ -866,36 +878,26 @@ final class RecordingController {
                 } catch {
                     outcome = .failure(error)
                 }
-                self?.liveChunkDone(outcome, index: job.index, session: id)
+                switch outcome {
+                case .success(let cues):
+                    self?.liveJobObserver?(.finished(session: id, index: job.index, cues: cues.count, error: nil))
+                case .failure(let error):
+                    self?.liveJobObserver?(.finished(session: id, index: job.index, cues: 0, error: Self.describe(error)))
+                }
+                sink.deliver(index: job.index, outcome: outcome)
             }
         }
     }
 
     // MARK: - Session language
 
-    /// The session language once it is known; nil when the session changed
-    /// while waiting.
-    private func waitForSessionLanguage(session id: Int) async -> TranscriptLanguage? {
-        while session == id, languageTracker.language == nil {
-            await withCheckedContinuation { languageWaiters.append($0) }
-        }
-        guard session == id else { return nil }
-        return languageTracker.language
-    }
-
-    private func resumeLanguageWaiters() {
-        let waiters = languageWaiters
-        languageWaiters = []
-        for waiter in waiters { waiter.resume() }
-    }
-
     /// The tracker settled or the user picked a language: the Chinese
     /// conversion, the banner, and any waiting live jobs follow it.
     private func languageSettled() {
         if let language = languageTracker.language {
             sessionChineseScript = language.chineseScript
+            liveSink?.setLanguage(language)
         }
-        resumeLanguageWaiters()
     }
 
     /// Runs one detection attempt when the tracker says one is due and none
@@ -919,7 +921,7 @@ final class RecordingController {
         lastDetection = result
         let decision = languageTracker.record(detection: result?.decisionInput, samplesUsed: samplesUsed)
         liveJobObserver?(.detection(
-            seconds: Double(samplesUsed) / Double(WavWriter.sampleRate), result: result, decision: decision
+            session: id, seconds: Double(samplesUsed) / Double(WavWriter.sampleRate), result: result, decision: decision
         ))
         if decision != nil {
             languageNotice = LanguageNotice(decision: languageTracker.decision)
@@ -927,24 +929,6 @@ final class RecordingController {
         } else if isCapturing {
             startDetectionIfDue()
         }
-    }
-
-    /// Settles the session language before a final pass: waits for an
-    /// attempt in flight, then, if the language is still open, detects over
-    /// the whole recording and locks the result (the preferred language when
-    /// detection is unsure or fails).
-    private func settleLanguage(samples: [Float], location: WhisperModelLocation, session id: Int) async {
-        await detectionTask?.value
-        guard session == id, !languageTracker.isSettled else { return }
-        let result = try? await engine.detectLanguage(samples: samples, location: location)
-        guard session == id, !languageTracker.isSettled else { return }
-        lastDetection = result
-        let decision = languageTracker.finish(detection: result?.decisionInput)
-        liveJobObserver?(.detection(
-            seconds: Double(samples.count) / Double(WavWriter.sampleRate), result: result, decision: decision
-        ))
-        languageNotice = LanguageNotice(decision: decision)
-        languageSettled()
     }
 
     /// Measures the new samples in 0.1 s windows and queues every chunk
@@ -968,22 +952,18 @@ final class RecordingController {
 
     private func enqueueLive(_ range: Range<Int>) {
         guard let liveContinuation, range.upperBound <= recordedSamples.count else { return }
-        liveChunksWaiting += 1
+        liveSink?.chunkQueued()
         liveJobCount += 1
         let start = Double(range.lowerBound) / Double(LiveChunker.sampleRate)
         liveJobObserver?(.queued(
-            index: liveJobCount, start: start, seconds: Double(range.count) / Double(LiveChunker.sampleRate)
+            session: session, index: liveJobCount, start: start,
+            seconds: Double(range.count) / Double(LiveChunker.sampleRate)
         ))
         liveContinuation.yield(LiveJob(index: liveJobCount, samples: Array(recordedSamples[range]), start: start))
     }
 
     private func liveChunkDone(_ outcome: Result<[CoreSegment], Error>, index: Int, session id: Int) {
         guard session == id else { return }
-        switch outcome {
-        case .success(let cues): liveJobObserver?(.finished(index: index, cues: cues.count, error: nil))
-        case .failure(let error): liveJobObserver?(.finished(index: index, cues: 0, error: Self.describe(error)))
-        }
-        liveChunksWaiting = max(0, liveChunksWaiting - 1)
         switch outcome {
         case .success(let cues):
             liveSegments.append(contentsOf: cues)
@@ -996,273 +976,6 @@ final class RecordingController {
         }
     }
 
-    // MARK: - Final pass
-
-    private func runFinalPass(session id: Int) async {
-        let location: WhisperModelLocation
-        do {
-            location = try sources.modelLocation(modelStore)
-        } catch {
-            await liveTask?.value
-            guard session == id else { return }
-            failTranscription(Self.describe(error), missingModel: true)
-            return
-        }
-        // Lock the language first: live chunks still waiting for it are
-        // transcribed in it, and the final pass uses it.
-        await settleLanguage(samples: recordedSamples, location: location, session: id)
-        // Finish the live preview first so "Use live preview instead" always
-        // has every chunk.
-        await liveTask?.value
-        guard session == id, isTranscribing, !isUsingLivePreview else { return }
-        guard let language = languageTracker.language else {
-            failTranscription(String(localized: "Transcription failed: the language could not be decided.",
-                                     comment: "Transcription error"))
-            return
-        }
-
-        let samples = recordedSamples
-        let options = TranscriptionOptions.app(language: language)
-        do {
-            let result = try await engine.transcribe(
-                samples: samples, location: location, options: options,
-                progress: progressHandler(session: id)
-            )
-            guard session == id, isTranscribing, !isUsingLivePreview else { return }
-            completeTranscription(with: result.cues(script: sessionChineseScript))
-        } catch {
-            // Cancelled by "Use live preview instead" or by quitting; whoever
-            // cancelled writes the SRT.
-            guard !error.isTranscriptionCancelled else { return }
-            guard session == id, isTranscribing, !isUsingLivePreview else { return }
-            failTranscription(String(localized: "Transcription failed: \(Self.describe(error))",
-                                     comment: "Transcription error. %@ is the reason."))
-        }
-    }
-
-    private func runRetry(recording: URL, session id: Int) async {
-        let location: WhisperModelLocation
-        do {
-            location = try sources.modelLocation(modelStore)
-        } catch {
-            guard session == id else { return }
-            failTranscription(Self.describe(error), missingModel: true)
-            return
-        }
-        let folder = try? TranscriptOutput.resolveFolder(settings: settings)
-        defer { folder?.stopAccessing() }
-        do {
-            var samples = recordedSamples
-            if samples.isEmpty {
-                samples = try await Task.detached(priority: .userInitiated) {
-                    try AudioFileLoader.loadMono16k(url: recording)
-                }.value
-            }
-            await settleLanguage(samples: samples, location: location, session: id)
-            guard session == id, isTranscribing else { return }
-            guard let language = languageTracker.language else {
-                failTranscription(String(localized: "Transcription failed: the language could not be decided.",
-                                     comment: "Transcription error"))
-                return
-            }
-            let result = try await engine.transcribe(
-                samples: samples, location: location,
-                options: TranscriptionOptions.app(language: language),
-                progress: progressHandler(session: id)
-            )
-            guard session == id, isTranscribing, !isUsingLivePreview else { return }
-            completeTranscription(with: result.cues(script: sessionChineseScript))
-        } catch {
-            guard !error.isTranscriptionCancelled else { return }
-            guard session == id, isTranscribing, !isUsingLivePreview else { return }
-            failTranscription(String(localized: "Transcription failed: \(Self.describe(error))",
-                                     comment: "Transcription error. %@ is the reason."))
-        }
-    }
-
-    /// "Transcribe again" after a finished recording: one full pass in
-    /// `language` over the same audio, written over the same SRT. On failure
-    /// or cancellation the previous SRT stays and the phase returns to
-    /// finished.
-    private func runRerun(srt: URL, wav: URL?, samples held: [Float]?, language: TranscriptLanguage, session id: Int) async {
-        defer { if session == id { isRerunning = false } }
-        func restore(_ message: String?) {
-            guard session == id else { return }
-            rerunError = message
-            phase = .finished(srt: srt, wav: wav)
-        }
-        let location: WhisperModelLocation
-        do {
-            location = try sources.modelLocation(modelStore)
-        } catch {
-            restore(String(localized: "Could not transcribe again: \(Self.describe(error))",
-                           comment: "Error. %@ is the reason."))
-            return
-        }
-        let folder = try? TranscriptOutput.resolveFolder(settings: settings)
-        defer { folder?.stopAccessing() }
-        do {
-            let samples: [Float]
-            if let held {
-                samples = held
-            } else if let wav {
-                samples = try await Task.detached(priority: .userInitiated) {
-                    try AudioFileLoader.loadMono16k(url: wav)
-                }.value
-            } else {
-                restore(String(localized: "Could not transcribe again: the recording was not kept.",
-                           comment: "Error"))
-                return
-            }
-            let result = try await engine.transcribe(
-                samples: samples, location: location,
-                options: TranscriptionOptions.app(language: language),
-                progress: progressHandler(session: id)
-            )
-            guard session == id, isTranscribing else { return }
-            guard FileManager.default.fileExists(atPath: srt.path) else {
-                restore(String(localized: "Could not transcribe again: \(srt.lastPathComponent) was moved or renamed.",
-                           comment: "Error. %@ is a file name."))
-                return
-            }
-            try TranscriptOutput.writeSRT(result.cues(script: sessionChineseScript), to: srt)
-            rerunSamples = nil
-            restore(nil)
-            notesRequest = srt
-        } catch {
-            if error.isTranscriptionCancelled {
-                restore(nil)
-            } else {
-                restore(String(localized: "Could not transcribe again: \(Self.describe(error))",
-                           comment: "Error. %@ is the reason."))
-            }
-        }
-    }
-
-    private func progressHandler(session id: Int) -> @Sendable (Double) -> Void {
-        { [weak self] value in
-            Task { @MainActor in
-                guard let self, self.session == id, self.isTranscribing else { return }
-                self.phase = .transcribing(progress: min(max(value, 0), 1))
-            }
-        }
-    }
-
-    /// Writes `<stem>.srt` into the output folder beside the recording and
-    /// then keeps or deletes the WAV as the setting says. After a failed
-    /// pass the WAV is already in the output folder and its SRT (possibly
-    /// the saved live preview) is replaced.
-    /// `keepRecording` overrides the setting (quit keeps the WAV).
-    private func completeTranscription(with cues: [CoreSegment], keepRecording: Bool? = nil) {
-        let folder: ResolvedOutputFolder
-        do {
-            folder = try TranscriptOutput.resolveFolder(settings: settings)
-        } catch {
-            failTranscription(String(localized: "Could not open the output folder: \(error.localizedDescription)",
-                                     comment: "Error. %@ is the system error message."))
-            return
-        }
-        defer { folder.stopAccessing() }
-        let fileManager = FileManager.default
-
-        // The WAV is either still in the spool (after a recording) or already
-        // in the output folder (after a failed pass).
-        let source = pendingSpoolWAV ?? retryableRecording
-        guard let source else {
-            failTranscription(String(localized: "The recording is missing.", comment: "Transcription error"))
-            return
-        }
-        let inSpool = pendingSpoolWAV != nil
-        let base = source.deletingPathExtension().lastPathComponent
-        let directory = inSpool ? folder.url : source.deletingLastPathComponent()
-        let stem = inSpool
-            ? TranscriptOutput.freeStem(base: base, directory: directory, suffixes: [".srt", ".wav"])
-            : base
-        let srt = directory.appendingPathComponent(stem + ".srt")
-        do {
-            try TranscriptOutput.writeSRT(cues, to: srt)
-        } catch {
-            failTranscription(String(localized: "Could not write the transcript: \(error.localizedDescription)",
-                                     comment: "Transcription error. %@ is the system error message."))
-            return
-        }
-
-        var wav: URL?
-        if keepRecording ?? settings.keepRecording {
-            if inSpool {
-                let destination = directory.appendingPathComponent(stem + ".wav")
-                do {
-                    try fileManager.moveItem(at: source, to: destination)
-                    wav = destination
-                } catch {
-                    wav = source
-                    liveNotice = String(
-                        localized: "Could not move the recording to the output folder: \(error.localizedDescription) It is kept at \(source.path).",
-                        comment: "Record tab notice. %1$@ is the system error message, %2$@ a file path.")
-                }
-            } else {
-                wav = source
-            }
-        } else {
-            try? fileManager.removeItem(at: source)
-        }
-
-        pendingSpoolWAV = nil
-        retryableRecording = nil
-        // A re-run needs the audio; hold it only when the WAV is gone.
-        rerunSamples = languageNotice != nil && wav == nil ? recordedSamples : nil
-        recordedSamples = []
-        needsModel = false
-        finishedTranscript = srt
-        finishedRecording = wav
-        phase = .finished(srt: srt, wav: wav)
-        notesRequest = srt
-    }
-
-    /// Keeps the WAV (moved to the output folder when it is still in the
-    /// spool), saves the live preview as its SRT when there is one, and
-    /// reports `message` with the WAV path.
-    private func failTranscription(_ message: String, missingModel: Bool = false) {
-        var lines = [message]
-        var wav = pendingSpoolWAV ?? retryableRecording
-        let folder = try? TranscriptOutput.resolveFolder(settings: settings)
-        defer { folder?.stopAccessing() }
-
-        if let spoolWAV = pendingSpoolWAV {
-            if let folder {
-                do {
-                    wav = try spool.finalize(spoolWAV, keep: true, outputFolder: folder.url)
-                } catch {
-                    wav = spoolWAV
-                    lines.append(String(localized: "Could not move the recording to the output folder: \(error.localizedDescription)",
-                                        comment: "Recording error. %@ is the system error message."))
-                }
-            }
-            pendingSpoolWAV = nil
-        }
-
-        if let wav, !liveSegments.isEmpty, finishedTranscript == nil {
-            let srt = wav.deletingPathExtension().appendingPathExtension("srt")
-            do {
-                try TranscriptOutput.writeSRT(liveSegments, to: srt)
-                finishedTranscript = srt
-                lines.append(String(localized: "The live preview was saved as \(srt.path).",
-                                    comment: "After a failed transcription. %@ is a file path."))
-            } catch {
-                lines.append(String(localized: "The live preview could not be saved: \(error.localizedDescription)",
-                                    comment: "After a failed transcription. %@ is the system error message."))
-            }
-        }
-        if let wav {
-            lines.append(String(localized: "The recording is kept at \(wav.path).",
-                                comment: "After a failed transcription. %@ is a file path."))
-        }
-        retryableRecording = wav
-        finishedRecording = wav
-        needsModel = missingModel
-        phase = .failed(message: lines.joined(separator: "\n"))
-    }
-
     static func describe(_ error: Error) -> String {
         if let localized = error as? LocalizedError, let text = localized.errorDescription {
             return text
@@ -1270,6 +983,7 @@ final class RecordingController {
         return String(describing: error)
     }
 }
+
 
 // MARK: - Capture seam
 

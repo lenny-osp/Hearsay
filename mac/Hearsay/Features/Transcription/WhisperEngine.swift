@@ -1,6 +1,7 @@
 import Foundation
 import HearsayCore
 import HearsayWhisper
+import os
 import SwiftUI
 
 /// Errors raised before the decoder runs. Decoder and loading errors pass
@@ -41,10 +42,30 @@ struct WhisperModelLocation: Sendable, Equatable {
     }
 }
 
+/// Counts foreground calls (File mode, final passes, live chunks, language
+/// detection) that are waiting for or running in `WhisperEngine`. It lives
+/// outside the actor so a background decode, which runs inside the actor,
+/// can read it from its `shouldYield` closure between windows (PLAN.md 4.9).
+final class ForegroundWork: Sendable {
+    private let count = OSAllocatedUnfairLock(initialState: 0)
+
+    var waiting: Int { count.withLock { $0 } }
+
+    func begin() { count.withLock { $0 += 1 } }
+
+    func end() { count.withLock { $0 -= 1 } }
+}
+
 /// Owns at most one loaded Whisper model (PLAN.md section 4). Every job runs
 /// inside the actor, so jobs are serialized and MLX never runs on the main
 /// actor. The model stays loaded between jobs and is released after
 /// `idleUnloadSeconds` without work (PLAN.md section 12, memory).
+///
+/// The public job methods other than `transcribeStep` are foreground work:
+/// they are nonisolated entry points that count themselves in
+/// `foregroundWork` before they wait for the actor and until they return
+/// or throw. `transcribeStep` is background work: it suspends at the next
+/// 30 s window while any foreground call is counted (PLAN.md 4.9).
 actor WhisperEngine {
     static let idleUnloadSeconds: TimeInterval = 600
 
@@ -54,13 +75,19 @@ actor WhisperEngine {
     /// when this is zero.
     private var activeJobs = 0
     private var idleTimer: Task<Void, Never>?
+    /// Foreground calls waiting for or running in the actor.
+    nonisolated let foregroundWork = ForegroundWork()
 
     init() {}
 
     var isLoaded: Bool { transcriber != nil }
-    /// A job (a File-mode transcription, a final pass, a live chunk) is
-    /// waiting or running. The update install waits for it (PLAN.md 4.6).
+    /// A job (a File-mode transcription, a final pass, a live chunk, a
+    /// background step) is waiting or running. The update install waits for
+    /// it (PLAN.md 4.6).
     var isBusy: Bool { activeJobs > 0 }
+    /// Foreground calls waiting for or running in the actor; readable
+    /// without entering it.
+    nonisolated var foregroundWaiting: Int { foregroundWork.waiting }
 
     /// Loads the model unless the same folders are already loaded.
     func load(modelDirectory: URL, tokenizerDirectory: URL) async throws {
@@ -81,13 +108,92 @@ actor WhisperEngine {
     /// receives 0...1 from the decoder's thread. `shouldCancel` is checked
     /// before every 30 s window; without it, cancelling the calling Task
     /// stops the pass at the next window. Either way the call throws
-    /// `TranscriptionError.cancelled(partial:)`.
-    func transcribe(
+    /// `TranscriptionError.cancelled(partial:)`. Foreground work.
+    nonisolated func transcribe(
         samples: [Float],
         options: TranscriptionOptions,
         progress: @escaping @Sendable (Double) -> Void,
         shouldCancel: (@Sendable () -> Bool)? = nil
     ) async throws -> Transcription {
+        foregroundWork.begin()
+        defer { foregroundWork.end() }
+        return try await runTranscribe(
+            samples: samples, options: options, progress: progress, shouldCancel: shouldCancel
+        )
+    }
+
+    /// Loads `location` if needed, then transcribes. The load and the job
+    /// count as one job for the idle timer. Foreground work.
+    nonisolated func transcribe(
+        samples: [Float],
+        location: WhisperModelLocation,
+        options: TranscriptionOptions,
+        progress: @escaping @Sendable (Double) -> Void,
+        shouldCancel: (@Sendable () -> Bool)? = nil
+    ) async throws -> Transcription {
+        foregroundWork.begin()
+        defer { foregroundWork.end() }
+        return try await runTranscribe(
+            samples: samples, location: location, options: options,
+            progress: progress, shouldCancel: shouldCancel
+        )
+    }
+
+    /// Loads `location` if needed, then detects the language of `samples`
+    /// among the supported Whisper languages (`TranscriptLanguage.whisperCodes`), with
+    /// the detector's defaults: up to three speech windows averaged, silent
+    /// and no-speech windows skipped. The caller applies
+    /// `LanguageDecision.decide` to the result. Foreground work.
+    nonisolated func detectLanguage(samples: [Float], location: WhisperModelLocation) async throws -> DetectionResult {
+        foregroundWork.begin()
+        defer { foregroundWork.end() }
+        return try await runDetectLanguage(samples: samples, location: location)
+    }
+
+    /// Background work (a queued final pass, PLAN.md 4.9): loads `location`
+    /// if needed, then decodes from `checkpoint` (nil starts at the
+    /// beginning) until the end, or until, before a window and after at
+    /// least one window of this call, a foreground call is waiting or
+    /// `holdWhile` returns true; then it returns `.suspended` with the
+    /// checkpoint to pass back later. It never waits or loops by itself.
+    /// `shouldCancel` (default: the calling Task's cancellation) wins over
+    /// suspending and throws `TranscriptionError.cancelled(partial:)` with
+    /// every segment so far. Not counted as foreground work.
+    func transcribeStep(
+        samples: [Float],
+        location: WhisperModelLocation,
+        options: TranscriptionOptions,
+        resumingFrom checkpoint: TranscriptionCheckpoint?,
+        progress: @escaping @Sendable (Double) -> Void,
+        shouldCancel: (@Sendable () -> Bool)? = nil,
+        holdWhile: (@Sendable () -> Bool)? = nil
+    ) async throws -> TranscriptionStep {
+        beginJob()
+        defer { endJob() }
+        try await load(location)
+        guard let transcriber else { throw WhisperEngineError.noActiveModel }
+        let cancel: @Sendable () -> Bool = shouldCancel ?? { Task.isCancelled }
+        if cancel() || Task.isCancelled {
+            throw TranscriptionError.cancelled(partial: checkpoint?.segments ?? [])
+        }
+        let foreground = foregroundWork
+        let shouldYield: @Sendable () -> Bool = {
+            foreground.waiting > 0 || holdWhile?() == true
+        }
+        return try transcriber.transcribeStep(
+            samples: samples, options: options, resumingFrom: checkpoint,
+            progress: progress, shouldCancel: cancel, shouldYield: shouldYield
+        )
+    }
+
+    // MARK: - Jobs inside the actor
+
+    private func runTranscribe(
+        samples: [Float],
+        options: TranscriptionOptions,
+        progress: @escaping @Sendable (Double) -> Void,
+        shouldCancel: (@Sendable () -> Bool)?
+    ) throws -> Transcription {
         beginJob()
         defer { endJob() }
         guard let transcriber else { throw WhisperEngineError.noActiveModel }
@@ -98,29 +204,22 @@ actor WhisperEngine {
         )
     }
 
-    /// Loads `location` if needed, then transcribes. The load and the job
-    /// count as one job for the idle timer.
-    func transcribe(
+    private func runTranscribe(
         samples: [Float],
         location: WhisperModelLocation,
         options: TranscriptionOptions,
         progress: @escaping @Sendable (Double) -> Void,
-        shouldCancel: (@Sendable () -> Bool)? = nil
+        shouldCancel: (@Sendable () -> Bool)?
     ) async throws -> Transcription {
         beginJob()
         defer { endJob() }
         try await load(location)
-        return try await transcribe(
+        return try runTranscribe(
             samples: samples, options: options, progress: progress, shouldCancel: shouldCancel
         )
     }
 
-    /// Loads `location` if needed, then detects the language of `samples`
-    /// among the supported Whisper languages (`TranscriptLanguage.whisperCodes`), with
-    /// the detector's defaults: up to three speech windows averaged, silent
-    /// and no-speech windows skipped. The caller applies
-    /// `LanguageDecision.decide` to the result.
-    func detectLanguage(samples: [Float], location: WhisperModelLocation) async throws -> DetectionResult {
+    private func runDetectLanguage(samples: [Float], location: WhisperModelLocation) async throws -> DetectionResult {
         beginJob()
         defer { endJob() }
         try await load(location)

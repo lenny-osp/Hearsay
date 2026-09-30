@@ -31,13 +31,17 @@ public struct RecordingSpool: Sendable {
 
     /// Spooled WAVs whose header sizes are still 0 or that have no `.srt`
     /// sibling in the spool, sorted by name. Empty when the folder is missing.
+    /// WAVs of jobs still pending in `queue.json` are left out: the
+    /// transcription queue continues with them (PLAN.md 4.9).
     public func unfinishedRecordings() -> [URL] {
         let fileManager = FileManager.default
         guard let entries = try? fileManager.contentsOfDirectory(
             at: root, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]
         ) else { return [] }
+        let queued = TranscriptionQueueStore(root: root).queuedWAVFileNames()
         return entries
             .filter { $0.pathExtension.lowercased() == "wav" }
+            .filter { !queued.contains($0.lastPathComponent) }
             .filter { url in
                 let unfinishedHeader = (try? WavWriter.hasUnfinishedHeader(at: url)) ?? false
                 let srt = url.deletingPathExtension().appendingPathExtension("srt")

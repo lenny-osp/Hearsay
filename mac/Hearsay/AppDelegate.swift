@@ -110,14 +110,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let relauncher = AppRelauncher()
     lazy var permissionMonitor = PermissionMonitor(settings: settings)
     lazy var updateService = UpdateService(settings: settings)
-    lazy var recordingController = RecordingController(
+    /// Finished recordings waiting for or running their final pass (PLAN.md 4.9).
+    lazy var transcriptionQueue = TranscriptionQueue(
         settings: settings, modelStore: modelStore, engine: whisperEngine
+    )
+    lazy var recordingController = RecordingController(
+        settings: settings, modelStore: modelStore, engine: whisperEngine, queue: transcriptionQueue
     )
     lazy var hotkeyManager = HotkeyManager(settings: settings) { [weak self] action in
         guard let recording = self?.recordingController else { return }
         switch action {
         case .startStop: recording.toggleStartStop()
         case .pause: recording.togglePause()
+        case .stopStartNext: recording.stopAndStartNext()
         }
     }
 
@@ -170,6 +175,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         applyWindowMode(settings.windowMode)
         observeWindowMode()
         recordingController.activate()
+        // Recordings a previous run did not transcribe continue (PLAN.md 4.9).
+        transcriptionQueue.restore()
         // Microphone and system audio status, and the re-approval sheet for a
         // grant an update made stale (PLAN.md section 9).
         permissionMonitor.onStaleGrantDetected = { [weak self] in
@@ -199,54 +206,76 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Quit while recording
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        if recordingController.isTranscribing {
-            // No alert: the pass is cancelled at the next 30 s window, the
-            // live preview (if any) is saved as the SRT, and the WAV is kept.
-            guard !isStoppingForQuit else { return .terminateLater }
+        // A second Quit while the recording is being saved just waits.
+        guard !isStoppingForQuit else { return .terminateLater }
+        let queue = transcriptionQueue
+        if recordingController.isSessionActive {
+            NSApp.activate()
+            let alert = NSAlert()
+            alert.messageText = String(localized: "Stop recording and quit?",
+                                       comment: "Alert when quitting (or restarting) while a recording is active")
+            alert.informativeText = String(localized: "The recording is saved before Hearsay quits.",
+                                           comment: "Alert when quitting while a recording is active")
+            alert.addButton(withTitle: String(localized: "Stop & Quit", comment: "Alert button: stop the recording, then quit"))
+            alert.addButton(withTitle: String(localized: "Cancel", comment: "Alert button"))
+            guard alert.runModal() == .alertFirstButtonReturn else {
+                relaunchAfterQuit = false
+                return .terminateCancel
+            }
             isStoppingForQuit = true
             Task { @MainActor in
-                await recordingController.cancelTranscriptionForQuit()
+                // The recording becomes a queue job; the next launch
+                // transcribes it (PLAN.md 4.9).
+                await recordingController.stopForQuit()
+                await queue.prepareForQuit()
                 await replyToTerminate()
             }
             return .terminateLater
         }
-        guard recordingController.isSessionActive else {
-            guard relaunchAfterQuit else { return .terminateNow }
-            Task { @MainActor in await replyToTerminate() }
+        let pending = queue.pendingCount
+        if pending > 0 {
+            NSApp.activate()
+            let alert = NSAlert()
+            alert.messageText = String(localized: "Recordings not transcribed yet: \(pending)",
+                                       comment: "Alert when quitting while the transcription queue has recordings. %lld is their number.")
+            alert.informativeText = String(localized: "Hearsay continues with them the next time it opens.",
+                                           comment: "Alert when quitting while the transcription queue has recordings")
+            alert.addButton(withTitle: String(localized: "Quit", comment: "Alert button: quit Hearsay"))
+            alert.addButton(withTitle: String(localized: "Cancel", comment: "Alert button"))
+            guard alert.runModal() == .alertFirstButtonReturn else {
+                relaunchAfterQuit = false
+                return .terminateCancel
+            }
+        }
+        if pending > 0 || queue.hasWorkInFlight {
+            // No alert for a re-run in progress: it stops at the next 30 s
+            // window and the previous SRT stays. The spool WAVs of pending
+            // jobs stay for the next launch.
+            isStoppingForQuit = true
+            Task { @MainActor in
+                // No session is active; this only keeps one from starting.
+                await recordingController.stopForQuit()
+                await queue.prepareForQuit()
+                await replyToTerminate()
+            }
             return .terminateLater
         }
-        // A second Quit while the recording is being saved just waits.
-        guard !isStoppingForQuit else { return .terminateLater }
-
-        NSApp.activate()
-        let alert = NSAlert()
-        alert.messageText = String(localized: "Stop recording and quit?",
-                                   comment: "Alert when quitting (or restarting) while a recording is active")
-        alert.informativeText = String(localized: "The recording is saved before Hearsay quits.",
-                                       comment: "Alert when quitting while a recording is active")
-        alert.addButton(withTitle: String(localized: "Stop & Quit", comment: "Alert button: stop the recording, then quit"))
-        alert.addButton(withTitle: String(localized: "Cancel", comment: "Alert button"))
-        guard alert.runModal() == .alertFirstButtonReturn else {
-            relaunchAfterQuit = false
-            return .terminateCancel
-        }
-
-        isStoppingForQuit = true
-        Task { @MainActor in
-            await recordingController.stop()
-            // Stopping starts the final pass; do not wait for it.
-            await recordingController.cancelTranscriptionForQuit()
-            await replyToTerminate()
-        }
+        guard relaunchAfterQuit else { return .terminateNow }
+        Task { @MainActor in await replyToTerminate() }
         return .terminateLater
     }
 
     // MARK: - Update install
 
-    /// Why Install and Relaunch must wait, or nil: a recording session or
-    /// its final pass, or any Whisper job (File mode) still running.
+    /// Why Install and Relaunch must wait, or nil: a recording session, a
+    /// recording still waiting for its transcription, or any Whisper job
+    /// (File mode, a re-run) still running.
     private func updateInstallBlocker() async -> String? {
-        let recordingBusy = recordingController.isSessionActive || recordingController.isTranscribing
+        if transcriptionQueue.blocksUpdateInstall {
+            return String(localized: "Wait until the transcriptions are finished.",
+                          comment: "Alert when Install and Relaunch is chosen while recordings wait for their transcription")
+        }
+        let recordingBusy = recordingController.isSessionActive
         let engineBusy = await whisperEngine.isBusy
         guard recordingBusy || engineBusy else { return nil }
         return String(localized: "Finish the recording first.",
@@ -289,6 +318,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         isStoppingForQuit = false
         NSApp.reply(toApplicationShouldTerminate: false)
+        recordingController.quitCancelled()
+        transcriptionQueue.quitCancelled()
         let alert = NSAlert()
         alert.messageText = String(localized: "Hearsay could not restart.",
                                    comment: "Alert when the automatic restart (language change or update) failed")

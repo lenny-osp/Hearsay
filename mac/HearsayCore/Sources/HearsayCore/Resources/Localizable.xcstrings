@@ -2086,6 +2086,35 @@
         }
       }
     },
+    "Right away (in the background)" : {
+      "comment" : "Settings > General > Transcription: final-pass timing that transcribes a finished recording at once, while the next one records",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sofort (im Hintergrund)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De inmediato (en segundo plano)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "立即（后台）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "立即（背景）"
+          }
+        }
+      }
+    },
     "Run `%@` once in Terminal to log in." : {
       "comment" : "CLI check hint. %@ is a shell command; keep the backticks.",
       "localizations" : {
@@ -2831,6 +2860,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "不支援的音訊格式：%@"
+          }
+        }
+      }
+    },
+    "When no recording is running" : {
+      "comment" : "Settings > General > Transcription: final-pass timing that waits until no recording is running",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wenn keine Aufnahme läuft"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuando no haya ninguna grabación"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等没有录音时再做"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等沒有錄音時再做"
           }
         }
       }

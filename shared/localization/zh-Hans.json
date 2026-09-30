@@ -729,6 +729,14 @@
   },
   {
     "catalog": "app",
+    "key": "Either way, the next recording can start at once.",
+    "english": "Either way, the next recording can start at once.",
+    "comment": "Settings > General caption under the final-pass timing picker (Transcribe finished recordings)",
+    "placeholders": [],
+    "translation": "两种方式都能立即开始下一场录音。"
+  },
+  {
+    "catalog": "app",
     "key": "Endpoint URL:",
     "english": "Endpoint URL:",
     "comment": "UI text in AISettingsTab.swift.",
@@ -761,6 +769,14 @@
     "comment": "UI text in AISettingsTab.swift.",
     "placeholders": [],
     "translation": "额外请求头："
+  },
+  {
+    "catalog": "app",
+    "key": "Failed",
+    "english": "Failed",
+    "comment": "Record tab queue row state: the transcription failed",
+    "placeholders": [],
+    "translation": "失败"
   },
   {
     "catalog": "app",
@@ -1599,6 +1615,14 @@
   },
   {
     "catalog": "app",
+    "key": "Paused while recording",
+    "english": "Paused while recording",
+    "comment": "Record tab queue row state: the transcription waits until the recording stops",
+    "placeholders": [],
+    "translation": "录音中暂停"
+  },
+  {
+    "catalog": "app",
     "key": "Permissions",
     "english": "Permissions",
     "comment": "Record tab: header of the Permissions row",
@@ -1660,6 +1684,14 @@
     "comment": "UI text in ConfirmSendSheet.swift.",
     "placeholders": [],
     "translation": "提供方："
+  },
+  {
+    "catalog": "app",
+    "key": "Quit",
+    "english": "Quit",
+    "comment": "Alert button: quit Hearsay",
+    "placeholders": [],
+    "translation": "退出"
   },
   {
     "catalog": "app",
@@ -1738,6 +1770,26 @@
       "%@"
     ],
     "translation": "已保留录音：%@"
+  },
+  {
+    "catalog": "app",
+    "key": "Recordings in queue: %lld",
+    "english": "Recordings in queue: %lld",
+    "comment": "Menu bar panel queue line. %lld is the number of recordings not transcribed yet.",
+    "placeholders": [
+      "%lld"
+    ],
+    "translation": "队列中的录音：%lld"
+  },
+  {
+    "catalog": "app",
+    "key": "Recordings not transcribed yet: %lld",
+    "english": "Recordings not transcribed yet: %lld",
+    "comment": "Alert when quitting while the transcription queue has recordings. %lld is their number.",
+    "placeholders": [
+      "%lld"
+    ],
+    "translation": "尚未转录的录音：%lld"
   },
   {
     "catalog": "app",
@@ -1850,6 +1902,16 @@
     "comment": "UI text in AISettingsTab.swift, NamingSheet.swift.",
     "placeholders": [],
     "translation": "保存"
+  },
+  {
+    "catalog": "app",
+    "key": "Save this recording and start the next one at once (%@). This one is transcribed in the background.",
+    "english": "Save this recording and start the next one at once (%@). This one is transcribed in the background.",
+    "comment": "Record tab tooltip of Stop & Start Next. %@ is a shortcut such as ⌃⌥⌘N.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "保存这场录音并立即开始下一场（%@）。这场会在后台转录。"
   },
   {
     "catalog": "app",
@@ -2120,6 +2182,32 @@
     "comment": "Alert button: stop the recording, then quit",
     "placeholders": [],
     "translation": "停止并退出"
+  },
+  {
+    "catalog": "app",
+    "key": "Stop & Start Next",
+    "english": "Stop & Start Next",
+    "comment": "UI text in MenuBarView.swift, RecordView.swift.",
+    "placeholders": [],
+    "translation": "结束并开始下一场"
+  },
+  {
+    "catalog": "app",
+    "key": "Stop & Start Next (%@)",
+    "english": "Stop & Start Next (%@)",
+    "comment": "UI text in MenuBarView.swift.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "结束并开始下一场（%@）"
+  },
+  {
+    "catalog": "app",
+    "key": "Stop & Start Next:",
+    "english": "Stop & Start Next:",
+    "comment": "UI text in HotkeyRecorderView.swift.",
+    "placeholders": [],
+    "translation": "结束并开始下一场："
   },
   {
     "catalog": "app",
@@ -2427,6 +2515,14 @@
   },
   {
     "catalog": "app",
+    "key": "Transcribe finished recordings",
+    "english": "Transcribe finished recordings",
+    "comment": "Settings > General > Transcription picker: when a finished recording gets its final transcription pass",
+    "placeholders": [],
+    "translation": "转录已结束的录音"
+  },
+  {
+    "catalog": "app",
     "key": "Transcribe this file",
     "english": "Transcribe this file",
     "comment": "UI text in RecordView.swift.",
@@ -2473,6 +2569,16 @@
   },
   {
     "catalog": "app",
+    "key": "Transcribing %lld%%",
+    "english": "Transcribing %lld%%",
+    "comment": "Record tab queue row state. %lld is a percentage; keep the % sign after it.",
+    "placeholders": [
+      "%lld"
+    ],
+    "translation": "转录中 %lld%%"
+  },
+  {
+    "catalog": "app",
     "key": "Transcribing… %lld%%",
     "english": "Transcribing… %lld%%",
     "comment": "Menu bar panel state. %lld is a percentage; keep the % sign after it.",
@@ -2480,6 +2586,17 @@
       "%lld"
     ],
     "translation": "正在转录… %lld%%"
+  },
+  {
+    "catalog": "app",
+    "key": "Transcribing… %lld%% · in queue: %lld",
+    "english": "Transcribing… %1$lld%% · in queue: %2$lld",
+    "comment": "Menu bar panel queue line. The first %lld is a percentage (keep the % sign after it), the second the number of recordings not transcribed yet.",
+    "placeholders": [
+      "%lld",
+      "%lld"
+    ],
+    "translation": "正在转录… %1$lld%% · 队列中：%2$lld"
   },
   {
     "catalog": "app",
@@ -2535,11 +2652,29 @@
   },
   {
     "catalog": "app",
+    "key": "Transcription paused while recording · in queue: %lld",
+    "english": "Transcription paused while recording · in queue: %lld",
+    "comment": "Menu bar panel queue line. %lld is the number of recordings not transcribed yet.",
+    "placeholders": [
+      "%lld"
+    ],
+    "translation": "录音中暂停转录 · 队列中：%lld"
+  },
+  {
+    "catalog": "app",
     "key": "Transcription progress",
     "english": "Transcription progress",
     "comment": "UI text in MenuBarView.swift.",
     "placeholders": [],
     "translation": "转录进度"
+  },
+  {
+    "catalog": "app",
+    "key": "Transcription queue",
+    "english": "Transcription queue",
+    "comment": "UI text in RecordView.swift.",
+    "placeholders": [],
+    "translation": "转录队列"
   },
   {
     "catalog": "app",
@@ -2692,6 +2827,16 @@
   },
   {
     "catalog": "app",
+    "key": "Waiting to transcribe · in queue: %lld",
+    "english": "Waiting to transcribe · in queue: %lld",
+    "comment": "Menu bar panel queue line. %lld is the number of recordings not transcribed yet.",
+    "placeholders": [
+      "%lld"
+    ],
+    "translation": "等待转录 · 队列中：%lld"
+  },
+  {
+    "catalog": "app",
     "key": "When off, the WAV is deleted once its SRT is written. A failed transcription always keeps it.",
     "english": "When off, the WAV is deleted once its SRT is written. A failed transcription always keeps it.",
     "comment": "UI text in SettingsView.swift.",
@@ -2783,6 +2928,14 @@
     "comment": "UI text in AISettingsTab.swift.",
     "placeholders": [],
     "translation": "粘贴后按下 Return 键"
+  },
+  {
+    "catalog": "app",
+    "key": "queue.state.done",
+    "english": "Done",
+    "comment": "Record tab queue row state: the transcript is written",
+    "placeholders": [],
+    "translation": "完成"
   },
   {
     "catalog": "app",
@@ -3448,6 +3601,14 @@
   },
   {
     "catalog": "core",
+    "key": "Right away (in the background)",
+    "english": "Right away (in the background)",
+    "comment": "Settings > General > Transcription: final-pass timing that transcribes a finished recording at once, while the next one records",
+    "placeholders": [],
+    "translation": "立即（后台）"
+  },
+  {
+    "catalog": "core",
     "key": "Run `%@` once in Terminal to log in.",
     "english": "Run `%@` once in Terminal to log in.",
     "comment": "CLI check hint. %@ is a shell command; keep the backticks.",
@@ -3673,6 +3834,14 @@
   },
   {
     "catalog": "core",
+    "key": "When no recording is running",
+    "english": "When no recording is running",
+    "comment": "Settings > General > Transcription: final-pass timing that waits until no recording is running",
+    "placeholders": [],
+    "translation": "等没有录音时再做"
+  },
+  {
+    "catalog": "core",
     "key": "`agy models` failed (exit code %d). %@",
     "english": "`agy models` failed (exit code %1$d). %2$@",
     "comment": "CLI check result. %1$d is the exit code, %2$@ the log-in hint. Keep `agy models`.",
@@ -3749,6 +3918,14 @@
     "comment": "Alert title: the running app cannot replace itself",
     "placeholders": [],
     "translation": "Hearsay 无法在此位置安装更新。"
+  },
+  {
+    "catalog": "app",
+    "key": "Hearsay continues with them the next time it opens.",
+    "english": "Hearsay continues with them the next time it opens.",
+    "comment": "Alert when quitting while the transcription queue has recordings",
+    "placeholders": [],
+    "translation": "Hearsay 下次打开时会继续转录。"
   },
   {
     "catalog": "app",
@@ -3938,6 +4115,22 @@
     "comment": "Update alert button: open the release page in the browser",
     "placeholders": [],
     "translation": "在 GitHub 上查看"
+  },
+  {
+    "catalog": "app",
+    "key": "Wait until the transcriptions are finished.",
+    "english": "Wait until the transcriptions are finished.",
+    "comment": "Alert when Install and Relaunch is chosen while recordings wait for their transcription",
+    "placeholders": [],
+    "translation": "请等转录完成。"
+  },
+  {
+    "catalog": "app",
+    "key": "Waiting",
+    "english": "Waiting",
+    "comment": "Record tab queue row state: not started yet",
+    "placeholders": [],
+    "translation": "等待中"
   },
   {
     "catalog": "app",

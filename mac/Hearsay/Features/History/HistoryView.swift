@@ -6,7 +6,7 @@ import SwiftUI
 struct HistoryView: View {
     @Environment(AppSettings.self) private var settings
     @Environment(AIProviderStore.self) private var store
-    @Environment(RecordingController.self) private var recording
+    @Environment(TranscriptionQueue.self) private var queue
     @State private var model = HistoryViewModel()
 
     var body: some View {
@@ -95,7 +95,7 @@ struct HistoryView: View {
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            let busy = HistoryViewModel.busyStems(of: recording)
+            let busy = HistoryViewModel.busyStems(of: queue)
             ScrollViewReader { proxy in
                 List(model.entries, selection: $model.selection) { entry in
                     HistoryRow(
@@ -142,7 +142,7 @@ struct HistoryView: View {
         case .generateNotes:
             model.generateNotes(entry, store: store, settings: settings)
         case .rename:
-            guard model.canRename(entry, busyStems: HistoryViewModel.busyStems(of: recording)) else { return }
+            guard model.canRename(entry, busyStems: HistoryViewModel.busyStems(of: queue)) else { return }
             model.pendingRename = entry
         case .delete: model.pendingDelete = entry
         }

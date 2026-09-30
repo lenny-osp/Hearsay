@@ -202,6 +202,32 @@ struct RecordingSpoolTests {
         ])
     }
 
+    @Test func unfinishedRecordingsIgnoresWAVsOfPendingQueuedJobs() throws {
+        let root = try makeTempDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let spool = RecordingSpool(root: root)
+        let names = ["2026-09-30_09-00-00", "2026-09-30_10-00-00", "2026-09-30_11-00-00", "2026-09-30_12-00-00"]
+        for name in names {
+            try writeFinished(root.appendingPathComponent(name + ".wav"), samples: 100)
+        }
+        func job(_ index: Int, _ state: TranscriptionJobState) -> TranscriptionQueueManifest.Job {
+            .init(id: names[index], wavFileName: names[index] + ".wav", stopTime: Date(timeIntervalSince1970: 0),
+                  languageChoice: .auto, keepRecording: true, state: state)
+        }
+        // Waiting and running jobs are the queue's; a failed job's WAV that is
+        // still in the spool and a WAV in no job are offered as before.
+        try TranscriptionQueueStore(spool: spool).save(TranscriptionQueueManifest(jobs: [
+            job(0, .waiting), job(1, .running), job(2, .failed),
+        ]))
+        #expect(spool.unfinishedRecordings().map(\.lastPathComponent) == [
+            "2026-09-30_11-00-00.wav", "2026-09-30_12-00-00.wav",
+        ])
+
+        // A corrupt manifest hides nothing: every WAV is offered.
+        try Data("{".utf8).write(to: root.appendingPathComponent("queue.json"))
+        #expect(spool.unfinishedRecordings().count == 4)
+    }
+
     @Test func unfinishedRecordingsIsEmptyWhenFolderIsMissing() {
         let spool = RecordingSpool(root: FileManager.default.temporaryDirectory
             .appendingPathComponent("missing-\(UUID().uuidString)"))

@@ -6,7 +6,8 @@ import SwiftUI
 /// renders the app's own views (never a screen capture) into PNGs in
 /// `<dir>`: every main-window tab, every Settings section, the confirm,
 /// naming, rename, onboarding, unfinished-recording, and permission sheets with
-/// sample data (and the Record tab with both permissions granted), the
+/// sample data (and the Record tab with both permissions granted, and with a
+/// transcription queue), the
 /// menu bar panel, the update progress window, and the help page (top and the Meeting notes section).
 /// Then it quits with status 0 (1 when a file could not be written).
 ///
@@ -73,9 +74,12 @@ enum UISnapshots {
         }
         settings.languageChoice = .auto
         let modelStore = ModelStore(settings: settings, rootURL: root.appendingPathComponent("models"))
+        let spool = RecordingSpool(root: root.appendingPathComponent("spool"))
+        let queue = TranscriptionQueue(
+            settings: settings, modelStore: modelStore, engine: delegate.whisperEngine, spool: spool, drives: false
+        )
         let controller = RecordingController(
-            settings: settings, modelStore: modelStore, engine: delegate.whisperEngine,
-            spool: RecordingSpool(root: root.appendingPathComponent("spool"))
+            settings: settings, modelStore: modelStore, engine: delegate.whisperEngine, queue: queue, spool: spool
         )
         let tabs = MainTabSelection()
         let opener = MainWindowOpener(tabs: tabs)
@@ -92,7 +96,7 @@ enum UISnapshots {
         )
         say("code identity \(PermissionMonitor.currentCodeIdentity() ?? "unknown")")
         let context = Context(
-            settings: settings, modelStore: modelStore, aiStore: aiStore, controller: controller,
+            settings: settings, modelStore: modelStore, aiStore: aiStore, controller: controller, queue: queue,
             engine: delegate.whisperEngine, hotkeys: hotkeys, tabs: tabs, opener: opener,
             relauncher: delegate.relauncher, updates: delegate.updateService, permissions: stalePermissions
         )
@@ -157,12 +161,12 @@ enum UISnapshots {
             onSave: { _ in }, onCancel: {}
         ))
         await render("16-sheet-onboarding", width: 460, OnboardingModelSheet())
-        let queue = UnfinishedRecordingQueue(
+        let unfinished = UnfinishedRecordingQueue(
             recordings: [samples.unfinishedWAV, samples.unfinishedWAV],
             spool: RecordingSpool(root: root.appendingPathComponent("spool"))
         )
         await render("17-sheet-unfinished-recording", width: 460,
-                     UnfinishedRecordingSheet(queue: queue, recording: samples.unfinishedWAV, onTranscribe: { _ in }))
+                     UnfinishedRecordingSheet(queue: unfinished, recording: samples.unfinishedWAV, onTranscribe: { _ in }))
         await render("18-menu-bar", width: 260, MenuBarView())
         await render("25-update-progress", width: 380, UpdateProgressView(
             version: "0.3.0", phase: .downloading(fraction: 0.42, received: 20_400_000, total: 48_600_000),
@@ -172,6 +176,17 @@ enum UISnapshots {
             suggestion: nil, currentName: "history-of-coffee-origins", renames: true,
             onSave: { _ in }, onCancel: {}
         ))
+        // The Record tab with a queue: one running, one waiting, one done
+        // (PLAN.md 4.9 "UI").
+        queue.insertSample(recording: samples.output.appendingPathComponent("2026-09-25_14-30-00.wav"),
+                           state: .done, progress: 1,
+                           srt: samples.output.appendingPathComponent("2026-09-25_14-30-00.srt"), offersNotes: true)
+        queue.insertSample(recording: spool.root.appendingPathComponent("2026-09-30_09-00-00.wav"),
+                           state: .running, progress: 0.45)
+        queue.insertSample(recording: spool.root.appendingPathComponent("2026-09-30_10-00-00.wav"), state: .waiting)
+        tabs.tab = .record
+        await render("27-record-queue", width: 720, height: 1000, MainView().environment(grantedPermissions))
+        await render("28-menu-bar-queue", width: 260, MenuBarView())
         say("help file \(HelpWindow.contentURL?.path ?? "missing")")
         for (name, fragment) in [("19-help-top", nil), ("20-help-meeting-notes", "meeting-notes")] as [(String, String?)] {
             let url = directory.appendingPathComponent("\(name).png")
@@ -272,6 +287,7 @@ enum UISnapshots {
         let modelStore: ModelStore
         let aiStore: AIProviderStore
         let controller: RecordingController
+        let queue: TranscriptionQueue
         let engine: WhisperEngine
         let hotkeys: HotkeyManager
         let tabs: MainTabSelection
@@ -287,6 +303,7 @@ enum UISnapshots {
                 .environment(modelStore)
                 .environment(aiStore)
                 .environment(controller)
+                .environment(queue)
                 .environment(\.whisperEngine, engine)
                 .environment(hotkeys)
                 .environment(tabs)

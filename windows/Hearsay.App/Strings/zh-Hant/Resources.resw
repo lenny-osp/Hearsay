@@ -1477,6 +1477,10 @@
     <value>逐字稿、錄音及先前的筆記都保留原始名稱。</value>
     <comment>core: The transcript, recording and any earlier notes keep their original names.</comment>
   </data>
+  <data name="core_c85142cf9d9693c7" xml:space="preserve">
+    <value>等沒有錄音時再做</value>
+    <comment>core: When no recording is running</comment>
+  </data>
   <data name="core_c8630c95316555e9" xml:space="preserve">
     <value>筆記將以 {0} 撰寫。</value>
     <comment>core: Notes will be written in %@.</comment>
@@ -1512,6 +1516,10 @@
   <data name="core_d542c7c4db6d2699" xml:space="preserve">
     <value>Hearsay 沒有系統聲音取用權限。請在「系統設定 &gt; 隱私權與安全性 &gt; 螢幕與系統錄音」中允許，然後開始新的錄音。</value>
     <comment>core: Hearsay has no system audio access. Allow it in System Settings &gt; Privacy &amp; Security &gt; Screen &amp; System Audio Recording, then start a new recording.</comment>
+  </data>
+  <data name="core_d95e582a60bb7835" xml:space="preserve">
+    <value>立即（背景）</value>
+    <comment>core: Right away (in the background)</comment>
   </data>
   <data name="core_daa0fbaaaaa9241d" xml:space="preserve">
     <value>選單列與 Dock</value>

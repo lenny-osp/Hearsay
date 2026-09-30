@@ -106,6 +106,9 @@ struct HotkeySettingsSection: View {
             LabeledContent("Pause / Resume:") {
                 HotkeyRecorderView(binding: $settings.pauseHotkey)
             }
+            LabeledContent("Stop & Start Next:") {
+                HotkeyRecorderView(binding: $settings.stopStartNextHotkey)
+            }
             HStack {
                 Text("Work in any app, even with the window closed.")
                     .font(.caption)
@@ -114,9 +117,11 @@ struct HotkeySettingsSection: View {
                 Button("Reset") {
                     settings.startStopHotkey = .defaultStartStop
                     settings.pauseHotkey = .defaultPause
+                    settings.stopStartNextHotkey = .defaultStopStartNext
                 }
                 .disabled(settings.startStopHotkey == .defaultStartStop
-                    && settings.pauseHotkey == .defaultPause)
+                    && settings.pauseHotkey == .defaultPause
+                    && settings.stopStartNextHotkey == .defaultStopStartNext)
             }
             if let error = hotkeys.registrationError {
                 Label(error, systemImage: "exclamationmark.triangle.fill")

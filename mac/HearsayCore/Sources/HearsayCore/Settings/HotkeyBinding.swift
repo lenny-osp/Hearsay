@@ -40,9 +40,10 @@ public struct HotkeyBinding: Codable, Equatable, Hashable, Sendable {
         self.modifiers = modifiers
     }
 
-    /// kVK_ANSI_R and kVK_ANSI_P.
+    /// kVK_ANSI_R, kVK_ANSI_P, and kVK_ANSI_N.
     public static let keyCodeR: UInt32 = 0x0F
     public static let keyCodeP: UInt32 = 0x23
+    public static let keyCodeN: UInt32 = 0x2D
 
     /// ⌃⌥⌘R toggles Start / Stop.
     public static let defaultStartStop = HotkeyBinding(
@@ -51,6 +52,11 @@ public struct HotkeyBinding: Codable, Equatable, Hashable, Sendable {
     /// ⌃⌥⌘P toggles Pause / Resume.
     public static let defaultPause = HotkeyBinding(
         keyCode: keyCodeP, modifiers: [.control, .option, .command]
+    )
+
+    /// ⌃⌥⌘N stops the recording and starts the next one (PLAN.md 4.9).
+    public static let defaultStopStartNext = HotkeyBinding(
+        keyCode: keyCodeN, modifiers: [.control, .option, .command]
     )
 
     /// A global shortcut needs at least one of ⌃ ⌥ ⌘; Shift alone would

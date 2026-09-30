@@ -46,6 +46,8 @@ public final class AppSettings {
         public static let captureSystemAudio = "captureSystemAudio"
         public static let startStopHotkey = "startStopHotkey"
         public static let pauseHotkey = "pauseHotkey"
+        public static let stopStartNextHotkey = "stopStartNextHotkey"
+        public static let finalPassTiming = "finalPassTiming"
         public static let keepRecording = "keepRecording"
         /// Legacy "Chinese output" setting ("traditional" or "simplified"),
         /// read only to migrate a stored "zh" into ZH-TW or ZH-CN.
@@ -147,6 +149,18 @@ public final class AppSettings {
         didSet { Self.store(pauseHotkey, forKey: Key.pauseHotkey, in: defaults) }
     }
 
+    /// Global shortcut for Stop & Start Next (PLAN.md 4.9 item 2). Default ⌃⌥⌘N.
+    public var stopStartNextHotkey: HotkeyBinding {
+        didSet { Self.store(stopStartNextHotkey, forKey: Key.stopStartNextHotkey, in: defaults) }
+    }
+
+    /// When a queued recording gets its final pass (Settings > General >
+    /// Transcription, PLAN.md 4.9 item 3). Default `.immediate` on the Mac;
+    /// stored as the raw value, an unknown stored value reads as the default.
+    public var finalPassTiming: FinalPassTiming {
+        didSet { defaults.set(finalPassTiming.rawValue, forKey: Key.finalPassTiming) }
+    }
+
     /// Keep the recording (WAV) in the output folder after a successful
     /// transcription (PLAN.md section 8). Default on, like the Python tool.
     /// Off deletes it; a failed transcription always keeps it.
@@ -213,6 +227,10 @@ public final class AppSettings {
         self.startStopHotkey = Self.loadHotkey(forKey: Key.startStopHotkey, from: defaults)
             ?? .defaultStartStop
         self.pauseHotkey = Self.loadHotkey(forKey: Key.pauseHotkey, from: defaults) ?? .defaultPause
+        self.stopStartNextHotkey = Self.loadHotkey(forKey: Key.stopStartNextHotkey, from: defaults)
+            ?? .defaultStopStartNext
+        self.finalPassTiming = FinalPassTiming(
+            rawValue: defaults.string(forKey: Key.finalPassTiming) ?? "") ?? .immediate
         self.keepRecording = defaults.object(forKey: Key.keepRecording) as? Bool ?? true
         self.interfaceLanguage = InterfaceLanguage(
             rawValue: defaults.string(forKey: Key.interfaceLanguage) ?? "") ?? .english

@@ -104,6 +104,10 @@ Settings is a tab, not a separate window; ⌘, opens it.
   more for the SRT. "Use live preview instead" skips it and saves the
   preview.
 - If the final pass fails, the preview SRT (if any) and the WAV are kept.
+- **Back to back:** "Stop & Start Next" (⌃⌥⌘N) starts the next recording at
+  once; finished recordings wait in the Record tab's transcription queue
+  and are transcribed in the background (or, per Settings > General, only
+  while nothing is recording). Quitting keeps the queue for the next launch.
 
 ## Languages
 
@@ -183,8 +187,8 @@ Transcript, Reveal in Finder, and:
   stops recording, and turns red while recording (Settings > Window > Show
   recording status in the menu bar turns that off). Recording continues
   with the window closed.
-- ⌃⌥⌘R starts or stops, ⌃⌥⌘P pauses or resumes, in any app. Change them in
-  Settings > General.
+- ⌃⌥⌘R starts or stops, ⌃⌥⌘P pauses or resumes, ⌃⌥⌘N stops and starts the
+  next recording, in any app. Change them in Settings > General.
 - Settings > Window: "Menu bar and Dock", "Menu bar only", or "Dock only".
 - Settings > General: "Launch Hearsay at login".
 - **Crash recovery:** the recording is written to disk as it goes. After a

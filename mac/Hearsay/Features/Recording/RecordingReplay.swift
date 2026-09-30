@@ -9,24 +9,33 @@ import os
 /// recording: a fake microphone yields it in 0.1 s chunks paced in real
 /// time from a private dispatch queue (like a capture callback), through
 /// `AudioMixer`, the WAV spool, `LiveChunker`, and the live queue. When the
-/// file is used up it presses Stop, waits for the final pass, prints one
-/// line per live job (queued, started, finished, audio seconds, cues) and
-/// the totals to stderr, deletes everything it wrote, and quits with
-/// status 0 (1 when the final pass failed).
+/// file is used up it presses Stop; the session becomes a job of a real
+/// `TranscriptionQueue`, which runs the final pass.
+///
+/// `HEARSAY_REPLAY_FILE=<a.wav>,<b.wav>[,...]` replays the files as
+/// consecutive sessions joined by Stop & Start Next (PLAN.md 4.9): when a
+/// file is used up the next one starts at once, and Stop follows the last.
+/// Every live job (queued, started, finished, with its session), every
+/// queue event (queued, running, suspended, resumed, language, done with
+/// the SRT path, failed), and the gap between two sessions are printed
+/// with timestamps to stderr. The run ends when the queue has nothing left,
+/// prints the tables and totals, deletes everything it wrote, and quits
+/// with status 0 (1 when a job failed).
 ///
 /// `HEARSAY_LANGUAGE` (auto, en, zh-TW, zh-CN, de, es; zh is an alias for
-/// zh-TW; default en) is optional. Every
-/// language detection and the session's final language decision are
-/// printed to stdout. `HEARSAY_REPLAY_SYSTEM=silence`
+/// zh-TW; default en) is optional and applies to every session. Every
+/// language detection and each job's final language decision are printed
+/// to stdout. `HEARSAY_REPLAY_TIMING=immediate|whenIdle` picks the
+/// final-pass timing (default immediate). `HEARSAY_REPLAY_SYSTEM=silence`
 /// adds a second, silent source in place of system audio. Settings live in
 /// a throwaway defaults suite and every file goes to a temporary folder, so
 /// the user's settings, spool, and output folder are never touched
 /// (cfprefsd may still leave an empty
 /// `~/Library/Preferences/tw.og1o.hearsay.replay-*.plist` behind).
 ///
-///     HEARSAY_REPLAY_FILE=/tmp/meeting.wav HEARSAY_LANGUAGE=zh-TW \
+///     HEARSAY_REPLAY_FILE=/tmp/a.wav,/tmp/b.wav HEARSAY_LANGUAGE=auto \
 ///     HEARSAY_MODEL_DIR=Spike/models/mlx-community_whisper-large-v3-turbo \
-///     .build/derived/Build/Products/Debug/Hearsay.app/Contents/MacOS/Hearsay
+///     .build/derived/Build/Products/Release/Hearsay.app/Contents/MacOS/Hearsay
 ///
 /// Returns false (and does nothing) when the variables are not set.
 @MainActor
@@ -38,13 +47,16 @@ enum RecordingReplay {
         else { return false }
         let language = environment["HEARSAY_LANGUAGE"].flatMap(LanguageChoice.init(debugValue:))
             ?? .fixed(.english)
+        let timing = environment["HEARSAY_REPLAY_TIMING"].flatMap(FinalPassTiming.init(rawValue:)) ?? .immediate
         let silentSystem = environment["HEARSAY_REPLAY_SYSTEM"] == "silence"
         let modelURL = URL(fileURLWithPath: directory, isDirectory: true)
+        let files = file.split(separator: ",").map { URL(fileURLWithPath: String($0)) }
         Task { @MainActor in
             let status = await run(
-                file: URL(fileURLWithPath: file),
+                files: files,
                 location: WhisperModelLocation(modelDirectory: modelURL, tokenizerDirectory: modelURL),
                 language: language,
+                timing: timing,
                 silentSystem: silentSystem,
                 engine: engine
             )
@@ -64,16 +76,48 @@ enum RecordingReplay {
         var error: String?
     }
 
+    /// Numbers sessions and queue jobs 1, 2, 3... in the order they appear.
+    @MainActor
+    private final class ReplayNumbers {
+        private var sessions: [Int: Int] = [:]
+        private var jobs: [String: Int] = [:]
+
+        func session(_ id: Int) -> Int {
+            if let known = sessions[id] { return known }
+            sessions[id] = sessions.count + 1
+            return sessions.count
+        }
+
+        func job(_ id: String) -> Int {
+            if let known = jobs[id] { return known }
+            jobs[id] = jobs.count + 1
+            return jobs.count
+        }
+    }
+
+    /// Hands out the files in order, one per session.
+    @MainActor
+    private final class ReplaySessions {
+        let samples: [[Float]]
+        var next = 0
+
+        init(samples: [[Float]]) {
+            self.samples = samples
+        }
+    }
+
     private static func run(
-        file: URL, location: WhisperModelLocation, language: LanguageChoice, silentSystem: Bool,
-        engine: WhisperEngine
+        files: [URL], location: WhisperModelLocation, language: LanguageChoice, timing: FinalPassTiming,
+        silentSystem: Bool, engine: WhisperEngine
     ) async -> Int32 {
-        let samples: [Float]
-        do {
-            samples = try AudioFileLoader.loadMono16k(url: file)
-        } catch {
-            say("cannot read \(file.path): \(error)")
-            return 1
+        var loaded: [[Float]] = []
+        for file in files {
+            do {
+                loaded.append(try AudioFileLoader.loadMono16k(url: file))
+            } catch {
+                say("cannot read \(file.path): \(error)")
+                return 1
+            }
         }
         let fileManager = FileManager.default
         let root = fileManager.temporaryDirectory.appendingPathComponent("hearsay-replay-\(UUID().uuidString)")
@@ -81,7 +125,7 @@ enum RecordingReplay {
         let suite = "tw.og1o.hearsay.replay-\(UUID().uuidString)"
         defer {
             try? fileManager.removeItem(at: root)
-            UserDefaults.standard.removePersistentDomain(forName: suite)
+            DebugDefaults.removeDomain(named: suite)
         }
         guard let defaults = UserDefaults(suiteName: suite) else {
             say("cannot create the defaults suite")
@@ -105,44 +149,62 @@ enum RecordingReplay {
         }
         settings.captureSystemAudio = silentSystem
         settings.keepRecording = false
+        settings.finalPassTiming = timing
 
         let clock = ReplayClock()
-        let exhausted = AsyncStream<Void>.makeStream()
+        let exhausted = AsyncStream<Int>.makeStream()
+        let sessions = ReplaySessions(samples: loaded)
         let sources = CaptureSources(
             requestMicrophonePermission: { true },
             makeMicrophone: {
-                ReplayMicrophone(feed: ReplayFeed(samples: samples, clock: clock) {
-                    exhausted.continuation.yield()
+                let index = sessions.next
+                sessions.next += 1
+                let samples = index < sessions.samples.count ? sessions.samples[index] : []
+                return ReplayMicrophone(feed: ReplayFeed(samples: samples, clock: clock) {
+                    exhausted.continuation.yield(index)
                 })
             },
             makeSystemAudio: { ReplaySystemAudio(feed: ReplayFeed(samples: nil, clock: clock) {}) },
             modelLocation: { _ in location }
         )
+        let spool = RecordingSpool(root: root.appendingPathComponent("spool"))
+        let modelStore = ModelStore(settings: settings, rootURL: root.appendingPathComponent("models"))
+        let queue = TranscriptionQueue(
+            settings: settings, modelStore: modelStore, engine: engine, spool: spool,
+            modelLocation: { _ in location }
+        )
+        // No notes flow in a replay.
+        queue.notesOnScreen = { true }
         let controller = RecordingController(
-            settings: settings,
-            modelStore: ModelStore(settings: settings, rootURL: root.appendingPathComponent("models")),
-            engine: engine,
-            spool: RecordingSpool(root: root.appendingPathComponent("spool")),
-            sources: sources
+            settings: settings, modelStore: modelStore, engine: engine, queue: queue,
+            spool: spool, sources: sources
         )
 
-        var jobs: [Int: JobTiming] = [:]
+        // Sessions and jobs numbered 1, 2, 3...
+        let numbers = ReplayNumbers()
+        @MainActor func number(_ session: Int) -> Int { numbers.session(session) }
+        struct LiveKey: Hashable { var session: Int; var index: Int }
+        var jobs: [LiveKey: JobTiming] = [:]
         controller.liveJobObserver = { event in
             let now = clock.now
             switch event {
-            case let .queued(index, start, seconds):
-                jobs[index] = JobTiming(start: start, seconds: seconds, queued: now)
-                say(String(format: "%7.2f  job %d queued (%.1f-%.1f s)", now, index, start, start + seconds))
-            case let .started(index):
-                jobs[index]?.started = now
-                say(String(format: "%7.2f  job %d started", now, index))
-            case let .finished(index, cues, error):
-                jobs[index]?.finished = now
-                jobs[index]?.cues = cues
-                jobs[index]?.error = error
-                say(String(format: "%7.2f  job %d finished, %d cues%@", now, index, cues, error.map { ", error: \($0)" } ?? ""))
-            case let .detection(seconds, result, decision):
-                let line = String(format: "%7.2f  detection over %.1f s: ", now, seconds)
+            case let .queued(session, index, start, seconds):
+                let s = number(session)
+                jobs[LiveKey(session: s, index: index)] = JobTiming(start: start, seconds: seconds, queued: now)
+                say(String(format: "%7.2f  s%d live %d queued (%.1f-%.1f s)", now, s, index, start, start + seconds))
+            case let .started(session, index):
+                let s = number(session)
+                jobs[LiveKey(session: s, index: index)]?.started = now
+                say(String(format: "%7.2f  s%d live %d started", now, s, index))
+            case let .finished(session, index, cues, error):
+                let s = number(session)
+                jobs[LiveKey(session: s, index: index)]?.finished = now
+                jobs[LiveKey(session: s, index: index)]?.cues = cues
+                jobs[LiveKey(session: s, index: index)]?.error = error
+                say(String(format: "%7.2f  s%d live %d finished, %d cues%@", now, s, index, cues,
+                           error.map { ", error: \($0)" } ?? ""))
+            case let .detection(session, seconds, result, decision):
+                let line = String(format: "%7.2f  s%d detection over %.1f s: ", now, number(session), seconds)
                     + (result?.debugSummary ?? "failed")
                     + (decision.map { "; settled: " + $0.debugSummary } ?? "; not settled")
                 say(line)
@@ -150,9 +212,48 @@ enum RecordingReplay {
             }
         }
 
+        var failed = false
+        queue.eventObserver = { event in
+            let now = clock.now
+            @MainActor func label(_ id: String) -> String { "queue job \(numbers.job(id))" }
+            switch event {
+            case let .queued(id, recording):
+                say(String(format: "%7.2f  %@ queued (%@)", now, label(id), recording.lastPathComponent))
+            case let .running(id):
+                say(String(format: "%7.2f  %@ running", now, label(id)))
+            case let .suspended(id, progress):
+                say(String(format: "%7.2f  %@ suspended at %.0f%%", now, label(id), progress * 100))
+            case let .resumed(id):
+                say(String(format: "%7.2f  %@ resumed", now, label(id)))
+            case let .language(id, decision):
+                let line = String(format: "%7.2f  %@ language: %@", now, label(id), decision.debugSummary)
+                say(line)
+                print(line)
+            case let .done(id, srt):
+                say(String(format: "%7.2f  %@ done: %@", now, label(id), srt.path))
+            case let .failed(id, message):
+                failed = true
+                say(String(format: "%7.2f  %@ failed: %@", now, label(id), message))
+            }
+        }
+
+        var stopPressedAt: TimeInterval?
+        var gaps: [TimeInterval] = []
+        controller.sessionStartObserver = { wav in
+            let now = clock.now
+            if let pressed = stopPressedAt {
+                gaps.append(now - pressed)
+                say(String(format: "%7.2f  next session recording (%@), %.3f s after Stop & Start Next",
+                           now, wav.lastPathComponent, now - pressed))
+                stopPressedAt = nil
+            } else {
+                say(String(format: "%7.2f  session recording (%@)", now, wav.lastPathComponent))
+            }
+        }
+
         // HEARSAY_REPLAY_UI=1: also show the Record tab for this session.
-        var window: NSWindow?
-        if ProcessInfo.processInfo.environment["HEARSAY_REPLAY_UI"] == "1" {
+        let window: NSWindow? = {
+            guard ProcessInfo.processInfo.environment["HEARSAY_REPLAY_UI"] == "1" else { return nil }
             let shown = NSWindow(
                 contentRect: NSRect(x: 100, y: 100, width: 560, height: 760),
                 styleMask: [.titled, .resizable], backing: .buffered, defer: false
@@ -160,17 +261,19 @@ enum RecordingReplay {
             shown.title = "Hearsay replay"
             shown.contentView = NSHostingView(rootView: RecordView()
                 .environment(controller)
+                .environment(queue)
                 .environment(AIProviderStore())
                 .environment(settings))
             shown.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
-            window = shown
             say("window number \(shown.windowNumber)")
-        }
+            return shown
+        }()
         defer { window?.close() }
-        say(String(format: "replaying %@ (%.2f s), language %@, preferred %@, system audio %@",
-                   file.lastPathComponent, Double(samples.count) / 16_000, language.storageValue,
-                   settings.preferredLanguage.rawValue, silentSystem ? "silence" : "off"))
+        let names = zip(files, loaded).map { String(format: "%@ (%.2f s)", $0.lastPathComponent, Double($1.count) / 16_000) }
+        say(String(format: "replaying %@, language %@, preferred %@, timing %@, system audio %@",
+                   names.joined(separator: ", "), language.storageValue,
+                   settings.preferredLanguage.rawValue, timing.rawValue, silentSystem ? "silence" : "off"))
         clock.reset()
         controller.start()
         let snapshots = ProcessInfo.processInfo.environment["HEARSAY_REPLAY_SNAPSHOTS"]
@@ -179,8 +282,12 @@ enum RecordingReplay {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(5))
                 tick += 1
-                say(String(format: "%7.2f  status: recorded %.1f s, waiting %d, live cues %d",
-                           clock.now, controller.elapsed, controller.liveChunksWaiting, controller.liveSegments.count))
+                let states = queue.jobs.map { job in
+                    "\(job.state.rawValue) \(Int((job.progress * 100).rounded()))%"
+                }.joined(separator: ", ")
+                say(String(format: "%7.2f  status: recorded %.1f s, live waiting %d, live cues %d, queue [%@]",
+                           clock.now, controller.elapsed, controller.liveChunksWaiting,
+                           controller.liveSegments.count, states))
                 if let window {
                     describeScrollViews(in: window)
                     if let snapshots, tick % 6 == 0 {
@@ -190,53 +297,69 @@ enum RecordingReplay {
                 }
             }
         }
-        for await _ in exhausted.stream { break }
-        let stopAt = clock.now
-        let waitingAtStop = controller.liveChunksWaiting
-        say(String(format: "%7.2f  file used up; Stop with %d live chunks waiting", stopAt, waitingAtStop))
-        await controller.stop()
-        while controller.isTranscribing || controller.phase == .stopping {
+        var stopAt: TimeInterval = 0
+        for await index in exhausted.stream {
+            if index + 1 < loaded.count {
+                stopPressedAt = clock.now
+                say(String(format: "%7.2f  file %d used up; Stop & Start Next with %d live chunks waiting",
+                           clock.now, index + 1, controller.liveChunksWaiting))
+                controller.stopAndStartNext()
+            } else {
+                stopAt = clock.now
+                say(String(format: "%7.2f  file %d used up; Stop with %d live chunks waiting",
+                           stopAt, index + 1, controller.liveChunksWaiting))
+                await controller.stop()
+                break
+            }
+        }
+        while controller.isSessionActive || queue.pendingCount > 0 || queue.hasWorkInFlight
+            || queue.jobs.contains(where: \.hasLiveTail) {
             try? await Task.sleep(for: .milliseconds(100))
         }
         status.cancel()
         let doneAt = clock.now
 
-        say("job  audio (s)        len   queued  started finished  latency  cues")
-        for index in jobs.keys.sorted() {
-            guard let job = jobs[index] else { continue }
+        say("sess live  audio (s)        len   queued  started finished  latency  cues")
+        for key in jobs.keys.sorted(by: { ($0.session, $0.index) < ($1.session, $1.index) }) {
+            guard let job = jobs[key] else { continue }
             func time(_ value: TimeInterval?) -> String { value.map { String(format: "%8.2f", $0) } ?? "       -" }
             let latency = job.finished.map { String(format: "%8.2f", $0 - job.queued) } ?? "       -"
-            say(String(format: "%3d  %6.1f-%6.1f  %5.1f %@ %@ %@ %@  %4d",
-                       index, job.start, job.start + job.seconds, job.seconds,
+            say(String(format: "s%-3d %4d  %6.1f-%6.1f  %5.1f %@ %@ %@ %@  %4d",
+                       key.session, key.index, job.start, job.start + job.seconds, job.seconds,
                        time(job.queued), time(job.started), time(job.finished), latency, job.cues))
         }
         let latencies = jobs.values.compactMap { job in job.finished.map { $0 - job.queued } }
-        let duringRecording = jobs.values.filter { ($0.finished ?? .infinity) <= stopAt }.count
-        say(String(format: "totals: %d jobs, %d finished before Stop, %d waiting at Stop, max latency %.2f s, "
-                   + "live cues %d, final pass done %.2f s after Stop",
-                   jobs.count, duringRecording, waitingAtStop, latencies.max() ?? 0,
-                   controller.liveSegments.count, doneAt - stopAt))
+        say(String(format: "totals: %d live jobs, max latency %.2f s, queue empty %.2f s after the last Stop%@",
+                   jobs.count, latencies.max() ?? 0, doneAt - stopAt,
+                   gaps.isEmpty ? "" : ", session gaps " + gaps.map { String(format: "%.3f s", $0) }.joined(separator: ", ")))
 
-        print("decision: " + (controller.sessionDecision?.debugSummary ?? "none"))
-        if let notice = controller.languageNotice {
-            print("notice: " + notice.message)
+        for (offset, job) in queue.jobs.enumerated() {
+            let number = offset + 1
+            print("queue job \(number) decision: " + (job.tracker.decision?.debugSummary ?? "none"))
+            if let notice = job.languageNotice {
+                print("queue job \(number) notice: " + notice.message)
+            }
+            switch job.state {
+            case .done:
+                let text = job.srt.flatMap { try? String(contentsOf: $0, encoding: .utf8) } ?? ""
+                let cues = text.components(separatedBy: " --> ").count - 1
+                let first = SRT.parse(text).first(where: { !$0.text.isEmpty })?.text ?? ""
+                say("queue job \(number) final pass: \(cues) cues, first: \(first)")
+            case .failed:
+                say("queue job \(number) failed: \(job.errorMessage ?? "")")
+                failed = true
+            default:
+                say("queue job \(number) ended in \(job.state.rawValue)")
+                failed = true
+            }
         }
-        var failed = false
-        switch controller.phase {
-        case .finished(let srt, _):
-            let cues = srt.flatMap { try? String(contentsOf: $0, encoding: .utf8) }
-                .map { $0.components(separatedBy: " --> ").count - 1 } ?? 0
-            say("final pass: \(cues) cues")
-        case .failed(let message):
-            say("final pass failed: \(message)")
-            failed = true
-        default:
-            say("ended in \(controller.phase)")
+        if case .failed(let message) = controller.phase {
+            say("session failed: \(message)")
             failed = true
         }
         // Everything was written below `root`; remove anything that was not.
         let rootPath = root.resolvingSymlinksInPath().path
-        for url in [controller.finishedTranscript, controller.finishedRecording].compactMap({ $0 })
+        for url in queue.jobs.flatMap({ [$0.srt, $0.wav] }).compactMap({ $0 })
             where !url.resolvingSymlinksInPath().path.hasPrefix(rootPath) {
             say("removing \(url.path)")
             try? fileManager.removeItem(at: url)

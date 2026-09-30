@@ -234,6 +234,47 @@ final class AppSettingsTests {
         #expect(AppSettings(defaults: defaults).startStopHotkey == .defaultStartStop)
     }
 
+    @Test func stopStartNextHotkeyDefaultsRoundTripsAndFallsBack() {
+        let defaults = scratch.make()
+        let settings = AppSettings(defaults: defaults)
+        #expect(AppSettings.Key.stopStartNextHotkey == "stopStartNextHotkey")
+        #expect(settings.stopStartNextHotkey == .defaultStopStartNext)
+        #expect(settings.stopStartNextHotkey.displayString == "\u{2303}\u{2325}\u{2318}N")
+        #expect(HotkeyBinding.defaultStopStartNext.isValidGlobalShortcut)
+        // Distinct from the other two defaults.
+        #expect(Set([HotkeyBinding.defaultStartStop, .defaultPause, .defaultStopStartNext]).count == 3)
+
+        let custom = HotkeyBinding(keyCode: 0x7A, modifiers: [.control, .shift])
+        settings.stopStartNextHotkey = custom
+        #expect(AppSettings(defaults: defaults).stopStartNextHotkey == custom)
+
+        defaults.set(Data([0x7B]), forKey: AppSettings.Key.stopStartNextHotkey)
+        #expect(AppSettings(defaults: defaults).stopStartNextHotkey == .defaultStopStartNext)
+    }
+
+    @Test func finalPassTimingDefaultsToImmediate() {
+        let defaults = scratch.make()
+        #expect(AppSettings.Key.finalPassTiming == "finalPassTiming")
+        #expect(AppSettings(defaults: defaults).finalPassTiming == .immediate)
+    }
+
+    @Test(arguments: FinalPassTiming.allCases)
+    func finalPassTimingRoundTripsAsRawValue(timing: FinalPassTiming) {
+        let defaults = scratch.make()
+        let settings = AppSettings(defaults: defaults)
+        settings.finalPassTiming = timing
+        #expect(defaults.string(forKey: AppSettings.Key.finalPassTiming) == timing.rawValue)
+        #expect(AppSettings(defaults: defaults).finalPassTiming == timing)
+    }
+
+    @Test func unknownFinalPassTimingFallsBackToDefault() {
+        let defaults = scratch.make()
+        defaults.set("later", forKey: AppSettings.Key.finalPassTiming)
+        #expect(AppSettings(defaults: defaults).finalPassTiming == .immediate)
+        defaults.set(3, forKey: AppSettings.Key.finalPassTiming)
+        #expect(AppSettings(defaults: defaults).finalPassTiming == .immediate)
+    }
+
     @Test func globalShortcutNeedsControlOptionOrCommand() {
         #expect(HotkeyBinding.defaultStartStop.isValidGlobalShortcut)
         #expect(!HotkeyBinding(keyCode: 0x0F, modifiers: [.shift]).isValidGlobalShortcut)

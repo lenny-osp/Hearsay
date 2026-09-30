@@ -193,21 +193,20 @@ final class HistoryViewModel {
     // MARK: - Rename
 
     /// Rename is off for the meeting whose notes are being generated (the
-    /// notes flow renames and writes its files) and for the recording that
-    /// is being recorded or transcribed (`busyStems`).
+    /// notes flow renames and writes its files) and for the recordings the
+    /// transcription queue is working on (`busyStems`).
     func canRename(_ entry: HistoryEntry, busyStems: Set<String>) -> Bool {
         guard !busyStems.contains(entry.stem) else { return false }
         guard isGeneratingNotes, let srt = notesModel?.srtURL else { return true }
         return srt.deletingPathExtension().lastPathComponent != entry.stem
     }
 
-    /// Stems of the recording the Record tab is capturing, transcribing, or
-    /// transcribing again (its WAV and SRT are in the output folder while a
-    /// retry or a re-run in another language runs).
-    static func busyStems(of recording: RecordingController) -> Set<String> {
-        guard recording.isSessionActive || recording.isTranscribing else { return [] }
-        return Set([recording.finishedRecording, recording.finishedTranscript]
-            .compactMap { $0?.deletingPathExtension().lastPathComponent })
+    /// Stems in the output folder that the transcription queue reads or
+    /// rewrites: a pending job's WAV or saved live preview (a retry after a
+    /// failure) and a finished job being transcribed again. A session being
+    /// recorded writes only into the spool, so it adds none.
+    static func busyStems(of queue: TranscriptionQueue) -> Set<String> {
+        queue.busyStems
     }
 
     /// Renames every file of `entry` (`OutputWriter.renameEntry`), rescans,

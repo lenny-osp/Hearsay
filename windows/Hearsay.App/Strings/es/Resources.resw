@@ -1477,6 +1477,10 @@
     <value>La transcripción, la grabación y las notas anteriores mantienen sus nombres originales.</value>
     <comment>core: The transcript, recording and any earlier notes keep their original names.</comment>
   </data>
+  <data name="core_c85142cf9d9693c7" xml:space="preserve">
+    <value>Cuando no haya ninguna grabación</value>
+    <comment>core: When no recording is running</comment>
+  </data>
   <data name="core_c8630c95316555e9" xml:space="preserve">
     <value>Las notas se escribirán en {0}.</value>
     <comment>core: Notes will be written in %@.</comment>
@@ -1512,6 +1516,10 @@
   <data name="core_d542c7c4db6d2699" xml:space="preserve">
     <value>Hearsay no tiene acceso al audio del sistema. Permítelo en Ajustes del Sistema &gt; Privacidad y seguridad &gt; Grabación de pantalla y audio del sistema y, a continuación, inicia una nueva grabación.</value>
     <comment>core: Hearsay has no system audio access. Allow it in System Settings &gt; Privacy &amp; Security &gt; Screen &amp; System Audio Recording, then start a new recording.</comment>
+  </data>
+  <data name="core_d95e582a60bb7835" xml:space="preserve">
+    <value>De inmediato (en segundo plano)</value>
+    <comment>core: Right away (in the background)</comment>
   </data>
   <data name="core_daa0fbaaaaa9241d" xml:space="preserve">
     <value>Barra de menús y Dock</value>

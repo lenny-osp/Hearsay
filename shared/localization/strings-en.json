@@ -607,7 +607,7 @@
     "catalog": "app",
     "key": "Dismiss",
     "english": "Dismiss",
-    "comment": "UI text in LanguageViews.swift.",
+    "comment": "UI text in LanguageViews.swift, RecordView.swift.",
     "placeholders": []
   },
   {
@@ -665,6 +665,13 @@
   },
   {
     "catalog": "app",
+    "key": "Either way, the next recording can start at once.",
+    "english": "Either way, the next recording can start at once.",
+    "comment": "Settings > General caption under the final-pass timing picker (Transcribe finished recordings)",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
     "key": "Endpoint URL:",
     "english": "Endpoint URL:",
     "comment": "UI text in AISettingsTab.swift.",
@@ -692,6 +699,13 @@
     "key": "Extra headers:",
     "english": "Extra headers:",
     "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "Failed",
+    "english": "Failed",
+    "comment": "Record tab queue row state: the transcription failed",
     "placeholders": []
   },
   {
@@ -806,6 +820,13 @@
     "key": "Hearsay cannot install the update here.",
     "english": "Hearsay cannot install the update here.",
     "comment": "Alert title: the running app cannot replace itself",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "Hearsay continues with them the next time it opens.",
+    "english": "Hearsay continues with them the next time it opens.",
+    "comment": "Alert when quitting while the transcription queue has recordings",
     "placeholders": []
   },
   {
@@ -1431,7 +1452,7 @@
     "catalog": "app",
     "key": "Open Transcript",
     "english": "Open Transcript",
-    "comment": "UI text in HistoryView.swift.",
+    "comment": "UI text in HistoryView.swift, RecordView.swift.",
     "placeholders": []
   },
   {
@@ -1503,6 +1524,13 @@
   },
   {
     "catalog": "app",
+    "key": "Paused while recording",
+    "english": "Paused while recording",
+    "comment": "Record tab queue row state: the transcription waits until the recording stops",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
     "key": "Permissions",
     "english": "Permissions",
     "comment": "Record tab: header of the Permissions row",
@@ -1548,6 +1576,13 @@
     "key": "Provider:",
     "english": "Provider:",
     "comment": "UI text in ConfirmSendSheet.swift.",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "Quit",
+    "english": "Quit",
+    "comment": "Alert button: quit Hearsay",
     "placeholders": []
   },
   {
@@ -1624,6 +1659,24 @@
     "comment": "UI text in NotesFlowView.swift.",
     "placeholders": [
       "%@"
+    ]
+  },
+  {
+    "catalog": "app",
+    "key": "Recordings in queue: %lld",
+    "english": "Recordings in queue: %lld",
+    "comment": "Menu bar panel queue line. %lld is the number of recordings not transcribed yet.",
+    "placeholders": [
+      "%lld"
+    ]
+  },
+  {
+    "catalog": "app",
+    "key": "Recordings not transcribed yet: %lld",
+    "english": "Recordings not transcribed yet: %lld",
+    "comment": "Alert when quitting while the transcription queue has recordings. %lld is their number.",
+    "placeholders": [
+      "%lld"
     ]
   },
   {
@@ -1723,6 +1776,15 @@
     "english": "Save",
     "comment": "UI text in AISettingsTab.swift, NamingSheet.swift.",
     "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "Save this recording and start the next one at once (%@). This one is transcribed in the background.",
+    "english": "Save this recording and start the next one at once (%@). This one is transcribed in the background.",
+    "comment": "Record tab tooltip of Stop & Start Next. %@ is a shortcut such as ⌃⌥⌘N.",
+    "placeholders": [
+      "%@"
+    ]
   },
   {
     "catalog": "app",
@@ -1966,6 +2028,29 @@
     "key": "Stop & Quit",
     "english": "Stop & Quit",
     "comment": "Alert button: stop the recording, then quit",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "Stop & Start Next",
+    "english": "Stop & Start Next",
+    "comment": "UI text in MenuBarView.swift, RecordView.swift.",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "Stop & Start Next (%@)",
+    "english": "Stop & Start Next (%@)",
+    "comment": "UI text in MenuBarView.swift.",
+    "placeholders": [
+      "%@"
+    ]
+  },
+  {
+    "catalog": "app",
+    "key": "Stop & Start Next:",
+    "english": "Stop & Start Next:",
+    "comment": "UI text in HotkeyRecorderView.swift.",
     "placeholders": []
   },
   {
@@ -2325,6 +2410,13 @@
   },
   {
     "catalog": "app",
+    "key": "Transcribe finished recordings",
+    "english": "Transcribe finished recordings",
+    "comment": "Settings > General > Transcription picker: when a finished recording gets its final transcription pass",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
     "key": "Transcribe this file",
     "english": "Transcribe this file",
     "comment": "UI text in RecordView.swift.",
@@ -2366,10 +2458,29 @@
   },
   {
     "catalog": "app",
+    "key": "Transcribing %lld%%",
+    "english": "Transcribing %lld%%",
+    "comment": "Record tab queue row state. %lld is a percentage; keep the % sign after it.",
+    "placeholders": [
+      "%lld"
+    ]
+  },
+  {
+    "catalog": "app",
     "key": "Transcribing… %lld%%",
     "english": "Transcribing… %lld%%",
     "comment": "Menu bar panel state. %lld is a percentage; keep the % sign after it.",
     "placeholders": [
+      "%lld"
+    ]
+  },
+  {
+    "catalog": "app",
+    "key": "Transcribing… %lld%% · in queue: %lld",
+    "english": "Transcribing… %1$lld%% · in queue: %2$lld",
+    "comment": "Menu bar panel queue line. The first %lld is a percentage (keep the % sign after it), the second the number of recordings not transcribed yet.",
+    "placeholders": [
+      "%lld",
       "%lld"
     ]
   },
@@ -2421,9 +2532,25 @@
   },
   {
     "catalog": "app",
+    "key": "Transcription paused while recording · in queue: %lld",
+    "english": "Transcription paused while recording · in queue: %lld",
+    "comment": "Menu bar panel queue line. %lld is the number of recordings not transcribed yet.",
+    "placeholders": [
+      "%lld"
+    ]
+  },
+  {
+    "catalog": "app",
     "key": "Transcription progress",
     "english": "Transcription progress",
     "comment": "UI text in MenuBarView.swift.",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "Transcription queue",
+    "english": "Transcription queue",
+    "comment": "UI text in RecordView.swift.",
     "placeholders": []
   },
   {
@@ -2568,10 +2695,33 @@
   },
   {
     "catalog": "app",
+    "key": "Wait until the transcriptions are finished.",
+    "english": "Wait until the transcriptions are finished.",
+    "comment": "Alert when Install and Relaunch is chosen while recordings wait for their transcription",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "Waiting",
+    "english": "Waiting",
+    "comment": "Record tab queue row state: not started yet",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
     "key": "Waiting for your answer…",
     "english": "Waiting for your answer…",
     "comment": "UI text in NotesFlowView.swift.",
     "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "Waiting to transcribe · in queue: %lld",
+    "english": "Waiting to transcribe · in queue: %lld",
+    "comment": "Menu bar panel queue line. %lld is the number of recordings not transcribed yet.",
+    "placeholders": [
+      "%lld"
+    ]
   },
   {
     "catalog": "app",
@@ -2663,6 +2813,13 @@
     "key": "paste and press Return",
     "english": "paste and press Return",
     "comment": "UI text in AISettingsTab.swift.",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "queue.state.done",
+    "english": "Done",
+    "comment": "Record tab queue row state: the transcript is written",
     "placeholders": []
   },
   {
@@ -3274,6 +3431,13 @@
   },
   {
     "catalog": "core",
+    "key": "Right away (in the background)",
+    "english": "Right away (in the background)",
+    "comment": "Settings > General > Transcription: final-pass timing that transcribes a finished recording at once, while the next one records",
+    "placeholders": []
+  },
+  {
+    "catalog": "core",
     "key": "Run `%@` once in Terminal to log in.",
     "english": "Run `%@` once in Terminal to log in.",
     "comment": "CLI check hint. %@ is a shell command; keep the backticks.",
@@ -3479,6 +3643,13 @@
     "placeholders": [
       "%@"
     ]
+  },
+  {
+    "catalog": "core",
+    "key": "When no recording is running",
+    "english": "When no recording is running",
+    "comment": "Settings > General > Transcription: final-pass timing that waits until no recording is running",
+    "placeholders": []
   },
   {
     "catalog": "core",

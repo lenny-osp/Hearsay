@@ -2,11 +2,12 @@ import Carbon.HIToolbox
 import HearsayCore
 import Observation
 
-/// Global hotkeys for Start / Stop and Pause / Resume (PLAN.md 4.4).
+/// Global hotkeys for Start / Stop, Pause / Resume (PLAN.md 4.4), and
+/// Stop & Start Next (PLAN.md 4.9).
 ///
 /// Uses Carbon `RegisterEventHotKey`, which works inside the App Sandbox
 /// and needs no Accessibility permission. Bindings come from `AppSettings`
-/// and are re-registered whenever either one changes. Carbon delivers hotkey
+/// and are re-registered whenever one changes. Carbon delivers hotkey
 /// events on the main run loop, so the handler runs on the main actor.
 @MainActor
 @Observable
@@ -14,6 +15,7 @@ final class HotkeyManager {
     enum Action: UInt32, CaseIterable {
         case startStop = 1
         case pause = 2
+        case stopStartNext = 3
     }
 
     /// Shortcuts that could not be registered, for example because another
@@ -63,6 +65,7 @@ final class HotkeyManager {
         let bindings: [(Action, HotkeyBinding)] = [
             (.startStop, settings.startStopHotkey),
             (.pause, settings.pauseHotkey),
+            (.stopStartNext, settings.stopStartNextHotkey),
         ]
         for (action, binding) in bindings {
             var ref: EventHotKeyRef?
@@ -92,6 +95,7 @@ final class HotkeyManager {
         withObservationTracking {
             _ = settings.startStopHotkey
             _ = settings.pauseHotkey
+            _ = settings.stopStartNextHotkey
         } onChange: { [weak self] in
             // onChange fires before the new value is stored; hop to the next
             // main-actor turn to read it and to re-arm tracking.

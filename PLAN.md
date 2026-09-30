@@ -219,7 +219,8 @@ switches models or memory pressure triggers unload.
    them. Paused time is excluded from timestamps, so the SRT has no gap.
 5. Stop: close the WAV. Run one full-pass transcription over the whole
    recording; this is the final SRT because it does not suffer from chunk
-   boundaries. The UI shows "Finalizing…" with progress. A "Use live
+   boundaries. Since 2026-09-30 the pass runs in the background
+   transcription queue (4.9), so the next recording can start at once. The UI shows "Finalizing…" with progress. A "Use live
    preview instead" button skips the pass and writes the preview segments
    as the SRT.
 6. Write `<outputDir>/<timestamp>.srt`. Show the transcript.
@@ -553,6 +554,77 @@ Stop & Start Next.
 consecutive sessions joined by Stop & Start Next and prints each queue
 event (queued, running, suspended, resumed, done with the SRT path), so
 the queue is checked headless.
+
+**As built (Mac, 2026-09-30).** `TranscriptionQueue`
+(`Features/Transcription/TranscriptionQueue.swift`) is owned by
+`AppDelegate`; each session's live chunks go through a `LiveSink`, which
+moves to the job at Stop with the live task still running.
+- Measured gap: in the replay, the next session reaches Recording 5 to
+  10 ms after Stop & Start Next (the handover itself; the new session
+  starts inside it, so the session-active flag never drops). That run
+  uses the replay's fake microphone, so the real device restart
+  (AVAudioEngine start to first buffer, and the SCStream restart for
+  system audio) comes on top and is not measured yet; check it in item 26
+  of section 16.
+- The mel spectrogram is recomputed on every step (about 0.1 s for 60
+  minutes of audio), so there is no mel cache.
+- The final pass reads the spool WAV (16-bit), not the float samples of
+  the session, so its input is the same as File mode's for that WAV.
+- Auto still undecided at Stop: the whole-recording detection runs right
+  after Stop as foreground work, whatever the timing, so the live tail
+  (which waits for the language) finishes; a detection attempt still in
+  flight at Stop is dropped. A fixed choice's background check runs as
+  the job's first step.
+- The decoder decodes one window before it can yield, so the queue checks
+  `mayRun` again just before each step and puts the job back when a
+  session started or foreground work arrived meanwhile.
+- With no session and one job, the Record tab shows that job as the single
+  meeting always was (live preview, progress, "Use live preview instead",
+  the saved files, the language banner, the notes sheet); otherwise the
+  "Transcription queue" section lists every job. A plain Start dismisses
+  Done rows whose notes flow already opened (as the finished card was
+  cleared); rows offering "Generate Notes…" and Failed rows stay, and
+  Stop & Start Next dismisses nothing. Waiting and suspended rows say
+  "Paused while recording" while whenIdle holds them. Row buttons reuse
+  the existing labels "Try Again", "Reveal in Finder" (folder icon), and
+  "Open Transcript" (opens the SRT).
+- A capture failure with audio stays on the Record tab as before (WAV and
+  live preview kept in the output folder); "Try Again" queues that WAV.
+  A job whose WAV is no longer in the spool (a retry after a failure) is
+  not written to `queue.json`, so it is not continued after a relaunch;
+  its files stay in the output folder. Done and failed entries are
+  removed at the next launch.
+- Quit: "Stop & Quit" hands the recording to the queue and quits without
+  transcribing; with jobs pending, the alert reads "Recordings not
+  transcribed yet: N" (count-neutral, the catalogs have no plural rules)
+  with "Hearsay continues with them the next time it opens.", Quit /
+  Cancel. A running step is cancelled at its next window; the WAVs and
+  `queue.json` stay.
+- History's Rename is off for a meeting whose notes History is
+  generating, and for output-folder stems a job works on: a pending job's
+  WAV or saved live preview (a retry) and a job running "Transcribe
+  again".
+- Notes hand-off: a finished job leaves at most one notes request for the
+  Record tab. The request is checked again when the tab takes it (no
+  session, no notes flow of any tab on screen); a request that cannot open
+  then, one that is still pending when a session starts, and one replaced
+  by a newer job's request all turn into "Generate Notes…" on their row.
+- Re-run samples: when "Keep the recording" is off, only the newest
+  finished job with a language banner keeps its samples in memory for
+  "Transcribe again" (about 230 MB per hour); older ones lose the re-run
+  and their row says "Could not transcribe again: the recording was not
+  kept."
+- A checkpoint remembers the model it was decoded with; when another model
+  is active at resume, the job starts over (progress back to 0).
+- A cancelled language detection (quit, "Use live preview instead")
+  settles nothing; only a real detection failure falls back to the Auto
+  mode default language.
+- While quitting, no new session starts (a Stop & Start Next in progress
+  included), no step reads its WAV, and a pass that already finished is
+  still written (file writes only; the live tail is not awaited).
+- Settings > General > Transcription labels the timing "Transcribe
+  finished recordings". The help and README passages are Mac only
+  (`data-platform="mac"`) until Windows ports 18.10.
 
 ## 5. Model catalog and download
 

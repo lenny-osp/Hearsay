@@ -31,6 +31,7 @@ struct HearsayApp: App {
                 .environment(appDelegate.modelStore)
                 .environment(appDelegate.aiProviderStore)
                 .environment(appDelegate.recordingController)
+                .environment(appDelegate.transcriptionQueue)
                 .environment(\.whisperEngine, appDelegate.whisperEngine)
                 .environment(appDelegate.hotkeyManager)
                 .environment(appDelegate.tabSelection)
@@ -73,11 +74,15 @@ struct HearsayApp: App {
                 .environment(appDelegate.modelStore)
                 .environment(appDelegate.aiProviderStore)
                 .environment(appDelegate.recordingController)
+                .environment(appDelegate.transcriptionQueue)
                 .environment(\.whisperEngine, appDelegate.whisperEngine)
                 .environment(appDelegate.windowOpener)
                 .registeringMainWindowOpener(appDelegate.windowOpener)
         } label: {
-            MenuBarLabel(recording: appDelegate.recordingController, settings: appDelegate.settings)
+            MenuBarLabel(
+                recording: appDelegate.recordingController, queue: appDelegate.transcriptionQueue,
+                settings: appDelegate.settings
+            )
                 .environment(\.locale, InterfaceLanguageLaunch.applied.locale)
         }
         .menuBarExtraStyle(.window)

@@ -58,7 +58,50 @@ public final class Transcriber {
         progress: (@Sendable (Double) -> Void)? = nil,
         shouldCancel: (@Sendable () -> Bool)? = nil
     ) throws -> Transcription {
+        var checkpoint: TranscriptionCheckpoint? = nil
+        while true {
+            // Without shouldYield a step never suspends; the loop only
+            // guards the type.
+            switch try transcribeStep(
+                samples: samples, options: options, resumingFrom: checkpoint,
+                progress: progress, shouldCancel: shouldCancel, shouldYield: nil
+            ) {
+            case .finished(let transcription):
+                return transcription
+            case .suspended(let next):
+                checkpoint = next
+            }
+        }
+    }
+
+    /// `transcribe`, stoppable between windows (PLAN.md 4.9). Before each 30 s
+    /// window, after `shouldCancel` (cancel wins), `shouldYield` is asked, but
+    /// only once this call has processed at least one window, so every call
+    /// advances; when it returns true the call returns
+    /// `.suspended(checkpoint)`. Pass the checkpoint back as `resumingFrom`
+    /// with the same samples and options to continue: the result equals one
+    /// uninterrupted call. On resume `progress` first reports the
+    /// checkpoint's fraction, then continues from it, and a cancel throws
+    /// `cancelled(partial:)` with the checkpoint's segments plus the new ones.
+    /// The log-mel spectrogram is recomputed from `samples` on each call.
+    /// Throws `TranscriptionCheckpointError` when the checkpoint was made
+    /// from other samples or options.
+    public func transcribeStep(
+        samples: [Float],
+        options: TranscriptionOptions,
+        resumingFrom checkpoint: TranscriptionCheckpoint? = nil,
+        progress: (@Sendable (Double) -> Void)? = nil,
+        shouldCancel: (@Sendable () -> Bool)? = nil,
+        shouldYield: (@Sendable () -> Bool)? = nil
+    ) throws -> TranscriptionStep {
         guard !options.temperatures.isEmpty else { throw TranscriptionError.noTemperatures }
+        let fingerprint = sampleFingerprint(samples)
+        if let checkpoint {
+            guard checkpoint.sampleCount == samples.count, checkpoint.sampleFingerprint == fingerprint else {
+                throw TranscriptionCheckpointError.samplesMismatch
+            }
+            guard checkpoint.options == options else { throw TranscriptionCheckpointError.optionsMismatch }
+        }
         let nFrames = WhisperAudioConfig.nFrames
         let hop = WhisperAudioConfig.hopLength
         let sampleRate = WhisperAudioConfig.sampleRate
@@ -71,19 +114,35 @@ public final class Transcriber {
         )
         let contentFrames = max(mel.dim(0) - nFrames, 0)
 
-        let language = try resolveLanguage(options.language, mel: mel)
+        let language: String
+        var seek: Int
+        var allTokens: [Int]
+        var allSegments: [TranscriptSegment]
+        var promptResetSince: Int
+        let initialPromptCount: Int
 
-        var seek = 0
-        var allTokens: [Int] = []
-        var allSegments: [TranscriptSegment] = []
-        var promptResetSince = 0
-
-        var initialPromptTokens: [Int] = []
-        if let initialPrompt = options.initialPrompt {
-            initialPromptTokens = tokenizer.encode(
-                text: " " + initialPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
-            )
-            allTokens.append(contentsOf: initialPromptTokens)
+        if let checkpoint {
+            language = checkpoint.language
+            seek = checkpoint.seek
+            allTokens = checkpoint.allTokens
+            allSegments = checkpoint.segments
+            promptResetSince = checkpoint.promptResetSince
+            initialPromptCount = checkpoint.initialPromptTokenCount
+            progress?(checkpoint.fractionDone)
+        } else {
+            language = try resolveLanguage(options.language, mel: mel)
+            seek = 0
+            allTokens = []
+            allSegments = []
+            promptResetSince = 0
+            var initialPromptTokens: [Int] = []
+            if let initialPrompt = options.initialPrompt {
+                initialPromptTokens = tokenizer.encode(
+                    text: " " + initialPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
+                )
+                allTokens.append(contentsOf: initialPromptTokens)
+            }
+            initialPromptCount = initialPromptTokens.count
         }
 
         let compressionThreshold = options.compressionRatioThreshold.map(decimal)
@@ -93,10 +152,26 @@ public final class Transcriber {
         // inside `if word_timestamps:`; word timestamps are not ported, so it
         // has no effect, as in the Python CLI whisper-tools runs.
 
+        var windowsThisCall = 0
         while seek < contentFrames {
             if shouldCancel?() == true || Task.isCancelled {
                 throw TranscriptionError.cancelled(partial: allSegments)
             }
+            if windowsThisCall > 0, shouldYield?() == true {
+                return .suspended(TranscriptionCheckpoint(
+                    seek: seek,
+                    contentFrames: contentFrames,
+                    allTokens: allTokens,
+                    segments: allSegments,
+                    promptResetSince: promptResetSince,
+                    language: language,
+                    initialPromptTokenCount: initialPromptCount,
+                    sampleCount: samples.count,
+                    sampleFingerprint: fingerprint,
+                    options: options
+                ))
+            }
+            windowsThisCall += 1
             let timeOffset = Double(seek * hop) / Double(sampleRate)
             let segmentSize = min(nFrames, contentFrames - seek)
             let melWindow = padOrTrimFrames(mel[seek..<(seek + segmentSize)], length: nFrames)
@@ -173,8 +248,8 @@ public final class Transcriber {
             progress?(Double(min(contentFrames, seek)) / Double(max(contentFrames, 1)))
         }
 
-        let text = decoder.decodeText(Array(allTokens[initialPromptTokens.count...]))
-        return Transcription(segments: allSegments, language: language, text: text)
+        let text = decoder.decodeText(Array(allTokens[initialPromptCount...]))
+        return .finished(Transcription(segments: allSegments, language: language, text: text))
     }
 
     // MARK: - Steps

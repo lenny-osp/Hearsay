@@ -1,0 +1,1104 @@
+{
+  "about": "Background transcription queue vectors (PLAN.md section 4.9 'Queue rules', Windows 18.10), shared by the macOS and Windows apps. timing: 'immediate' | 'whenIdle' (the finalPassTiming setting). state: 'waiting' | 'running' | 'suspended' | 'done' | 'failed'. jobs are listed in queue order (first in first); ids are plain strings. sessionActive: a session is Starting, Recording, Paused, or Stopping. foregroundWaiting: number of foreground engine calls waiting (live chunks, language detection, File mode, History re-runs). A queued job may run when foregroundWaiting <= 0 and, for whenIdle, sessionActive is false. next: if a job is running, 'suspend' the first running job (queue order) when running is not allowed, else 'none'; with nothing running and running allowed, 'resume' the first suspended job, else 'start' the first waiting job, else 'none'; done and failed jobs are skipped. expect.action is start | resume | suspend | none and expect.job the job id (null for none). Invalid inputs (notes starting with 'invalid') are tolerated, never asserted: two running jobs consider only the first; a running job behind a waiting or suspended one is not preempted; a suspended job is resumed before an earlier waiting one; a negative foregroundWaiting counts as 0. shouldYield is true exactly when next would suspend a running job. presentsNotes: a finished job opens its notes flow only when no session is active and no notes flow is on screen. quitNeedsConfirmation is the count of waiting, running, and suspended jobs; blocksUpdateInstall is true when that count is above 0. Mirrors TranscriptionQueuePolicyTests.swift.",
+  "next": [
+    {
+      "note": "empty queue, immediate, idle",
+      "timing": "immediate",
+      "sessionActive": false,
+      "foregroundWaiting": 0,
+      "jobs": [],
+      "expect": {
+        "action": "none",
+        "job": null
+      }
+    },
+    {
+      "note": "empty queue, whenIdle, idle",
+      "timing": "whenIdle",
+      "sessionActive": false,
+      "foregroundWaiting": 0,
+      "jobs": [],
+      "expect": {
+        "action": "none",
+        "job": null
+      }
+    },
+    {
+      "note": "empty queue, immediate, session and foreground work",
+      "timing": "immediate",
+      "sessionActive": true,
+      "foregroundWaiting": 2,
+      "jobs": [],
+      "expect": {
+        "action": "none",
+        "job": null
+      }
+    },
+    {
+      "note": "only done and failed jobs: nothing to run",
+      "timing": "immediate",
+      "sessionActive": false,
+      "foregroundWaiting": 0,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "done"
+        },
+        {
+          "id": "b",
+          "state": "failed"
+        }
+      ],
+      "expect": {
+        "action": "none",
+        "job": null
+      }
+    },
+    {
+      "note": "immediate, waiting job, idle: start",
+      "timing": "immediate",
+      "sessionActive": false,
+      "foregroundWaiting": 0,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "waiting"
+        }
+      ],
+      "expect": {
+        "action": "start",
+        "job": "a"
+      }
+    },
+    {
+      "note": "immediate, waiting job, session active: start (background)",
+      "timing": "immediate",
+      "sessionActive": true,
+      "foregroundWaiting": 0,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "waiting"
+        }
+      ],
+      "expect": {
+        "action": "start",
+        "job": "a"
+      }
+    },
+    {
+      "note": "immediate, waiting job, foreground work waits: wait",
+      "timing": "immediate",
+      "sessionActive": false,
+      "foregroundWaiting": 1,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "waiting"
+        }
+      ],
+      "expect": {
+        "action": "none",
+        "job": null
+      }
+    },
+    {
+      "note": "immediate, waiting job, session and foreground work: wait",
+      "timing": "immediate",
+      "sessionActive": true,
+      "foregroundWaiting": 1,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "waiting"
+        }
+      ],
+      "expect": {
+        "action": "none",
+        "job": null
+      }
+    },
+    {
+      "note": "whenIdle, waiting job, idle: start",
+      "timing": "whenIdle",
+      "sessionActive": false,
+      "foregroundWaiting": 0,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "waiting"
+        }
+      ],
+      "expect": {
+        "action": "start",
+        "job": "a"
+      }
+    },
+    {
+      "note": "whenIdle, waiting job, session active: wait",
+      "timing": "whenIdle",
+      "sessionActive": true,
+      "foregroundWaiting": 0,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "waiting"
+        }
+      ],
+      "expect": {
+        "action": "none",
+        "job": null
+      }
+    },
+    {
+      "note": "whenIdle, waiting job, foreground work waits: wait",
+      "timing": "whenIdle",
+      "sessionActive": false,
+      "foregroundWaiting": 1,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "waiting"
+        }
+      ],
+      "expect": {
+        "action": "none",
+        "job": null
+      }
+    },
+    {
+      "note": "whenIdle, waiting job, session and foreground work: wait",
+      "timing": "whenIdle",
+      "sessionActive": true,
+      "foregroundWaiting": 3,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "waiting"
+        }
+      ],
+      "expect": {
+        "action": "none",
+        "job": null
+      }
+    },
+    {
+      "note": "immediate, running job, idle: keep running",
+      "timing": "immediate",
+      "sessionActive": false,
+      "foregroundWaiting": 0,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "running"
+        },
+        {
+          "id": "b",
+          "state": "waiting"
+        }
+      ],
+      "expect": {
+        "action": "none",
+        "job": null
+      }
+    },
+    {
+      "note": "immediate, running job, session active: keep running",
+      "timing": "immediate",
+      "sessionActive": true,
+      "foregroundWaiting": 0,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "running"
+        },
+        {
+          "id": "b",
+          "state": "waiting"
+        }
+      ],
+      "expect": {
+        "action": "none",
+        "job": null
+      }
+    },
+    {
+      "note": "immediate, running job, foreground work waits: suspend",
+      "timing": "immediate",
+      "sessionActive": false,
+      "foregroundWaiting": 1,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "running"
+        },
+        {
+          "id": "b",
+          "state": "waiting"
+        }
+      ],
+      "expect": {
+        "action": "suspend",
+        "job": "a"
+      }
+    },
+    {
+      "note": "immediate, running job, session and foreground work: suspend",
+      "timing": "immediate",
+      "sessionActive": true,
+      "foregroundWaiting": 2,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "running"
+        }
+      ],
+      "expect": {
+        "action": "suspend",
+        "job": "a"
+      }
+    },
+    {
+      "note": "whenIdle, running job, idle: keep running",
+      "timing": "whenIdle",
+      "sessionActive": false,
+      "foregroundWaiting": 0,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "running"
+        }
+      ],
+      "expect": {
+        "action": "none",
+        "job": null
+      }
+    },
+    {
+      "note": "whenIdle, running job, session starts: suspend",
+      "timing": "whenIdle",
+      "sessionActive": true,
+      "foregroundWaiting": 0,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "running"
+        },
+        {
+          "id": "b",
+          "state": "waiting"
+        }
+      ],
+      "expect": {
+        "action": "suspend",
+        "job": "a"
+      }
+    },
+    {
+      "note": "whenIdle, running job, foreground work waits: suspend",
+      "timing": "whenIdle",
+      "sessionActive": false,
+      "foregroundWaiting": 1,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "running"
+        }
+      ],
+      "expect": {
+        "action": "suspend",
+        "job": "a"
+      }
+    },
+    {
+      "note": "whenIdle, running job, session and foreground work: suspend",
+      "timing": "whenIdle",
+      "sessionActive": true,
+      "foregroundWaiting": 1,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "running"
+        }
+      ],
+      "expect": {
+        "action": "suspend",
+        "job": "a"
+      }
+    },
+    {
+      "note": "running job behind done and failed jobs, foreground work: suspend it",
+      "timing": "immediate",
+      "sessionActive": false,
+      "foregroundWaiting": 1,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "done"
+        },
+        {
+          "id": "b",
+          "state": "failed"
+        },
+        {
+          "id": "c",
+          "state": "running"
+        },
+        {
+          "id": "d",
+          "state": "waiting"
+        }
+      ],
+      "expect": {
+        "action": "suspend",
+        "job": "c"
+      }
+    },
+    {
+      "note": "immediate, suspended job, foreground work finished: resume",
+      "timing": "immediate",
+      "sessionActive": false,
+      "foregroundWaiting": 0,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "suspended"
+        },
+        {
+          "id": "b",
+          "state": "waiting"
+        }
+      ],
+      "expect": {
+        "action": "resume",
+        "job": "a"
+      }
+    },
+    {
+      "note": "immediate, suspended job, session active, no foreground work: resume",
+      "timing": "immediate",
+      "sessionActive": true,
+      "foregroundWaiting": 0,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "suspended"
+        }
+      ],
+      "expect": {
+        "action": "resume",
+        "job": "a"
+      }
+    },
+    {
+      "note": "immediate, suspended job, foreground work still waits: stay suspended",
+      "timing": "immediate",
+      "sessionActive": true,
+      "foregroundWaiting": 1,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "suspended"
+        },
+        {
+          "id": "b",
+          "state": "waiting"
+        }
+      ],
+      "expect": {
+        "action": "none",
+        "job": null
+      }
+    },
+    {
+      "note": "whenIdle, suspended job, session stopped: resume",
+      "timing": "whenIdle",
+      "sessionActive": false,
+      "foregroundWaiting": 0,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "suspended"
+        },
+        {
+          "id": "b",
+          "state": "waiting"
+        }
+      ],
+      "expect": {
+        "action": "resume",
+        "job": "a"
+      }
+    },
+    {
+      "note": "whenIdle, suspended job, session still active: stay suspended",
+      "timing": "whenIdle",
+      "sessionActive": true,
+      "foregroundWaiting": 0,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "suspended"
+        },
+        {
+          "id": "b",
+          "state": "waiting"
+        }
+      ],
+      "expect": {
+        "action": "none",
+        "job": null
+      }
+    },
+    {
+      "note": "whenIdle, suspended job, session stopped but foreground work waits: stay suspended",
+      "timing": "whenIdle",
+      "sessionActive": false,
+      "foregroundWaiting": 1,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "suspended"
+        }
+      ],
+      "expect": {
+        "action": "none",
+        "job": null
+      }
+    },
+    {
+      "note": "suspended job behind done jobs keeps its place ahead of waiting ones",
+      "timing": "whenIdle",
+      "sessionActive": false,
+      "foregroundWaiting": 0,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "done"
+        },
+        {
+          "id": "b",
+          "state": "suspended"
+        },
+        {
+          "id": "c",
+          "state": "waiting"
+        }
+      ],
+      "expect": {
+        "action": "resume",
+        "job": "b"
+      }
+    },
+    {
+      "note": "FIFO: first waiting job after done and failed ones starts",
+      "timing": "immediate",
+      "sessionActive": false,
+      "foregroundWaiting": 0,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "done"
+        },
+        {
+          "id": "b",
+          "state": "failed"
+        },
+        {
+          "id": "c",
+          "state": "waiting"
+        },
+        {
+          "id": "d",
+          "state": "waiting"
+        }
+      ],
+      "expect": {
+        "action": "start",
+        "job": "c"
+      }
+    },
+    {
+      "note": "FIFO: done and failed jobs between waiting ones are skipped",
+      "timing": "whenIdle",
+      "sessionActive": false,
+      "foregroundWaiting": 0,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "done"
+        },
+        {
+          "id": "b",
+          "state": "waiting"
+        },
+        {
+          "id": "c",
+          "state": "failed"
+        },
+        {
+          "id": "d",
+          "state": "waiting"
+        }
+      ],
+      "expect": {
+        "action": "start",
+        "job": "b"
+      }
+    },
+    {
+      "note": "FIFO: next job after the finished head",
+      "timing": "immediate",
+      "sessionActive": true,
+      "foregroundWaiting": 0,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "done"
+        },
+        {
+          "id": "b",
+          "state": "waiting"
+        },
+        {
+          "id": "c",
+          "state": "done"
+        },
+        {
+          "id": "d",
+          "state": "waiting"
+        },
+        {
+          "id": "e",
+          "state": "failed"
+        }
+      ],
+      "expect": {
+        "action": "start",
+        "job": "b"
+      }
+    },
+    {
+      "note": "FIFO: waiting jobs only after failed ones",
+      "timing": "immediate",
+      "sessionActive": false,
+      "foregroundWaiting": 0,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "failed"
+        },
+        {
+          "id": "b",
+          "state": "failed"
+        },
+        {
+          "id": "c",
+          "state": "waiting"
+        }
+      ],
+      "expect": {
+        "action": "start",
+        "job": "c"
+      }
+    },
+    {
+      "note": "invalid, two running jobs, running allowed: none (nothing new starts)",
+      "timing": "immediate",
+      "sessionActive": false,
+      "foregroundWaiting": 0,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "running"
+        },
+        {
+          "id": "b",
+          "state": "running"
+        },
+        {
+          "id": "c",
+          "state": "waiting"
+        }
+      ],
+      "expect": {
+        "action": "none",
+        "job": null
+      }
+    },
+    {
+      "note": "invalid, two running jobs, must yield: suspend the first running",
+      "timing": "immediate",
+      "sessionActive": false,
+      "foregroundWaiting": 1,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "running"
+        },
+        {
+          "id": "b",
+          "state": "running"
+        }
+      ],
+      "expect": {
+        "action": "suspend",
+        "job": "a"
+      }
+    },
+    {
+      "note": "invalid, two running jobs, first suspended already: suspend the other",
+      "timing": "whenIdle",
+      "sessionActive": true,
+      "foregroundWaiting": 0,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "suspended"
+        },
+        {
+          "id": "b",
+          "state": "running"
+        }
+      ],
+      "expect": {
+        "action": "suspend",
+        "job": "b"
+      }
+    },
+    {
+      "note": "invalid, running job behind a waiting one, running allowed: not preempted",
+      "timing": "immediate",
+      "sessionActive": false,
+      "foregroundWaiting": 0,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "waiting"
+        },
+        {
+          "id": "b",
+          "state": "running"
+        }
+      ],
+      "expect": {
+        "action": "none",
+        "job": null
+      }
+    },
+    {
+      "note": "invalid, running job behind a waiting one, must yield: suspend it",
+      "timing": "whenIdle",
+      "sessionActive": true,
+      "foregroundWaiting": 0,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "waiting"
+        },
+        {
+          "id": "b",
+          "state": "running"
+        }
+      ],
+      "expect": {
+        "action": "suspend",
+        "job": "b"
+      }
+    },
+    {
+      "note": "invalid, running job behind a suspended one, running allowed: not preempted",
+      "timing": "immediate",
+      "sessionActive": false,
+      "foregroundWaiting": 0,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "suspended"
+        },
+        {
+          "id": "b",
+          "state": "running"
+        }
+      ],
+      "expect": {
+        "action": "none",
+        "job": null
+      }
+    },
+    {
+      "note": "invalid, suspended job behind a waiting one: resume the suspended job first",
+      "timing": "immediate",
+      "sessionActive": false,
+      "foregroundWaiting": 0,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "waiting"
+        },
+        {
+          "id": "b",
+          "state": "suspended"
+        }
+      ],
+      "expect": {
+        "action": "resume",
+        "job": "b"
+      }
+    },
+    {
+      "note": "invalid, two suspended jobs: resume the first",
+      "timing": "immediate",
+      "sessionActive": false,
+      "foregroundWaiting": 0,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "done"
+        },
+        {
+          "id": "b",
+          "state": "suspended"
+        },
+        {
+          "id": "c",
+          "state": "suspended"
+        }
+      ],
+      "expect": {
+        "action": "resume",
+        "job": "b"
+      }
+    },
+    {
+      "note": "invalid, negative foreground count counts as none",
+      "timing": "immediate",
+      "sessionActive": false,
+      "foregroundWaiting": -1,
+      "jobs": [
+        {
+          "id": "a",
+          "state": "waiting"
+        }
+      ],
+      "expect": {
+        "action": "start",
+        "job": "a"
+      }
+    }
+  ],
+  "shouldYield": [
+    {
+      "timing": "immediate",
+      "sessionActive": false,
+      "foregroundWaiting": 0,
+      "expect": false
+    },
+    {
+      "timing": "immediate",
+      "sessionActive": false,
+      "foregroundWaiting": 1,
+      "expect": true
+    },
+    {
+      "timing": "immediate",
+      "sessionActive": false,
+      "foregroundWaiting": 2,
+      "expect": true
+    },
+    {
+      "timing": "immediate",
+      "sessionActive": true,
+      "foregroundWaiting": 0,
+      "expect": false
+    },
+    {
+      "timing": "immediate",
+      "sessionActive": true,
+      "foregroundWaiting": 1,
+      "expect": true
+    },
+    {
+      "timing": "immediate",
+      "sessionActive": true,
+      "foregroundWaiting": 2,
+      "expect": true
+    },
+    {
+      "timing": "whenIdle",
+      "sessionActive": false,
+      "foregroundWaiting": 0,
+      "expect": false
+    },
+    {
+      "timing": "whenIdle",
+      "sessionActive": false,
+      "foregroundWaiting": 1,
+      "expect": true
+    },
+    {
+      "timing": "whenIdle",
+      "sessionActive": false,
+      "foregroundWaiting": 2,
+      "expect": true
+    },
+    {
+      "timing": "whenIdle",
+      "sessionActive": true,
+      "foregroundWaiting": 0,
+      "expect": true
+    },
+    {
+      "timing": "whenIdle",
+      "sessionActive": true,
+      "foregroundWaiting": 1,
+      "expect": true
+    },
+    {
+      "timing": "whenIdle",
+      "sessionActive": true,
+      "foregroundWaiting": 2,
+      "expect": true
+    }
+  ],
+  "presentsNotes": [
+    {
+      "note": "idle, nothing on screen: open the notes flow",
+      "sessionActive": false,
+      "notesOnScreen": false,
+      "expect": true
+    },
+    {
+      "note": "session active: offer Generate Notes on the row",
+      "sessionActive": true,
+      "notesOnScreen": false,
+      "expect": false
+    },
+    {
+      "note": "notes sheet or another notes flow on screen",
+      "sessionActive": false,
+      "notesOnScreen": true,
+      "expect": false
+    },
+    {
+      "note": "both",
+      "sessionActive": true,
+      "notesOnScreen": true,
+      "expect": false
+    }
+  ],
+  "quitNeedsConfirmation": [
+    {
+      "note": "empty queue",
+      "jobs": [],
+      "expect": 0
+    },
+    {
+      "note": "only done and failed",
+      "jobs": [
+        {
+          "id": "a",
+          "state": "done"
+        },
+        {
+          "id": "b",
+          "state": "failed"
+        }
+      ],
+      "expect": 0
+    },
+    {
+      "note": "one waiting",
+      "jobs": [
+        {
+          "id": "a",
+          "state": "waiting"
+        }
+      ],
+      "expect": 1
+    },
+    {
+      "note": "one running",
+      "jobs": [
+        {
+          "id": "a",
+          "state": "running"
+        }
+      ],
+      "expect": 1
+    },
+    {
+      "note": "one suspended",
+      "jobs": [
+        {
+          "id": "a",
+          "state": "suspended"
+        }
+      ],
+      "expect": 1
+    },
+    {
+      "note": "mixed",
+      "jobs": [
+        {
+          "id": "a",
+          "state": "done"
+        },
+        {
+          "id": "b",
+          "state": "suspended"
+        },
+        {
+          "id": "c",
+          "state": "failed"
+        },
+        {
+          "id": "d",
+          "state": "waiting"
+        },
+        {
+          "id": "e",
+          "state": "waiting"
+        },
+        {
+          "id": "f",
+          "state": "done"
+        }
+      ],
+      "expect": 3
+    },
+    {
+      "note": "every state once",
+      "jobs": [
+        {
+          "id": "a",
+          "state": "waiting"
+        },
+        {
+          "id": "b",
+          "state": "running"
+        },
+        {
+          "id": "c",
+          "state": "suspended"
+        },
+        {
+          "id": "d",
+          "state": "done"
+        },
+        {
+          "id": "e",
+          "state": "failed"
+        }
+      ],
+      "expect": 3
+    }
+  ],
+  "blocksUpdateInstall": [
+    {
+      "note": "empty queue",
+      "jobs": [],
+      "expect": false
+    },
+    {
+      "note": "only done and failed",
+      "jobs": [
+        {
+          "id": "a",
+          "state": "done"
+        },
+        {
+          "id": "b",
+          "state": "failed"
+        }
+      ],
+      "expect": false
+    },
+    {
+      "note": "one waiting",
+      "jobs": [
+        {
+          "id": "a",
+          "state": "waiting"
+        }
+      ],
+      "expect": true
+    },
+    {
+      "note": "one running",
+      "jobs": [
+        {
+          "id": "a",
+          "state": "running"
+        }
+      ],
+      "expect": true
+    },
+    {
+      "note": "one suspended",
+      "jobs": [
+        {
+          "id": "a",
+          "state": "suspended"
+        }
+      ],
+      "expect": true
+    },
+    {
+      "note": "mixed",
+      "jobs": [
+        {
+          "id": "a",
+          "state": "done"
+        },
+        {
+          "id": "b",
+          "state": "suspended"
+        },
+        {
+          "id": "c",
+          "state": "failed"
+        },
+        {
+          "id": "d",
+          "state": "waiting"
+        },
+        {
+          "id": "e",
+          "state": "waiting"
+        },
+        {
+          "id": "f",
+          "state": "done"
+        }
+      ],
+      "expect": true
+    },
+    {
+      "note": "every state once",
+      "jobs": [
+        {
+          "id": "a",
+          "state": "waiting"
+        },
+        {
+          "id": "b",
+          "state": "running"
+        },
+        {
+          "id": "c",
+          "state": "suspended"
+        },
+        {
+          "id": "d",
+          "state": "done"
+        },
+        {
+          "id": "e",
+          "state": "failed"
+        }
+      ],
+      "expect": true
+    }
+  ]
+}
