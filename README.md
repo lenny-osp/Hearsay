@@ -255,6 +255,12 @@ in PowerShell with the zip's line in the release's `SHA256SUMS.txt`.
    refuse transcripts longer than roughly a 20-minute meeting. Use Claude
    Code, Codex, Ollama, or Custom for longer ones.
 
+**Back to back** works as in "Recording" above, with Ctrl+Alt+Win in place
+of ⌃⌥⌘: Ctrl+Alt+Win+N is "Stop & Start Next" (with R and P for
+Start / Stop and Pause / Resume). Unlike the Mac, finished recordings wait
+until no recording is running by default; Settings > General > Transcribe
+finished recordings can change that to "Right away (in the background)".
+
 **Updates** work as on the Mac: Hearsay downloads the zip, checks its
 checksum and signature, and replaces its folder when it quits, then starts
 again.

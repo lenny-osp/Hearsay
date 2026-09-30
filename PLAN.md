@@ -623,8 +623,9 @@ moves to the job at Stop with the live task still running.
   included), no step reads its WAV, and a pass that already finished is
   still written (file writes only; the live tail is not awaited).
 - Settings > General > Transcription labels the timing "Transcribe
-  finished recordings". The help and README passages are Mac only
-  (`data-platform="mac"`) until Windows ports 18.10.
+  finished recordings". The help passage is marked `data-platform="mac"`
+  and has a `data-platform="windows"` twin (18.10, WI-4); the README says
+  the Windows differences in its Windows section.
 
 ## 5. Model catalog and download
 
@@ -1020,7 +1021,11 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
     recording waits until the second stops; switch to "Right away" and
     check the live preview of the second keeps up while the first
     transcribes. Quit with a job waiting ("Recordings not transcribed yet:
-    N"), reopen, and check it continues.
+    N"), reopen, and check it continues. Right-click the tray icon while a
+    job waits and while recording: the queue line ("Transcription paused
+    while recording · in queue: N") sits under the state line, and Stop &
+    Start Next is enabled only while recording or paused (WI-4 could only
+    check the menu's inputs).
 
 ## 17. Polish list (found during review, not yet scheduled)
 
@@ -2011,6 +2016,13 @@ findings only in a chat report.
   every Whisper.net native build into its output (it does not import
   `TrimWhisperRuntimes.targets`), harmless for tests.
 
+- **Queue UI follow-ups** (found 2026-09-30, WI-4): at a 480 px window the
+  German Record card clips the label "Sprache" beside the language picker
+  (`LanguageChoicePicker` does not wrap); a failed queue row has Try Again
+  but not "Open Models" or "Transcribe this file" (the Mac's row has neither
+  either; the single-meeting card has both); the tray menu's queue line and
+  Stop & Start Next were never seen in the real popup (item 27 of section 16).
+
 ### 18.10 Back-to-back recordings (port of section 4.9, added 2026-09-30)
 
 The Mac builds this first; Windows ports it after. Same behavior as 4.9
@@ -2122,16 +2134,9 @@ its own file under `%LOCALAPPDATA%\Hearsay\Recording\`, same fields).
   thread (a dedicated thread with a `SynchronizationContext`) checks it. The
   decoder's `shouldYield` runs on the engine's thread and reads only
   `engine.ForegroundWaiting` and a volatile hold flag (timing is whenIdle and
-  a session is active). Public surface for the queue list and the tray
-  (WI-4): `Jobs` (a `ReadOnlyObservableCollection`), per-job
-  `INotifyPropertyChanged` (`State`, `Progress`, `DisplayProgress`, `Title`,
-  `Srt`, `Wav`, `Files`, `ErrorMessage`, `NeedsModel`, `LanguageNotice`,
-  `CanUseLivePreview`, `CanChangeLanguage`, `CanRetry`, `CanDismiss`,
-  `OffersNotes`, `IsRerunning`, `RerunProgress`, `RerunError`), queue
-  `PropertyChanged` (`PendingCount`, `ActiveJob`, `FeaturedJob`,
-  `IsSessionActive`, `IsHeldForSession`) and the catch-all `Changed`, and the
-  row commands `UseLivePreviewInstead`, `Retry`, `Dismiss`, `TranscribeAgain`,
-  `DismissLanguageNotice`, `NotesStarted`, `IsPausedForSession`.
+  a session is active). The Record tab, the tray and Settings bind to the
+  queue's `Jobs`, its per-job and queue `PropertyChanged` and the catch-all
+  `Changed` (WI-4).
 - Foreground marking is in `TranscriptionEngine`, not at each call site: its
   `TranscribeAsync` and `DetectLanguageAsync` take `EnterForeground()` before
   they wait for the engine (live chunks, session detection, File mode, the
@@ -2158,15 +2163,11 @@ its own file under `%LOCALAPPDATA%\Hearsay\Recording\`, same fields).
   meeting (live preview, progress, "Use live preview instead", language
   banner, saved files, Try Again, notes), a capture failure's card with
   Try Again (queues the kept WAV), and Stop & Start Next next to Stop while
-  recording or paused (tooltip with the shortcut). The "Transcription queue"
-  list for two or more jobs, the tray menu entry, the Settings timing picker
-  and shortcut row, snapshots of the queue, help and README are WI-4: until
-  then the jobs of a busy queue (a session running, or two recordings) have no
-  row on the Record tab, and their notes offers and failures are not shown.
+  recording or paused (tooltip with the shortcut). The queue list, tray,
+  Settings, snapshots, help and README are WI-4 below.
 - Hotkeys: `HotkeyAction.StopStartNext = 3` is registered with the other two
   (probe id moved to 100); two actions bound to the same chord fail at
-  `RegisterHotKey` and show in `RegistrationError`. The recorder's
-  "same as the other action" check still knows only one other binding (WI-4).
+  `RegisterHotKey` and show in `RegistrationError`.
 - Quit: "Stop & Quit" hands the recording to the queue and quits without
   transcribing; pending jobs give "Recordings not transcribed yet: N" /
   "Hearsay continues with them the next time it opens." with Quit / Cancel; a
@@ -2196,3 +2197,51 @@ its own file under `%LOCALAPPDATA%\Hearsay\Recording\`, same fields).
 - Not tested here: nothing of this ran with the CUDA runtime (there is no
   NVIDIA GPU on the dev machine), and the registration of the third hotkey
   was only exercised by the snapshot run (all three registered).
+
+**As built (Windows, WI-4 UI, 2026-09-30).**
+- Record tab: `QueueRows` (pure rules) and `QueueRowView` (one persistent
+  control set per job, updated in place so a button is never replaced under
+  the pointer). The "Transcription queue" card shows whenever the single
+  meeting view does not (a session is active or two or more jobs), below the
+  saved card; one row per job with its name and time, the state text
+  (Waiting, Paused while recording via `IsPausedForSession`, Transcribing N%,
+  Done, Failed with its message) and its actions as on the Mac, the folder
+  and dismiss buttons as icons at the row's right (tooltip "Reveal in
+  Explorer" / "Dismiss"), the language banner and re-run error. Actions wrap
+  onto a second line in a narrow window (a small wrap panel; WinUI has none).
+  "Generate Notes…" on a row and on the single-meeting card share
+  `RecordView.StartNotes` (`NotesStarted`, then the `GenerateNotes` hook).
+- Tray: the tooltip and the state line are WI-3's (status; with no session,
+  the running job's percentage). `RecordingStatus.SetQueue` (pending count,
+  running job's progress, held flag; pushed by `AppShell.SyncRecordingStatus`)
+  gives `QueueLine`, the Mac's four strings and rules, shown as one disabled
+  item under the state line; "Stop & Start Next" is always in the menu with
+  the shortcut, enabled while recording or paused. The menu is a native popup,
+  so only its inputs are checked by tests and the snapshot run.
+- Settings > General: the picker "Transcribe finished recordings" (rows
+  "Right away (in the background)", "When no recording is running") writes
+  `AppSettings.FinalPassTiming` and follows it; the caption is the Mac's.
+  The shortcut recorder has the third row; each recorder checks its chord
+  against both other bindings (`HotkeyRecorder.Validate` takes the others,
+  `HotkeyCheck.Conflict` names which) with the Windows-only hint "Already used
+  for Stop & Start Next." (the other two hints existed); Reset restores all
+  three. Backspace restores that action's own default.
+- History's Rename: already wired in WI-3 (`Queue.BusyFiles` into
+  `RecordingStatus.BusyFiles` into `HistoryViewModel.BusyStems`, plus the
+  notes flow's own stem); WI-4 added a test of the path and fixed the stale
+  comments.
+- Snapshots (`64` to `70`): the queue with no session, with a session over a
+  held queue, with a failure and a language banner, the same at a 480 px
+  window, Settings > General with the recorder refusing a duplicate chord
+  and at 480 px, and the help page at the Recording section. Looked at in
+  all five languages: nothing clipped or overlapping in the new views.
+  The tray smoke test also checks the queue line and Stop & Start Next inputs.
+- Help and README: the Mac's Stop & Start Next passage has a Windows twin in
+  each `shared/help/<lang>/Help.html` (Ctrl+Alt+Win+N, "by default only while
+  no recording is running", the picker's other row named), and the README's
+  Windows section says the same in three lines.
+- Differs from the Mac: the row's folder button is beside the dismiss icon at
+  the right, not among the text buttons; the menu shows Stop & Start Next
+  disabled instead of leaving it out when nothing records (a native menu does
+  not reflow); no menu bar label with a text percentage (a tray icon has no
+  text; the tooltip has it).

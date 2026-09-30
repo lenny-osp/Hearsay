@@ -182,6 +182,23 @@ internal static class UISnapshots
             Check(!recorder.IsListening && settings.StartStopHotkey == HotkeyBinding.DefaultStartStop,
                 "Escape stops the recorder and keeps the binding");
 
+            // The Stop & Start Next recorder given the Start / Stop chord: refused, with the reason.
+            var conflict = general.ShowConflictSample();
+            await Settle().ConfigureAwait(true);
+            Check(conflict.IsListening && conflict.Hint == Strings.ShortcutSameAsStartStop,
+                $"the recorder refuses the Start / Stop chord for Stop & Start Next (\"{conflict.Hint}\")");
+            await Render("68-settings-general-shortcut-conflict", window.RenderRoot).ConfigureAwait(true);
+            general.EndConflictSample();
+            Check(!conflict.IsListening && settings.StopStartNextHotkey == HotkeyBinding.DefaultStopStartNext,
+                "Escape stops the recorder and keeps the Stop & Start Next binding");
+
+            // Settings > General at a narrow window, so the new rows show how they wrap.
+            window.ResizeClient(480, 1300);
+            await Settle().ConfigureAwait(true);
+            await Render("69-settings-general-narrow", window.RenderRoot).ConfigureAwait(true);
+            window.ResizeClient(MainWindow.DefaultWidth, 1000);
+            await Settle().ConfigureAwait(true);
+
             #region Settings > General > Software updates and the update windows (Features/Debug/UpdateSnapshots.cs)
             // Stubbed states: nothing is checked, downloaded or installed.
             await UpdateSnapshots.RunAsync(shell, general, sampleOutput,
@@ -325,7 +342,7 @@ internal static class UISnapshots
 
         var help = shell.ShowHelp();
         Say($"help file {help.HelpFile}{(File.Exists(help.HelpFile) ? "" : " (missing)")}");
-        foreach (var (name, fragment) in new[] { ("19-help-top", (string?)null), ("20-help-meeting-notes", "meeting-notes"), ("22-help-menu-bar", "menu-bar") })
+        foreach (var (name, fragment) in new[] { ("19-help-top", (string?)null), ("20-help-meeting-notes", "meeting-notes"), ("22-help-menu-bar", "menu-bar"), ("70-help-recording", "recording") })
         {
             var path = Path.Combine(directory, $"{name}.png");
             if (await help.CaptureAsync(fragment, path).ConfigureAwait(true))
@@ -412,11 +429,22 @@ internal static class UISnapshots
         recording.Update(RecordingPhase.Idle, TimeSpan.Zero, null);
         await Task.Delay(500).ConfigureAwait(true);
         Expect("stopped", "Hearsay.ico", "Hearsay");
+        // The queue line and Stop & Start Next of the menu (a native popup, so only their inputs can be checked).
+        recording.Update(RecordingPhase.Recording, TimeSpan.FromSeconds(754), null);
+        recording.SetQueue(2, 0.45, false);
+        await Task.Delay(300).ConfigureAwait(true);
+        var lineOk = recording.QueueLine == Strings.QueueLineTranscribing(45, 2) && recording.CanStopAndStartNext;
+        ok &= lineOk;
+        Say($"tray recording with a queue: \"{recording.QueueLine}\", Stop & Start Next {(recording.CanStopAndStartNext ? "enabled" : "disabled")}{(lineOk ? "" : " (unexpected)")}");
+        recording.Update(RecordingPhase.Idle, TimeSpan.Zero, null);
+        recording.SetQueue(0, null, false);
+        await Task.Delay(300).ConfigureAwait(true);
+        ok &= !recording.CanStopAndStartNext && recording.QueueLine is null;
         tray.SetVisible(false);
         ok &= !tray.IsVisible;
 
         shell.Hotkeys.Start();
-        Say($"hotkeys: {shell.Hotkeys.RegistrationError ?? "both registered"}");
+        Say($"hotkeys: {shell.Hotkeys.RegistrationError ?? "all three registered"}");
         if (shell.Hotkeys.RegistrationError is null)
         {
             // The recorder's check: a chord Hearsay itself holds reports as

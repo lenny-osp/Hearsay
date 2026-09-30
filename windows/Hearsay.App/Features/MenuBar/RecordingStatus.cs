@@ -60,6 +60,58 @@ internal sealed class RecordingStatus : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(BusyFiles)));
     }
 
+    /// <summary>Recordings not transcribed yet (the queue's <c>PendingCount</c>).</summary>
+    public int QueuePending { get; private set; }
+
+    /// <summary>The running job's progress, 0...1, whether or not a session runs; null when no job runs.</summary>
+    public double? QueueProgress { get; private set; }
+
+    /// <summary>The queue waits for the recording to stop (timing "when no recording is running").</summary>
+    public bool QueueHeld { get; private set; }
+
+    /// <summary>Starting, recording, paused or stopping.</summary>
+    public bool IsSessionActive => Phase is RecordingPhase.Starting or RecordingPhase.Recording or RecordingPhase.Paused or RecordingPhase.Stopping;
+
+    /// <summary>Stop &amp; Start Next applies (the tray item is enabled): recording or paused.</summary>
+    public bool CanStopAndStartNext => IsCapturing;
+
+    /// <summary>
+    /// The queue's state, pushed by the shell. Raises <see cref="QueueLine"/>
+    /// when the line of the tray menu changed.
+    /// </summary>
+    public void SetQueue(int pending, double? activeProgress, bool held)
+    {
+        var before = QueueLine;
+        QueuePending = pending;
+        QueueProgress = activeProgress;
+        QueueHeld = held;
+        if (QueueLine != before) PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(QueueLine)));
+    }
+
+    /// <summary>
+    /// One line for the queue in the tray menu (the Mac panel's
+    /// <c>queueLine</c>): how many recordings are not transcribed yet and how
+    /// far the current one is. Null when the state line already says it all
+    /// (one job, no session) or the queue is empty.
+    /// </summary>
+    public string? QueueLine
+    {
+        get
+        {
+            if (QueuePending <= 0) return null;
+            if (!IsSessionActive && QueueProgress is not null)
+            {
+                // The state line already shows the percentage.
+                return QueuePending > 1 ? Strings.QueueLineCount(QueuePending) : null;
+            }
+            if (QueueHeld) return Strings.QueueLinePaused(QueuePending);
+            if (QueueProgress is { } progress) return Strings.QueueLineTranscribing(Percent(progress), QueuePending);
+            return Strings.QueueLineWaiting(QueuePending);
+        }
+    }
+
+    private static int Percent(double fraction) => (int)Math.Round(fraction * 100, MidpointRounding.AwayFromZero);
+
     /// <summary>The state line of the tray menu, the Mac's <c>MenuBarView.stateText</c>.</summary>
     public string StateText
     {
@@ -72,7 +124,7 @@ internal sealed class RecordingStatus : INotifyPropertyChanged
                 RecordingPhase.Paused => Strings.StatePaused(elapsed),
                 RecordingPhase.Starting => Strings.StartingState,
                 RecordingPhase.Stopping => Strings.Saving,
-                RecordingPhase.Transcribing => Strings.StateTranscribing((int)Math.Round((TranscriptionProgress ?? 0) * 100, MidpointRounding.AwayFromZero)),
+                RecordingPhase.Transcribing => Strings.StateTranscribing(Percent(TranscriptionProgress ?? 0)),
                 _ => Strings.StateIdle,
             };
         }
@@ -86,7 +138,7 @@ internal sealed class RecordingStatus : INotifyPropertyChanged
         stopStartNext = stopAndStartNext;
     }
 
-    /// <summary>The Stop &amp; Start Next hotkey and menu command (<c>stopAndStartNext()</c>); nothing unless recording.</summary>
+    /// <summary>The Stop &amp; Start Next hotkey and menu command (<c>stopAndStartNext()</c>); the controller ignores it unless recording.</summary>
     public void StopAndStartNext()
     {
         AppLog.Write($"recording: stop and start next command in {Phase}");

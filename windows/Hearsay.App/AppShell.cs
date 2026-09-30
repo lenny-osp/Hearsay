@@ -303,6 +303,7 @@ internal sealed class AppShell
             _ => job is null ? RecordingPhase.Idle : RecordingPhase.Transcribing,
         };
         Recording.Update(phase, TimeSpan.FromSeconds(controller.Elapsed), phase == RecordingPhase.Transcribing ? job?.Progress : null);
+        Recording.SetQueue(Queue.PendingCount, Queue.ActiveJob?.Progress, Queue.IsHeldForSession);
         Recording.SetBusyFiles(Queue.BusyFiles);
         if (controller.TranscribeFileRequest is { } file && !FileModel.IsBusy)
         {

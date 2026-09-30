@@ -9,7 +9,7 @@ namespace Hearsay.App.Tests;
 /// test for <c>HotkeyRecorderView.handle(_:)</c>; these mirror its behavior
 /// (Escape alone cancels, a chord without ⌃ ⌥ ⌘ is refused with the hint,
 /// otherwise it becomes the binding) plus the Windows additions (Backspace or
-/// Delete restores the default, the other action's chord and a chord
+/// Delete restores the default, either other action's chord and a chord
 /// <c>RegisterHotKey</c> refuses are refused). No test registers a hotkey:
 /// the trial registration is a stub.
 /// </summary>
@@ -95,12 +95,18 @@ public sealed class HotkeyRecorderTests
         Assert.Equal(RecorderInputKind.Chord, HotkeyRecorder.Interpret(key, HotkeyModifiers.Control | HotkeyModifiers.Alt, HotkeyBinding.DefaultPause).Kind);
     }
 
+    private static readonly (HotkeyAction, HotkeyBinding)[] OthersOfStartStop =
+    [
+        (HotkeyAction.Pause, HotkeyBinding.DefaultPause),
+        (HotkeyAction.StopStartNext, HotkeyBinding.DefaultStopStartNext),
+    ];
+
     [Fact]
     public void ValidateAcceptsAFreeChord()
     {
         var probed = new List<HotkeyBinding>();
         var candidate = new HotkeyBinding(VkA, HotkeyModifiers.Control | HotkeyModifiers.Alt);
-        var check = HotkeyRecorder.Validate(candidate, HotkeyBinding.DefaultPause, binding =>
+        var check = HotkeyRecorder.Validate(candidate, OthersOfStartStop, binding =>
         {
             probed.Add(binding);
             return 0;
@@ -112,43 +118,87 @@ public sealed class HotkeyRecorderTests
     [Fact]
     public void ValidateRefusesAChordWithoutAModifierBeforeTryingIt()
     {
-        var check = HotkeyRecorder.Validate(new HotkeyBinding(VkA, HotkeyModifiers.Shift), HotkeyBinding.DefaultPause,
+        var check = HotkeyRecorder.Validate(new HotkeyBinding(VkA, HotkeyModifiers.Shift), OthersOfStartStop,
             _ => throw new InvalidOperationException("not probed"));
         Assert.Equal(HotkeyProblem.NeedsModifier, check.Problem);
     }
 
     [Fact]
-    public void ValidateRefusesTheOtherActionsChordBeforeTryingIt()
+    public void ValidateRefusesEitherOtherActionsChordBeforeTryingIt()
     {
-        var check = HotkeyRecorder.Validate(HotkeyBinding.DefaultPause, HotkeyBinding.DefaultPause,
+        var pause = HotkeyRecorder.Validate(HotkeyBinding.DefaultPause, OthersOfStartStop,
             _ => throw new InvalidOperationException("not probed"));
-        Assert.Equal(HotkeyProblem.SameAsOther, check.Problem);
-        Assert.False(check.IsAccepted);
+        Assert.Equal(new HotkeyCheck(HotkeyProblem.SameAsOther, Conflict: HotkeyAction.Pause), pause);
+        Assert.False(pause.IsAccepted);
+        var next = HotkeyRecorder.Validate(HotkeyBinding.DefaultStopStartNext, OthersOfStartStop,
+            _ => throw new InvalidOperationException("not probed"));
+        Assert.Equal(new HotkeyCheck(HotkeyProblem.SameAsOther, Conflict: HotkeyAction.StopStartNext), next);
+    }
+
+    [Theory]
+    [InlineData(nameof(HotkeyAction.StartStop))]
+    [InlineData(nameof(HotkeyAction.Pause))]
+    [InlineData(nameof(HotkeyAction.StopStartNext))]
+    public void EachBindingIsCheckedAgainstBothOthers(string actionName)
+    {
+        var action = Enum.Parse<HotkeyAction>(actionName);
+        using var folder = new ScratchFolder();
+        var settings = new AppSettings(folder.Path);
+        var others = HotkeyRecorder.OthersOf(settings, action);
+        Assert.Equal(2, others.Count);
+        Assert.DoesNotContain(others, entry => entry.Action == action);
+        foreach (var (other, binding) in others)
+        {
+            var check = HotkeyRecorder.Validate(binding, others, _ => throw new InvalidOperationException("not probed"));
+            Assert.Equal(new HotkeyCheck(HotkeyProblem.SameAsOther, Conflict: other), check);
+        }
+        // Its own binding is not a conflict.
+        var own = action switch
+        {
+            HotkeyAction.StartStop => settings.StartStopHotkey,
+            HotkeyAction.Pause => settings.PauseHotkey,
+            _ => settings.StopStartNextHotkey,
+        };
+        Assert.True(HotkeyRecorder.Validate(own, others, _ => 0).IsAccepted);
+    }
+
+    [Fact]
+    public void EachActionHasItsOwnDefault()
+    {
+        Assert.Equal(HotkeyBinding.DefaultStartStop, HotkeyRecorder.DefaultFor(HotkeyAction.StartStop));
+        Assert.Equal(HotkeyBinding.DefaultPause, HotkeyRecorder.DefaultFor(HotkeyAction.Pause));
+        Assert.Equal(HotkeyBinding.DefaultStopStartNext, HotkeyRecorder.DefaultFor(HotkeyAction.StopStartNext));
+        Assert.Equal("Ctrl+Alt+Win+N", HotkeyDisplay.Text(HotkeyBinding.DefaultStopStartNext));
+        var reset = HotkeyRecorder.Interpret(HotkeyRecorder.VkBack, HotkeyModifiers.None, HotkeyRecorder.DefaultFor(HotkeyAction.StopStartNext));
+        Assert.Equal(RecorderInputKind.ResetToDefault, reset.Kind);
+        Assert.Equal(HotkeyBinding.DefaultStopStartNext, reset.Binding);
     }
 
     [Fact]
     public void ValidateReportsAChordAnotherAppOrWindowsOwns()
     {
         var candidate = new HotkeyBinding(0x45, HotkeyModifiers.Win); // Win+E, the shell's
-        Assert.Equal(new HotkeyCheck(HotkeyProblem.UsedElsewhere), HotkeyRecorder.Validate(candidate, HotkeyBinding.DefaultPause, _ => 1409));
-        Assert.Equal(new HotkeyCheck(HotkeyProblem.Rejected, 87), HotkeyRecorder.Validate(candidate, HotkeyBinding.DefaultPause, _ => 87));
+        Assert.Equal(new HotkeyCheck(HotkeyProblem.UsedElsewhere), HotkeyRecorder.Validate(candidate, OthersOfStartStop, _ => 1409));
+        Assert.Equal(new HotkeyCheck(HotkeyProblem.Rejected, 87), HotkeyRecorder.Validate(candidate, OthersOfStartStop, _ => 87));
     }
 
     [Fact]
     public void ReasonsNameTheProblem()
     {
         var candidate = new HotkeyBinding(0x45, HotkeyModifiers.Win);
-        Assert.Null(HotkeyRecorder.Reason(new HotkeyCheck(HotkeyProblem.None), candidate, HotkeyAction.StartStop));
+        Assert.Null(HotkeyRecorder.Reason(new HotkeyCheck(HotkeyProblem.None), candidate));
         Assert.Equal("Include Ctrl, Alt, or Win.",
-            HotkeyRecorder.Reason(new HotkeyCheck(HotkeyProblem.NeedsModifier), candidate, HotkeyAction.StartStop));
+            HotkeyRecorder.Reason(new HotkeyCheck(HotkeyProblem.NeedsModifier), candidate));
         Assert.Equal("Already used for Pause / Resume.",
-            HotkeyRecorder.Reason(new HotkeyCheck(HotkeyProblem.SameAsOther), candidate, HotkeyAction.StartStop));
+            HotkeyRecorder.Reason(new HotkeyCheck(HotkeyProblem.SameAsOther, Conflict: HotkeyAction.Pause), candidate));
         Assert.Equal("Already used for Start / Stop recording.",
-            HotkeyRecorder.Reason(new HotkeyCheck(HotkeyProblem.SameAsOther), candidate, HotkeyAction.Pause));
+            HotkeyRecorder.Reason(new HotkeyCheck(HotkeyProblem.SameAsOther, Conflict: HotkeyAction.StartStop), candidate));
+        Assert.Equal("Already used for Stop & Start Next.",
+            HotkeyRecorder.Reason(new HotkeyCheck(HotkeyProblem.SameAsOther, Conflict: HotkeyAction.StopStartNext), candidate));
         Assert.Equal("Win+E is already used by another app or Windows.",
-            HotkeyRecorder.Reason(new HotkeyCheck(HotkeyProblem.UsedElsewhere), candidate, HotkeyAction.Pause));
+            HotkeyRecorder.Reason(new HotkeyCheck(HotkeyProblem.UsedElsewhere), candidate));
         Assert.Equal("Windows does not accept this shortcut (error 87).",
-            HotkeyRecorder.Reason(new HotkeyCheck(HotkeyProblem.Rejected, 87), candidate, HotkeyAction.Pause));
+            HotkeyRecorder.Reason(new HotkeyCheck(HotkeyProblem.Rejected, 87), candidate));
     }
 
     [Fact]
@@ -176,7 +226,7 @@ public sealed class HotkeyRecorderTests
         Assert.Equal("Strg+Umschalt+Leertaste", HotkeyDisplay.Text(new(VkSpace, HotkeyModifiers.Control | HotkeyModifiers.Shift)));
         Assert.Equal("Alt+Taste 226", HotkeyDisplay.Text(new(0xE2, HotkeyModifiers.Alt)));
         Assert.Equal("Strg+Umschalt+A wird bereits von einer anderen App oder von Windows verwendet.",
-            HotkeyRecorder.Reason(new HotkeyCheck(HotkeyProblem.UsedElsewhere), new(VkA, HotkeyModifiers.Control | HotkeyModifiers.Shift), HotkeyAction.StartStop));
+            HotkeyRecorder.Reason(new HotkeyCheck(HotkeyProblem.UsedElsewhere), new(VkA, HotkeyModifiers.Control | HotkeyModifiers.Shift)));
     }
 
     [Theory]
@@ -190,6 +240,8 @@ public sealed class HotkeyRecorderTests
         Assert.Equal(Translations.Text(language, "app", "Type shortcut…"), Strings.RecorderListening);
         Assert.Equal(Translations.Text(language, "windows", "Include Ctrl, Alt, or Win."), Strings.ShortcutNeedsModifier);
         Assert.Equal(Translations.Format(language, "windows", "Windows does not accept this shortcut (error %d).", 5), Strings.ShortcutRejected(5));
+        Assert.Equal(Translations.Text(language, "windows", "Already used for Stop & Start Next."), Strings.ShortcutSameAsStopStartNext);
+        Assert.Equal(Translations.Text(language, "app", "Stop & Start Next:"), Strings.ShortcutStopStartNext);
         // Every modifier name the recorder's texts mention is the one the display uses.
         foreach (var name in new[] { Strings.ModifierCtrl, Strings.ModifierAlt, Strings.ModifierWin })
         {

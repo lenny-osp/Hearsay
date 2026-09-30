@@ -13,7 +13,8 @@ namespace Hearsay.App.Features.Settings;
 /// <summary>
 /// Settings > General, in the Mac's order: Interface (interface language,
 /// applies at next launch), Startup (launch at login), Transcription (Auto
-/// mode default language), Shortcuts. Mirrors <c>GeneralSettingsView</c>,
+/// mode default language, when finished recordings are transcribed), Shortcuts
+/// (three: Start / Stop, Pause / Resume, Stop &amp; Start Next). Mirrors <c>GeneralSettingsView</c>,
 /// <c>LaunchAtLoginSection</c> and <c>PreferredLanguagePicker</c> in
 /// mac/Hearsay/Features/Settings/SettingsView.swift,
 /// <c>InterfaceLanguagePicker</c> in InterfaceLanguageSupport.swift, and
@@ -38,6 +39,8 @@ internal sealed partial class GeneralSettingsView : UserControl
     private readonly ComboBox preferredLanguage;
     private readonly HotkeyRecorderView startStopShortcut;
     private readonly HotkeyRecorderView pauseShortcut;
+    private readonly HotkeyRecorderView stopStartNextShortcut;
+    private readonly ComboBox finalPassTiming;
     private readonly Button resetShortcuts;
     private readonly TextBlock shortcutError;
     private bool refreshing;
@@ -92,23 +95,37 @@ internal sealed partial class GeneralSettingsView : UserControl
             if (refreshing || preferredLanguage.SelectedIndex < 0) return;
             settings.PreferredLanguage = TranscriptLanguages.All[preferredLanguage.SelectedIndex];
         };
+        // When a finished recording gets its final pass (PLAN.md 4.9 item 3).
+        finalPassTiming = new ComboBox { MinWidth = 180 };
+        foreach (var timing in FinalPassTimingChoices.All) finalPassTiming.Items.Add(FinalPassTimingChoices.Label(timing));
+        finalPassTiming.SelectionChanged += (_, _) =>
+        {
+            if (refreshing || FinalPassTimingChoices.At(finalPassTiming.SelectedIndex) is not { } timing) return;
+            settings.FinalPassTiming = timing;
+        };
         page.Children.Add(Header(Strings.SectionTranscription));
         page.Children.Add(Card(
             Labeled(Strings.PreferredLanguage, preferredLanguage),
-            Caption(Strings.PreferredLanguageCaption)));
+            Caption(Strings.PreferredLanguageCaption),
+            Labeled(Strings.FinalPassTimingLabel, finalPassTiming),
+            Caption(Strings.FinalPassTimingCaption)));
 
         // Shortcuts.
         startStopShortcut = new HotkeyRecorderView(shell.Hotkeys, HotkeyAction.StartStop,
-            () => settings.StartStopHotkey, () => settings.PauseHotkey, binding => settings.StartStopHotkey = binding);
+            () => settings.StartStopHotkey, () => Others(HotkeyAction.StartStop), binding => settings.StartStopHotkey = binding);
         pauseShortcut = new HotkeyRecorderView(shell.Hotkeys, HotkeyAction.Pause,
-            () => settings.PauseHotkey, () => settings.StartStopHotkey, binding => settings.PauseHotkey = binding);
+            () => settings.PauseHotkey, () => Others(HotkeyAction.Pause), binding => settings.PauseHotkey = binding);
+        stopStartNextShortcut = new HotkeyRecorderView(shell.Hotkeys, HotkeyAction.StopStartNext,
+            () => settings.StopStartNextHotkey, () => Others(HotkeyAction.StopStartNext), binding => settings.StopStartNextHotkey = binding);
         resetShortcuts = new Button { Content = Strings.ShortcutsReset };
         resetShortcuts.Click += (_, _) =>
         {
             startStopShortcut.StopListening();
             pauseShortcut.StopListening();
+            stopStartNextShortcut.StopListening();
             settings.StartStopHotkey = HotkeyBinding.DefaultStartStop;
             settings.PauseHotkey = HotkeyBinding.DefaultPause;
+            settings.StopStartNextHotkey = HotkeyBinding.DefaultStopStartNext;
         };
         var captionRow = Labeled(Strings.ShortcutsCaption, resetShortcuts);
         if (captionRow.Children[0] is TextBlock captionText)
@@ -120,6 +137,7 @@ internal sealed partial class GeneralSettingsView : UserControl
         page.Children.Add(Card(
             Labeled(Strings.ShortcutStartStop, startStopShortcut),
             Labeled(Strings.ShortcutPause, pauseShortcut),
+            Labeled(Strings.ShortcutStopStartNext, stopStartNextShortcut),
             captionRow,
             shortcutError));
 
@@ -171,11 +189,21 @@ internal sealed partial class GeneralSettingsView : UserControl
         preferredLanguage.SelectedIndex = IndexOf(TranscriptLanguages.All, settings.PreferredLanguage);
         startStopShortcut.Refresh();
         pauseShortcut.Refresh();
-        resetShortcuts.IsEnabled = settings.StartStopHotkey != HotkeyBinding.DefaultStartStop
-            || settings.PauseHotkey != HotkeyBinding.DefaultPause;
+        stopStartNextShortcut.Refresh();
+        finalPassTiming.SelectedIndex = FinalPassTimingChoices.IndexOf(settings.FinalPassTiming);
+        resetShortcuts.IsEnabled = ShortcutsDiffer(settings);
         SetWarning(shortcutError, shell.Hotkeys.RegistrationError);
         refreshing = false;
     }
+
+    /// <summary>The bindings of the two actions other than <paramref name="action"/>, for the recorder's conflict check.</summary>
+    private IReadOnlyList<(HotkeyAction Action, HotkeyBinding Binding)> Others(HotkeyAction action) => HotkeyRecorder.OthersOf(settings, action);
+
+    /// <summary>Whether Reset has anything to restore: any of the three shortcuts is not its default.</summary>
+    internal static bool ShortcutsDiffer(AppSettings settings) =>
+        settings.StartStopHotkey != HotkeyBinding.DefaultStartStop
+        || settings.PauseHotkey != HotkeyBinding.DefaultPause
+        || settings.StopStartNextHotkey != HotkeyBinding.DefaultStopStartNext;
 
     /// <summary>
     /// UI snapshots only: the Start / Stop recorder listening, after a
@@ -188,6 +216,21 @@ internal sealed partial class GeneralSettingsView : UserControl
         startStopShortcut.Handle(0x41, HotkeyModifiers.Shift);
         return startStopShortcut;
     }
+
+    /// <summary>
+    /// UI snapshots only: the Stop &amp; Start Next recorder listening, after
+    /// the Start / Stop chord, so its inline "Already used for ..." reason shows.
+    /// <see cref="EndConflictSample"/> puts it back.
+    /// </summary>
+    internal HotkeyRecorderView ShowConflictSample()
+    {
+        stopStartNextShortcut.StartListening();
+        var start = settings.StartStopHotkey;
+        stopStartNextShortcut.Handle(start.VirtualKey, start.Modifiers);
+        return stopStartNextShortcut;
+    }
+
+    internal void EndConflictSample() => stopStartNextShortcut.Handle(HotkeyRecorder.VkEscape, HotkeyModifiers.None);
 
     internal void EndRecordingSample() => startStopShortcut.Handle(HotkeyRecorder.VkEscape, HotkeyModifiers.None);
 

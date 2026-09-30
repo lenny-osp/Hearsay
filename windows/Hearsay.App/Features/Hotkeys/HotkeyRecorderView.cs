@@ -14,7 +14,7 @@ namespace Hearsay.App.Features.Hotkeys;
 /// it (for example Ctrl+Alt+Win+R). Escape cancels; Backspace or Delete
 /// restores the action's default (Windows only). The combination needs at
 /// least one of Ctrl, Alt, Win so it cannot steal ordinary typing, must
-/// differ from the other action's, and must be one Windows lets Hearsay
+/// differ from the other two actions', and must be one Windows lets Hearsay
 /// register (<see cref="HotkeyRecorder.Validate"/>); otherwise the reason
 /// shows under the button and it keeps listening. While it listens the
 /// global hotkeys are suspended, so the chord reaches it, and they are
@@ -28,9 +28,8 @@ namespace Hearsay.App.Features.Hotkeys;
 internal sealed partial class HotkeyRecorderView : UserControl
 {
     private readonly HotkeyManager hotkeys;
-    private readonly HotkeyAction action;
     private readonly Func<HotkeyBinding> current;
-    private readonly Func<HotkeyBinding> other;
+    private readonly Func<IReadOnlyList<(HotkeyAction Action, HotkeyBinding Binding)>> others;
     private readonly Action<HotkeyBinding> save;
     private readonly HotkeyBinding defaultBinding;
     private readonly Button button;
@@ -40,21 +39,20 @@ internal sealed partial class HotkeyRecorderView : UserControl
     /// <param name="hotkeys">Suspended while listening; also checks a chord (<see cref="HotkeyManager.Probe"/>).</param>
     /// <param name="action">The action this recorder edits.</param>
     /// <param name="current">Reads its binding.</param>
-    /// <param name="other">Reads the other action's binding.</param>
+    /// <param name="others">Reads the other two actions' bindings.</param>
     /// <param name="save">Stores a new binding.</param>
     public HotkeyRecorderView(HotkeyManager hotkeys, HotkeyAction action,
-        Func<HotkeyBinding> current, Func<HotkeyBinding> other, Action<HotkeyBinding> save)
+        Func<HotkeyBinding> current, Func<IReadOnlyList<(HotkeyAction Action, HotkeyBinding Binding)>> others, Action<HotkeyBinding> save)
     {
         ArgumentNullException.ThrowIfNull(hotkeys);
         ArgumentNullException.ThrowIfNull(current);
-        ArgumentNullException.ThrowIfNull(other);
+        ArgumentNullException.ThrowIfNull(others);
         ArgumentNullException.ThrowIfNull(save);
         this.hotkeys = hotkeys;
-        this.action = action;
         this.current = current;
-        this.other = other;
+        this.others = others;
         this.save = save;
-        defaultBinding = action == HotkeyAction.StartStop ? HotkeyBinding.DefaultStartStop : HotkeyBinding.DefaultPause;
+        defaultBinding = HotkeyRecorder.DefaultFor(action);
 
         button = new Button { MinWidth = 150, HorizontalAlignment = HorizontalAlignment.Right };
         AutomationProperties.SetName(button, Strings.RecorderAccessibilityName);
@@ -129,10 +127,10 @@ internal sealed partial class HotkeyRecorderView : UserControl
                 StopListening();
                 return;
             default:
-                var check = HotkeyRecorder.Validate(input.Binding, other(), hotkeys.Probe);
+                var check = HotkeyRecorder.Validate(input.Binding, others(), hotkeys.Probe);
                 if (!check.IsAccepted)
                 {
-                    SetHint(HotkeyRecorder.Reason(check, input.Binding, action));
+                    SetHint(HotkeyRecorder.Reason(check, input.Binding));
                     return;
                 }
                 SetHint(null);

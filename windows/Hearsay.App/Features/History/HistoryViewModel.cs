@@ -211,8 +211,8 @@ internal sealed class HistoryViewModel
 
     /// <summary>
     /// Rename is off for the meeting whose notes are being generated (the
-    /// notes flow renames and writes its files) and for the recording the
-    /// Record tab is recording or transcribing (<paramref name="busyStems"/>).
+    /// notes flow renames and writes its files) and for the recordings the
+    /// transcription queue works on (<paramref name="busyStems"/>).
     /// </summary>
     public bool CanRename(HistoryEntry entry, IReadOnlySet<string> busyStems)
     {
@@ -223,7 +223,12 @@ internal sealed class HistoryViewModel
         return !string.Equals(Path.GetFileNameWithoutExtension(srt), entry.Stem, StringComparison.OrdinalIgnoreCase);
     }
 
-    /// <summary>Stems of the files the Record tab is capturing or transcribing (the Mac's <c>busyStems(of:)</c>).</summary>
+    /// <summary>
+    /// Stems in the output folder the transcription queue reads or rewrites: a
+    /// pending job's WAV or saved live preview (a retry after a failure) and a
+    /// finished job being transcribed again (the Mac's <c>busyStems(of:)</c>).
+    /// A session being recorded writes only into the spool, so it adds none.
+    /// </summary>
     public static IReadOnlySet<string> BusyStems(RecordingStatus recording)
     {
         ArgumentNullException.ThrowIfNull(recording);

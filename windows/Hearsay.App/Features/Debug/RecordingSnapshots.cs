@@ -4,6 +4,7 @@ using Hearsay.App.Features.Recording;
 using Hearsay.App.Features.Recovery;
 using Hearsay.App.Features.Transcription;
 using Hearsay.Core.Audio;
+using Hearsay.Core.Settings;
 using Hearsay.Core.Transcription;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -117,6 +118,8 @@ internal static class RecordingSnapshots
         controller.ShowSample(new RecordingSample(ControllerPhase.IdleState, new SessionLanguageTracker(LanguageChoice.Auto, TranscriptLanguage.English)));
         tools.Check(shell.Recording.Phase == MenuBar.RecordingPhase.Idle && shell.Recording.BusyFiles.Count == 0, "the tray is idle again");
 
+        await QueueStatesAsync(shell, sampleOutput, tools, cues, recording).ConfigureAwait(true);
+
         window.ResizeClient(MainWindow.DefaultWidth, 560);
         shell.Tabs.Tab = MainTab.File;
         await tools.Settle().ConfigureAwait(true);
@@ -157,6 +160,91 @@ internal static class RecordingSnapshots
         }
         tools.Check(File.Exists(spoolWav), "showing the recovery sheet changes nothing on disk");
         File.Delete(spoolWav);
+    }
+
+    /// <summary>
+    /// The Record tab's "Transcription queue" (PLAN.md 4.9 "UI"): three
+    /// recordings with no session (done with notes offered, running, waiting),
+    /// a session recording over a queue that whenIdle pauses, a failure with
+    /// a language banner, and the same at a narrow window. The rows and the
+    /// tray's queue line are checked against the queue's states. Mirrors the
+    /// "27-record-queue" render of mac/Hearsay/Features/Debug/UISnapshots.swift.
+    /// </summary>
+    private static async Task QueueStatesAsync(
+        AppShell shell, string sampleOutput, Tools tools, List<TranscriptSegment> cues, RecordingSample recording)
+    {
+        var window = shell.MainWindow;
+        var controller = shell.RecordingController;
+        var queue = shell.Queue;
+        var spool = shell.Spool.Root;
+        var idle = new RecordingSample(ControllerPhase.IdleState, new SessionLanguageTracker(LanguageChoice.Auto, TranscriptLanguage.English));
+        string Pending(string stem) => Path.Combine(spool, stem + ".wav");
+        string Output(string stem, string extension) => Path.Combine(sampleOutput, stem + extension);
+        List<string> RowStates() => [.. window.RecordView.QueueRowViews.Select(row => row.StateText)];
+        shell.Settings.FinalPassTiming = FinalPassTiming.WhenIdle;
+
+        // No session: one finished (Generate Notes offered), one running, one waiting.
+        window.ResizeClient(MainWindow.DefaultWidth, 1000);
+        shell.Tabs.Tab = MainTab.Record;
+        controller.ShowSample(idle);
+        queue.ClearSamples();
+        var finished = queue.InsertSample(Output("2026-09-25_14-30-00", ".wav"), TranscriptionJobState.Done, 1,
+            Output("2026-09-25_14-30-00", ".srt"), offersNotes: true);
+        finished.DisplayName = "quarterly-planning";
+        queue.InsertSample(Pending("2026-09-30_09-00-00"), TranscriptionJobState.Running, 0.45, live: cues);
+        queue.InsertSample(Pending("2026-09-30_10-00-00"), TranscriptionJobState.Waiting);
+        await tools.Settle().ConfigureAwait(true);
+        tools.Check(RowStates().SequenceEqual([Strings.QueueDone, Strings.QueueTranscribing(45), Strings.QueueWaiting]),
+            $"the queue rows read done, running, waiting ({string.Join(" | ", RowStates())})");
+        var buttons = window.RecordView.QueueRowViews[0].ShownButtons;
+        tools.Check(buttons.SequenceEqual([Strings.OpenTranscript, Strings.GenerateNotes, Strings.RevealInExplorer, Strings.Dismiss]),
+            $"the finished row offers its actions ({string.Join(", ", buttons)})");
+        tools.Check(shell.Recording.QueueLine == Strings.QueueLineCount(2), $"the tray's queue line counts two ({shell.Recording.QueueLine})");
+        await tools.Render("64-record-queue", window.RenderRoot).ConfigureAwait(true);
+
+        // A session recording: whenIdle holds the queue, so its rows say so.
+        queue.ClearSamples();
+        controller.ShowSample(recording);
+        var held = queue.InsertSample(Output("2026-09-25_14-30-00", ".wav"), TranscriptionJobState.Done, 1,
+            Output("2026-09-25_14-30-00", ".srt"), offersNotes: true);
+        held.DisplayName = "quarterly-planning";
+        queue.InsertSample(Pending("2026-09-30_09-00-00"), TranscriptionJobState.Suspended, 0.45, live: cues);
+        queue.InsertSample(Pending("2026-09-30_10-00-00"), TranscriptionJobState.Waiting);
+        await tools.Settle().ConfigureAwait(true);
+        tools.Check(queue.IsHeldForSession, "whenIdle holds the queue while recording");
+        tools.Check(RowStates().SequenceEqual([Strings.QueueDone, Strings.QueuePausedWhileRecording, Strings.QueuePausedWhileRecording]),
+            $"the held rows say paused while recording ({string.Join(" | ", RowStates())})");
+        tools.Check(shell.Recording.QueueLine == Strings.QueueLinePaused(2), $"the tray's queue line says paused ({shell.Recording.QueueLine})");
+        await tools.Render("65-record-queue-recording", window.RenderRoot).ConfigureAwait(true);
+
+        // A failure (Try Again), a finished row with the Auto fallback banner, and a waiting one.
+        queue.ClearSamples();
+        controller.ShowSample(idle);
+        var fallback = new SessionLanguageTracker(LanguageChoice.Auto, TranscriptLanguage.English);
+        fallback.Finish(new DetectedLanguage("de", 0.41f));
+        var failed = queue.InsertSample(Output("2026-09-29_10-00-00", ".wav"), TranscriptionJobState.Failed);
+        failed.ErrorMessage = Strings.TranscriptionFailed("The model file is missing.");
+        failed.NeedsModel = true;
+        queue.InsertSample(Output("2026-09-29_15-00-00", ".wav"), TranscriptionJobState.Done, 1, Output("2026-09-29_15-00-00", ".srt"),
+            tracker: fallback, notice: LanguageNotice.From(fallback.Decision));
+        queue.InsertSample(Pending("2026-09-30_10-00-00"), TranscriptionJobState.Waiting);
+        await tools.Settle().ConfigureAwait(true);
+        tools.Check(RowStates().SequenceEqual([Strings.QueueFailed, Strings.QueueDone, Strings.QueueWaiting]),
+            $"the queue rows read failed, done, waiting ({string.Join(" | ", RowStates())})");
+        tools.Check(window.RecordView.QueueRowViews[0].ShownButtons.Contains(Strings.TryAgain), "the failed row offers Try Again");
+        window.ResizeClient(MainWindow.DefaultWidth, 1200);
+        await tools.Settle().ConfigureAwait(true);
+        await tools.Render("66-record-queue-failed", window.RenderRoot).ConfigureAwait(true);
+
+        // The same at a narrow window: the actions wrap, nothing is cut off.
+        window.ResizeClient(480, 1300);
+        await tools.Settle().ConfigureAwait(true);
+        await tools.Render("67-record-queue-narrow", window.RenderRoot).ConfigureAwait(true);
+
+        queue.ClearSamples();
+        controller.ShowSample(idle);
+        window.ResizeClient(MainWindow.DefaultWidth, 1000);
+        await tools.Settle().ConfigureAwait(true);
     }
 
     /// <summary>The cues of en-30s.expected.srt as a live preview.</summary>

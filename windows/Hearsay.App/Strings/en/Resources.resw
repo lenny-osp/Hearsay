@@ -21,6 +21,10 @@
     <value>omitted when empty</value>
     <comment>app: omitted when empty</comment>
   </data>
+  <data name="app_031a8f0f659df890" xml:space="preserve">
+    <value>Failed</value>
+    <comment>app: Failed</comment>
+  </data>
   <data name="app_03a0235fa5548f97" xml:space="preserve">
     <value>Endpoint URL:</value>
     <comment>app: Endpoint URL:</comment>
@@ -165,6 +169,10 @@
     <value>View on GitHub</value>
     <comment>app: View on GitHub</comment>
   </data>
+  <data name="app_20f263f60f71f060" xml:space="preserve">
+    <value>Transcribe finished recordings</value>
+    <comment>app: Transcribe finished recordings</comment>
+  </data>
   <data name="app_21b111cbfe6e8fca" xml:space="preserve">
     <value>Default</value>
     <comment>app: Default</comment>
@@ -264,6 +272,10 @@
   <data name="app_3769bbd12cefb7ed" xml:space="preserve">
     <value>Skip the full pass and save the live preview as the transcript</value>
     <comment>app: Skip the full pass and save the live preview as the transcript</comment>
+  </data>
+  <data name="app_387c089d26bd417f" xml:space="preserve">
+    <value>Waiting to transcribe · in queue: {0}</value>
+    <comment>app: Waiting to transcribe · in queue: %lld</comment>
   </data>
   <data name="app_3bebeec55456a4f6" xml:space="preserve">
     <value>Could not keep the recording: {0} It stays at {1}.</value>
@@ -405,6 +417,10 @@
     <value>Test connection</value>
     <comment>app: Test connection</comment>
   </data>
+  <data name="app_5c14e22c6dd909f5" xml:space="preserve">
+    <value>Stop &amp; Start Next:</value>
+    <comment>app: Stop &amp; Start Next:</comment>
+  </data>
   <data name="app_5c17dd2173c1bec6" xml:space="preserve">
     <value>The recording is missing.</value>
     <comment>app: The recording is missing.</comment>
@@ -456,6 +472,10 @@
   <data name="app_6318b1954d27a639" xml:space="preserve">
     <value>Silent for {0}s — check the input device</value>
     <comment>app: Silent for %llds — check the input device</comment>
+  </data>
+  <data name="app_6380ee6c0c422be4" xml:space="preserve">
+    <value>Done</value>
+    <comment>app: queue.state.done</comment>
   </data>
   <data name="app_638d053052e7797e" xml:space="preserve">
     <value>Transcribe</value>
@@ -528,6 +548,10 @@
   <data name="app_6dfd56a3aea6188e" xml:space="preserve">
     <value>The AI suggested this name. Edit it or press Return to accept it.</value>
     <comment>app: The AI suggested this name. Edit it or press Return to accept it.</comment>
+  </data>
+  <data name="app_6e293a8c009e0011" xml:space="preserve">
+    <value>Waiting</value>
+    <comment>app: Waiting</comment>
   </data>
   <data name="app_6f933fbd4c27efc2" xml:space="preserve">
     <value>Meeting-note generation was cancelled; no meeting notes were generated.</value>
@@ -608,6 +632,10 @@
   <data name="app_7e08c50fb774dd67" xml:space="preserve">
     <value>Install Update</value>
     <comment>app: Install Update</comment>
+  </data>
+  <data name="app_7e1a1af334567230" xml:space="preserve">
+    <value>Transcription queue</value>
+    <comment>app: Transcription queue</comment>
   </data>
   <data name="app_7ef9454c5eb3ec8a" xml:space="preserve">
     <value>The recording is saved before Hearsay quits.</value>
@@ -740,6 +768,10 @@
   <data name="app_97ad74e526d29a3d" xml:space="preserve">
     <value>No model installed. Choose a model in Models.</value>
     <comment>app: No model installed. Choose a model in Models.</comment>
+  </data>
+  <data name="app_99802842151f3370" xml:space="preserve">
+    <value>Paused while recording</value>
+    <comment>app: Paused while recording</comment>
   </data>
   <data name="app_9af089758da42b6e" xml:space="preserve">
     <value>Rename meeting</value>
@@ -949,6 +981,10 @@
     <value>Stop</value>
     <comment>app: Stop</comment>
   </data>
+  <data name="app_cbe4179c5fdcb080" xml:space="preserve">
+    <value>Transcribing {0}%</value>
+    <comment>app: Transcribing %lld%%</comment>
+  </data>
   <data name="app_cc7fb00dff44a170" xml:space="preserve">
     <value>Transcribing… {0}%</value>
     <comment>app: Transcribing… %lld%%</comment>
@@ -1001,6 +1037,10 @@
     <value>Could not save the token: {0}</value>
     <comment>app: Could not save the token: %@</comment>
   </data>
+  <data name="app_d3834a42f56eb683" xml:space="preserve">
+    <value>Transcribing… {0}% · in queue: {1}</value>
+    <comment>app: Transcribing… %lld%% · in queue: %lld</comment>
+  </data>
   <data name="app_d3a289c7a7ebddf6" xml:space="preserve">
     <value>Prompt templates</value>
     <comment>app: Prompt templates</comment>
@@ -1008,6 +1048,10 @@
   <data name="app_d49b6e879717bcba" xml:space="preserve">
     <value>{0} at {1}</value>
     <comment>app: %@ at %@</comment>
+  </data>
+  <data name="app_d4d87ff16597b559" xml:space="preserve">
+    <value>Either way, the next recording can start at once.</value>
+    <comment>app: Either way, the next recording can start at once.</comment>
   </data>
   <data name="app_d640c7421da06661" xml:space="preserve">
     <value>Resume</value>
@@ -1024,6 +1068,10 @@
   <data name="app_d8465f11706f9e15" xml:space="preserve">
     <value>Keep the recording (WAV) after a successful transcription</value>
     <comment>app: Keep the recording (WAV) after a successful transcription</comment>
+  </data>
+  <data name="app_d95c6550abb6efa7" xml:space="preserve">
+    <value>Transcription paused while recording · in queue: {0}</value>
+    <comment>app: Transcription paused while recording · in queue: %lld</comment>
   </data>
   <data name="app_da8c46fd1e93e757" xml:space="preserve">
     <value>No meeting notes were generated. You can rename the SRT and its recording, or keep the timestamp names.</value>
@@ -1164,6 +1212,10 @@
   <data name="app_fc72d42a41c7dd76" xml:space="preserve">
     <value>The recording is kept at {0}.</value>
     <comment>app: The recording is kept at %@.</comment>
+  </data>
+  <data name="app_fd094aa48f5a3a13" xml:space="preserve">
+    <value>Recordings in queue: {0}</value>
+    <comment>app: Recordings in queue: %lld</comment>
   </data>
   <data name="app_fd26c058a4f36421" xml:space="preserve">
     <value>Verifying Hearsay {0}…</value>
@@ -1792,6 +1844,10 @@
   <data name="windows_d14590b3027e83e9" xml:space="preserve">
     <value>To install it, run `{0}` in a terminal.</value>
     <comment>windows: To install it, run `%@` in a terminal.</comment>
+  </data>
+  <data name="windows_d38803b0307ba05b" xml:space="preserve">
+    <value>Already used for Stop &amp; Start Next.</value>
+    <comment>windows: Already used for Stop &amp; Start Next.</comment>
   </data>
   <data name="windows_d813f1147af1497b" xml:space="preserve">
     <value>Move to Recycle Bin…</value>

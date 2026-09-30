@@ -4598,6 +4598,14 @@
   },
   {
     "catalog": "windows",
+    "key": "Already used for Stop & Start Next.",
+    "english": "Already used for Stop & Start Next.",
+    "comment": "Shortcut recorder hint: the Start / Stop or Pause shortcut was set to the Stop & Start Next one. Windows only.",
+    "placeholders": [],
+    "translation": "Ya se usa para Detener e iniciar la siguiente."
+  },
+  {
+    "catalog": "windows",
     "key": "%@ is already used by another app or Windows.",
     "english": "%@ is already used by another app or Windows.",
     "comment": "Shortcut recorder hint. %@ is a shortcut such as Ctrl+Alt+Win+R. Windows only.",

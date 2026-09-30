@@ -23,8 +23,9 @@ namespace Hearsay.App.Features.Recording;
 /// closing the window never stops a recording or a transcription. With no
 /// session and one recording in the queue, that recording is shown as the
 /// single meeting always was (live preview, progress, "Use live preview
-/// instead", the saved files, the language banner, the notes); the queue list
-/// for several recordings is WI-4. Port of
+/// instead", the saved files, the language banner, the notes); otherwise the
+/// "Transcription queue" below the session lists every recording as a
+/// <see cref="QueueRowView"/> (<see cref="QueueRows"/>). Port of
 /// mac/Hearsay/Features/Recording/RecordView.swift. The Mac's permission
 /// section has no Windows counterpart (PLAN.md 18.4, W3); <see cref="GenerateNotes"/>
 /// is the hook of the notes flow (the Mac starts the flow by itself from the
@@ -80,6 +81,10 @@ internal sealed partial class RecordView : UserControl
     private readonly StackPanel errorArea = new() { Spacing = 8 };
     private readonly Border savedCard;
     private readonly StackPanel savedArea = new() { Spacing = 8 };
+    private readonly Border queueCard;
+    private readonly StackPanel queueArea = new() { Spacing = 10 };
+    private readonly Dictionary<string, QueueRowView> queueRows = [];
+    private List<string> shownQueueRows = [];
     private bool updating;
     // What each rebuilt area last showed: the areas are rebuilt only when it
     // changes, never at the meters' 5 Hz, so a button is never replaced
@@ -185,6 +190,12 @@ internal sealed partial class RecordView : UserControl
         page.Children.Add(errorCard);
         savedCard = Card(savedArea);
         page.Children.Add(savedCard);
+
+        // The queue: one row per recording below the session (PLAN.md 4.9 "UI").
+        queueCard = Card(
+            new TextBlock { Text = Strings.TranscriptionQueue, Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"] },
+            queueArea);
+        page.Children.Add(queueCard);
 
         Content = new ScrollViewer { Content = page, HorizontalScrollMode = ScrollMode.Disabled };
         model.PropertyChanged += OnModelChanged;
@@ -293,7 +304,63 @@ internal sealed partial class RecordView : UserControl
             shownSaved = saved;
             RenderSaved(job);
         }
+        RenderQueue();
     }
+
+    /// <summary>"Generate Notes…" on the finished card or a queue row: the notes flow opens for that job's SRT.</summary>
+    private void StartNotes(TranscriptionJob job)
+    {
+        if (GenerateNotes is not { } generate || job.Srt is not { } srt || job.Language is not { } language) return;
+        queue.NotesStarted(job);
+        generate(new NotesRequest(srt, language, job.Id));
+    }
+
+    /// <summary>The queue list: shown whenever the single-meeting view is not (<see cref="QueueRows.ShowsList"/>).</summary>
+    private void RenderQueue()
+    {
+        if (!QueueRows.ShowsList(queue))
+        {
+            queueCard.Visibility = Visibility.Collapsed;
+            return;
+        }
+        queueCard.Visibility = Visibility.Visible;
+        var ids = queue.Jobs.Select(job => job.Id).ToList();
+        if (!ids.SequenceEqual(shownQueueRows))
+        {
+            var kept = new Dictionary<string, QueueRowView>();
+            queueArea.Children.Clear();
+            foreach (var job in queue.Jobs)
+            {
+                if (!queueRows.TryGetValue(job.Id, out var row))
+                {
+                    row = new QueueRowView(queue, job, StartNotes, RevealJob, opened => ResultActions.Open(shell, opened.Srt ?? opened.Recording.Path));
+                }
+                kept[job.Id] = row;
+                if (queueArea.Children.Count > 0)
+                {
+                    queueArea.Children.Add(new Border
+                    {
+                        Height = 1,
+                        Background = (Brush)Application.Current.Resources["DividerStrokeColorDefaultBrush"],
+                    });
+                }
+                queueArea.Children.Add(row);
+            }
+            queueRows.Clear();
+            foreach (var (id, row) in kept) queueRows[id] = row;
+            shownQueueRows = ids;
+        }
+        var canNotes = GenerateNotes is not null && !NotesFlowViewModel.IsAnyRunning;
+        foreach (var job in queue.Jobs)
+        {
+            if (queueRows.TryGetValue(job.Id, out var row)) row.Update(queue.IsPausedForSession(job), canNotes);
+        }
+    }
+
+    private void RevealJob(TranscriptionJob job) => ResultActions.Reveal(shell, job.Files);
+
+    /// <summary>The rows now listed, for the UI snapshots and checks.</summary>
+    internal IReadOnlyList<QueueRowView> QueueRowViews => [.. queue.Jobs.Select(job => queueRows.GetValueOrDefault(job.Id)).OfType<QueueRowView>()];
 
     private void RenderNotices()
     {
@@ -518,13 +585,11 @@ internal sealed partial class RecordView : UserControl
         if (job is { State: TranscriptionJobState.Done, Srt: { } transcript } done)
         {
             buttons.Children.Add(IconButton("", Strings.OpenSrt, () => ResultActions.Open(shell, transcript), accent: false));
-            if (done.OffersNotes && done.Language is { } notesLanguage)
+            if (done.OffersNotes)
             {
                 var notes = IconButton("", Strings.GenerateNotes, () =>
                 {
-                    if (GenerateNotes is not { } generate) return;
-                    queue.NotesStarted(done);
-                    generate(new NotesRequest(transcript, notesLanguage, done.Id));
+                    StartNotes(done);
                 }, accent: false);
                 notes.IsEnabled = GenerateNotes is not null && !NotesFlowViewModel.IsAnyRunning;
                 if (GenerateNotes is null) ToolTipService.SetToolTip(notes, Strings.GenerateNotesUnavailable);

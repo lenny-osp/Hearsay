@@ -21,7 +21,9 @@ namespace Hearsay.App.Features.MenuBar;
 /// (<see cref="ContextMenuMode.PopupMenu"/>) built from a
 /// <see cref="MenuFlyout"/> each time it opens, so it looks like every other
 /// tray menu. A left click opens the main window, as Windows tray icons do;
-/// the Mac's click opens its panel. The notification area cannot show text
+/// the Mac's click opens its panel. The menu adds one disabled queue line
+/// under the state line and Stop &amp; Start Next (enabled while recording or
+/// paused) under Pause / Resume (PLAN.md 4.9, 18.10). The notification area cannot show text
 /// beside the icon, so the elapsed time and the final pass's percentage are
 /// in the tooltip.
 /// </para>
@@ -132,7 +134,7 @@ internal sealed class TrayIcon : IDisposable
     }
 
     private void OnStateChanged(object? sender, PropertyChangedEventArgs e) =>
-        Refresh(menuChanged: e.PropertyName == nameof(RecordingStatus.Phase));
+        Refresh(menuChanged: e.PropertyName is nameof(RecordingStatus.Phase) or nameof(RecordingStatus.QueueLine));
 
     /// <summary>Applies the icon, tooltip and (when the phase changed) menu for the current state.</summary>
     private void Refresh(bool menuChanged)
@@ -160,6 +162,8 @@ internal sealed class TrayIcon : IDisposable
     {
         var menu = new MenuFlyout();
         menu.Items.Add(new MenuFlyoutItem { Text = recording.StateText, IsEnabled = false });
+        // One queue line, as the Mac panel shows (PLAN.md 4.9 "UI").
+        if (recording.QueueLine is { } queueLine) menu.Items.Add(new MenuFlyoutItem { Text = queueLine, IsEnabled = false });
         menu.Items.Add(new MenuFlyoutSeparator());
         if (recording.IsCapturing)
         {
@@ -182,6 +186,12 @@ internal sealed class TrayIcon : IDisposable
                 Command = new RelayCommand(recording.ToggleStartStop),
             });
         }
+        menu.Items.Add(new MenuFlyoutItem
+        {
+            Text = $"{Strings.StopAndStartNext}	{settings.StopStartNextHotkey.DisplayString}",
+            Command = new RelayCommand(recording.StopAndStartNext),
+            IsEnabled = recording.CanStopAndStartNext,
+        });
         menu.Items.Add(new MenuFlyoutSeparator());
         menu.Items.Add(new MenuFlyoutItem { Text = Strings.OpenHearsay, Command = new RelayCommand(openMain) });
         menu.Items.Add(new MenuFlyoutSeparator());

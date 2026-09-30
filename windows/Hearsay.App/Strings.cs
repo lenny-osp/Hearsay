@@ -602,6 +602,26 @@ internal static partial class Strings
     public static string StopAndStartNextTooltip(string shortcut) =>
         App("Save this recording and start the next one at once (%@). This one is transcribed in the background.", shortcut);
 
+    // Record tab queue list (mac/Hearsay/Features/Recording/RecordView.swift, QueueRow).
+    public static string TranscriptionQueue => App("Transcription queue");
+    public static string QueueWaiting => App("Waiting");
+    public static string QueuePausedWhileRecording => App("Paused while recording");
+    public static string QueueTranscribing(int percent) => App("Transcribing %lld%%", percent);
+    public static string QueueDone => App("queue.state.done");
+    public static string QueueFailed => App("Failed");
+
+    // Tray menu queue line (mac/Hearsay/Features/MenuBar/MenuBarView.swift, queueLine).
+    public static string QueueLineCount(int pending) => App("Recordings in queue: %lld", pending);
+    public static string QueueLinePaused(int pending) => App("Transcription paused while recording · in queue: %lld", pending);
+    public static string QueueLineTranscribing(int percent, int pending) => App("Transcribing… %lld%% · in queue: %lld", percent, pending);
+    public static string QueueLineWaiting(int pending) => App("Waiting to transcribe · in queue: %lld", pending);
+
+    // Settings > General > Transcription (mac/Hearsay/Features/Settings/SettingsView.swift, FinalPassTimingPicker).
+    public static string FinalPassTimingLabel => App("Transcribe finished recordings");
+    public static string FinalPassTimingCaption => App("Either way, the next recording can start at once.");
+    public static string TimingImmediate => Core("Right away (in the background)");
+    public static string TimingWhenIdle => Core("When no recording is running");
+
     // File tab (mac/Hearsay/Features/FileTranscription/FileView.swift, FileViewModel.swift).
     public static string DropFileHere => App("Drop an audio or video file here");
     /// <summary>The Mac's "wav, m4a, mp3, aac, aiff, caf, or …" with what Media Foundation reads (Windows only).</summary>
@@ -666,6 +686,7 @@ internal static partial class Strings
     public static string SectionShortcuts => App("Shortcuts");
     public static string ShortcutStartStop => App("Start / Stop recording:");
     public static string ShortcutPause => App("Pause / Resume:");
+    public static string ShortcutStopStartNext => App("Stop & Start Next:");
     public static string ShortcutsCaption => App("Work in any app, even with the window closed.");
     public static string ShortcutsReset => App("Reset");
     public static string ShortcutTaken(string shortcut) => App("%@ is already used by another app or shortcut.", shortcut);
@@ -749,6 +770,7 @@ internal static partial class Strings
     public static string ShortcutNeedsModifier => Win("Include Ctrl, Alt, or Win.");
     public static string ShortcutSameAsStartStop => Win("Already used for Start / Stop recording.");
     public static string ShortcutSameAsPause => Win("Already used for Pause / Resume.");
+    public static string ShortcutSameAsStopStartNext => Win("Already used for Stop & Start Next.");
     /// <summary>A trial <c>RegisterHotKey</c> failed with ERROR_HOTKEY_ALREADY_REGISTERED (Windows only).</summary>
     public static string ShortcutUsedElsewhere(string shortcut) => Win("%@ is already used by another app or Windows.", shortcut);
     public static string ShortcutRejected(int error) => Win("Windows does not accept this shortcut (error %d).", error);
