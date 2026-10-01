@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Hearsay.App.Features.FileTranscription;
 using Hearsay.App.Features.Main;
 using Hearsay.App.Features.Notes;
+using Hearsay.App.Features.Settings;
 using Hearsay.App.Features.Transcription;
 using Hearsay.Core.Audio;
 using Hearsay.Core.Settings;
@@ -102,7 +103,6 @@ internal sealed partial class RecordView : UserControl
         queue = shell.Queue;
         var page = Page();
         page.Padding = new Thickness(24, 4, 24, 24);
-        page.MaxWidth = 760;
 
         // Devices and language.
         microphone.SelectionChanged += (_, _) =>
@@ -197,7 +197,7 @@ internal sealed partial class RecordView : UserControl
             queueArea);
         page.Children.Add(queueCard);
 
-        Content = new ScrollViewer { Content = page, HorizontalScrollMode = ScrollMode.Disabled };
+        Content = new ScrollViewer { Content = CenteredColumn.Host(page, 760), HorizontalScrollMode = ScrollMode.Disabled };
         model.PropertyChanged += OnModelChanged;
         queue.Changed += (_, _) => Render();
         Loaded += (_, _) =>

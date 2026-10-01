@@ -1213,6 +1213,12 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
   always kept; live chunks still queued are dropped (the WAV has them).
 - Debug launch path (`HEARSAY_TRANSCRIBE_FILE`) needs files inside the app
   container because of the sandbox; document or drop before release.
+- **Fixed 2026-10-01 (Windows): pages off-center after a resize.** A
+  StackPanel with `MaxWidth` and Stretch inside a ScrollViewer sat off-center
+  on the Record, File and Models tabs (Settings by a few pixels). Those tabs
+  and Settings now host the page in `Settings/CenteredColumn.cs`, which
+  arranges it min(width, max) wide and centered; `HEARSAY_UI_SNAPSHOTS`
+  renders every tab wide, back at the default and narrow to check it.
 
 ## 18. Windows version
 

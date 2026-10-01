@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Globalization;
 using Hearsay.App.Features.Main;
 using Hearsay.App.Features.Recording;
+using Hearsay.App.Features.Settings;
 using Hearsay.App.Features.Transcription;
 using Hearsay.Core.Transcription;
 using Microsoft.UI;
@@ -50,7 +51,6 @@ internal sealed partial class FileView : UserControl
         model = shell.FileModel;
         var page = Page();
         page.Padding = new Thickness(24, 4, 24, 24);
-        page.MaxWidth = 760;
 
         // Same picker and shared setting as the Record tab.
         picker = new LanguageChoicePicker(shell.Settings);
@@ -102,7 +102,7 @@ internal sealed partial class FileView : UserControl
         noticeCard = Card(noticeView);
         page.Children.Add(noticeCard);
 
-        Content = new ScrollViewer { Content = page, HorizontalScrollMode = ScrollMode.Disabled };
+        Content = new ScrollViewer { Content = CenteredColumn.Host(page, 760), HorizontalScrollMode = ScrollMode.Disabled };
         model.PropertyChanged += OnModelChanged;
         model.NotesRequested += (_, _) => Render();
         Render();

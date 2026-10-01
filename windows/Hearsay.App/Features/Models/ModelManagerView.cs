@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using Hearsay.App.Features.Settings;
 using Hearsay.Core.ModelStore;
 using Hearsay.Core.Settings;
 using Microsoft.UI.Xaml;
@@ -46,7 +47,7 @@ internal sealed partial class ModelManagerView : UserControl
         this.shell = shell;
         store = shell.Models;
 
-        var page = new StackPanel { Spacing = 0, MaxWidth = 720, Margin = new Thickness(24, 12, 24, 24) };
+        var page = new StackPanel { Spacing = 0, Margin = new Thickness(24, 12, 24, 24) };
 
         // Header: where the models are, how much they take, Show in Explorer.
         var header = new Grid { ColumnSpacing = 12, Margin = new Thickness(4, 0, 4, 0) };
@@ -101,7 +102,14 @@ internal sealed partial class ModelManagerView : UserControl
             page.Children.Add(new Border { Style = Resource<Style>("CardStyle"), Child = list, Margin = new Thickness(0, 0, 0, 4) });
         }
 
-        Content = new ScrollViewer { Content = page, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+        // 720 wide plus the 24 margins; the column centers it at any window width.
+        Content = new ScrollViewer
+        {
+            Content = CenteredColumn.Host(page, 720 + 48),
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            HorizontalScrollMode = ScrollMode.Disabled,
+        };
         store.StateChanged += OnStateChanged;
         store.PropertyChanged += OnStoreChanged;
         shell.Settings.PropertyChanged += OnSettingsChanged;

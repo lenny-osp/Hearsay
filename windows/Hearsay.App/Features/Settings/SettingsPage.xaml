@@ -4,7 +4,8 @@
 <UserControl
     x:Class="Hearsay.App.Features.Settings.SettingsPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:settings="using:Hearsay.App.Features.Settings">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -21,12 +22,19 @@
             <SelectorBarItem x:Name="OutputItem" Tag="Output" />
             <SelectorBarItem x:Name="AIItem" Tag="AI" />
         </SelectorBar>
-        <ScrollViewer Grid.Row="1" x:Name="Scroller" VerticalScrollBarVisibility="Auto">
-            <ContentControl
-                x:Name="PaneContent"
-                MaxWidth="720"
-                Margin="24,4,24,24"
-                HorizontalContentAlignment="Stretch" />
+        <ScrollViewer
+            Grid.Row="1"
+            x:Name="Scroller"
+            VerticalScrollBarVisibility="Auto"
+            HorizontalScrollBarVisibility="Disabled"
+            HorizontalScrollMode="Disabled">
+            <!-- 720 wide plus the 24 margins, centered at any window width. -->
+            <settings:CenteredColumn MaxColumnWidth="768">
+                <ContentControl
+                    x:Name="PaneContent"
+                    Margin="24,4,24,24"
+                    HorizontalContentAlignment="Stretch" />
+            </settings:CenteredColumn>
         </ScrollViewer>
     </Grid>
 </UserControl>

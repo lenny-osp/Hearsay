@@ -23,7 +23,9 @@ namespace Hearsay.App.Features.Debug;
 /// <summary>
 /// Debug only. When Hearsay is launched with <c>HEARSAY_UI_SNAPSHOTS=&lt;dir&gt;</c>,
 /// renders the app's own views (never a screen capture) into PNGs in
-/// <c>&lt;dir&gt;</c>: every main-window tab, every Settings section, the
+/// <c>&lt;dir&gt;</c>: every main-window tab, every tab again at 1400 wide, back
+/// at the default width and at 600 (<c>NN-tab-wide|back|narrow.png</c>, to
+/// check the page stays centered after resizes), every Settings section, the
 /// settings warning banner with sample text, the naming and first-run
 /// sheets, History's Rename sheet, its inline rejection and its error alert,
 /// History after a rename, and the help page (top, the Meeting notes
@@ -148,6 +150,20 @@ internal static class UISnapshots
             shell.Tabs.Tab = tab;
             await Settle().ConfigureAwait(true);
             await Render(name, window.RenderRoot).ConfigureAwait(true);
+        }
+
+        // Page centering after resizes: every tab at a wide window, then back
+        // at the default width (the tab views are cached, so a stale layout
+        // would show here).
+        foreach (var (label, width) in new[] { ("wide", 1400), ("back", MainWindow.DefaultWidth), ("narrow", 600) })
+        {
+            window.ResizeClient(width, 560);
+            foreach (var (name, tab) in tabs)
+            {
+                shell.Tabs.Tab = tab;
+                await Settle().ConfigureAwait(true);
+                await Render($"{name}-{label}", window.RenderRoot).ConfigureAwait(true);
+            }
         }
 
         // The Mac renders each section at 720 x 1000 so nothing is cut off.
