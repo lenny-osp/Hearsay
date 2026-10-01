@@ -1661,6 +1661,14 @@
     <value>{0} wird bereits von einer anderen App oder von Windows verwendet.</value>
     <comment>windows: %@ is already used by another app or Windows.</comment>
   </data>
+  <data name="windows_2d9f69ac8ee5e8cf" xml:space="preserve">
+    <value>Vor jeder automatischen Aufnahme nach der Sprache fragen</value>
+    <comment>windows: Ask which language to use before each automatic recording</comment>
+  </data>
+  <data name="windows_2da8a477ab8f5708" xml:space="preserve">
+    <value>Aufnahme automatisch für eine Microsoft Teams-Besprechung gestartet.</value>
+    <comment>windows: Recording started automatically for a Microsoft Teams meeting.</comment>
+  </data>
   <data name="windows_2e544a292f6979ed" xml:space="preserve">
     <value>Umschalt</value>
     <comment>windows: Shift</comment>
@@ -1697,13 +1705,29 @@
     <value>Wird transkribiert …</value>
     <comment>windows: Transcribing…</comment>
   </data>
+  <data name="windows_494fae321ac72722" xml:space="preserve">
+    <value>Aus: Die Aufnahme verwendet die im Tab „Aufnahme“ gewählte Sprache, und „Automatisch“ erkennt sie. Ein: Wenn eine Besprechung beginnt, fragt Hearsay, ob und in welcher Sprache sie aufgenommen werden soll, und nimmt nach der Bestätigung auf.</value>
+    <comment>windows: Off: the recording uses the language chosen on the Record tab, and Auto detects it. On: when a meeting starts, Hearsay asks whether to record it and in which language, and records when you confirm.</comment>
+  </data>
+  <data name="windows_4d6f50f3f1d532cc" xml:space="preserve">
+    <value>Nicht aufnehmen</value>
+    <comment>windows: Don't record</comment>
+  </data>
   <data name="windows_4ece928cc9306cf9" xml:space="preserve">
     <value>Verwendet die auf diesem PC installierte Copilot CLI und deren eigene Anmeldung. Zum Anmelden einmal `copilot` im Terminal ausführen. Mit „auto“ wählt Copilot das Modell.</value>
     <comment>windows: Uses the Copilot CLI installed on this PC and its own login. Run `copilot` once in Terminal to log in. "auto" lets Copilot pick the model.</comment>
   </data>
+  <data name="windows_589e608112ddb4c5" xml:space="preserve">
+    <value>Microsoft Teams-Besprechung hat begonnen</value>
+    <comment>windows: Microsoft Teams meeting started</comment>
+  </data>
   <data name="windows_5c4fb4d46cc9e941" xml:space="preserve">
     <value>Eine Kombination mit Strg, Alt oder Win drücken. Esc bricht ab, die Rücktaste stellt den Standard wieder her.</value>
     <comment>windows: Press a combination with Ctrl, Alt, or Win. Esc cancels; Backspace restores the default.</comment>
+  </data>
+  <data name="windows_5d31e507d9e0a18b" xml:space="preserve">
+    <value>Hearsay startet die Aufnahme, wenn Microsoft Teams das Mikrofon verwendet, und stoppt sie, wenn die Besprechung endet. Die Aufnahme verwendet das Mikrofon, das Systemaudio und die Sprache, die im Tab „Aufnahme“ gewählt sind.</value>
+    <comment>windows: Hearsay starts recording when Microsoft Teams begins using your microphone and stops when the meeting ends. The recording uses the microphone, system audio and language chosen on the Record tab.</comment>
   </data>
   <data name="windows_5e1aef8bb73d890d" xml:space="preserve">
     <value>Die aktuellen Notizen werden in den Papierkorb verschoben, sobald die neuen gesichert sind.</value>
@@ -1725,6 +1749,14 @@
     <value>Einige Dateien konnten nicht in den Papierkorb verschoben werden:</value>
     <comment>windows: Some files could not be moved to the Recycle Bin:</comment>
   </data>
+  <data name="windows_70c02b4d20ec1f05" xml:space="preserve">
+    <value>Aufnahme nicht gestartet</value>
+    <comment>windows: Recording not started</comment>
+  </data>
+  <data name="windows_7105c577db089128" xml:space="preserve">
+    <value>Aufnahme gestoppt</value>
+    <comment>windows: Recording stopped</comment>
+  </data>
   <data name="windows_74dc07fb2df5951b" xml:space="preserve">
     <value>Das Release enthält keine Windows-ZIP-Datei oder keine Prüfsummenliste.</value>
     <comment>windows: The release has no Windows zip file or checksum list.</comment>
@@ -1733,6 +1765,10 @@
     <value>Die Dateien werden von diesem PC entfernt. Das Modell kann jederzeit erneut geladen werden.</value>
     <comment>windows: Its files are removed from this PC. You can download it again at any time.</comment>
   </data>
+  <data name="windows_79c6aa4bf8a8aafa" xml:space="preserve">
+    <value>Die Microsoft Teams-Besprechung ist beendet.</value>
+    <comment>windows: The Microsoft Teams meeting ended.</comment>
+  </data>
   <data name="windows_7b4b1fcb64e646a2" xml:space="preserve">
     <value>{0} ist nicht vorhanden.</value>
     <comment>windows: %@ does not exist.</comment>
@@ -1740,6 +1776,10 @@
   <data name="windows_80eeb063037fd905" xml:space="preserve">
     <value>Diese Besprechung in den Papierkorb verschieben?</value>
     <comment>windows: Move this meeting to the Recycle Bin?</comment>
+  </data>
+  <data name="windows_85675ac41cd45182" xml:space="preserve">
+    <value>Hearsay konnte die Aufnahme für die Microsoft Teams-Besprechung nicht starten.</value>
+    <comment>windows: Hearsay could not start recording for the Microsoft Teams meeting.</comment>
   </data>
   <data name="windows_856dbc2661974e2d" xml:space="preserve">
     <value>Hearsay verwendet {0} nach dem Neustart.</value>
@@ -1813,9 +1853,25 @@
     <value>Win</value>
     <comment>windows: Win</comment>
   </data>
+  <data name="windows_b9ccf14d477fb864" xml:space="preserve">
+    <value>Microsoft Teams-Besprechung</value>
+    <comment>windows: Microsoft Teams meeting</comment>
+  </data>
+  <data name="windows_bca705b63a3cf585" xml:space="preserve">
+    <value>Besprechungen</value>
+    <comment>windows: Meetings</comment>
+  </data>
   <data name="windows_bcc0753c970f15ca" xml:space="preserve">
     <value>{0} kann unter Windows kein so langes Transkript verarbeiten: Die Befehlszeile hätte {1} Zeichen, Windows erlaubt {2}. Für lange Besprechungen Claude Code, Codex oder einen HTTP-Anbieter verwenden.</value>
     <comment>windows: %@ cannot take a transcript this long on Windows: the command line would be %@ characters, and Windows allows %@. Use Claude Code, Codex, or an HTTP provider for long meetings.</comment>
+  </data>
+  <data name="windows_be3f4838b198b77b" xml:space="preserve">
+    <value>Aufnahme gestartet</value>
+    <comment>windows: Recording started</comment>
+  </data>
+  <data name="windows_bfdd510698ef3ccb" xml:space="preserve">
+    <value>Aufnehmen</value>
+    <comment>windows: Record</comment>
   </data>
   <data name="windows_c91da2e0203bbe90" xml:space="preserve">
     <value>Alt</value>
@@ -1824,6 +1880,10 @@
   <data name="windows_c922f7e788140aac" xml:space="preserve">
     <value>Verwendet die auf diesem PC installierte Antigravity CLI und das Google-Konto, mit dem sie angemeldet ist; Anfragen zählen zu den Limits dieses Kontos. Zum Anmelden einmal `agy` im Terminal ausführen; `agy models` listet die Modell-IDs auf. Aufwand: low, medium, high oder max, nur für eine Modell-ID ohne eigene Stufe (ein Modell, das auf -high, -medium oder -low endet, ignoriert ihn). Läufe verwenden das agy-Projekt hearsay-notes, dessen Deny-Regeln dem Modell außer der Websuche keine Werkzeuge lassen, und die Konversation jedes Laufs wird danach aus dem agy-Verlauf gelöscht.</value>
     <comment>windows: Uses the Antigravity CLI installed on this PC and the Google account it is logged in with; requests count against that account's limits. Run `agy` once in Terminal to log in; `agy models` lists the model ids. Effort: low, medium, high, or max, only for a model id without its own level (a model ending in -high, -medium, or -low ignores it). Runs use agy's hearsay-notes project, whose deny rules leave the model no tools except web search, and each run's conversation is deleted from agy's history afterwards.</comment>
+  </data>
+  <data name="windows_cc387279b98291f4" xml:space="preserve">
+    <value>Microsoft Teams-Besprechungen automatisch aufnehmen</value>
+    <comment>windows: Record Microsoft Teams meetings automatically</comment>
   </data>
   <data name="windows_cc998ac38d55e048" xml:space="preserve">
     <value>Strg, Alt oder Win verwenden.</value>
@@ -1884,6 +1944,10 @@
   <data name="windows_e7cf76b321ed3f73" xml:space="preserve">
     <value>{0}. {1}</value>
     <comment>windows: %@. %@</comment>
+  </data>
+  <data name="windows_ede6bfcd25396b57" xml:space="preserve">
+    <value>Diese Besprechung aufnehmen?</value>
+    <comment>windows: Record this meeting?</comment>
   </data>
   <data name="windows_ee45aba71c60ac6a" xml:space="preserve">
     <value>Windows führt Hearsay direkt aus der ZIP-Datei aus. Die ZIP-Datei in einen beschreibbaren Ordner extrahieren, Hearsay dort öffnen und dann erneut nach Updates suchen.</value>

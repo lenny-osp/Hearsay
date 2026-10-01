@@ -247,7 +247,7 @@ internal sealed partial class RecordView : UserControl
         systemMeterRow.Visibility = model.SystemLevelFraction is null ? Visibility.Collapsed : Visibility.Visible;
         systemMeter.Value = model.SystemLevelFraction ?? 0;
         systemMeter.Foreground = Green();
-        var notices = $"{model.SystemAudioNotice}|{model.SilenceWarning}|{model.CpuSpeedNotice}";
+        var notices = $"{model.AutomaticStartNotice}|{model.SystemAudioNotice}|{model.SilenceWarning}|{model.CpuSpeedNotice}";
         if (notices != shownNotices)
         {
             shownNotices = notices;
@@ -365,6 +365,7 @@ internal sealed partial class RecordView : UserControl
     private void RenderNotices()
     {
         noticeArea.Children.Clear();
+        if (model.AutomaticStartNotice is { } automatic) noticeArea.Children.Add(FileView.IconLine("", automatic, FileView.Secondary()));
         if (model.SystemAudioNotice is { } systemNotice) noticeArea.Children.Add(FileView.IconLine("", systemNotice, FileView.Secondary()));
         if (model.SilenceWarning is { } warning) noticeArea.Children.Add(FileView.IconLine("", warning, FileView.Caution()));
         if (model.CpuSpeedNotice is { } cpu) noticeArea.Children.Add(FileView.IconLine("", cpu, FileView.Secondary()));

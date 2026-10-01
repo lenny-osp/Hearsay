@@ -627,6 +627,98 @@ moves to the job at Stop with the live task still running.
   and has a `data-platform="windows"` twin (18.10, WI-4); the README says
   the Windows differences in its Windows section.
 
+### 4.10 Automatic recording of Microsoft Teams meetings
+
+Owner request 2026-10-01: Hearsay should start recording by itself when a
+Microsoft Teams meeting starts. Feasible on both platforms without a Teams
+account, the Graph API, window-title scraping or any new dependency, so it
+is a shared design; **Windows is built first (18.11), the Mac port is on
+the polish list (17)**. Same setting key, same rules, same strings.
+
+**Signal.** When Teams joins a meeting or call it opens a capture stream
+on its microphone and keeps it running until the call ends, even while
+muted (Teams mutes in software; the operating system's microphone
+indicator stays on). The operating system exposes who is recording:
+Windows as WASAPI audio sessions (`IAudioSessionManager2`,
+`IAudioSessionControl2::GetProcessId`, session state), macOS 14.2 and
+later as CoreAudio process objects (`kAudioHardwarePropertyProcessObjectList`,
+`kAudioProcessPropertyBundleID`, `kAudioProcessPropertyIsRunningInput`).
+Teams is `ms-teams.exe` (new Teams, package `MSTeams_8wekyb3d8bbwe`) or
+`Teams.exe` (classic) on Windows, bundle `com.microsoft.teams2` (new) or
+`com.microsoft.teams` (classic) on the Mac. The detector reads only this
+signal; it never looks at Teams' windows, account, or presence.
+
+**Rules** (`MeetingDetector`, pure, ported one for one with its tests):
+
+1. Started: a Teams microphone stream has been active at every observation
+   for 2 s (`StartDelay`). Two seconds filter out a device test or a ring
+   that is not answered without delaying a real meeting noticeably.
+2. Ended: no Teams microphone stream has been active for 15 s (`EndGrace`),
+   measured from the last observation that saw one. Teams closes and
+   reopens its stream when the user switches microphone or headset; a
+   shorter gap must not stop the recording. After Ended, a new Started
+   needs the full delay again.
+3. Every input device is watched, not only the default: Teams records from
+   the communications default, which can differ from the device Hearsay
+   records from.
+4. Windows hedge: a stream whose own process is not Teams also counts
+   when its parent process is Teams (in case the media stack ever opens
+   the stream from a helper). The Mac has the bundle id directly.
+
+**Behavior** (`MeetingAutoRecord`, the coordinator between the detector
+and `RecordingController`):
+
+- Setting "Record Microsoft Teams meetings automatically"
+  (`autoRecordTeamsMeetings`, default off) in Settings > General, in a
+  "Meetings" card after Startup, with the caption that the recording uses
+  the microphone, system audio and language chosen on the Record tab.
+  Off: nothing is probed.
+- Second setting (owner, 2026-10-01) in the same card, enabled only while
+  the first is on: "Ask which language to use before each automatic
+  recording" (`autoRecordAsksLanguage`, default off). Off: the recording
+  uses the Record tab's language choice, and Auto detects it. On: when a
+  meeting starts, Hearsay brings the main window forward and asks "Record
+  this meeting?" with the Record tab's language picker (preselected with
+  the current choice), Record and Don't record. Record sets the Record
+  tab's language choice to the picked value (it persists, as if picked
+  there) and starts the session; Don't record means nothing until the
+  next meeting; a meeting that ends while the question is open closes it.
+  Never two questions at once, never one while the user is recording.
+- Started with no session active: `Start()` as if the user pressed it
+  (same device, system-audio and language choices), a notification
+  "Recording started / Microsoft Teams meeting" (Windows: a tray balloon
+  when the tray icon is shown), and a notice line on the Record tab
+  "Recording started automatically for a Microsoft Teams meeting." while
+  that session runs.
+- Started while the user is already recording: nothing; that session stays
+  manual and the meeting's end does not stop it.
+- Ended while the automatic session still runs: Stop, exactly as a manual
+  Stop (the recording joins the transcription queue, 4.9), and a
+  notification "Recording stopped / The Microsoft Teams meeting ended."
+- The user stops an automatic session during the meeting: nothing restarts
+  until the detector reports Ended and then Started again. Pause does not
+  interfere (the meeting's end still stops a paused automatic session).
+  Stop & Start Next keeps the new session automatic.
+- Start fails (no model, no device, spool error): the Record tab shows the
+  usual failure, a notification "Recording not started / Hearsay could not
+  start recording for the Microsoft Teams meeting.", no retry until the
+  next meeting.
+- Turning the setting off while an automatic session runs leaves it
+  running; it only stops watching. Debug runs never auto-record.
+
+**Mac plan** (not started): `MeetingDetector` ported to HearsayCore with
+its tests; a `MeetingAudioProbe` on the process-object API above (a
+property listener on `kAudioHardwarePropertyProcessObjectList` and on each
+Teams process object's `kAudioProcessPropertyIsRunningInput` replaces
+polling, which Windows needs because WASAPI session notifications are per
+device); `MeetingAutoRecord` in the app on `RecordingController`; the
+notifications through `UNUserNotificationCenter` (first use asks for the
+notification permission; without it only the Record tab notice shows);
+the same setting in Settings > General; the help passage is already
+written as a Windows-only twin and gets its Mac text then. Other meeting
+apps (Zoom, Meet in a browser) are out of scope: a browser's microphone
+stream does not say which site uses it.
+
 ## 5. Model catalog and download
 
 Built-in `ModelCatalog.json`, editable later without a code change. Every
@@ -737,6 +829,10 @@ a one-line prompt.
 - Final-pass timing: right away in the background (Mac default) / when
   no recording is running (Windows default), section 4.9.
 - Global shortcut for Stop & Start Next (default ⌃⌥⌘N), section 4.9.
+- Record Microsoft Teams meetings automatically (`autoRecordTeamsMeetings`,
+  default off) and ask which language to use before each automatic
+  recording (`autoRecordAsksLanguage`, default off), section 4.10. Windows
+  first (18.11); Mac on the polish list.
 
 ## 9. Entitlements and privacy
 
@@ -1027,6 +1123,22 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
     Start Next is enabled only while recording or paused (WI-4 could only
     check the menu's inputs).
 
+28. Windows, Teams meetings (section 4.10 and 18.11, added 2026-10-01): no
+    agent could join a Teams meeting, so detection against real Teams is
+    unverified. First, with Teams signed in, run
+    `$env:HEARSAY_WATCH_MEETINGS=90; .\Hearsay.exe` from a second copy of
+    the build (never the installed one), start a Teams call or "Meet now",
+    and check the output lists an Active session for `ms-teams` and prints
+    `meeting started` about 2 s later and `meeting ended` about 15 s after
+    hanging up. If the session's process is not `ms-teams` (or its
+    parent), note the name in 18.11 and the detector's name list grows.
+    Then turn on Settings > General > Meetings in the installed app, join
+    a meeting: the tray balloon and the Record tab notice appear, both
+    meters move, hanging up stops the recording after the grace period and
+    the transcription queue takes it. Switch headsets during a meeting:
+    the recording must not stop. Stop manually mid-meeting: nothing
+    restarts until the next meeting.
+
 ## 17. Polish list (found during review, not yet scheduled)
 
 - **Decided 2026-09-28: Antigravity CLI isolation.** agy honors the
@@ -1063,6 +1175,16 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
 - Done 2026-09-29: the restart-failed alert (`AppDelegate.replyToTerminate`)
   now says "Quit Hearsay and open it again." for both the language restart
   and the update relaunch.
+
+- **To do (owner request 2026-10-01): Mac port of section 4.10, automatic
+  recording of Microsoft Teams meetings.** Windows has it (18.11). On the
+  Mac: port `MeetingDetector` and its tests into HearsayCore, a probe on
+  the CoreAudio process-object API (macOS 14.2+, listeners instead of
+  polling), `MeetingAutoRecord` on `RecordingController`, the setting in
+  Settings > General, `UNUserNotificationCenter` for the two
+  notifications, and the Mac text of the help passage. The strings are
+  already in `shared/localization` under catalog `windows`; move them to
+  the app catalog when both platforms use them. About one day.
 
 - **To do (owner request 2026-09-28): "Reduce background noise" switch** on
   the Record tab. Routes only the mic through Apple voice processing so
@@ -2245,3 +2367,96 @@ its own file under `%LOCALAPPDATA%\Hearsay\Recording\`, same fields).
   disabled instead of leaving it out when nothing records (a native menu does
   not reflow); no menu bar label with a text percentage (a tray icon has no
   text; the tooltip has it).
+
+### 18.11 Automatic recording of Microsoft Teams meetings (built 2026-10-01)
+
+The Windows implementation of section 4.10, built first because the owner
+asked for it on Windows; the Mac port is on the section 17 list. Same
+rules, same setting keys (`autoRecordTeamsMeetings`,
+`autoRecordAsksLanguage`, both default off), same strings (in
+`shared/localization` under catalog `windows` until the Mac uses them).
+
+- **Signal and probe.** `Hearsay.Core/Audio/MeetingAudioProbe.cs` lists the
+  WASAPI audio sessions of every active capture endpoint through NAudio
+  (`MMDevice.AudioSessionManager.Sessions`, `GetProcessID`, `State`;
+  system-sounds sessions skipped, every COM wrapper disposed) as
+  `CaptureSession` records with the process name (no `.exe`) and, when the
+  own name is not Teams, the parent's name from one toolhelp snapshot per
+  probe (`CreateToolhelp32Snapshot`, kernel32 P/Invoke in Core, as the
+  ICU converter is). An endpoint or session that disappears while being
+  read is skipped. No new package.
+- **Detector.** `Hearsay.Core/Audio/MeetingDetector.cs`, pure: `Observe(sessions,
+  now)` returns Started after a Teams Active session has been present for
+  `StartDelay` (2 s) and Ended after none has for `EndGrace` (15 s), as
+  4.10 says; `IsTeams` matches `ms-teams` and `teams`, any case, with or
+  without `.exe`, on the own or the parent name. Tests in
+  `Hearsay.Tests/Audio/MeetingDetectorTests.cs` (delay, reset, Inactive and
+  Expired ignored, other apps ignored, both names, parent match, device
+  switch gap, end grace once, restart cycle, `IsInMeeting`), plus a probe
+  smoke test and a parent-lookup test that starts `ping.exe` as a child.
+  The Mac ports these tests one for one.
+- **Polling, not notifications.** WASAPI session notifications
+  (`IAudioSessionNotification`) are registered per device and miss devices
+  that appear later, so the coordinator probes every 2 s on the thread pool
+  while the setting is on and decides on the UI thread; off, no timer
+  runs. A probe failure is logged once until a probe succeeds again. The
+  Mac's process-object API has one listener for all devices and needs no
+  timer.
+- **Coordinator.** `Hearsay.App/Features/Recording/MeetingAutoRecord.cs`
+  follows 4.10's behavior list: Start when idle (the session is marked
+  automatic), nothing when the user is already recording, Stop at the
+  meeting's end only for an automatic session, the automatic flag drops as
+  soon as the controller has no session (user Stop, failure, quit), Stop &
+  Start Next keeps it (no gap in `IsSessionActive`), a failed start gets
+  the "Recording not started" balloon and no retry, turning the setting
+  off stops watching and leaves a running session alone (and drops the
+  flag: a meeting that ends afterwards never stops it). The "Recording
+  started" balloon fires when the phase reaches Recording, not at the
+  `Start()` call. Injected probe, clock, balloon and prompt; the tests
+  (`Hearsay.App.Tests/MeetingAutoRecordTests.cs`, 13, on the
+  `RecordingControllerTests` rig) drive `Apply(sessions, now)` directly.
+- **Record tab notice.** `RecordingController.AutomaticStartNotice`, set by
+  the coordinator right after `Start()`, shown in the notice area above
+  the system-audio notice, cleared by a plain Start and when the session
+  ends (Stop & Start Next keeps it).
+- **Balloons.** `TrayIcon.Notify(title, message)` on H.NotifyIcon's
+  `ShowNotification`; a no-op while the icon is hidden (taskbar-only
+  mode) or not created, and a failure is logged, never thrown. The Mac
+  will use `UNUserNotificationCenter`.
+- **Language prompt.** `MeetingRecordPrompt.AskAsync(shell, token)`: the main
+  window comes forward on the Record tab and a ContentDialog asks
+  "Microsoft Teams meeting started" / "Record this meeting?" with a
+  picker (Auto, then each language by its own name, as the Auto mode
+  default language picker; the Record tab's EN / ZH-TW short labels read
+  poorly in a drop-down) preselected with the current choice, Record and
+  Don't record. Record writes `RecordingController.LanguageChoice` (it
+  persists) and the session starts; the meeting ending cancels the token,
+  which hides the dialog, including one still queued behind another
+  dialog. "Record" is a Windows-only key: the Mac's "Record" is the tab's
+  name (German "Aufnahme", a noun) and GLOSSARY wants verbs on buttons
+  ("Aufnehmen", "Grabar", "錄音", "录音").
+- **Settings UI.** Settings > General > Meetings (header + card between
+  Startup and Transcription): the two toggles with captions; the second is
+  enabled only while the first is on. Checked in a `HEARSAY_UI_SNAPSHOTS`
+  render; no numbered snapshot added.
+- **Debug entry.** `HEARSAY_WATCH_MEETINGS=<seconds>`
+  (`Features/Debug/MeetingWatchDebug.cs`, AGENTS.md table): lists the
+  sessions every second (endpoint, pid, process, parent, state; then one
+  line per change) and prints `meeting started` / `meeting ended`; records
+  nothing. Checked on the dev machine against a parallel
+  `HEARSAY_RECORD_SECONDS` run: it printed the Hearsay session with its
+  `pwsh` parent as Active and then removed. Debug runs never start the
+  coordinator.
+- **Help and README.** One Windows-only `<li data-platform="windows">`
+  after the Startup item in each of the five help pages, quoting both
+  translated labels; the Mac page renders unchanged. README's Windows
+  section has a "Teams meetings" paragraph.
+- **Untested.** Detection against a real Teams call: no agent could join
+  one, so whether new Teams' microphone session is owned by `ms-teams.exe`
+  itself (expected) or a helper (the parent hedge) is unconfirmed. Section
+  16 item 28 is the owner's check with `HEARSAY_WATCH_MEETINGS`; if the
+  owning process has another name, add it to `MeetingDetector`'s list.
+  Known limits: the parent hedge does not guard against PID reuse (a
+  parent that exited whose PID Teams now holds would count); only Teams is
+  detected (a browser's microphone stream does not say which site uses
+  it, so Zoom, Meet and the Teams web app are out of scope).

@@ -103,6 +103,11 @@ internal sealed class AppShell
         // queue.json lives in the spool) while the controller is free for the next one.
         Queue = new TranscriptionQueue(Settings, Engine, Spool, () => WhisperModelLocation.Active(Models));
         RecordingController = new RecordingController(Settings, Models, Engine, Queue, Spool);
+        // Settings > General > Meetings: records Microsoft Teams meetings on
+        // its own; started in Launch, never in a debug run.
+        MeetingAutoRecord = new MeetingAutoRecord(
+            Settings, RecordingController, MeetingAudioProbe.CaptureSessions, () => DateTimeOffset.Now, Tray.Notify,
+            token => MeetingRecordPrompt.AskAsync(this, token));
         FileModel = new FileViewModel(Settings, Models, Engine);
         Recording.Connect(RecordingController.ToggleStartStop, RecordingController.TogglePause, RecordingController.StopAndStartNext);
         RecordingController.PropertyChanged += (_, _) => SyncRecordingStatus();
@@ -145,6 +150,9 @@ internal sealed class AppShell
 
     /// <summary>The one recording session (the Mac's <c>RecordingController</c>).</summary>
     public RecordingController RecordingController { get; }
+
+    /// <summary>Starts and stops recordings for Microsoft Teams meetings (Settings > General > Meetings).</summary>
+    public MeetingAutoRecord MeetingAutoRecord { get; }
 
     /// <summary>The File tab's flow, shared with the recovery sheet and "Transcribe this file".</summary>
     public FileViewModel FileModel { get; }
@@ -209,7 +217,7 @@ internal sealed class AppShell
         // Debug only (W5): transcribe one file, replay a WAV through the
         // recording pipeline, or record from one device, print, and quit.
         if (FileTranscriptionDebug.RunIfRequested(this) || RecordingReplay.RunIfRequested(this)
-            || RecordingDebug.RunIfRequested(this))
+            || RecordingDebug.RunIfRequested(this) || MeetingWatchDebug.RunIfRequested(this))
         {
             return;
         }
@@ -222,6 +230,8 @@ internal sealed class AppShell
         Settings.PropertyChanged += OnSettingsChanged;
         Hotkeys.Start();
         RecordingController.Activate();
+        // Never reached in a debug run (they return above).
+        MeetingAutoRecord.Start();
         // Recordings a previous run did not transcribe continue (PLAN.md 4.9).
         Queue.Restore();
         MainWindow.Activate();
@@ -458,6 +468,7 @@ internal sealed class AppShell
         UpdateSteps.Dispose();
         Tray.Dispose();
         Models.Dispose();
+        MeetingAutoRecord.Dispose();
         RecordingController.Dispose();
         Queue.Dispose();
         Engine.Dispose();

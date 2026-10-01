@@ -12,7 +12,9 @@ namespace Hearsay.App.Features.Settings;
 
 /// <summary>
 /// Settings > General, in the Mac's order: Interface (interface language,
-/// applies at next launch), Startup (launch at login), Transcription (Auto
+/// applies at next launch), Startup (launch at login), Meetings (Windows
+/// only: record Microsoft Teams meetings automatically, and whether to ask
+/// for the language first; see <see cref="Recording.MeetingAutoRecord"/>), Transcription (Auto
 /// mode default language, when finished recordings are transcribed), Shortcuts
 /// (three: Start / Stop, Pause / Resume, Stop &amp; Start Next). Mirrors <c>GeneralSettingsView</c>,
 /// <c>LaunchAtLoginSection</c> and <c>PreferredLanguagePicker</c> in
@@ -36,6 +38,8 @@ internal sealed partial class GeneralSettingsView : UserControl
     private readonly Grid pendingRow;
     private readonly ToggleSwitch launchAtLogin;
     private readonly TextBlock launchError;
+    private readonly ToggleSwitch autoRecordTeams;
+    private readonly ToggleSwitch autoRecordAsksLanguage;
     private readonly ComboBox preferredLanguage;
     private readonly HotkeyRecorderView startStopShortcut;
     private readonly HotkeyRecorderView pauseShortcut;
@@ -86,6 +90,26 @@ internal sealed partial class GeneralSettingsView : UserControl
         launchError = Warning();
         page.Children.Add(Header(Strings.SectionStartup));
         page.Children.Add(Card(launchRow, launchError));
+
+        // Meetings (Windows only): MeetingAutoRecord follows these two settings.
+        var (teamsRow, teamsSwitch) = Toggle(Strings.AutoRecordTeamsMeetings);
+        autoRecordTeams = teamsSwitch;
+        autoRecordTeams.Toggled += (_, _) =>
+        {
+            if (!refreshing) settings.AutoRecordTeamsMeetings = autoRecordTeams.IsOn;
+        };
+        var (asksRow, asksSwitch) = Toggle(Strings.AutoRecordAsksLanguage);
+        autoRecordAsksLanguage = asksSwitch;
+        autoRecordAsksLanguage.Toggled += (_, _) =>
+        {
+            if (!refreshing) settings.AutoRecordAsksLanguage = autoRecordAsksLanguage.IsOn;
+        };
+        page.Children.Add(Header(Strings.SectionMeetings));
+        page.Children.Add(Card(
+            teamsRow,
+            Caption(Strings.AutoRecordTeamsMeetingsCaption),
+            asksRow,
+            Caption(Strings.AutoRecordAsksLanguageCaption)));
 
         // Transcription: the only control that writes PreferredLanguage.
         preferredLanguage = new ComboBox { MinWidth = 180 };
@@ -186,6 +210,10 @@ internal sealed partial class GeneralSettingsView : UserControl
             : "";
         pendingRow.Visibility = pendingLanguage.Text.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
         launchAtLogin.IsOn = shell.LaunchAtLogin.IsEnabled;
+        autoRecordTeams.IsOn = settings.AutoRecordTeamsMeetings;
+        autoRecordAsksLanguage.IsOn = settings.AutoRecordAsksLanguage;
+        // The question applies only to automatic recordings.
+        autoRecordAsksLanguage.IsEnabled = settings.AutoRecordTeamsMeetings;
         preferredLanguage.SelectedIndex = IndexOf(TranscriptLanguages.All, settings.PreferredLanguage);
         startStopShortcut.Refresh();
         pauseShortcut.Refresh();

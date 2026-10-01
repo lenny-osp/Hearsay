@@ -8,7 +8,7 @@ namespace Hearsay.App.Features.Debug;
 /// <summary>
 /// Debug entry points (<c>HEARSAY_TRANSCRIBE_FILE</c>, <c>HEARSAY_REPLAY_FILE</c>,
 /// <c>HEARSAY_RECORD_SECONDS</c>, <c>HEARSAY_UI_SNAPSHOTS</c>,
-/// <c>HEARSAY_INSTALL_UPDATE</c>) run on a throwaway settings folder under
+/// <c>HEARSAY_INSTALL_UPDATE</c>, <c>HEARSAY_WATCH_MEETINGS</c>) run on a throwaway settings folder under
 /// the temp folder, never <c>%APPDATA%\Hearsay</c> (AGENTS.md). The copy
 /// starts with the user's values for the keys that shape a transcription,
 /// read without writing anything back (not even moving a corrupt file aside,
@@ -22,12 +22,13 @@ internal static class DebugEnvironment
     public static readonly IReadOnlyList<string> DebugVariables =
     [
         "HEARSAY_TRANSCRIBE_FILE", "HEARSAY_REPLAY_FILE", "HEARSAY_RECORD_SECONDS", SnapshotsVariable,
-        "HEARSAY_INSTALL_UPDATE",
+        "HEARSAY_INSTALL_UPDATE", MeetingWatchDebug.Variable,
     ];
 
     /// <summary>The entry points this build implements (all of them since W7).</summary>
     public static readonly IReadOnlyList<string> ImplementedVariables =
-        [SnapshotsVariable, "HEARSAY_TRANSCRIBE_FILE", "HEARSAY_REPLAY_FILE", "HEARSAY_RECORD_SECONDS", "HEARSAY_INSTALL_UPDATE"];
+        [SnapshotsVariable, "HEARSAY_TRANSCRIBE_FILE", "HEARSAY_REPLAY_FILE", "HEARSAY_RECORD_SECONDS", "HEARSAY_INSTALL_UPDATE",
+            MeetingWatchDebug.Variable];
 
     public static readonly IReadOnlyList<string> CopiedKeys =
     [

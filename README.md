@@ -261,6 +261,15 @@ Start / Stop and Pause / Resume). Unlike the Mac, finished recordings wait
 until no recording is running by default; Settings > General > Transcribe
 finished recordings can change that to "Right away (in the background)".
 
+**Teams meetings** (Windows first): Settings > General > Meetings >
+"Record Microsoft Teams meetings automatically" starts a recording when
+Microsoft Teams begins using your microphone and stops it when the meeting
+ends; a notification-area balloon says so each time. The recording uses
+the Record tab's microphone, system audio and language choices, and Auto
+detects the language; turn on "Ask which language to use before each
+automatic recording" to be asked, with the language picker, before each
+one starts. Both are off by default.
+
 **Updates** work as on the Mac: Hearsay downloads the zip, checks its
 checksum and signature, and replaces its folder when it quits, then starts
 again.

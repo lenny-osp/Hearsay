@@ -87,6 +87,10 @@ public sealed class AppSettings : INotifyPropertyChanged
         public const string StopStartNextHotkey = "stopStartNextHotkey";
         public const string FinalPassTiming = "finalPassTiming";
         public const string KeepRecording = "keepRecording";
+        /// <summary>Windows only for now (the Mac port is planned with the same key).</summary>
+        public const string AutoRecordTeamsMeetings = "autoRecordTeamsMeetings";
+        /// <summary>Windows only for now (the Mac port is planned with the same key).</summary>
+        public const string AutoRecordAsksLanguage = "autoRecordAsksLanguage";
         /// <summary>
         /// Legacy "Chinese output" setting ("traditional" or "simplified"),
         /// read only to migrate a stored "zh" into ZH-TW or ZH-CN.
@@ -114,6 +118,8 @@ public sealed class AppSettings : INotifyPropertyChanged
     private HotkeyBinding stopStartNextHotkey;
     private FinalPassTiming finalPassTiming;
     private bool keepRecording;
+    private bool autoRecordTeamsMeetings;
+    private bool autoRecordAsksLanguage;
     private InterfaceLanguage interfaceLanguage;
     private bool automaticUpdateChecks;
     private DateTimeOffset? lastUpdateCheck;
@@ -144,6 +150,8 @@ public sealed class AppSettings : INotifyPropertyChanged
         stopStartNextHotkey = HotkeyBinding.FromJson(file.Get(Key.StopStartNextHotkey)) ?? HotkeyBinding.DefaultStopStartNext;
         finalPassTiming = FinalPassTimings.FromStorageValue(file.GetString(Key.FinalPassTiming)) ?? FinalPassTimings.Default;
         keepRecording = file.GetBool(Key.KeepRecording) ?? true;
+        autoRecordTeamsMeetings = file.GetBool(Key.AutoRecordTeamsMeetings) ?? false;
+        autoRecordAsksLanguage = file.GetBool(Key.AutoRecordAsksLanguage) ?? false;
         interfaceLanguage = InterfaceLanguages.FromCode(file.GetString(Key.InterfaceLanguage)) ?? InterfaceLanguage.English;
         automaticUpdateChecks = file.GetBool(Key.AutomaticUpdateChecks) ?? true;
         lastUpdateCheck = ParseDate(file.GetString(Key.LastUpdateCheck));
@@ -308,6 +316,30 @@ public sealed class AppSettings : INotifyPropertyChanged
     {
         get => keepRecording;
         set => Update(ref keepRecording, value, () => file.SetBool(Key.KeepRecording, value));
+    }
+
+    /// <summary>
+    /// Start recording when Microsoft Teams begins using the microphone and
+    /// stop when the meeting ends (Settings > General, Meetings). Default
+    /// off. Windows only for now; the decision rules are in
+    /// <see cref="Hearsay.Core.Audio.MeetingDetector"/>.
+    /// </summary>
+    public bool AutoRecordTeamsMeetings
+    {
+        get => autoRecordTeamsMeetings;
+        set => Update(ref autoRecordTeamsMeetings, value, () => file.SetBool(Key.AutoRecordTeamsMeetings, value));
+    }
+
+    /// <summary>
+    /// Before each automatic recording (<see cref="AutoRecordTeamsMeetings"/>),
+    /// ask whether to record the meeting and in which language (Settings >
+    /// General, Meetings). Default off: the recording uses the Record tab's
+    /// language choice. Windows only for now.
+    /// </summary>
+    public bool AutoRecordAsksLanguage
+    {
+        get => autoRecordAsksLanguage;
+        set => Update(ref autoRecordAsksLanguage, value, () => file.SetBool(Key.AutoRecordAsksLanguage, value));
     }
 
     /// <summary>

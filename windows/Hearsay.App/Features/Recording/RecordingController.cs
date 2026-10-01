@@ -122,6 +122,7 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
     private bool? cpuRuntime;
     private bool checkingRuntime;
     private bool startedThisRun;
+    private string? automaticStartNotice;
 
     public RecordingController(
         AppSettings settings, ModelStore modelStore, TranscriptionEngine engine, TranscriptionQueue queue,
@@ -161,6 +162,13 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
             if (phase == value) return;
             phase = value;
             queue.SetSessionActive(IsSessionActive);
+            // The automatic-start notice belongs to the session (Stop & Start
+            // Next keeps it: the flag never drops in between).
+            if (!IsSessionActive && automaticStartNotice is not null)
+            {
+                automaticStartNotice = null;
+                Notify(nameof(AutomaticStartNotice));
+            }
             Notify(nameof(Phase));
         }
     }
@@ -183,6 +191,23 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
     public string? SystemAudioNotice { get; private set; }
 
     public string? SilenceWarning { get; private set; }
+
+    /// <summary>
+    /// Windows only: "Recording started automatically for a Microsoft Teams
+    /// meeting." while a session <see cref="MeetingAutoRecord"/> started runs.
+    /// The coordinator sets it right after <see cref="Start()"/>; a plain
+    /// Start and the end of the session clear it.
+    /// </summary>
+    public string? AutomaticStartNotice
+    {
+        get => automaticStartNotice;
+        set
+        {
+            if (automaticStartNotice == value) return;
+            automaticStartNotice = value;
+            Notify(nameof(AutomaticStartNotice));
+        }
+    }
 
     /// <summary>Where the recording of a capture failure was kept.</summary>
     public string? FinishedRecording { get; private set; }
@@ -345,7 +370,12 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
     {
         startedThisRun = true;
         Phase = new ControllerPhase.Starting();
-        if (clearingFinished) queue.DismissFinishedForNewSession();
+        if (clearingFinished)
+        {
+            queue.DismissFinishedForNewSession();
+            // Stop & Start Next keeps an automatic session's notice.
+            automaticStartNotice = null;
+        }
         FinishedRecording = null;
         FinishedTranscript = null;
         retryableRecording = null;

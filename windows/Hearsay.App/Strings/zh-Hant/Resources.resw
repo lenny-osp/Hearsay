@@ -1661,6 +1661,14 @@
     <value>{0} 已被其他 App 或 Windows 使用。</value>
     <comment>windows: %@ is already used by another app or Windows.</comment>
   </data>
+  <data name="windows_2d9f69ac8ee5e8cf" xml:space="preserve">
+    <value>每次自動錄音前詢問要使用的語言</value>
+    <comment>windows: Ask which language to use before each automatic recording</comment>
+  </data>
+  <data name="windows_2da8a477ab8f5708" xml:space="preserve">
+    <value>已為 Microsoft Teams 會議自動開始錄音。</value>
+    <comment>windows: Recording started automatically for a Microsoft Teams meeting.</comment>
+  </data>
   <data name="windows_2e544a292f6979ed" xml:space="preserve">
     <value>Shift</value>
     <comment>windows: Shift</comment>
@@ -1697,13 +1705,29 @@
     <value>正在轉錄…</value>
     <comment>windows: Transcribing…</comment>
   </data>
+  <data name="windows_494fae321ac72722" xml:space="preserve">
+    <value>關閉：錄音會使用「錄音」標籤頁中選擇的語言，選擇「自動」時會自動偵測。開啟：會議開始時，Hearsay 會詢問是否錄製以及使用哪種語言，並在你確認後開始錄音。</value>
+    <comment>windows: Off: the recording uses the language chosen on the Record tab, and Auto detects it. On: when a meeting starts, Hearsay asks whether to record it and in which language, and records when you confirm.</comment>
+  </data>
+  <data name="windows_4d6f50f3f1d532cc" xml:space="preserve">
+    <value>不要錄音</value>
+    <comment>windows: Don't record</comment>
+  </data>
   <data name="windows_4ece928cc9306cf9" xml:space="preserve">
     <value>使用這台電腦上安裝的 Copilot CLI 及其自身的登入。請在「終端機」中執行一次 `copilot` 以登入。「auto」會讓 Copilot 自行選擇模型。</value>
     <comment>windows: Uses the Copilot CLI installed on this PC and its own login. Run `copilot` once in Terminal to log in. "auto" lets Copilot pick the model.</comment>
   </data>
+  <data name="windows_589e608112ddb4c5" xml:space="preserve">
+    <value>Microsoft Teams 會議已開始</value>
+    <comment>windows: Microsoft Teams meeting started</comment>
+  </data>
   <data name="windows_5c4fb4d46cc9e941" xml:space="preserve">
     <value>請按下包含 Ctrl、Alt 或 Win 的組合鍵。按 Esc 鍵取消，按 Backspace 鍵還原預設值。</value>
     <comment>windows: Press a combination with Ctrl, Alt, or Win. Esc cancels; Backspace restores the default.</comment>
+  </data>
+  <data name="windows_5d31e507d9e0a18b" xml:space="preserve">
+    <value>當 Microsoft Teams 開始使用麥克風時，Hearsay 會開始錄音，並在會議結束時停止。錄音會使用「錄音」標籤頁中選擇的麥克風、系統聲音和語言。</value>
+    <comment>windows: Hearsay starts recording when Microsoft Teams begins using your microphone and stops when the meeting ends. The recording uses the microphone, system audio and language chosen on the Record tab.</comment>
   </data>
   <data name="windows_5e1aef8bb73d890d" xml:space="preserve">
     <value>儲存新筆記時，目前的筆記會移至資源回收筒。</value>
@@ -1725,6 +1749,14 @@
     <value>部分檔案無法移至資源回收筒：</value>
     <comment>windows: Some files could not be moved to the Recycle Bin:</comment>
   </data>
+  <data name="windows_70c02b4d20ec1f05" xml:space="preserve">
+    <value>未開始錄音</value>
+    <comment>windows: Recording not started</comment>
+  </data>
+  <data name="windows_7105c577db089128" xml:space="preserve">
+    <value>已停止錄音</value>
+    <comment>windows: Recording stopped</comment>
+  </data>
   <data name="windows_74dc07fb2df5951b" xml:space="preserve">
     <value>此版本沒有 Windows ZIP 檔或校驗和清單。</value>
     <comment>windows: The release has no Windows zip file or checksum list.</comment>
@@ -1733,6 +1765,10 @@
     <value>其檔案會從這台電腦移除。你隨時可以重新下載。</value>
     <comment>windows: Its files are removed from this PC. You can download it again at any time.</comment>
   </data>
+  <data name="windows_79c6aa4bf8a8aafa" xml:space="preserve">
+    <value>Microsoft Teams 會議已結束。</value>
+    <comment>windows: The Microsoft Teams meeting ended.</comment>
+  </data>
   <data name="windows_7b4b1fcb64e646a2" xml:space="preserve">
     <value>{0} 不存在。</value>
     <comment>windows: %@ does not exist.</comment>
@@ -1740,6 +1776,10 @@
   <data name="windows_80eeb063037fd905" xml:space="preserve">
     <value>要將此會議移至資源回收筒嗎？</value>
     <comment>windows: Move this meeting to the Recycle Bin?</comment>
+  </data>
+  <data name="windows_85675ac41cd45182" xml:space="preserve">
+    <value>Hearsay 無法為 Microsoft Teams 會議開始錄音。</value>
+    <comment>windows: Hearsay could not start recording for the Microsoft Teams meeting.</comment>
   </data>
   <data name="windows_856dbc2661974e2d" xml:space="preserve">
     <value>Hearsay 重新啟動後將使用 {0}。</value>
@@ -1813,9 +1853,25 @@
     <value>Win</value>
     <comment>windows: Win</comment>
   </data>
+  <data name="windows_b9ccf14d477fb864" xml:space="preserve">
+    <value>Microsoft Teams 會議</value>
+    <comment>windows: Microsoft Teams meeting</comment>
+  </data>
+  <data name="windows_bca705b63a3cf585" xml:space="preserve">
+    <value>會議</value>
+    <comment>windows: Meetings</comment>
+  </data>
   <data name="windows_bcc0753c970f15ca" xml:space="preserve">
     <value>{0} 在 Windows 上無法處理這麼長的逐字稿：命令列會有 {1} 個字元，而 Windows 最多允許 {2} 個。長時間的會議請改用 Claude Code、Codex 或 HTTP 提供者。</value>
     <comment>windows: %@ cannot take a transcript this long on Windows: the command line would be %@ characters, and Windows allows %@. Use Claude Code, Codex, or an HTTP provider for long meetings.</comment>
+  </data>
+  <data name="windows_be3f4838b198b77b" xml:space="preserve">
+    <value>已開始錄音</value>
+    <comment>windows: Recording started</comment>
+  </data>
+  <data name="windows_bfdd510698ef3ccb" xml:space="preserve">
+    <value>錄音</value>
+    <comment>windows: Record</comment>
   </data>
   <data name="windows_c91da2e0203bbe90" xml:space="preserve">
     <value>Alt</value>
@@ -1824,6 +1880,10 @@
   <data name="windows_c922f7e788140aac" xml:space="preserve">
     <value>使用這台電腦上安裝的 Antigravity CLI 及其登入的 Google 帳號；請求會計入該帳號的限制。請在「終端機」中執行一次 `agy` 以登入；`agy models` 會列出模型 ID。推理強度：low、medium、high 或 max，僅適用於本身未帶等級的模型 ID（以 -high、-medium 或 -low 結尾的模型會忽略此設定）。執行時使用 agy 的 hearsay-notes 專案，其拒絕規則讓模型除了網路搜尋外無法使用任何工具，且每次執行的對話之後都會從 agy 的歷史記錄中刪除。</value>
     <comment>windows: Uses the Antigravity CLI installed on this PC and the Google account it is logged in with; requests count against that account's limits. Run `agy` once in Terminal to log in; `agy models` lists the model ids. Effort: low, medium, high, or max, only for a model id without its own level (a model ending in -high, -medium, or -low ignores it). Runs use agy's hearsay-notes project, whose deny rules leave the model no tools except web search, and each run's conversation is deleted from agy's history afterwards.</comment>
+  </data>
+  <data name="windows_cc387279b98291f4" xml:space="preserve">
+    <value>自動錄製 Microsoft Teams 會議</value>
+    <comment>windows: Record Microsoft Teams meetings automatically</comment>
   </data>
   <data name="windows_cc998ac38d55e048" xml:space="preserve">
     <value>須包含 Ctrl、Alt 或 Win。</value>
@@ -1884,6 +1944,10 @@
   <data name="windows_e7cf76b321ed3f73" xml:space="preserve">
     <value>{0}. {1}</value>
     <comment>windows: %@. %@</comment>
+  </data>
+  <data name="windows_ede6bfcd25396b57" xml:space="preserve">
+    <value>要錄製此會議嗎？</value>
+    <comment>windows: Record this meeting?</comment>
   </data>
   <data name="windows_ee45aba71c60ac6a" xml:space="preserve">
     <value>Windows 正直接從 ZIP 檔執行 Hearsay。請將 ZIP 檔解壓縮到可寫入的資料夾，從那裡打開 Hearsay 後再檢查更新。</value>

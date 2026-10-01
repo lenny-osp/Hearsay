@@ -91,6 +91,32 @@ public sealed class AppSettingsTests : IDisposable
     }
 
     [Fact]
+    public void AutoRecordTeamsMeetingsDefaultsOffAndRoundTrips()
+    {
+        var folder = scratch.Make();
+        var settings = new AppSettings(folder);
+        Assert.False(settings.AutoRecordTeamsMeetings);
+        settings.AutoRecordTeamsMeetings = true;
+        Assert.True(ScratchSettings.Raw(folder).GetBool(AppSettings.Key.AutoRecordTeamsMeetings));
+        Assert.True(new AppSettings(folder).AutoRecordTeamsMeetings);
+        settings.AutoRecordTeamsMeetings = false;
+        Assert.False(new AppSettings(folder).AutoRecordTeamsMeetings);
+    }
+
+    [Fact]
+    public void AutoRecordAsksLanguageDefaultsOffAndRoundTrips()
+    {
+        var folder = scratch.Make();
+        var settings = new AppSettings(folder);
+        Assert.False(settings.AutoRecordAsksLanguage);
+        settings.AutoRecordAsksLanguage = true;
+        Assert.True(ScratchSettings.Raw(folder).GetBool(AppSettings.Key.AutoRecordAsksLanguage));
+        Assert.True(new AppSettings(folder).AutoRecordAsksLanguage);
+        settings.AutoRecordAsksLanguage = false;
+        Assert.False(new AppSettings(folder).AutoRecordAsksLanguage);
+    }
+
+    [Fact]
     public void MenuBarShowsStatusDefaultOnAndRoundTrips()
     {
         var folder = scratch.Make();
@@ -510,7 +536,7 @@ public sealed class AppSettingsTests : IDisposable
             .Order(StringComparer.Ordinal);
         Assert.Equal(
             [
-                "activeModelRepo", "automaticUpdateChecks", "captureSystemAudio", "chineseScript",
+                "activeModelRepo", "autoRecordAsksLanguage", "autoRecordTeamsMeetings", "automaticUpdateChecks", "captureSystemAudio", "chineseScript",
                 "defaultLanguageCode", "finalPassTiming", "interfaceLanguage", "keepRecording", "languageChoice",
                 "lastUpdateCheck", "menuBarShowsStatus", "microphoneGrantedCodeHash",
                 "outputFolder", "pauseHotkey", "preferredLanguage", "screenAudioGrantedCodeHash",

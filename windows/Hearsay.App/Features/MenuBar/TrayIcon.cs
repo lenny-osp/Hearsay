@@ -92,6 +92,24 @@ internal sealed class TrayIcon : IDisposable
             ? Strings.TrayTooltip(recording.StateText)
             : "Hearsay";
 
+    /// <summary>
+    /// A balloon notification from the icon (the automatic Teams recording,
+    /// <see cref="Recording.MeetingAutoRecord"/>). Does nothing while the icon
+    /// is hidden, not created yet, or disposed; a failure is logged, never thrown.
+    /// </summary>
+    public void Notify(string title, string message)
+    {
+        if (icon is not { } shown) return;
+        try
+        {
+            shown.ShowNotification(title, message);
+        }
+        catch (Exception error) when (error is not OutOfMemoryException)
+        {
+            AppLog.Write($"tray: cannot show a notification: {error.Message}");
+        }
+    }
+
     public void Dispose()
     {
         Remove();
