@@ -791,6 +791,34 @@
         }
       }
     },
+    "Ask which language to use before each automatic recording" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vor jeder automatischen Aufnahme nach der Sprache fragen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preguntar el idioma antes de cada grabación automática"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每次自动录音前询问要使用的语言"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每次自動錄音前詢問要使用的語言"
+          }
+        }
+      }
+    },
     "Audio" : {
       "comment" : "History badge: the meeting has a recording",
       "localizations" : {
@@ -2193,6 +2221,35 @@
         }
       }
     },
+    "Don't record" : {
+      "comment" : "Button of the \"Microsoft Teams meeting started\" sheet: do not record this meeting.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht aufnehmen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No grabar"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不录音"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不要錄音"
+          }
+        }
+      }
+    },
     "Done" : {
       "comment" : "Permission sheet button once the permission is granted",
       "localizations" : {
@@ -3122,6 +3179,35 @@
         }
       }
     },
+    "Hearsay could not start recording for the Microsoft Teams meeting." : {
+      "comment" : "Notification text under \"Recording not started\"; the Record tab shows why. Keep \"Microsoft Teams\" as is.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay konnte die Aufnahme für die Microsoft Teams-Besprechung nicht starten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay no ha podido iniciar la grabación de la reunión de Microsoft Teams."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 无法为 Microsoft Teams 会议开始录音。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay 無法為 Microsoft Teams 會議開始錄音。"
+          }
+        }
+      }
+    },
     "Hearsay could not verify the downloaded update." : {
       "comment" : "Alert title: checksum or code signature check of an update failed",
       "localizations" : {
@@ -3233,6 +3319,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hearsay 需要重新啟動才能變更語言。"
+          }
+        }
+      }
+    },
+    "Hearsay starts recording when Microsoft Teams begins using your microphone and stops when the meeting ends. The recording uses the microphone, system audio and language chosen on the Record tab." : {
+      "comment" : "Settings > General > Meetings: caption under \"Record Microsoft Teams meetings automatically\". \"Record\" is the Record tab's name. Keep \"Microsoft Teams\" as is.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay startet die Aufnahme, wenn Microsoft Teams das Mikrofon verwendet, und stoppt sie, wenn die Besprechung endet. Die Aufnahme verwendet das Mikrofon, das Systemaudio und die Sprache, die im Tab „Aufnahme“ gewählt sind."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hearsay empieza a grabar cuando Microsoft Teams empieza a usar el micrófono y se detiene cuando termina la reunión. La grabación usa el micrófono, el audio del sistema y el idioma elegidos en la pestaña Grabar."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当 Microsoft Teams 开始使用麦克风时，Hearsay 会开始录音，并在会议结束时停止。录音会使用录音标签页中选择的麦克风、系统声音和语言。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "當 Microsoft Teams 開始使用麥克風時，Hearsay 會開始錄音，並在會議結束時停止。錄音會使用「錄音」標籤頁中選擇的麥克風、系統聲音和語言。"
           }
         }
       }
@@ -4236,6 +4351,35 @@
         }
       }
     },
+    "Meetings" : {
+      "comment" : "Settings > General: section header of the card with the automatic Microsoft Teams recording",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Besprechungen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reuniones"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会议"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "會議"
+          }
+        }
+      }
+    },
     "Menus and windows. A change applies after Hearsay restarts." : {
       "comment" : "Settings > General caption under Interface language",
       "localizations" : {
@@ -4492,6 +4636,64 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "麥克風：未允許"
+          }
+        }
+      }
+    },
+    "Microsoft Teams meeting" : {
+      "comment" : "Notification text under \"Recording started\". Keep \"Microsoft Teams\" as is.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microsoft Teams-Besprechung"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reunión de Microsoft Teams"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microsoft Teams 会议"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microsoft Teams 會議"
+          }
+        }
+      }
+    },
+    "Microsoft Teams meeting started" : {
+      "comment" : "Title of the sheet that asks whether to record a Microsoft Teams meeting and in which language (Settings > General > Meetings, \"Ask which language to use before each automatic recording\"). Keep \"Microsoft Teams\" as is.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microsoft Teams-Besprechung hat begonnen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ha empezado una reunión de Microsoft Teams"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microsoft Teams 会议已开始"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microsoft Teams 會議已開始"
           }
         }
       }
@@ -5379,6 +5581,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "好"
+          }
+        }
+      }
+    },
+    "Off: the recording uses the language chosen on the Record tab, and Auto detects it. On: when a meeting starts, Hearsay asks whether to record it and in which language, and records when you confirm." : {
+      "comment" : "Settings > General > Meetings: caption under \"Ask which language to use before each automatic recording\". \"Record\" is the Record tab's name, \"Auto\" the language picker's Auto.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus: Die Aufnahme verwendet die im Tab „Aufnahme“ gewählte Sprache, und „Automatisch“ erkennt sie. Ein: Wenn eine Besprechung beginnt, fragt Hearsay, ob und in welcher Sprache sie aufgenommen werden soll, und nimmt nach der Bestätigung auf."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desactivado: la grabación usa el idioma elegido en la pestaña Grabar, y Automático lo detecta. Activado: cuando empieza una reunión, Hearsay pregunta si quieres grabarla y en qué idioma, y graba cuando lo confirmas."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭：录音会使用录音标签页中选择的语言，选择“自动”时会自动检测。开启：会议开始时，Hearsay 会询问是否录制以及使用哪种语言，并在你确认后开始录音。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "關閉：錄音會使用「錄音」標籤頁中選擇的語言，選擇「自動」時會自動偵測。開啟：會議開始時，Hearsay 會詢問是否錄製以及使用哪種語言，並在你確認後開始錄音。"
           }
         }
       }
@@ -6351,6 +6582,99 @@
         }
       }
     },
+    "Record Microsoft Teams meetings automatically" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microsoft Teams-Besprechungen automatisch aufnehmen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grabar automáticamente las reuniones de Microsoft Teams"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动录制 Microsoft Teams 会议"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動錄製 Microsoft Teams 會議"
+          }
+        }
+      }
+    },
+    "Record meeting" : {
+      "comment" : "Button (a verb) of the \"Microsoft Teams meeting started\" sheet: start recording in the chosen language. Not the Record tab's name.",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufnehmen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Record"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grabar"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "录音"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "錄音"
+          }
+        }
+      }
+    },
+    "Record this meeting?" : {
+      "comment" : "Text of the \"Microsoft Teams meeting started\" sheet, above its language picker.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Besprechung aufnehmen?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Grabar esta reunión?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要录制此会议吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要錄製此會議嗎？"
+          }
+        }
+      }
+    },
     "Recording" : {
       "comment" : "Menu bar icon while recording",
       "localizations" : {
@@ -6433,6 +6757,122 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已保留錄音：%@"
+          }
+        }
+      }
+    },
+    "Recording not started" : {
+      "comment" : "Notification title when an automatic recording for a Microsoft Teams meeting could not start.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufnahme nicht gestartet"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha iniciado la grabación"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未开始录音"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未開始錄音"
+          }
+        }
+      }
+    },
+    "Recording started" : {
+      "comment" : "Notification title when Hearsay starts recording a Microsoft Teams meeting by itself.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufnahme gestartet"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grabación iniciada"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已开始录音"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已開始錄音"
+          }
+        }
+      }
+    },
+    "Recording started automatically for a Microsoft Teams meeting." : {
+      "comment" : "Record tab: notice line while a recording that Hearsay started for a Microsoft Teams meeting runs. Keep \"Microsoft Teams\" as is.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufnahme automatisch für eine Microsoft Teams-Besprechung gestartet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grabación iniciada automáticamente para una reunión de Microsoft Teams."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已为 Microsoft Teams 会议自动开始录音。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已為 Microsoft Teams 會議自動開始錄音。"
+          }
+        }
+      }
+    },
+    "Recording stopped" : {
+      "comment" : "Notification title when Hearsay stops an automatic recording because the Microsoft Teams meeting ended.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufnahme gestoppt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grabación detenida"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已停止录音"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已停止錄音"
           }
         }
       }
@@ -8403,6 +8843,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "AI 建議了這個名稱。你可以編輯，或按 Return 鍵接受。"
+          }
+        }
+      }
+    },
+    "The Microsoft Teams meeting ended." : {
+      "comment" : "Notification text under \"Recording stopped\". Keep \"Microsoft Teams\" as is.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Microsoft Teams-Besprechung ist beendet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La reunión de Microsoft Teams ha terminado."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microsoft Teams 会议已结束。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microsoft Teams 會議已結束。"
           }
         }
       }

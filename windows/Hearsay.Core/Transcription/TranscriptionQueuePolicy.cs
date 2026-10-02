@@ -19,7 +19,7 @@ public enum FinalPassTiming
     /// <summary>
     /// "When I start them" (PLAN.md 4.11, 18.12): a finished recording waits, held,
     /// until the user releases it (Transcribe, Transcribe All, or Try Again); a
-    /// released job then follows <see cref="WhenIdle"/>. Windows only until the Mac port.
+    /// released job then follows <see cref="WhenIdle"/>.
     /// </summary>
     Manual,
 }
@@ -113,8 +113,7 @@ public static class TranscriptionJobStates
 /// <summary>
 /// The pure queue rules of PLAN.md 4.9 ("Queue rules") and 4.11 (Manual),
 /// shared with the Mac through <c>shared/transcription-queue-tests.json</c>
-/// (the 4.11 rules in its <c>manual</c> section, which only Windows reads
-/// until the Mac port).
+/// (the 4.11 rules in its <c>manual</c> section).
 /// Port of <c>TranscriptionQueuePolicy</c> in TranscriptionQueuePolicy.swift.
 /// <para>
 /// Scheduling contract (<see cref="Next"/>): the engine may run a queued job

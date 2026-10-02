@@ -58,9 +58,18 @@ final class RecordingController {
 
     private(set) var phase: Phase = .idle {
         didSet {
-            if phase != oldValue { queue.setSessionActive(isSessionActive) }
+            guard phase != oldValue else { return }
+            queue.setSessionActive(isSessionActive)
+            phaseObserver?(phase)
         }
     }
+    /// The Record tab's notice for a recording that Hearsay started for a
+    /// Microsoft Teams meeting (PLAN.md 4.10). Set and cleared by
+    /// `MeetingAutoRecord`; a plain `start()` clears it.
+    var automaticStartNotice: String?
+    /// Called after every phase change, in order, on the main actor
+    /// (`MeetingAutoRecord` follows the session this way).
+    @ObservationIgnored var phaseObserver: (@MainActor (Phase) -> Void)?
     private(set) var devices: [AudioInputDevice] = []
     var selectedDeviceUID: String?
     private(set) var elapsed: TimeInterval = 0
@@ -307,6 +316,8 @@ final class RecordingController {
     /// A plain Start clears finished queue rows whose notes already opened,
     /// as it cleared the finished card before; Stop & Start Next keeps them.
     func start() {
+        // A session the user starts is not an automatic one (PLAN.md 4.10).
+        if canStart { automaticStartNotice = nil }
         start(clearingFinished: true)
     }
 

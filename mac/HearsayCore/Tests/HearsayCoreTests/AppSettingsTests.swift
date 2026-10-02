@@ -65,6 +65,25 @@ final class AppSettingsTests {
         #expect(AppSettings(defaults: defaults).automaticUpdateChecks == false)
     }
 
+    @Test func autoRecordSettingsDefaultOffAndRoundTrip() {
+        let defaults = scratch.make()
+        let settings = AppSettings(defaults: defaults)
+        #expect(settings.autoRecordTeamsMeetings == false)
+        #expect(settings.autoRecordAsksLanguage == false)
+        #expect(AppSettings.Key.autoRecordTeamsMeetings == "autoRecordTeamsMeetings")
+        #expect(AppSettings.Key.autoRecordAsksLanguage == "autoRecordAsksLanguage")
+        settings.autoRecordTeamsMeetings = true
+        settings.autoRecordAsksLanguage = true
+        #expect(defaults.bool(forKey: "autoRecordTeamsMeetings"))
+        #expect(defaults.bool(forKey: "autoRecordAsksLanguage"))
+        let reloaded = AppSettings(defaults: defaults)
+        #expect(reloaded.autoRecordTeamsMeetings)
+        #expect(reloaded.autoRecordAsksLanguage)
+        reloaded.autoRecordTeamsMeetings = false
+        #expect(AppSettings(defaults: defaults).autoRecordTeamsMeetings == false)
+        #expect(AppSettings(defaults: defaults).autoRecordAsksLanguage)
+    }
+
     @Test func lastUpdateCheckRoundTripsAndClears() {
         let defaults = scratch.make()
         let settings = AppSettings(defaults: defaults)

@@ -217,6 +217,14 @@
     <value>写入录音失败：{0}</value>
     <comment>app: Writing the recording failed: %@</comment>
   </data>
+  <data name="app_2d9f69ac8ee5e8cf" xml:space="preserve">
+    <value>每次自动录音前询问要使用的语言</value>
+    <comment>app: Ask which language to use before each automatic recording</comment>
+  </data>
+  <data name="app_2da8a477ab8f5708" xml:space="preserve">
+    <value>已为 Microsoft Teams 会议自动开始录音。</value>
+    <comment>app: Recording started automatically for a Microsoft Teams meeting.</comment>
+  </data>
   <data name="app_2e8b70638b782b24" xml:space="preserve">
     <value>未找到；请输入 {0} 的路径</value>
     <comment>app: not found; enter the path to %@</comment>
@@ -357,6 +365,10 @@
     <value>打开模型</value>
     <comment>app: Open Models</comment>
   </data>
+  <data name="app_494fae321ac72722" xml:space="preserve">
+    <value>关闭：录音会使用录音标签页中选择的语言，选择“自动”时会自动检测。开启：会议开始时，Hearsay 会询问是否录制以及使用哪种语言，并在你确认后开始录音。</value>
+    <comment>app: Off: the recording uses the language chosen on the Record tab, and Auto detects it. On: when a meeting starts, Hearsay asks whether to record it and in which language, and records when you confirm.</comment>
+  </data>
   <data name="app_4b897b8f423ef8b3" xml:space="preserve">
     <value>暂时停止转录。点按“转录”会从停下的地方继续。</value>
     <comment>app: Stops transcribing for now. Transcribe continues where it stopped.</comment>
@@ -376,6 +388,10 @@
   <data name="app_4cba018f3d1c2304" xml:space="preserve">
     <value>API 令牌：</value>
     <comment>app: API token:</comment>
+  </data>
+  <data name="app_4d6f50f3f1d532cc" xml:space="preserve">
+    <value>不录音</value>
+    <comment>app: Don't record</comment>
   </data>
   <data name="app_50009ce1da4d15e1" xml:space="preserve">
     <value>文件</value>
@@ -417,6 +433,10 @@
     <value>快捷键</value>
     <comment>app: Shortcut</comment>
   </data>
+  <data name="app_589e608112ddb4c5" xml:space="preserve">
+    <value>Microsoft Teams 会议已开始</value>
+    <comment>app: Microsoft Teams meeting started</comment>
+  </data>
   <data name="app_59a62100b3820687" xml:space="preserve">
     <value>同时录制系统声音</value>
     <comment>app: Also capture system audio</comment>
@@ -436,6 +456,10 @@
   <data name="app_5c73a5c73dc13ecf" xml:space="preserve">
     <value>内置</value>
     <comment>app: built-in</comment>
+  </data>
+  <data name="app_5d31e507d9e0a18b" xml:space="preserve">
+    <value>当 Microsoft Teams 开始使用麦克风时，Hearsay 会开始录音，并在会议结束时停止。录音会使用录音标签页中选择的麦克风、系统声音和语言。</value>
+    <comment>app: Hearsay starts recording when Microsoft Teams begins using your microphone and stops when the meeting ends. The recording uses the microphone, system audio and language chosen on the Record tab.</comment>
   </data>
   <data name="app_5d6562b5d27e5882" xml:space="preserve">
     <value>正在安装 Hearsay {0}…</value>
@@ -581,6 +605,14 @@
     <value>模型存储于</value>
     <comment>app: Models are stored in</comment>
   </data>
+  <data name="app_70c02b4d20ec1f05" xml:space="preserve">
+    <value>未开始录音</value>
+    <comment>app: Recording not started</comment>
+  </data>
+  <data name="app_7105c577db089128" xml:space="preserve">
+    <value>已停止录音</value>
+    <comment>app: Recording stopped</comment>
+  </data>
   <data name="app_721164f0dc7096a8" xml:space="preserve">
     <value>转录稿</value>
     <comment>app: Transcript</comment>
@@ -620,6 +652,10 @@
   <data name="app_782241ecffcadcee" xml:space="preserve">
     <value>生成笔记…</value>
     <comment>app: Generate Notes…</comment>
+  </data>
+  <data name="app_79c6aa4bf8a8aafa" xml:space="preserve">
+    <value>Microsoft Teams 会议已结束。</value>
+    <comment>app: The Microsoft Teams meeting ended.</comment>
   </data>
   <data name="app_7a1f35ba736ccc04" xml:space="preserve">
     <value>会议名称</value>
@@ -680,6 +716,10 @@
   <data name="app_85106a7ff03c1ac1" xml:space="preserve">
     <value>正在通过 {0}（{1}）生成会议笔记…</value>
     <comment>app: Generating meeting notes via %@ (%@)…</comment>
+  </data>
+  <data name="app_85675ac41cd45182" xml:space="preserve">
+    <value>Hearsay 无法为 Microsoft Teams 会议开始录音。</value>
+    <comment>app: Hearsay could not start recording for the Microsoft Teams meeting.</comment>
   </data>
   <data name="app_858e4ba7a29fd38b" xml:space="preserve">
     <value>暂停</value>
@@ -921,6 +961,10 @@
     <value>保存这场录音并立即开始下一场（{0}）。这场会在后台转录。</value>
     <comment>app: Save this recording and start the next one at once (%@). This one is transcribed in the background.</comment>
   </data>
+  <data name="app_b9ccf14d477fb864" xml:space="preserve">
+    <value>Microsoft Teams 会议</value>
+    <comment>app: Microsoft Teams meeting</comment>
+  </data>
   <data name="app_bbe5fc3b9ef39f99" xml:space="preserve">
     <value>正在开始…</value>
     <comment>app: Starting…</comment>
@@ -933,6 +977,10 @@
     <value>无输入设备</value>
     <comment>app: No input device</comment>
   </data>
+  <data name="app_bca705b63a3cf585" xml:space="preserve">
+    <value>会议</value>
+    <comment>app: Meetings</comment>
+  </data>
   <data name="app_bdbae54dcb284674" xml:space="preserve">
     <value>版本 {0}（{1}）</value>
     <comment>app: Version %@ (%@)</comment>
@@ -940,6 +988,10 @@
   <data name="app_be10ae0f25c077ae" xml:space="preserve">
     <value>未生成会议笔记。</value>
     <comment>app: No meeting notes were generated.</comment>
+  </data>
+  <data name="app_be3f4838b198b77b" xml:space="preserve">
+    <value>已开始录音</value>
+    <comment>app: Recording started</comment>
   </data>
   <data name="app_bfdd510698ef3ccb" xml:space="preserve">
     <value>录音</value>
@@ -1004,6 +1056,10 @@
   <data name="app_cbe4179c5fdcb080" xml:space="preserve">
     <value>转录中 {0}%</value>
     <comment>app: Transcribing %lld%%</comment>
+  </data>
+  <data name="app_cc387279b98291f4" xml:space="preserve">
+    <value>自动录制 Microsoft Teams 会议</value>
+    <comment>app: Record Microsoft Teams meetings automatically</comment>
   </data>
   <data name="app_cc7fb00dff44a170" xml:space="preserve">
     <value>正在转录… {0}%</value>
@@ -1180,6 +1236,10 @@
   <data name="app_edc369964dc1f970" xml:space="preserve">
     <value>登录时打开 Hearsay</value>
     <comment>app: Launch Hearsay at login</comment>
+  </data>
+  <data name="app_ede6bfcd25396b57" xml:space="preserve">
+    <value>要录制此会议吗？</value>
+    <comment>app: Record this meeting?</comment>
   </data>
   <data name="app_eeb265c640e81ae6" xml:space="preserve">
     <value>已跳过 AI 处理；已重命名转录稿和录音。</value>
@@ -1693,14 +1753,6 @@
     <value>{0} 已被其他应用或 Windows 占用。</value>
     <comment>windows: %@ is already used by another app or Windows.</comment>
   </data>
-  <data name="windows_2d9f69ac8ee5e8cf" xml:space="preserve">
-    <value>每次自动录音前询问要使用的语言</value>
-    <comment>windows: Ask which language to use before each automatic recording</comment>
-  </data>
-  <data name="windows_2da8a477ab8f5708" xml:space="preserve">
-    <value>已为 Microsoft Teams 会议自动开始录音。</value>
-    <comment>windows: Recording started automatically for a Microsoft Teams meeting.</comment>
-  </data>
   <data name="windows_2e544a292f6979ed" xml:space="preserve">
     <value>Shift</value>
     <comment>windows: Shift</comment>
@@ -1737,29 +1789,13 @@
     <value>正在转录…</value>
     <comment>windows: Transcribing…</comment>
   </data>
-  <data name="windows_494fae321ac72722" xml:space="preserve">
-    <value>关闭：录音会使用录音标签页中选择的语言，选择“自动”时会自动检测。开启：会议开始时，Hearsay 会询问是否录制以及使用哪种语言，并在你确认后开始录音。</value>
-    <comment>windows: Off: the recording uses the language chosen on the Record tab, and Auto detects it. On: when a meeting starts, Hearsay asks whether to record it and in which language, and records when you confirm.</comment>
-  </data>
-  <data name="windows_4d6f50f3f1d532cc" xml:space="preserve">
-    <value>不录音</value>
-    <comment>windows: Don't record</comment>
-  </data>
   <data name="windows_4ece928cc9306cf9" xml:space="preserve">
     <value>使用这台电脑上安装的 Copilot CLI 及其自身的登录。在终端中运行一次 `copilot` 以登录。“auto”表示由 Copilot 选择模型。</value>
     <comment>windows: Uses the Copilot CLI installed on this PC and its own login. Run `copilot` once in Terminal to log in. "auto" lets Copilot pick the model.</comment>
   </data>
-  <data name="windows_589e608112ddb4c5" xml:space="preserve">
-    <value>Microsoft Teams 会议已开始</value>
-    <comment>windows: Microsoft Teams meeting started</comment>
-  </data>
   <data name="windows_5c4fb4d46cc9e941" xml:space="preserve">
     <value>按下包含 Ctrl、Alt 或 Win 的组合键。按 Esc 键取消，按 Backspace 键恢复默认值。</value>
     <comment>windows: Press a combination with Ctrl, Alt, or Win. Esc cancels; Backspace restores the default.</comment>
-  </data>
-  <data name="windows_5d31e507d9e0a18b" xml:space="preserve">
-    <value>当 Microsoft Teams 开始使用麦克风时，Hearsay 会开始录音，并在会议结束时停止。录音会使用录音标签页中选择的麦克风、系统声音和语言。</value>
-    <comment>windows: Hearsay starts recording when Microsoft Teams begins using your microphone and stops when the meeting ends. The recording uses the microphone, system audio and language chosen on the Record tab.</comment>
   </data>
   <data name="windows_5e1aef8bb73d890d" xml:space="preserve">
     <value>保存新笔记时，当前笔记将被移到回收站。</value>
@@ -1781,14 +1817,6 @@
     <value>部分文件无法移到回收站：</value>
     <comment>windows: Some files could not be moved to the Recycle Bin:</comment>
   </data>
-  <data name="windows_70c02b4d20ec1f05" xml:space="preserve">
-    <value>未开始录音</value>
-    <comment>windows: Recording not started</comment>
-  </data>
-  <data name="windows_7105c577db089128" xml:space="preserve">
-    <value>已停止录音</value>
-    <comment>windows: Recording stopped</comment>
-  </data>
   <data name="windows_74dc07fb2df5951b" xml:space="preserve">
     <value>此版本没有 Windows ZIP 文件或校验和列表。</value>
     <comment>windows: The release has no Windows zip file or checksum list.</comment>
@@ -1797,10 +1825,6 @@
     <value>其文件将从这台电脑中移除。你可以随时重新下载。</value>
     <comment>windows: Its files are removed from this PC. You can download it again at any time.</comment>
   </data>
-  <data name="windows_79c6aa4bf8a8aafa" xml:space="preserve">
-    <value>Microsoft Teams 会议已结束。</value>
-    <comment>windows: The Microsoft Teams meeting ended.</comment>
-  </data>
   <data name="windows_7b4b1fcb64e646a2" xml:space="preserve">
     <value>{0} 不存在。</value>
     <comment>windows: %@ does not exist.</comment>
@@ -1808,10 +1832,6 @@
   <data name="windows_80eeb063037fd905" xml:space="preserve">
     <value>要将此会议移到回收站吗？</value>
     <comment>windows: Move this meeting to the Recycle Bin?</comment>
-  </data>
-  <data name="windows_85675ac41cd45182" xml:space="preserve">
-    <value>Hearsay 无法为 Microsoft Teams 会议开始录音。</value>
-    <comment>windows: Hearsay could not start recording for the Microsoft Teams meeting.</comment>
   </data>
   <data name="windows_856dbc2661974e2d" xml:space="preserve">
     <value>Hearsay 重新启动后将使用 {0}。</value>
@@ -1885,21 +1905,9 @@
     <value>Win</value>
     <comment>windows: Win</comment>
   </data>
-  <data name="windows_b9ccf14d477fb864" xml:space="preserve">
-    <value>Microsoft Teams 会议</value>
-    <comment>windows: Microsoft Teams meeting</comment>
-  </data>
-  <data name="windows_bca705b63a3cf585" xml:space="preserve">
-    <value>会议</value>
-    <comment>windows: Meetings</comment>
-  </data>
   <data name="windows_bcc0753c970f15ca" xml:space="preserve">
     <value>{0} 在 Windows 上无法处理这么长的转录稿：命令行将有 {1} 个字符，而 Windows 最多允许 {2} 个。长时间的会议请改用 Claude Code、Codex 或 HTTP 提供方。</value>
     <comment>windows: %@ cannot take a transcript this long on Windows: the command line would be %@ characters, and Windows allows %@. Use Claude Code, Codex, or an HTTP provider for long meetings.</comment>
-  </data>
-  <data name="windows_be3f4838b198b77b" xml:space="preserve">
-    <value>已开始录音</value>
-    <comment>windows: Recording started</comment>
   </data>
   <data name="windows_bfdd510698ef3ccb" xml:space="preserve">
     <value>录音</value>
@@ -1912,10 +1920,6 @@
   <data name="windows_c922f7e788140aac" xml:space="preserve">
     <value>使用这台电脑上安装的 Antigravity CLI 及其登录的 Google 账户；请求会计入该账户的限额。在终端中运行一次 `agy` 以登录；`agy models` 会列出模型 id。强度：low、medium、high 或 max，仅适用于自身不带级别的模型 id（以 -high、-medium 或 -low 结尾的模型会忽略此设置）。运行时使用 agy 的 hearsay-notes 项目，其拒绝规则只允许模型使用网页搜索，不提供其他工具；每次运行的对话随后都会从 agy 的历史记录中删除。</value>
     <comment>windows: Uses the Antigravity CLI installed on this PC and the Google account it is logged in with; requests count against that account's limits. Run `agy` once in Terminal to log in; `agy models` lists the model ids. Effort: low, medium, high, or max, only for a model id without its own level (a model ending in -high, -medium, or -low ignores it). Runs use agy's hearsay-notes project, whose deny rules leave the model no tools except web search, and each run's conversation is deleted from agy's history afterwards.</comment>
-  </data>
-  <data name="windows_cc387279b98291f4" xml:space="preserve">
-    <value>自动录制 Microsoft Teams 会议</value>
-    <comment>windows: Record Microsoft Teams meetings automatically</comment>
   </data>
   <data name="windows_cc998ac38d55e048" xml:space="preserve">
     <value>需包含 Ctrl、Alt 或 Win。</value>
@@ -1976,10 +1980,6 @@
   <data name="windows_e7cf76b321ed3f73" xml:space="preserve">
     <value>{0}. {1}</value>
     <comment>windows: %@. %@</comment>
-  </data>
-  <data name="windows_ede6bfcd25396b57" xml:space="preserve">
-    <value>要录制此会议吗？</value>
-    <comment>windows: Record this meeting?</comment>
   </data>
   <data name="windows_ee45aba71c60ac6a" xml:space="preserve">
     <value>Windows 正直接从 ZIP 文件运行 Hearsay。请将 ZIP 文件解压到可写入的文件夹，从那里打开 Hearsay 后再检查更新。</value>

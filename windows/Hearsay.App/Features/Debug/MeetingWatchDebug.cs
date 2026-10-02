@@ -11,7 +11,8 @@ namespace Hearsay.App.Features.Debug;
 /// resolved, state), then one line per change in that list, and
 /// <c>meeting started</c> / <c>meeting ended</c> from a
 /// <see cref="MeetingDetector"/>. It only prints: nothing is recorded. Exit
-/// status 0, or 1 for a bad value. Windows only; no Mac counterpart yet.
+/// status 0, or 1 for a bad value. The Mac counterpart is
+/// <c>mac/Hearsay/Features/Debug/MeetingWatchDebug.swift</c>.
 /// </summary>
 internal static class MeetingWatchDebug
 {

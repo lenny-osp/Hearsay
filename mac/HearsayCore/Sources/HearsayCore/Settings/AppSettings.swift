@@ -54,6 +54,8 @@ public final class AppSettings {
         public static let chineseScript = "chineseScript"
         public static let interfaceLanguage = "interfaceLanguage"
         public static let automaticUpdateChecks = "automaticUpdateChecks"
+        public static let autoRecordTeamsMeetings = "autoRecordTeamsMeetings"
+        public static let autoRecordAsksLanguage = "autoRecordAsksLanguage"
         public static let lastUpdateCheck = "lastUpdateCheck"
         public static let screenAudioGrantedCodeHash = "screenAudioGrantedCodeHash"
         public static let screenAudioResetCodeHash = "screenAudioResetCodeHash"
@@ -183,6 +185,19 @@ public final class AppSettings {
         didSet { defaults.set(automaticUpdateChecks, forKey: Key.automaticUpdateChecks) }
     }
 
+    /// "Record Microsoft Teams meetings automatically" (PLAN.md 4.10).
+    /// Default off: nothing is probed.
+    public var autoRecordTeamsMeetings: Bool {
+        didSet { defaults.set(autoRecordTeamsMeetings, forKey: Key.autoRecordTeamsMeetings) }
+    }
+
+    /// "Ask which language to use before each automatic recording"
+    /// (PLAN.md 4.10). Default off; only meaningful while
+    /// `autoRecordTeamsMeetings` is on.
+    public var autoRecordAsksLanguage: Bool {
+        didSet { defaults.set(autoRecordAsksLanguage, forKey: Key.autoRecordAsksLanguage) }
+    }
+
     /// When the last update check succeeded, or nil when none has.
     public var lastUpdateCheck: Date? {
         didSet {
@@ -235,6 +250,8 @@ public final class AppSettings {
         self.interfaceLanguage = InterfaceLanguage(
             rawValue: defaults.string(forKey: Key.interfaceLanguage) ?? "") ?? .english
         self.automaticUpdateChecks = defaults.object(forKey: Key.automaticUpdateChecks) as? Bool ?? true
+        self.autoRecordTeamsMeetings = defaults.object(forKey: Key.autoRecordTeamsMeetings) as? Bool ?? false
+        self.autoRecordAsksLanguage = defaults.object(forKey: Key.autoRecordAsksLanguage) as? Bool ?? false
         self.lastUpdateCheck = defaults.object(forKey: Key.lastUpdateCheck) as? Date
         self.screenAudioGrantedCodeHash = defaults.string(forKey: Key.screenAudioGrantedCodeHash)
         self.screenAudioResetCodeHash = defaults.string(forKey: Key.screenAudioResetCodeHash)

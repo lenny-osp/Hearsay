@@ -117,6 +117,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     lazy var recordingController = RecordingController(
         settings: settings, modelStore: modelStore, engine: whisperEngine, queue: transcriptionQueue
     )
+    /// The open "Record this meeting?" question, shown by the main window.
+    let meetingPrompt = MeetingPromptModel()
+    /// Automatic recording of Teams meetings (PLAN.md 4.10). Never created in
+    /// a debug run.
+    private var meetingAutoRecord: MeetingAutoRecord?
     lazy var hotkeyManager = HotkeyManager(settings: settings) { [weak self] action in
         guard let recording = self?.recordingController else { return }
         switch action {
@@ -172,9 +177,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if UpdateInstallDebug.runIfRequested() {
             return
         }
+        // Debug only: HEARSAY_WATCH_MEETINGS=<seconds> lists the audio
+        // processes and prints the Teams meeting detector's events (see
+        // MeetingWatchDebug).
+        if MeetingWatchDebug.runIfRequested() {
+            return
+        }
         applyWindowMode(settings.windowMode)
         observeWindowMode()
         recordingController.activate()
+        // Automatic recording of Microsoft Teams meetings (PLAN.md 4.10).
+        let meetings = MeetingAutoRecord(
+            settings: settings, controller: recordingController, prompt: meetingPrompt,
+            showRecordTab: { [weak self] in self?.windowOpener.show(tab: .record) }
+        )
+        meetingAutoRecord = meetings
+        meetings.begin()
         // Recordings a previous run did not transcribe continue (PLAN.md 4.9).
         transcriptionQueue.restore()
         // Microphone and system audio status, and the re-approval sheet for a
@@ -397,7 +415,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 /// Debug entry points (`HEARSAY_TRANSCRIBE_FILE`, `HEARSAY_REPLAY_FILE`,
-/// `HEARSAY_RECORD_SECONDS`, `HEARSAY_UI_SNAPSHOTS`, `HEARSAY_INSTALL_UPDATE`) run on a throwaway
+/// `HEARSAY_RECORD_SECONDS`, `HEARSAY_UI_SNAPSHOTS`, `HEARSAY_INSTALL_UPDATE`,
+/// `HEARSAY_WATCH_MEETINGS`) run on a throwaway
 /// defaults suite and never write `AppleLanguages`, so they never
 /// write the user's settings, not even the one-time language migration in
 /// `AppSettings.init`. The copy starts with the user's values for the keys
@@ -406,7 +425,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 enum DebugDefaults {
     static let debugVariables = [
         "HEARSAY_TRANSCRIBE_FILE", "HEARSAY_REPLAY_FILE", "HEARSAY_RECORD_SECONDS", UISnapshots.variable,
-        UpdateInstallDebug.variable,
+        UpdateInstallDebug.variable, MeetingWatchDebug.variable,
     ]
     static let copiedKeys = [
         AppSettings.Key.interfaceLanguage,

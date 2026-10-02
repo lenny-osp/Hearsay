@@ -694,29 +694,29 @@ internal static partial class Strings
     public static string LaunchAtLogin => App("Launch Hearsay at login");
     public static string LaunchAtLoginOnFailed(string message) => App("Could not turn on launch at login: %@", message);
     public static string LaunchAtLoginOffFailed(string message) => App("Could not turn off launch at login: %@", message);
-    // Settings > General > Meetings and the automatic Teams recording (MeetingAutoRecord; Windows only).
-    public static string SectionMeetings => Win("Meetings");
-    public static string AutoRecordTeamsMeetings => Win("Record Microsoft Teams meetings automatically");
+    // Settings > General > Meetings and the automatic Teams recording (MeetingAutoRecord; the Mac uses the same texts).
+    public static string SectionMeetings => App("Meetings");
+    public static string AutoRecordTeamsMeetings => App("Record Microsoft Teams meetings automatically");
     public static string AutoRecordTeamsMeetingsCaption =>
-        Win("Hearsay starts recording when Microsoft Teams begins using your microphone and stops when the meeting ends. "
+        App("Hearsay starts recording when Microsoft Teams begins using your microphone and stops when the meeting ends. "
             + "The recording uses the microphone, system audio and language chosen on the Record tab.");
-    public static string AutoRecordAsksLanguage => Win("Ask which language to use before each automatic recording");
+    public static string AutoRecordAsksLanguage => App("Ask which language to use before each automatic recording");
     public static string AutoRecordAsksLanguageCaption =>
-        Win("Off: the recording uses the language chosen on the Record tab, and Auto detects it. "
+        App("Off: the recording uses the language chosen on the Record tab, and Auto detects it. "
             + "On: when a meeting starts, Hearsay asks whether to record it and in which language, and records when you confirm.");
     /// <summary>The Record tab's notice line while an automatic session runs.</summary>
-    public static string AutomaticRecordingNotice => Win("Recording started automatically for a Microsoft Teams meeting.");
-    public static string MeetingBalloonStartedTitle => Win("Recording started");
-    public static string MeetingBalloonStartedText => Win("Microsoft Teams meeting");
-    public static string MeetingBalloonStoppedTitle => Win("Recording stopped");
-    public static string MeetingBalloonStoppedText => Win("The Microsoft Teams meeting ended.");
-    public static string MeetingBalloonFailedTitle => Win("Recording not started");
-    public static string MeetingBalloonFailedText => Win("Hearsay could not start recording for the Microsoft Teams meeting.");
-    public static string MeetingPromptTitle => Win("Microsoft Teams meeting started");
-    public static string MeetingPromptText => Win("Record this meeting?");
+    public static string AutomaticRecordingNotice => App("Recording started automatically for a Microsoft Teams meeting.");
+    public static string MeetingBalloonStartedTitle => App("Recording started");
+    public static string MeetingBalloonStartedText => App("Microsoft Teams meeting");
+    public static string MeetingBalloonStoppedTitle => App("Recording stopped");
+    public static string MeetingBalloonStoppedText => App("The Microsoft Teams meeting ended.");
+    public static string MeetingBalloonFailedTitle => App("Recording not started");
+    public static string MeetingBalloonFailedText => App("Hearsay could not start recording for the Microsoft Teams meeting.");
+    public static string MeetingPromptTitle => App("Microsoft Teams meeting started");
+    public static string MeetingPromptText => App("Record this meeting?");
     /// <summary>The prompt's button, a verb (the Mac's "Record" key is the tab's name, a noun in German).</summary>
     public static string MeetingPromptRecord => Win("Record");
-    public static string MeetingPromptDontRecord => Win("Don't record");
+    public static string MeetingPromptDontRecord => App("Don't record");
     public static string SectionTranscription => App("Transcription");
     public static string PreferredLanguage => App("Auto mode default language");
     public static string PreferredLanguageCaption =>

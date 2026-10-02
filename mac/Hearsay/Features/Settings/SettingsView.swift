@@ -79,6 +79,10 @@ private struct GeneralSettingsView: View {
                 Text("Interface", comment: "Settings > General section header: the app's own language")
             }
             LaunchAtLoginSection()
+            // The process-object API behind the detection is new in macOS 14.2.
+            if #available(macOS 14.2, *) {
+                MeetingsSection()
+            }
             Section("Transcription") {
                 PreferredLanguagePicker()
                 Text("Used when Auto can't tell the language. When Auto hears Chinese, it writes 简体中文 if that is chosen here, otherwise 繁體中文.",
@@ -163,6 +167,33 @@ private struct LaunchAtLoginSection: View {
     private func openLoginItems() {
         guard let url = Self.loginItemsURL else { return }
         NSWorkspace.shared.open(url)
+    }
+}
+
+/// "Meetings" (PLAN.md 4.10): automatic recording of Microsoft Teams
+/// meetings and the question that asks for the language first. The second
+/// switch means nothing while the first is off. Hidden before macOS 14.2.
+@available(macOS 14.2, *)
+private struct MeetingsSection: View {
+    @Environment(AppSettings.self) private var settings
+
+    var body: some View {
+        @Bindable var settings = settings
+        Section {
+            Toggle("Record Microsoft Teams meetings automatically", isOn: $settings.autoRecordTeamsMeetings)
+            Text("Hearsay starts recording when Microsoft Teams begins using your microphone and stops when the meeting ends. The recording uses the microphone, system audio and language chosen on the Record tab.",
+                 comment: "Settings > General > Meetings: caption under \"Record Microsoft Teams meetings automatically\". \"Record\" is the Record tab's name. Keep \"Microsoft Teams\" as is.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Toggle("Ask which language to use before each automatic recording", isOn: $settings.autoRecordAsksLanguage)
+                .disabled(!settings.autoRecordTeamsMeetings)
+            Text("Off: the recording uses the language chosen on the Record tab, and Auto detects it. On: when a meeting starts, Hearsay asks whether to record it and in which language, and records when you confirm.",
+                 comment: "Settings > General > Meetings: caption under \"Ask which language to use before each automatic recording\". \"Record\" is the Record tab's name, \"Auto\" the language picker's Auto.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        } header: {
+            Text("Meetings", comment: "Settings > General: section header of the card with the automatic Microsoft Teams recording")
+        }
     }
 }
 

@@ -255,6 +255,14 @@
   },
   {
     "catalog": "app",
+    "key": "Ask which language to use before each automatic recording",
+    "english": "Ask which language to use before each automatic recording",
+    "comment": "UI text in SettingsView.swift.",
+    "placeholders": [],
+    "translation": "每次自动录音前询问要使用的语言"
+  },
+  {
+    "catalog": "app",
     "key": "Audio",
     "english": "Audio",
     "comment": "History badge: the meeting has a recording",
@@ -687,6 +695,14 @@
   },
   {
     "catalog": "app",
+    "key": "Don't record",
+    "english": "Don't record",
+    "comment": "Button of the \"Microsoft Teams meeting started\" sheet: do not record this meeting.",
+    "placeholders": [],
+    "translation": "不录音"
+  },
+  {
+    "catalog": "app",
     "key": "Done",
     "english": "Done",
     "comment": "Permission sheet button once the permission is granted",
@@ -959,6 +975,14 @@
   },
   {
     "catalog": "app",
+    "key": "Hearsay could not start recording for the Microsoft Teams meeting.",
+    "english": "Hearsay could not start recording for the Microsoft Teams meeting.",
+    "comment": "Notification text under \"Recording not started\"; the Record tab shows why. Keep \"Microsoft Teams\" as is.",
+    "placeholders": [],
+    "translation": "Hearsay 无法为 Microsoft Teams 会议开始录音。"
+  },
+  {
+    "catalog": "app",
     "key": "Hearsay could not verify the downloaded update.",
     "english": "Hearsay could not verify the downloaded update.",
     "comment": "Alert title: checksum or code signature check of an update failed",
@@ -988,6 +1012,14 @@
     "comment": "Alert after changing the interface language",
     "placeholders": [],
     "translation": "Hearsay 需要重新启动才能更改语言。"
+  },
+  {
+    "catalog": "app",
+    "key": "Hearsay starts recording when Microsoft Teams begins using your microphone and stops when the meeting ends. The recording uses the microphone, system audio and language chosen on the Record tab.",
+    "english": "Hearsay starts recording when Microsoft Teams begins using your microphone and stops when the meeting ends. The recording uses the microphone, system audio and language chosen on the Record tab.",
+    "comment": "Settings > General > Meetings: caption under \"Record Microsoft Teams meetings automatically\". \"Record\" is the Record tab's name. Keep \"Microsoft Teams\" as is.",
+    "placeholders": [],
+    "translation": "当 Microsoft Teams 开始使用麦克风时，Hearsay 会开始录音，并在会议结束时停止。录音会使用录音标签页中选择的麦克风、系统声音和语言。"
   },
   {
     "catalog": "app",
@@ -1171,7 +1203,7 @@
     "catalog": "app",
     "key": "Language",
     "english": "Language",
-    "comment": "UI text in FileView.swift, LanguageViews.swift, RecordView.swift.",
+    "comment": "UI text in FileView.swift, LanguageViews.swift, MeetingPromptSheet.swift, RecordView.swift.",
     "placeholders": [],
     "translation": "语言"
   },
@@ -1279,6 +1311,14 @@
   },
   {
     "catalog": "app",
+    "key": "Meetings",
+    "english": "Meetings",
+    "comment": "Settings > General: section header of the card with the automatic Microsoft Teams recording",
+    "placeholders": [],
+    "translation": "会议"
+  },
+  {
+    "catalog": "app",
     "key": "Menus and windows. A change applies after Hearsay restarts.",
     "english": "Menus and windows. A change applies after Hearsay restarts.",
     "comment": "Settings > General caption under Interface language",
@@ -1348,6 +1388,22 @@
     "comment": "Record tab, Permissions row",
     "placeholders": [],
     "translation": "麦克风：未允许"
+  },
+  {
+    "catalog": "app",
+    "key": "Microsoft Teams meeting",
+    "english": "Microsoft Teams meeting",
+    "comment": "Notification text under \"Recording started\". Keep \"Microsoft Teams\" as is.",
+    "placeholders": [],
+    "translation": "Microsoft Teams 会议"
+  },
+  {
+    "catalog": "app",
+    "key": "Microsoft Teams meeting started",
+    "english": "Microsoft Teams meeting started",
+    "comment": "Title of the sheet that asks whether to record a Microsoft Teams meeting and in which language (Settings > General > Meetings, \"Ask which language to use before each automatic recording\"). Keep \"Microsoft Teams\" as is.",
+    "placeholders": [],
+    "translation": "Microsoft Teams 会议已开始"
   },
   {
     "catalog": "app",
@@ -1600,6 +1656,14 @@
     "comment": "Alert button",
     "placeholders": [],
     "translation": "好"
+  },
+  {
+    "catalog": "app",
+    "key": "Off: the recording uses the language chosen on the Record tab, and Auto detects it. On: when a meeting starts, Hearsay asks whether to record it and in which language, and records when you confirm.",
+    "english": "Off: the recording uses the language chosen on the Record tab, and Auto detects it. On: when a meeting starts, Hearsay asks whether to record it and in which language, and records when you confirm.",
+    "comment": "Settings > General > Meetings: caption under \"Ask which language to use before each automatic recording\". \"Record\" is the Record tab's name, \"Auto\" the language picker's Auto.",
+    "placeholders": [],
+    "translation": "关闭：录音会使用录音标签页中选择的语言，选择“自动”时会自动检测。开启：会议开始时，Hearsay 会询问是否录制以及使用哪种语言，并在你确认后开始录音。"
   },
   {
     "catalog": "app",
@@ -1883,6 +1947,30 @@
   },
   {
     "catalog": "app",
+    "key": "Record Microsoft Teams meetings automatically",
+    "english": "Record Microsoft Teams meetings automatically",
+    "comment": "UI text in SettingsView.swift.",
+    "placeholders": [],
+    "translation": "自动录制 Microsoft Teams 会议"
+  },
+  {
+    "catalog": "app",
+    "key": "Record meeting",
+    "english": "Record",
+    "comment": "Button (a verb) of the \"Microsoft Teams meeting started\" sheet: start recording in the chosen language. Not the Record tab's name.",
+    "placeholders": [],
+    "translation": "录音"
+  },
+  {
+    "catalog": "app",
+    "key": "Record this meeting?",
+    "english": "Record this meeting?",
+    "comment": "Text of the \"Microsoft Teams meeting started\" sheet, above its language picker.",
+    "placeholders": [],
+    "translation": "要录制此会议吗？"
+  },
+  {
+    "catalog": "app",
     "key": "Recording",
     "english": "Recording",
     "comment": "Menu bar icon while recording",
@@ -1908,6 +1996,38 @@
       "%@"
     ],
     "translation": "已保留录音：%@"
+  },
+  {
+    "catalog": "app",
+    "key": "Recording not started",
+    "english": "Recording not started",
+    "comment": "Notification title when an automatic recording for a Microsoft Teams meeting could not start.",
+    "placeholders": [],
+    "translation": "未开始录音"
+  },
+  {
+    "catalog": "app",
+    "key": "Recording started",
+    "english": "Recording started",
+    "comment": "Notification title when Hearsay starts recording a Microsoft Teams meeting by itself.",
+    "placeholders": [],
+    "translation": "已开始录音"
+  },
+  {
+    "catalog": "app",
+    "key": "Recording started automatically for a Microsoft Teams meeting.",
+    "english": "Recording started automatically for a Microsoft Teams meeting.",
+    "comment": "Record tab: notice line while a recording that Hearsay started for a Microsoft Teams meeting runs. Keep \"Microsoft Teams\" as is.",
+    "placeholders": [],
+    "translation": "已为 Microsoft Teams 会议自动开始录音。"
+  },
+  {
+    "catalog": "app",
+    "key": "Recording stopped",
+    "english": "Recording stopped",
+    "comment": "Notification title when Hearsay stops an automatic recording because the Microsoft Teams meeting ended.",
+    "placeholders": [],
+    "translation": "已停止录音"
   },
   {
     "catalog": "app",
@@ -2478,6 +2598,14 @@
     "comment": "Naming sheet explanation",
     "placeholders": [],
     "translation": "AI 建议了此名称。可以编辑，或按下 Return 键接受。"
+  },
+  {
+    "catalog": "app",
+    "key": "The Microsoft Teams meeting ended.",
+    "english": "The Microsoft Teams meeting ended.",
+    "comment": "Notification text under \"Recording stopped\". Keep \"Microsoft Teams\" as is.",
+    "placeholders": [],
+    "translation": "Microsoft Teams 会议已结束。"
   },
   {
     "catalog": "app",
@@ -4844,130 +4972,10 @@
   },
   {
     "catalog": "windows",
-    "key": "Meetings",
-    "english": "Meetings",
-    "comment": "Settings > General: section header of the card with the automatic Microsoft Teams recording. Windows only.",
-    "placeholders": [],
-    "translation": "会议"
-  },
-  {
-    "catalog": "windows",
-    "key": "Record Microsoft Teams meetings automatically",
-    "english": "Record Microsoft Teams meetings automatically",
-    "comment": "Settings > General > Meetings: toggle. Keep \"Microsoft Teams\" as is. Windows only.",
-    "placeholders": [],
-    "translation": "自动录制 Microsoft Teams 会议"
-  },
-  {
-    "catalog": "windows",
-    "key": "Hearsay starts recording when Microsoft Teams begins using your microphone and stops when the meeting ends. The recording uses the microphone, system audio and language chosen on the Record tab.",
-    "english": "Hearsay starts recording when Microsoft Teams begins using your microphone and stops when the meeting ends. The recording uses the microphone, system audio and language chosen on the Record tab.",
-    "comment": "Settings > General > Meetings: caption under \"Record Microsoft Teams meetings automatically\". \"Record\" is the Record tab's name. Windows only.",
-    "placeholders": [],
-    "translation": "当 Microsoft Teams 开始使用麦克风时，Hearsay 会开始录音，并在会议结束时停止。录音会使用录音标签页中选择的麦克风、系统声音和语言。"
-  },
-  {
-    "catalog": "windows",
-    "key": "Ask which language to use before each automatic recording",
-    "english": "Ask which language to use before each automatic recording",
-    "comment": "Settings > General > Meetings: second toggle, under \"Record Microsoft Teams meetings automatically\". Windows only.",
-    "placeholders": [],
-    "translation": "每次自动录音前询问要使用的语言"
-  },
-  {
-    "catalog": "windows",
-    "key": "Off: the recording uses the language chosen on the Record tab, and Auto detects it. On: when a meeting starts, Hearsay asks whether to record it and in which language, and records when you confirm.",
-    "english": "Off: the recording uses the language chosen on the Record tab, and Auto detects it. On: when a meeting starts, Hearsay asks whether to record it and in which language, and records when you confirm.",
-    "comment": "Settings > General > Meetings: caption under \"Ask which language to use before each automatic recording\". \"Record\" is the Record tab's name, \"Auto\" the language picker's Auto. Windows only.",
-    "placeholders": [],
-    "translation": "关闭：录音会使用录音标签页中选择的语言，选择“自动”时会自动检测。开启：会议开始时，Hearsay 会询问是否录制以及使用哪种语言，并在你确认后开始录音。"
-  },
-  {
-    "catalog": "windows",
-    "key": "Recording started automatically for a Microsoft Teams meeting.",
-    "english": "Recording started automatically for a Microsoft Teams meeting.",
-    "comment": "Record tab: notice line while a recording that Hearsay started for a Microsoft Teams meeting runs. Windows only.",
-    "placeholders": [],
-    "translation": "已为 Microsoft Teams 会议自动开始录音。"
-  },
-  {
-    "catalog": "windows",
-    "key": "Recording started",
-    "english": "Recording started",
-    "comment": "Notification area balloon title when Hearsay starts recording a Microsoft Teams meeting by itself. Windows only.",
-    "placeholders": [],
-    "translation": "已开始录音"
-  },
-  {
-    "catalog": "windows",
-    "key": "Microsoft Teams meeting",
-    "english": "Microsoft Teams meeting",
-    "comment": "Notification area balloon text under \"Recording started\". Windows only.",
-    "placeholders": [],
-    "translation": "Microsoft Teams 会议"
-  },
-  {
-    "catalog": "windows",
-    "key": "Recording stopped",
-    "english": "Recording stopped",
-    "comment": "Notification area balloon title when Hearsay stops an automatic recording because the Microsoft Teams meeting ended. Windows only.",
-    "placeholders": [],
-    "translation": "已停止录音"
-  },
-  {
-    "catalog": "windows",
-    "key": "The Microsoft Teams meeting ended.",
-    "english": "The Microsoft Teams meeting ended.",
-    "comment": "Notification area balloon text under \"Recording stopped\". Windows only.",
-    "placeholders": [],
-    "translation": "Microsoft Teams 会议已结束。"
-  },
-  {
-    "catalog": "windows",
-    "key": "Recording not started",
-    "english": "Recording not started",
-    "comment": "Notification area balloon title when an automatic recording for a Microsoft Teams meeting could not start. Windows only.",
-    "placeholders": [],
-    "translation": "未开始录音"
-  },
-  {
-    "catalog": "windows",
-    "key": "Hearsay could not start recording for the Microsoft Teams meeting.",
-    "english": "Hearsay could not start recording for the Microsoft Teams meeting.",
-    "comment": "Notification area balloon text under \"Recording not started\"; the Record tab shows why. Windows only.",
-    "placeholders": [],
-    "translation": "Hearsay 无法为 Microsoft Teams 会议开始录音。"
-  },
-  {
-    "catalog": "windows",
-    "key": "Microsoft Teams meeting started",
-    "english": "Microsoft Teams meeting started",
-    "comment": "Title of the dialog that asks whether to record a Microsoft Teams meeting and in which language (Settings > General > Meetings, \"Ask which language to use before each automatic recording\"). Windows only.",
-    "placeholders": [],
-    "translation": "Microsoft Teams 会议已开始"
-  },
-  {
-    "catalog": "windows",
-    "key": "Record this meeting?",
-    "english": "Record this meeting?",
-    "comment": "Text of the \"Microsoft Teams meeting started\" dialog, above its language picker. Windows only.",
-    "placeholders": [],
-    "translation": "要录制此会议吗？"
-  },
-  {
-    "catalog": "windows",
     "key": "Record",
     "english": "Record",
     "comment": "Button (a verb) of the \"Microsoft Teams meeting started\" dialog: start recording in the chosen language. Not the Record tab's name. Windows only.",
     "placeholders": [],
     "translation": "录音"
-  },
-  {
-    "catalog": "windows",
-    "key": "Don't record",
-    "english": "Don't record",
-    "comment": "Button of the \"Microsoft Teams meeting started\" dialog: do not record this meeting. Windows only.",
-    "placeholders": [],
-    "translation": "不录音"
   }
 ]

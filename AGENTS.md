@@ -77,7 +77,7 @@ settings are not touched.
 | `HEARSAY_RECORD_SECONDS=<n> HEARSAY_RECORD_DEVICE=<name part> [HEARSAY_RECORD_KEEP=<wav>]` | Records from a real input device; needs microphone permission |
 | `HEARSAY_UI_SNAPSHOTS=<dir> HEARSAY_UI_LANGUAGE=<en\|de\|es\|zh-Hant\|zh-Hans>` | Renders every tab, sheet, the menu bar panel, the update progress window, and the help page to PNGs |
 | `HEARSAY_INSTALL_UPDATE=<dmg> HEARSAY_INSTALL_TARGET=<app> [HEARSAY_INSTALL_VERSION=<v>]` | Runs the update install against a scratch app bundle: location check, checksum (against `SHA256SUMS.txt` next to the DMG, else skipped), mount, signature check, staging, bundle replacement; never relaunches. Never point it at the running app or `/Applications/Hearsay.app` |
-| `HEARSAY_WATCH_MEETINGS=<seconds>` | Windows only: lists the capture sessions every second for that long (endpoint, pid, process, parent when resolved, state; then one line per change) and prints `meeting started` / `meeting ended` from the Teams meeting detector; records nothing |
+| `HEARSAY_WATCH_MEETINGS=<seconds>` | Lists the capture sessions every second for that long, the first time all and then one line per change, and prints `meeting started` / `meeting ended` from the Teams meeting detector; records nothing. Windows: endpoint, pid, process, parent when resolved, state. Mac (14.2 and later; older prints so and exits 1): pid, bundle id, executable path, whether it is running input |
 
 Debug runs may leave an empty `~/Library/Preferences/tw.og1o.hearsay.debug-*.plist`;
 delete those you create. Delete every SRT a debug run writes into the

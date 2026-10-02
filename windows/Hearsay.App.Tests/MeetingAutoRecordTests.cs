@@ -15,7 +15,8 @@ namespace Hearsay.App.Tests;
 /// with fake capture and a fake queue engine (the
 /// <see cref="RecordingControllerTests"/> rig): a scripted probe result and a
 /// stepped clock drive <see cref="MeetingAutoRecord.Apply"/>, the timer's
-/// decision step. Windows only; there is no Swift counterpart yet. The
+/// decision step. The Mac runs these cases against MeetingAutoRecordRules
+/// (MeetingAutoRecordRulesTests.swift). The
 /// detector's own timing rules are in Hearsay.Tests (MeetingDetectorTests).
 /// </summary>
 public sealed class MeetingAutoRecordTests

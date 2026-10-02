@@ -235,6 +235,26 @@ enum UISnapshots {
                      context.with(queue: singleReleased).apply(to: MainView().environment(grantedPermissions)))
         await render("35-settings-general-manual", width: 720, height: 1000, SettingsView(initialPane: .general))
         settings.finalPassTiming = .immediate
+
+        // Automatic recording of Teams meetings (PLAN.md 4.10): the Meetings
+        // section with the first switch on, the language question, and the
+        // Record tab's notice for an automatic session.
+        settings.autoRecordTeamsMeetings = true
+        await render("36-settings-general-meetings", width: 720, height: 1000, SettingsView(initialPane: .general))
+        settings.autoRecordTeamsMeetings = false
+        await render("37-sheet-meeting-prompt", width: 380,
+                     MeetingPromptSheet(preselected: .auto, onRecord: { _ in }, onDontRecord: {}))
+        await render("38-sheet-meeting-prompt-chinese", width: 380,
+                     MeetingPromptSheet(preselected: .fixed(.chineseTaiwan), onRecord: { _ in }, onDontRecord: {}))
+        controller.automaticStartNotice = String(
+            localized: "Recording started automatically for a Microsoft Teams meeting.",
+            comment: "Record tab: notice line while a recording that Hearsay started for a Microsoft Teams meeting runs. Keep \"Microsoft Teams\" as is.")
+        let emptyQueue = makeQueue(
+            settings: settings, modelStore: modelStore, engine: delegate.whisperEngine, spool: spool)
+        tabs.tab = .record
+        await render("39-record-automatic-notice", width: 720, height: 560,
+                     context.with(queue: emptyQueue).apply(to: MainView().environment(grantedPermissions)))
+        controller.automaticStartNotice = nil
         say("help file \(HelpWindow.contentURL?.path ?? "missing")")
         for (name, fragment) in [("19-help-top", nil), ("20-help-meeting-notes", "meeting-notes")] as [(String, String?)] {
             let url = directory.appendingPathComponent("\(name).png")
@@ -350,6 +370,7 @@ enum UISnapshots {
         let relauncher: AppRelauncher
         let updates: UpdateService
         let permissions: PermissionMonitor
+        let meetingPrompt = MeetingPromptModel()
 
         /// The same environment with another queue (UI snapshots of other queue states).
         func with(queue: TranscriptionQueue) -> Context {
@@ -375,6 +396,7 @@ enum UISnapshots {
                 .environment(relauncher)
                 .environment(updates)
                 .environment(permissions)
+                .environment(meetingPrompt)
         }
     }
 

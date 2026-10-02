@@ -7,8 +7,8 @@ namespace Hearsay.Tests.Audio;
 
 /// <summary>
 /// Tests for <see cref="MeetingDetector"/> (automatic recording of Microsoft
-/// Teams meetings). Windows only for now: there is no Swift test to mirror
-/// yet; the Mac port is to mirror these one for one. Hand-made session lists
+/// Teams meetings). Mirrored one for one by the Mac's MeetingDetectorTests.swift
+/// (bundle ids and paths instead of process names). Hand-made session lists
 /// and a stepped clock, no hardware.
 /// </summary>
 public class MeetingDetectorTests

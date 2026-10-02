@@ -67,6 +67,12 @@ struct RecordView: View {
                                     systemImage: "speaker.wave.2.fill", fraction: system)
                     }
                 }
+                // A recording Hearsay started for a Microsoft Teams meeting (PLAN.md 4.10).
+                if let notice = model.automaticStartNotice {
+                    Label(notice, systemImage: "video.fill")
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 if let notice = model.systemAudioNotice {
                     HStack {
                         Label(notice, systemImage: "speaker.slash.fill")

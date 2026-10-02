@@ -171,7 +171,7 @@ internal static class RecordingSnapshots
     /// a language banner, and the same at a narrow window. The rows and the
     /// tray's queue line are checked against the queue's states. Mirrors the
     /// "27-record-queue" render of mac/Hearsay/Features/Debug/UISnapshots.swift.
-    /// "When I start them" (PLAN.md 4.11, Windows only until the Mac port) follows in
+    /// "When I start them" (PLAN.md 4.11) follows in
     /// <see cref="HeldQueueAsync"/>.
     /// </summary>
     private static async Task QueueStatesAsync(

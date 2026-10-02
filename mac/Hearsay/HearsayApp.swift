@@ -37,6 +37,7 @@ struct HearsayApp: App {
                 .environment(appDelegate.tabSelection)
                 .environment(appDelegate.updateService)
                 .environment(appDelegate.permissionMonitor)
+                .environment(appDelegate.meetingPrompt)
                 .registeringMainWindowOpener(appDelegate.windowOpener)
         }
         .defaultSize(width: 720, height: 480)

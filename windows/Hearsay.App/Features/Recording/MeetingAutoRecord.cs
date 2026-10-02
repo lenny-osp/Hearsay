@@ -7,8 +7,9 @@ namespace Hearsay.App.Features.Recording;
 
 /// <summary>
 /// Records Microsoft Teams meetings automatically (Settings > General >
-/// Meetings, <see cref="AppSettings.AutoRecordTeamsMeetings"/>). Windows only
-/// for now; there is no Swift counterpart yet. The decision when a meeting
+/// Meetings, <see cref="AppSettings.AutoRecordTeamsMeetings"/>). The Mac's
+/// counterpart is mac/Hearsay/Features/Recording/MeetingAutoRecord.swift, with
+/// its decisions in HearsayCore's MeetingAutoRecordRules. The decision when a meeting
 /// starts and ends is <see cref="MeetingDetector"/>'s; this class acts on it.
 /// </summary>
 /// <remarks>

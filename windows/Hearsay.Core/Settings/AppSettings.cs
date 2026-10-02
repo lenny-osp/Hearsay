@@ -87,7 +87,7 @@ public sealed class AppSettings : INotifyPropertyChanged
         public const string StopStartNextHotkey = "stopStartNextHotkey";
         public const string FinalPassTiming = "finalPassTiming";
         public const string KeepRecording = "keepRecording";
-        /// <summary>Windows only for now (the Mac port is planned with the same key).</summary>
+        /// <summary>The Mac uses the same key (PLAN.md 4.10).</summary>
         public const string AutoRecordTeamsMeetings = "autoRecordTeamsMeetings";
         /// <summary>Windows only for now (the Mac port is planned with the same key).</summary>
         public const string AutoRecordAsksLanguage = "autoRecordAsksLanguage";

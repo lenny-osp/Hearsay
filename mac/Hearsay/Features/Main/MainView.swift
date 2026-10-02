@@ -23,6 +23,7 @@ struct MainView: View {
     @Environment(ModelStore.self) private var modelStore
     @Environment(RecordingController.self) private var recording
     @Environment(PermissionMonitor.self) private var permissions
+    @Environment(MeetingPromptModel.self) private var meetingPrompt
     @Environment(\.whisperEngine) private var whisperEngine
     @State private var recovery: UnfinishedRecordingQueue?
     @Environment(MainTabSelection.self) private var tabs
@@ -63,6 +64,17 @@ struct MainView: View {
         }
         .padding()
         .frame(minWidth: 560, minHeight: 360)
+        // "Record this meeting?" for an automatic recording (PLAN.md 4.10).
+        // Its own layer: one sheet modifier per view.
+        .sheet(item: meetingPromptItem) { pending in
+            MeetingPromptSheet(
+                preselected: pending.preselected,
+                onRecord: { meetingPrompt.answer(id: pending.id, choice: $0) },
+                onDontRecord: { meetingPrompt.answer(id: pending.id, choice: nil) }
+            )
+            // Closing the window takes the sheet along without a button.
+            .onDisappear { meetingPrompt.dismissed(id: pending.id) }
+        }
         .onAppear {
             if fileModel == nil {
                 fileModel = FileViewModel(
@@ -92,6 +104,15 @@ struct MainView: View {
         Binding(
             get: { recovery?.current != nil },
             set: { shown in if !shown { recovery = nil } }
+        )
+    }
+
+    /// The open meeting question. SwiftUI sets it to nil when the sheet is
+    /// dismissed by itself (Escape): that is Don't record.
+    private var meetingPromptItem: Binding<MeetingPromptModel.Pending?> {
+        Binding(
+            get: { meetingPrompt.pending },
+            set: { if $0 == nil, let open = meetingPrompt.pending { meetingPrompt.dismissed(id: open.id) } }
         )
     }
 

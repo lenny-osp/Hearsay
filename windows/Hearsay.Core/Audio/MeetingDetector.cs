@@ -10,9 +10,8 @@ public enum MeetingEvent
 /// <summary>
 /// Decides from successive <see cref="MeetingAudioProbe.CaptureSessions"/>
 /// lists when a Microsoft Teams meeting starts and ends. Pure: no timers, no
-/// COM; the caller polls and passes the time. Windows only for now; there is
-/// no Swift counterpart yet (the Mac port is planned one for one, with these
-/// tests).
+/// COM; the caller polls and passes the time. Ported one for one to the Mac
+/// (mac/HearsayCore/Sources/HearsayCore/Audio/MeetingDetector.swift).
 /// </summary>
 /// <remarks>
 /// <para>

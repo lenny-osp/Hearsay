@@ -37,8 +37,8 @@ public sealed record CaptureSession(
 /// <summary>
 /// Lists the audio sessions open on every active capture endpoint, the
 /// signal <see cref="MeetingDetector"/> reads to notice a Microsoft Teams
-/// meeting. Windows only; there is no Swift counterpart yet (the Mac port
-/// will read CoreAudio process objects instead).
+/// meeting. The Mac reads CoreAudio process objects instead
+/// (MeetingAudioProbe.swift).
 /// </summary>
 /// <remarks>
 /// Every endpoint is enumerated, not only the default one: Teams records from
