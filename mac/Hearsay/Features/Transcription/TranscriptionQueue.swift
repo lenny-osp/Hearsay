@@ -1024,7 +1024,15 @@ final class TranscriptionQueue {
         defer { folder?.stopAccessing() }
         var landed: NSURL?
         do {
-            try FileManager.default.trashItem(at: url, resultingItemURL: &landed)
+            // The WAV is already gone (moved or deleted outside the queue):
+            // there is nothing to trash, so the row just leaves the queue.
+            if FileManager.default.fileExists(atPath: url.path) {
+                try FileManager.default.trashItem(at: url, resultingItemURL: &landed)
+            } else {
+                Self.logger.notice("trash \(job.id, privacy: .public): \(url.lastPathComponent, privacy: .public) is already gone; removing the job")
+            }
+        } catch CocoaError.fileNoSuchFile, CocoaError.fileReadNoSuchFile {
+            // Gone between the check and the move: the same as above.
         } catch {
             job.trashError = String(
                 localized: "Could not move the recording to the Trash: \(error.localizedDescription)",

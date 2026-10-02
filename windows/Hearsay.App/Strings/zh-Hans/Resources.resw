@@ -973,10 +973,6 @@
     <value>音频</value>
     <comment>app: Audio</comment>
   </data>
-  <data name="app_bc9d3f9c177edaea" xml:space="preserve">
-    <value>无输入设备</value>
-    <comment>app: No input device</comment>
-  </data>
   <data name="app_bca705b63a3cf585" xml:space="preserve">
     <value>会议</value>
     <comment>app: Meetings</comment>
@@ -1904,6 +1900,10 @@
   <data name="windows_b980a145c5e8c9e2" xml:space="preserve">
     <value>Win</value>
     <comment>windows: Win</comment>
+  </data>
+  <data name="windows_bc9d3f9c177edaea" xml:space="preserve">
+    <value>无输入设备</value>
+    <comment>windows: No input device</comment>
   </data>
   <data name="windows_bcc0753c970f15ca" xml:space="preserve">
     <value>{0} 在 Windows 上无法处理这么长的转录稿：命令行将有 {1} 个字符，而 Windows 最多允许 {2} 个。长时间的会议请改用 Claude Code、Codex 或 HTTP 提供方。</value>

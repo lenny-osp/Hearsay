@@ -973,10 +973,6 @@
     <value>音訊</value>
     <comment>app: Audio</comment>
   </data>
-  <data name="app_bc9d3f9c177edaea" xml:space="preserve">
-    <value>沒有輸入裝置</value>
-    <comment>app: No input device</comment>
-  </data>
   <data name="app_bca705b63a3cf585" xml:space="preserve">
     <value>會議</value>
     <comment>app: Meetings</comment>
@@ -1904,6 +1900,10 @@
   <data name="windows_b980a145c5e8c9e2" xml:space="preserve">
     <value>Win</value>
     <comment>windows: Win</comment>
+  </data>
+  <data name="windows_bc9d3f9c177edaea" xml:space="preserve">
+    <value>沒有輸入裝置</value>
+    <comment>windows: No input device</comment>
   </data>
   <data name="windows_bcc0753c970f15ca" xml:space="preserve">
     <value>{0} 在 Windows 上無法處理這麼長的逐字稿：命令列會有 {1} 個字元，而 Windows 最多允許 {2} 個。長時間的會議請改用 Claude Code、Codex 或 HTTP 提供者。</value>

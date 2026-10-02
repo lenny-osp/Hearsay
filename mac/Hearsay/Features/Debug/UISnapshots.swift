@@ -282,6 +282,22 @@ enum UISnapshots {
                      context.with(queue: emptyQueue).apply(to: MenuBarView()))
         controller.endSampleRecording()
         settings.livePreviewMode = .automatic
+
+        // No microphone (PLAN.md 4.13): the picker's last row chosen, the
+        // system-audio switch on and locked (the stored setting off here, so
+        // the switch shows it is not the stored value), and a recording with
+        // the System meter only.
+        let storedSystemAudio = settings.captureSystemAudio
+        settings.captureSystemAudio = false
+        controller.microphoneChoice = .noMicrophone
+        tabs.tab = .record
+        await render("44-record-no-microphone", width: 720, height: 560,
+                     context.with(queue: emptyQueue).apply(to: MainView().environment(grantedPermissions)))
+        controller.showSampleRecording(elapsed: 754)
+        await render("45-record-system-audio-only", width: 720, height: 700,
+                     context.with(queue: emptyQueue).apply(to: MainView().environment(grantedPermissions)))
+        controller.endSampleRecording()
+        settings.captureSystemAudio = storedSystemAudio
         say("help file \(HelpWindow.contentURL?.path ?? "missing")")
         for (name, fragment) in [("19-help-top", nil), ("20-help-meeting-notes", "meeting-notes")] as [(String, String?)] {
             let url = directory.appendingPathComponent("\(name).png")

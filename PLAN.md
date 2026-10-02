@@ -192,7 +192,8 @@ switches models or memory pressure triggers unload.
      `excludesCurrentProcessAudio = true`. Requires the Screen & System Audio
      Recording permission; the first Start explains why and opens System
      Settings if denied. If denied, recording continues mic-only with a
-     visible badge.
+     visible badge (with "No microphone (system audio only)" the start
+     fails instead, 4.13).
 3. `AVAudioConverter` resamples each source to 16 kHz mono Float32.
    `AudioMixer` aligns the two streams on host time and sums them with soft
    clipping. Output: one 16 kHz mono stream.
@@ -910,9 +911,13 @@ job's language detection, closes and drops its live sink, moves the job's
 own WAV to the Trash (Windows: the Recycle Bin) and nothing else (a
 retry's WAV in the output folder: that WAV only; its saved live preview
 stays), removes `<id>.live.srt`, removes the job, saves `queue.json`,
-and evaluates the queue again. If the WAV cannot be moved, the job stays
-and its row shows "Could not move the recording to the Trash: %@"
-(Windows: "…Recycle Bin: %@") with the system reason. The queue guards
+and evaluates the queue again. A WAV that is already gone (moved or
+deleted outside the queue) has nothing to trash: the job just leaves the
+queue, as above, without an error (owner report 2026-10-02: a held job
+whose WAV had landed in the output folder could not be removed, its row
+showing "…the file does not exist"). If the WAV exists but cannot be
+moved, the job stays and its row shows "Could not move the recording to
+the Trash: %@" (Windows: "…Recycle Bin: %@") with the system reason. The queue guards
 too: a no-op unless the job is held and idle
 (`TranscriptionQueuePolicy.canTrash(timing, job, busy)`). Queue event
 `trashed` for the replay. The menu bar or tray line, Transcribe All and
@@ -1057,6 +1062,91 @@ keeps the WAV and has no live preview to save.
   README: one sentence under "Live preview".
 - Not verified: the live GUI (the owner runs the Release app), section 16
   item 32.
+
+### 4.13 System audio only
+
+Owner request 2026-10-02: record only the sound the computer plays (a
+video, a webinar, a call heard through the speakers) without the user's
+microphone. A shared design; **the Mac was built first (2026-10-02)**,
+Windows follows (18.9 "System audio only").
+
+**Rules.**
+1. The Microphone picker gets a last row, after a divider, "No microphone
+   (system audio only)". Like the device choice it is not persisted: each
+   launch starts with the default microphone (a forgotten "off" would
+   silently lose the user's own voice).
+2. While it is selected, "Also capture system audio" shows on and
+   disabled; the stored `captureSystemAudio` is not changed (choosing a
+   microphone again shows the stored value). Effective system audio = true.
+3. No input device at all: the picker selects the no-microphone row by
+   itself (it replaces the old "No input device" row), and Start records
+   system audio only. When a device appears later and the row was chosen
+   automatically, the picker switches back to the default device; a row
+   the user picked stays. The choice never changes during a session.
+4. Start without a microphone requests no microphone permission, makes no
+   microphone recorder, and mixes system audio alone. If system audio
+   cannot start (permission denied or an error), the start fails with
+   "Nothing to record: the microphone is off and system audio could not
+   start: <reason>"; the permission case offers "Open System Settings"
+   (Screen & System Audio Recording). Nothing is left in the spool.
+5. During a system-only session pause and resume act on system audio
+   alone; the no-audio watchdog (a microphone check) does not run; system
+   audio ending on its own ends the recording like an unplugged microphone
+   (WAV kept, 4.1 failure rules) instead of continuing mic-only; a
+   recording with no samples at Stop fails with "No audio arrived from
+   system audio." The main meter shows the system level and the Mic meter
+   is hidden; the silence warning reads "Silent for Ns — check that
+   something is playing".
+6. Stop & Start Next keeps system-only for the next session (also an
+   automatic no-microphone choice); Teams auto-recording (4.10), the
+   hotkeys and the menu bar Start use the same choice. The menu bar panel
+   names no device, so it needs no change.
+7. Debug replay: `HEARSAY_REPLAY_MIC=off` feeds the replay WAV as the
+   system source and makes no microphone.
+
+**As built (Mac, 2026-10-02).**
+- Core: `MicrophoneSelection` and `MicrophoneChoice`
+  (`HearsayCore/Audio/MicrophoneSelection.swift`): the choice, the
+  automatic flag, `update(deviceUIDs:defaultUID:keepingNoMicrophone:)`
+  (rules 1, 3, 6) and `capturesSystemAudio(stored:)` (rule 2); 11 tests
+  in `MicrophoneSelectionTests`. `MixerTests.mixStreamsWithSystemOnly`
+  checks that system audio alone passes through unchanged, has no mic
+  level, and that a gap in its stream is filled with silence.
+- `RecordingController`: `microphone` replaces `selectedDeviceUID`;
+  `refreshDevices()` updates the choice only while no session is active,
+  and once more when a session ends; `performStart(continuing:)` settles
+  the choice first (Stop & Start Next keeps "no microphone"), then asks
+  for the microphone permission only with a microphone.
+  `startSystemAudio()` returns started / denied / failed and the caller
+  decides: a notice with a microphone, `failNothingToRecord` without one
+  (`failureOpensScreenCaptureSettings` shows "Open System Settings" in the
+  error). `sessionRecordsMicrophone` drives the meters and the silence
+  warning. `CaptureSources.makeSystemAudio` takes `withoutMicrophone`, so
+  the replay knows to feed its WAV there.
+- `RecordView`: the picker row (tag `MicrophoneChoice.noMicrophone`), the
+  locked switch, no Mic meter (and no empty meter row before a
+  no-microphone session).
+- Strings: four new app keys with translations ("No microphone (system
+  audio only)", the start error, the zero-sample error, the silence
+  warning). "No input device" left the Mac; it moved to the catalog
+  `windows` (Windows still shows it until its 18.9 item, `Strings.cs`
+  `Win(...)`, resw regenerated).
+- System audio during silence: not measured in this change (needs the
+  Screen & System Audio Recording permission and real playback).
+  18.4 records that ScreenCaptureKit streams continuously; if it ever
+  delivers nothing during silence, the mixer fills the gap when the next
+  buffer arrives (tested), so timestamps stay right, but the elapsed time
+  and meters would pause meanwhile and a silent tail before Stop would be
+  missing.
+- Verified: `swift test` (547 tests), the Release build with no warnings,
+  replays of `en-30s.wav` then `de-30s.wav` in Auto with
+  `HEARSAY_REPLAY_MIC=off` and without it: identical results (2 live
+  jobs, job 1 `en` and job 2 `de` detected, same final-pass cue counts and
+  first lines, 0.011 s session gap), snapshots `44-record-no-microphone`
+  and `45-record-system-audio-only` in English and Traditional Chinese.
+- Not verified: a real system-only recording through ScreenCaptureKit, the
+  denied-permission start error, and the device auto-switch with real
+  hardware (section 16 item 33).
 
 ## 5. Model catalog and download
 
@@ -1558,7 +1648,35 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
     the running session stays without preview; Stop & Start Next starts the
     next one with it.
 
+33. Mac, system audio only (section 4.13, added 2026-10-02): on the Record
+    tab pick "No microphone (system audio only)": "Also capture system
+    audio" shows on and greyed out. Play a video and record a minute: only
+    the System meter shows and moves, the transcript has the video's
+    speech and none of the room. Pause and Resume once (the paused time is
+    left out), then Stop & Start Next: the next session is system-only
+    too. Pick the microphone again: the switch shows its old value. Quit
+    and reopen: the default microphone is selected again. Without any
+    microphone (no built-in one, or all input devices off in Audio MIDI
+    Setup), the picker shows the no-microphone row by itself, Start
+    records system audio, and connecting a headset selects it again. Turn
+    Hearsay off in System Settings > Privacy & Security > Screen & System
+    Audio Recording, pick the row and press Start: the error "Nothing to
+    record: …" with "Open System Settings", and nothing new in the spool.
+    Also check whether the elapsed time keeps counting while nothing
+    plays (4.13, "System audio during silence").
+
 ## 17. Polish list (found during review, not yet scheduled)
+
+- **Open (owner report 2026-10-02): a held job's WAV left the spool.**
+  With "When I start them", a recording made 23:37:18 to 23:39:30 stayed in
+  `queue.json` as a waiting spool job, but its WAV was in the output folder
+  (no SRT next to it; the file's change time equals its last write, so it
+  moved while recording or at Stop). "Move to Trash…" then failed with "the
+  file does not exist". The owner could not recall the steps; neither
+  `keepAfterFailure` (no live SRT was written) nor the recovery sheet
+  (launch date known) explains it. Mitigated in v0.3.11: a missing WAV just
+  removes the job (4.11). If it happens again, note what was on screen
+  around Stop (Teams auto-recording, a dialog, the File or History tab).
 
 - **Decided 2026-09-28: Antigravity CLI isolation.** agy honors the
   owner's own `~/.gemini/antigravity-cli/settings.json` allow list, so
@@ -1638,6 +1756,15 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
   the preview off, Auto with it on) and the UI snapshots in English and
   Traditional Chinese. Windows: 18.9 "Live preview override". Hands-on:
   section 16 item 32.
+
+- **Done 2026-10-02: Mac system audio only (section 4.13, owner
+  request).** The Microphone picker's last row "No microphone (system
+  audio only)" records only the sound the Mac plays; it is chosen by itself
+  when no input device exists and is never persisted. Built as in 4.13 "As
+  built (Mac, 2026-10-02)"; verified with `swift test`, the Release build,
+  replays with and without `HEARSAY_REPLAY_MIC=off`, and the UI snapshots
+  in English and Traditional Chinese. Windows: 18.9 "System audio only".
+  Hands-on: section 16 item 33.
 
 - **To do (owner request 2026-09-28): "Reduce background noise" switch** on
   the Record tab. Routes only the mic through Apple voice processing so
@@ -2609,6 +2736,26 @@ findings only in a chat report.
   either; the single-meeting card has both); the tray menu's queue line and
   Stop & Start Next were never seen in the real popup (item 27 of section 16).
 
+- **System audio only** (owner, 2026-10-02; shared design 4.13, built on
+  the Mac first): the Windows Microphone picker gets the same last row,
+  "No microphone (system audio only)" (reuse the shared key and its
+  translations), replacing "No input device" (then drop that `windows`
+  key). With it the session runs WASAPI loopback only (no microphone
+  client, no microphone permission check), the system-audio switch shows
+  on and disabled without changing the stored setting, the choice is not
+  persisted, and the no-device rule is the same (chosen by itself, back to
+  the default device when one appears unless the user picked it). Failure
+  rules as on the Mac: a loopback that cannot start fails the start with
+  "Nothing to record: the microphone is off and system audio could not
+  start: <reason>"; Windows has no screen-recording permission, so there
+  is no "Open System Settings" button and the reason is the loopback
+  error (for example no output device, `NoOutputDevice`). Loopback ending
+  on its own ends the recording with the WAV kept; zero samples at Stop
+  reads "No audio arrived from system audio." The 0.1 s silence filler
+  (18.4) keeps a system-only recording running while nothing plays. Same
+  replay variable `HEARSAY_REPLAY_MIC=off`, same Stop & Start Next and
+  Teams behavior, Mic meter hidden.
+
 ### 18.10 Back-to-back recordings (port of section 4.9, added 2026-09-30)
 
 The Mac builds this first; Windows ports it after. Same behavior as 4.9
@@ -3065,6 +3212,8 @@ under manual" and "Move to Trash on a held row", built on the Mac first:
   `canTrash` and its test), the Recycle Bin through the shell's
   recycle-bin delete (the one History uses), the row's error line, a
   `Trashed` queue event and `HEARSAY_REPLAY_TRASH=1` in the replay.
+- A WAV that no longer exists: `Trash(job)` removes the job without an
+  error (the Mac's rule of 2026-10-02, above).
 - Strings: two Windows-only keys (catalog `windows`, translated in de, es,
   zh-Hant, zh-Hans as History's Recycle Bin keys are): "Move this recording
   to the Recycle Bin?" and "Could not move the recording to the Recycle Bin:

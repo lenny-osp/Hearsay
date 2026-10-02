@@ -301,6 +301,35 @@ import Testing
         #expect(flat == mic)
     }
 
+    /// PLAN.md 4.13: system audio only passes through unchanged, has no
+    /// microphone level, and a gap in its stream is filled with silence.
+    @Test func mixStreamsWithSystemOnly() async {
+        let (systemStream, systemContinuation) = AsyncStream<TimedChunk>.makeStream()
+        let ended = EndedSources()
+        let mixed = AudioMixer.mix(mic: nil, system: systemStream) { source in
+            ended.insert(source)
+        }
+        let first = Self.sine(amplitude: 0.5, count: 3200)
+        for chunk in Self.chunks(first, size: 800) {
+            systemContinuation.yield(chunk)
+        }
+        // One second with no buffers, then more sound.
+        let second = Self.sine(amplitude: 0.5, count: 1600)
+        systemContinuation.yield(TimedChunk(samples: second, hostTime: 100 + 3200 / Self.rate + 1))
+        systemContinuation.finish()
+        var blocks: [MixedChunk] = []
+        for await block in mixed {
+            blocks.append(block)
+        }
+        let flat = Self.flat(blocks)
+        #expect(flat.count == 3200 + 16_000 + 1600)
+        #expect(Array(flat[0..<3200]) == first)
+        #expect(flat[3200..<19_200].allSatisfy { $0 == 0 })
+        #expect(Array(flat[19_200...]) == second)
+        #expect(blocks.allSatisfy { $0.micRMSDB == nil })
+        #expect(ended.sources == [.system])
+    }
+
     @Test func noSourcesFinishesImmediately() async {
         var count = 0
         for await _ in AudioMixer.mix(mic: nil, system: nil) {

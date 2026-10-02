@@ -527,7 +527,7 @@ internal static partial class Strings
 
     // Record tab (mac/Hearsay/Features/Recording/RecordView.swift).
     public static string Microphone => App("Microphone");
-    public static string NoInputDevice => App("No input device");
+    public static string NoInputDevice => Win("No input device");
     public static string AlsoCaptureSystemAudio => App("Also capture system audio");
     public static string InputLevel => App("Input level");
     public static string MicMeter => App("Mic");

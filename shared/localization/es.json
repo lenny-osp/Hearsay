@@ -1547,11 +1547,11 @@
   },
   {
     "catalog": "app",
-    "key": "No input device",
-    "english": "No input device",
-    "comment": "UI text in RecordView.swift.",
+    "key": "No audio arrived from system audio.",
+    "english": "No audio arrived from system audio.",
+    "comment": "Recording error: a recording with \"No microphone (system audio only)\" got no samples.",
     "placeholders": [],
-    "translation": "Ningún dispositivo de entrada"
+    "translation": "No ha llegado sonido del audio del sistema."
   },
   {
     "catalog": "app",
@@ -1592,6 +1592,14 @@
     "comment": "UI text in HistoryView.swift.",
     "placeholders": [],
     "translation": "Aún no hay reuniones"
+  },
+  {
+    "catalog": "app",
+    "key": "No microphone (system audio only)",
+    "english": "No microphone (system audio only)",
+    "comment": "Record tab: last row of the Microphone picker; records only the sound the Mac plays.",
+    "placeholders": [],
+    "translation": "Sin micrófono (solo audio del sistema)"
   },
   {
     "catalog": "app",
@@ -1666,6 +1674,16 @@
     "comment": "UI text in ConfirmSendSheet.swift.",
     "placeholders": [],
     "translation": "Idioma de las notas:"
+  },
+  {
+    "catalog": "app",
+    "key": "Nothing to record: the microphone is off and system audio could not start: %@",
+    "english": "Nothing to record: the microphone is off and system audio could not start: %@",
+    "comment": "Record tab error when Start had \"No microphone (system audio only)\" chosen and system audio failed. %@ is the reason, a full sentence.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "No hay nada que grabar: el micrófono está desactivado y el audio del sistema no se ha podido iniciar: %@"
   },
   {
     "catalog": "app",
@@ -2358,6 +2376,16 @@
     "comment": "Settings > General > Transcription switch: transcribe 30 s chunks while recording and show them on the Record tab",
     "placeholders": [],
     "translation": "Mostrar la vista previa en directo al grabar"
+  },
+  {
+    "catalog": "app",
+    "key": "Silent for %llds — check that something is playing",
+    "english": "Silent for %llds — check that something is playing",
+    "comment": "Silence warning while recording system audio only (no microphone). %lld is a number of seconds.",
+    "placeholders": [
+      "%lld"
+    ],
+    "translation": "Sin sonido durante %lld s — comprueba que se esté reproduciendo algo"
   },
   {
     "catalog": "app",
@@ -4421,6 +4449,14 @@
     "comment": "Credits shown in the About Hearsay window (en.lproj/Credits.rtf). Plain text; line breaks are kept. 'Settings > General > Acknowledgements' names the Settings tab, its General section, and the Acknowledgements section: use the translated names of those labels.",
     "placeholders": [],
     "translation": "© 2026 Chihling Wang. Licencia MIT.\nIncluye software de código abierto; consulta Ajustes > General > Agradecimientos.\nApoya Hearsay: Buy Me a Coffee"
+  },
+  {
+    "catalog": "windows",
+    "key": "No input device",
+    "english": "No input device",
+    "comment": "Windows: Record tab Microphone picker row when no input device exists. Windows only until 18.9 \"No microphone (system audio only)\" replaces it (the Mac replaced it on 2026-10-02, PLAN.md 4.13).",
+    "placeholders": [],
+    "translation": "Ningún dispositivo de entrada"
   },
   {
     "catalog": "windows",

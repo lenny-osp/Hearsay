@@ -41,6 +41,10 @@ import os
 /// `HEARSAY_REPLAY_LIVE=off` turns the live preview off in the throwaway
 /// settings (PLAN.md 4.12): no live job runs, and an Auto session's language
 /// is settled by the queue at Stop.
+/// `HEARSAY_REPLAY_MIC=off` picks "No microphone (system audio only)"
+/// (PLAN.md 4.13): each file is fed as the system audio source and no
+/// microphone is made (the controller asks for the system source with
+/// `withoutMicrophone`, which is how the replay knows where the file goes).
 /// `HEARSAY_REPLAY_SYSTEM=silence`
 /// adds a second, silent source in place of system audio. Settings live in
 /// a throwaway defaults suite and every file goes to a temporary folder, so
@@ -77,6 +81,7 @@ enum RecordingReplay {
             exit(1)
         }
         let silentSystem = environment["HEARSAY_REPLAY_SYSTEM"] == "silence"
+        let microphoneOff = environment["HEARSAY_REPLAY_MIC"] == "off"
         let livePreview: LivePreviewMode = environment["HEARSAY_REPLAY_LIVE"] == "off" ? .off : .automatic
         let modelURL = URL(fileURLWithPath: directory, isDirectory: true)
         let files = file.split(separator: ",").map { URL(fileURLWithPath: String($0)) }
@@ -89,6 +94,7 @@ enum RecordingReplay {
                 releaseAfter: releaseAfter,
                 trashFirst: trashFirst,
                 silentSystem: silentSystem,
+                microphoneOff: microphoneOff,
                 livePreview: livePreview,
                 engine: engine
             )
@@ -140,7 +146,8 @@ enum RecordingReplay {
 
     private static func run(
         files: [URL], location: WhisperModelLocation, language: LanguageChoice, timing: FinalPassTiming,
-        releaseAfter: Double?, trashFirst: Bool, silentSystem: Bool, livePreview: LivePreviewMode, engine: WhisperEngine
+        releaseAfter: Double?, trashFirst: Bool, silentSystem: Bool, microphoneOff: Bool, livePreview: LivePreviewMode,
+        engine: WhisperEngine
     ) async -> Int32 {
         var loaded: [[Float]] = []
         for file in files {
@@ -187,17 +194,22 @@ enum RecordingReplay {
         let clock = ReplayClock()
         let exhausted = AsyncStream<Int>.makeStream()
         let sessions = ReplaySessions(samples: loaded)
+        // The session's file: the microphone's, or the system audio's when
+        // there is no microphone.
+        @MainActor func nextFeed() -> ReplayFeed {
+            let index = sessions.next
+            sessions.next += 1
+            let samples = index < sessions.samples.count ? sessions.samples[index] : []
+            return ReplayFeed(samples: samples, clock: clock) {
+                exhausted.continuation.yield(index)
+            }
+        }
         let sources = CaptureSources(
             requestMicrophonePermission: { true },
-            makeMicrophone: {
-                let index = sessions.next
-                sessions.next += 1
-                let samples = index < sessions.samples.count ? sessions.samples[index] : []
-                return ReplayMicrophone(feed: ReplayFeed(samples: samples, clock: clock) {
-                    exhausted.continuation.yield(index)
-                })
+            makeMicrophone: { ReplayMicrophone(feed: nextFeed()) },
+            makeSystemAudio: { withoutMicrophone in
+                ReplaySystemAudio(feed: withoutMicrophone ? nextFeed() : ReplayFeed(samples: nil, clock: clock) {})
             },
-            makeSystemAudio: { ReplaySystemAudio(feed: ReplayFeed(samples: nil, clock: clock) {}) },
             modelLocation: { _ in location }
         )
         let spool = RecordingSpool(root: root.appendingPathComponent("spool"))
@@ -212,6 +224,7 @@ enum RecordingReplay {
             settings: settings, modelStore: modelStore, engine: engine, queue: queue,
             spool: spool, sources: sources
         )
+        if microphoneOff { controller.microphoneChoice = .noMicrophone }
 
         // Sessions and jobs numbered 1, 2, 3...
         let numbers = ReplayNumbers()
@@ -311,11 +324,12 @@ enum RecordingReplay {
         }()
         defer { window?.close() }
         let names = zip(files, loaded).map { String(format: "%@ (%.2f s)", $0.lastPathComponent, Double($1.count) / 16_000) }
-        say(String(format: "replaying %@, language %@, preferred %@, timing %@%@, system audio %@, live preview %@",
+        say(String(format: "replaying %@, language %@, preferred %@, timing %@%@, system audio %@, live preview %@, microphone %@",
                    names.joined(separator: ", "), language.storageValue,
                    settings.preferredLanguage.rawValue, timing.rawValue,
                    releaseAfter.map { String(format: ", release %.1f s after the last Stop", $0) } ?? "",
-                   silentSystem ? "silence" : "off", livePreview.rawValue))
+                   microphoneOff ? "the file" : silentSystem ? "silence" : "off", livePreview.rawValue,
+                   microphoneOff ? "off" : "the file"))
         clock.reset()
         controller.start()
         let snapshots = ProcessInfo.processInfo.environment["HEARSAY_REPLAY_SNAPSHOTS"]
@@ -636,7 +650,8 @@ private final class ReplayMicrophone: MicrophoneCapture {
     func stop() { feed.finish() }
 }
 
-/// Silent system audio for the replay.
+/// System audio for the replay: silence, or the file when there is no
+/// microphone (`HEARSAY_REPLAY_MIC=off`). Pause and resume are not simulated.
 @MainActor
 private final class ReplaySystemAudio: SystemAudioCapture {
     private let feed: ReplayFeed

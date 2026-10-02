@@ -973,10 +973,6 @@
     <value>Audio</value>
     <comment>app: Audio</comment>
   </data>
-  <data name="app_bc9d3f9c177edaea" xml:space="preserve">
-    <value>Ningún dispositivo de entrada</value>
-    <comment>app: No input device</comment>
-  </data>
   <data name="app_bca705b63a3cf585" xml:space="preserve">
     <value>Reuniones</value>
     <comment>app: Meetings</comment>
@@ -1904,6 +1900,10 @@
   <data name="windows_b980a145c5e8c9e2" xml:space="preserve">
     <value>Win</value>
     <comment>windows: Win</comment>
+  </data>
+  <data name="windows_bc9d3f9c177edaea" xml:space="preserve">
+    <value>Ningún dispositivo de entrada</value>
+    <comment>windows: No input device</comment>
   </data>
   <data name="windows_bcc0753c970f15ca" xml:space="preserve">
     <value>{0} no admite una transcripción tan larga en Windows: la línea de comandos tendría {1} caracteres y Windows permite {2}. Para reuniones largas, usa Claude Code, Codex o un proveedor HTTP.</value>

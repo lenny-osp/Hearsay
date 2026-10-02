@@ -32,18 +32,25 @@ struct RecordView: View {
             PermissionsSection()
 
             Section {
-                Picker("Microphone", selection: $model.selectedDeviceUID) {
-                    if model.devices.isEmpty {
-                        Text("No input device").tag(String?.none)
-                    }
+                Picker("Microphone", selection: $model.microphoneChoice) {
                     ForEach(model.devices) { device in
-                        Text(device.name).tag(Optional(device.uid))
+                        Text(device.name).tag(MicrophoneChoice.device(uid: device.uid))
                     }
+                    // PLAN.md 4.13; also the choice when no input device exists.
+                    if !model.devices.isEmpty {
+                        Divider()
+                    }
+                    Text("No microphone (system audio only)",
+                         comment: "Record tab: last row of the Microphone picker; records only the sound the Mac plays.")
+                        .tag(MicrophoneChoice.noMicrophone)
                 }
                 .disabled(model.isSessionActive)
 
-                Toggle("Also capture system audio", isOn: $model.captureSystemAudio)
-                    .disabled(model.isSessionActive)
+                // Without a microphone system audio is the recording: shown
+                // on and locked, the stored choice unchanged (PLAN.md 4.13).
+                Toggle("Also capture system audio", isOn: model.microphone.recordsMicrophone
+                       ? $model.captureSystemAudio : .constant(true))
+                    .disabled(model.isSessionActive || !model.microphone.recordsMicrophone)
 
                 // The script row follows on its own row for ZH and Auto.
                 LanguageChoicePicker(isDisabled: model.isSessionActive)
@@ -61,12 +68,16 @@ struct RecordView: View {
                     .progressViewStyle(.linear)
                     .tint(model.silenceWarning == nil ? .green : .orange)
                     .accessibilityLabel("Input level")
-                HStack(spacing: 16) {
-                    sourceMeter(String(localized: "Mic", comment: "Record tab: microphone level meter (tooltip)"),
-                                systemImage: "mic.fill", fraction: model.micLevelFraction)
-                    if let system = model.systemLevelFraction {
-                        sourceMeter(String(localized: "System", comment: "Record tab: system audio level meter (tooltip)"),
-                                    systemImage: "speaker.wave.2.fill", fraction: system)
+                if showsMicMeter || model.systemLevelFraction != nil {
+                    HStack(spacing: 16) {
+                        if showsMicMeter {
+                            sourceMeter(String(localized: "Mic", comment: "Record tab: microphone level meter (tooltip)"),
+                                        systemImage: "mic.fill", fraction: model.micLevelFraction)
+                        }
+                        if let system = model.systemLevelFraction {
+                            sourceMeter(String(localized: "System", comment: "Record tab: system audio level meter (tooltip)"),
+                                        systemImage: "speaker.wave.2.fill", fraction: system)
+                        }
                     }
                 }
                 // A recording Hearsay started for a Microsoft Teams meeting (PLAN.md 4.10).
@@ -126,6 +137,9 @@ struct RecordView: View {
                         .foregroundStyle(.red)
                         .textSelection(.enabled)
                     HStack {
+                        if model.failureOpensScreenCaptureSettings {
+                            Button("Open System Settings") { model.openScreenCaptureSettings() }
+                        }
                         if model.needsModel {
                             Button("Open Models", systemImage: "square.and.arrow.down", action: onOpenModels)
                         }
@@ -203,6 +217,12 @@ struct RecordView: View {
                 self.notesSRT = nil
             }
         }
+    }
+
+    /// No Mic meter for a session without a microphone, or before one
+    /// (PLAN.md 4.13).
+    private var showsMicMeter: Bool {
+        model.isSessionActive ? model.sessionRecordsMicrophone : model.microphone.recordsMicrophone
     }
 
     /// Tooltip of Hold (PLAN.md 4.11).

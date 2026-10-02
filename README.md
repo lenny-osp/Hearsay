@@ -76,7 +76,8 @@ Hearsay uses the microphone or system audio.
 3. **Permissions.** On the first Start, macOS asks for Microphone access
    and, with "Also capture system audio" on, for Screen & System Audio
    Recording (only the audio is used). Without the second, Hearsay records
-   the microphone only and says so.
+   the microphone only and says so; with no microphone chosen, Start fails
+   and says why.
 
 ## Main window
 
@@ -89,6 +90,9 @@ Settings is a tab, not a separate window; ⌘, opens it.
   on to include the other side of a call, and press Start. Meters show
   whether the microphone and system audio are alive; a warning appears
   after 5 seconds of silence.
+- To record only the sound the Mac plays, pick "No microphone (system audio
+  only)" at the end of the microphone list; with no microphone connected,
+  Hearsay picks it by itself.
 - If nothing arrives from the microphone within 3 seconds, recording stops
   with "No audio from <device>".
 - AirPods and other Bluetooth headsets switch to a low-quality call mode

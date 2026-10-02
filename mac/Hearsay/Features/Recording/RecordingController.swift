@@ -12,8 +12,9 @@ import Observation
 /// The microphone and, when enabled and permitted, the system audio run
 /// through `AudioMixer`; the mixed stream feeds the spool WAV and the main
 /// meter, and each source's level feeds its small meter. A missing
-/// screen-capture permission never blocks a recording: it goes on mic-only
-/// with a notice.
+/// screen-capture permission never blocks a recording with a microphone: it
+/// goes on mic-only with a notice. With "No microphone (system audio only)"
+/// (PLAN.md 4.13) system audio is the only source, so it must start.
 ///
 /// Elapsed time is derived from the number of samples written, so paused
 /// time never counts and the display matches the WAV exactly.
@@ -60,6 +61,8 @@ final class RecordingController {
         didSet {
             guard phase != oldValue else { return }
             queue.setSessionActive(isSessionActive)
+            // Device changes during a session left the choice alone.
+            if !isSessionActive, Self.isActive(oldValue) { refreshDevices() }
             phaseObserver?(phase)
         }
     }
@@ -71,7 +74,11 @@ final class RecordingController {
     /// (`MeetingAutoRecord` follows the session this way).
     @ObservationIgnored var phaseObserver: (@MainActor (Phase) -> Void)?
     private(set) var devices: [AudioInputDevice] = []
-    var selectedDeviceUID: String?
+    /// The Microphone picker: a device or no microphone (PLAN.md 4.13).
+    /// Not persisted; it follows the device list only while no session runs.
+    private(set) var microphone = MicrophoneSelection()
+    /// The current session records a microphone; false for system audio only.
+    private(set) var sessionRecordsMicrophone = true
     private(set) var elapsed: TimeInterval = 0
     private(set) var levelFraction: Double = 0
     private(set) var micLevelFraction: Double = 0
@@ -82,6 +89,9 @@ final class RecordingController {
     /// The notice is about the Screen & System Audio Recording permission,
     /// so the badge offers to open System Settings.
     private(set) var systemAudioDenied = false
+    /// The failed start (no microphone, PLAN.md 4.13) was the missing Screen
+    /// & System Audio Recording permission; the error offers System Settings.
+    private(set) var failureOpensScreenCaptureSettings = false
     private(set) var silenceWarning: String?
     /// Where the recording of a capture failure was kept.
     private(set) var finishedRecording: URL?
@@ -246,9 +256,26 @@ final class RecordingController {
         set { settings.captureSystemAudio = newValue }
     }
 
+    /// What the system-audio switch shows: always on without a microphone,
+    /// which never changes the stored setting (PLAN.md 4.13).
+    var capturesSystemAudio: Bool {
+        microphone.capturesSystemAudio(stored: settings.captureSystemAudio)
+    }
+
+    /// The Microphone picker's selection.
+    var microphoneChoice: MicrophoneChoice {
+        get { microphone.choice }
+        set {
+            guard !isSessionActive else { return }
+            microphone.select(newValue)
+        }
+    }
+
     /// A session is being set up, is running, or is being saved. Settings
     /// that shape the recording are locked and quitting asks first.
-    var isSessionActive: Bool {
+    var isSessionActive: Bool { Self.isActive(phase) }
+
+    private static func isActive(_ phase: Phase) -> Bool {
         switch phase {
         case .starting, .recording, .paused, .stopping: true
         case .idle, .failed: false
@@ -304,12 +331,13 @@ final class RecordingController {
         engineObservation = NotificationToken(token)
     }
 
+    /// Reloads the device list. The microphone choice follows it only while
+    /// no session is set up or runs (PLAN.md 4.13); the start reconciles it
+    /// itself.
     func refreshDevices() {
         devices = AudioDeviceList.inputDevices()
-        if let selectedDeviceUID, devices.contains(where: { $0.uid == selectedDeviceUID }) {
-            return
-        }
-        selectedDeviceUID = AudioDeviceList.defaultInputDevice()?.uid ?? devices.first?.uid
+        guard !isSessionActive else { return }
+        microphone.update(deviceUIDs: devices.map(\.uid), defaultUID: AudioDeviceList.defaultInputDevice()?.uid)
     }
 
     // MARK: - Controls
@@ -337,21 +365,24 @@ final class RecordingController {
         retryableRecording = nil
         transcribeFileRequest = nil
         needsModel = false
+        failureOpensScreenCaptureSettings = false
         languageNotice = nil
         session += 1
         resetLivePreview()
         stopRequestedWhileStarting = false
+        // Stop & Start Next keeps the sources of the session it follows.
+        let continuing = !clearingFinished
         startTask = Task { [weak self] in
-            await self?.performStart()
+            await self?.performStart(continuing: continuing)
             self?.startTask = nil
         }
     }
 
     /// Stop & Start Next (PLAN.md 4.9 item 2): the session becomes a queue
-    /// job and a new one starts with the same input device, system-audio
-    /// choice, and language choice (Auto detects again). The device and
-    /// the two choices cannot change while a session is active, so the new
-    /// session reads the same values.
+    /// job and a new one starts with the same input device (or none,
+    /// PLAN.md 4.13), system-audio choice, and language choice (Auto detects
+    /// again). The device and the two choices cannot change while a session
+    /// is active, so the new session reads the same values.
     ///
     /// The new session starts right at the handover, so the session-active
     /// flag never drops in between (a whenIdle job does not start in the
@@ -363,8 +394,8 @@ final class RecordingController {
     }
 
     func pause() {
-        guard phase == .recording, let recorder else { return }
-        recorder.pause()
+        guard phase == .recording, recorder != nil || systemRecorder != nil else { return }
+        recorder?.pause()
         systemRecorder?.pause()
         phase = .paused
         levelFraction = 0
@@ -375,9 +406,9 @@ final class RecordingController {
     }
 
     func resume() {
-        guard phase == .paused, let recorder else { return }
+        guard phase == .paused, recorder != nil || systemRecorder != nil else { return }
         do {
-            try recorder.resume()
+            try recorder?.resume()
             systemRecorder?.resume()
             phase = .recording
         } catch {
@@ -495,25 +526,41 @@ final class RecordingController {
         self.elapsed = elapsed
         levelFraction = 0.6
         micLevelFraction = 0.6
+        // System audio only (PLAN.md 4.13): the System meter, no Mic meter.
+        sessionRecordsMicrophone = microphone.recordsMicrophone
+        if !sessionRecordsMicrophone { systemLevelFraction = 0.6 }
         phase = .recording
     }
 
     /// Ends `showSampleRecording(elapsed:)` (UI snapshots only).
     func endSampleRecording() {
-        guard recorder == nil, isCapturing else { return }
+        guard recorder == nil, systemRecorder == nil, isCapturing else { return }
         resetLivePreview()
         elapsed = 0
         levelFraction = 0
         micLevelFraction = 0
+        systemLevelFraction = nil
+        sessionRecordsMicrophone = true
         phase = .idle
     }
 
     // MARK: - Start
 
-    private func performStart() async {
-        guard await sources.requestMicrophonePermission() else {
-            phase = .failed(message: MicrophoneRecorderError.permissionDenied.description)
-            return
+    private func performStart(continuing: Bool) async {
+        // The choice is settled before anything asks for a permission: with
+        // no microphone the microphone permission is never requested
+        // (PLAN.md 4.13). Stop & Start Next keeps "no microphone".
+        devices = AudioDeviceList.inputDevices()
+        microphone.update(
+            deviceUIDs: devices.map(\.uid), defaultUID: AudioDeviceList.defaultInputDevice()?.uid,
+            keepingNoMicrophone: continuing
+        )
+        let recordsMicrophone = microphone.recordsMicrophone
+        if recordsMicrophone {
+            guard await sources.requestMicrophonePermission() else {
+                phase = .failed(message: MicrophoneRecorderError.permissionDenied.description)
+                return
+            }
         }
         if stopRequestedWhileStarting {
             phase = .idle
@@ -522,15 +569,35 @@ final class RecordingController {
 
         systemAudioNotice = nil
         systemAudioDenied = false
-        let systemRecorder = settings.captureSystemAudio ? await startSystemAudio() : nil
+        var systemRecorder: (any SystemAudioCapture)?
+        if microphone.capturesSystemAudio(stored: settings.captureSystemAudio) {
+            switch await startSystemAudio() {
+            case .started(let started):
+                systemRecorder = started
+            case .denied:
+                guard recordsMicrophone else {
+                    failNothingToRecord(SystemAudioRecorderError.permissionDenied.description, opensSettings: true)
+                    return
+                }
+                systemAudioDenied = true
+                systemAudioNotice = String(localized: "System audio off: permission denied",
+                                           comment: "Record tab notice: no Screen & System Audio Recording permission")
+            case .failed(let reason):
+                guard recordsMicrophone else {
+                    failNothingToRecord(reason, opensSettings: false)
+                    return
+                }
+                systemAudioNotice = String(localized: "System audio off: \(reason)",
+                                           comment: "Record tab notice. %@ is the reason.")
+            }
+        }
         if stopRequestedWhileStarting {
             systemRecorder?.stop()
             phase = .idle
             return
         }
 
-        refreshDevices()
-        let device = devices.first { $0.uid == selectedDeviceUID }
+        let device = devices.first { $0.uid == microphone.deviceUID }
         let url = spool.newRecordingURL(timestamp: Timestamps.now())
         let writer: WavWriter
         do {
@@ -541,21 +608,26 @@ final class RecordingController {
                                             comment: "Recording error. %@ is the system error message."))
             return
         }
-        let recorder = sources.makeMicrophone()
-        do {
-            try recorder.start(device: device)
-        } catch {
-            systemRecorder?.stop()
-            try? writer.close()
-            try? FileManager.default.removeItem(at: url)
-            phase = .failed(message: String(describing: error))
-            return
+        var recorder: (any MicrophoneCapture)?
+        if recordsMicrophone {
+            let microphone = sources.makeMicrophone()
+            do {
+                try microphone.start(device: device)
+            } catch {
+                systemRecorder?.stop()
+                try? writer.close()
+                try? FileManager.default.removeItem(at: url)
+                phase = .failed(message: String(describing: error))
+                return
+            }
+            recorder = microphone
         }
 
         self.writer = writer
         self.recorder = recorder
         self.systemRecorder = systemRecorder
-        recordingDeviceName = recorder.diagnostics.deviceName ?? device?.name
+        sessionRecordsMicrophone = recordsMicrophone
+        recordingDeviceName = recorder?.diagnostics.deviceName ?? device?.name
             ?? String(localized: "the input device", comment: "Used in recording errors when the device has no name")
         noAudioFailure = nil
         writeError = nil
@@ -577,7 +649,7 @@ final class RecordingController {
         sessionStartObserver?(url)
 
         let mixed = AudioMixer.mix(
-            mic: recorder.timedSamples,
+            mic: recorder?.timedSamples,
             system: systemRecorder?.timedSamples
         ) { [weak self] source in
             Task { @MainActor in self?.sourceEnded(source) }
@@ -588,7 +660,20 @@ final class RecordingController {
             }
             self?.recordingEnded()
         }
-        startNoAudioWatchdog(for: recorder)
+        // A microphone check: system audio has no such watchdog (PLAN.md 4.13).
+        if let recorder { startNoAudioWatchdog(for: recorder) }
+    }
+
+    /// No microphone and no system audio: the start fails before any file
+    /// exists (PLAN.md 4.13). `opensSettings` offers the Screen & System
+    /// Audio Recording pane.
+    private func failNothingToRecord(_ reason: String, opensSettings: Bool) {
+        systemAudioNotice = nil
+        systemAudioDenied = false
+        failureOpensScreenCaptureSettings = opensSettings
+        phase = .failed(message: String(
+            localized: "Nothing to record: the microphone is off and system audio could not start: \(reason)",
+            comment: "Record tab error when Start had \"No microphone (system audio only)\" chosen and system audio failed. %@ is the reason, a full sentence."))
     }
 
     /// Stops the recording loudly when the microphone delivers nothing
@@ -641,37 +726,36 @@ final class RecordingController {
         return error.description + "\n" + detail + "."
     }
 
-    /// Starts system audio capture, or records why it is off and returns nil
-    /// so the recording continues mic-only.
-    private func startSystemAudio() async -> (any SystemAudioCapture)? {
+    /// How starting system audio went.
+    private enum SystemAudioStart {
+        case started(any SystemAudioCapture)
+        /// No Screen & System Audio Recording permission.
+        case denied
+        case failed(String)
+    }
+
+    /// Starts system audio capture. The caller decides what a failure means:
+    /// a notice with a microphone, a failed start without one.
+    private func startSystemAudio() async -> SystemAudioStart {
         if let make = sources.makeSystemAudio {
             do {
-                return try await make()
+                return .started(try await make(!microphone.recordsMicrophone))
             } catch {
-                systemAudioNotice = String(localized: "System audio off: \(String(describing: error))",
-                                           comment: "Record tab notice. %@ is the reason.")
-                return nil
+                return .failed(String(describing: error))
             }
         }
         if SystemAudioRecorder.permission != .authorized, !SystemAudioRecorder.requestPermission() {
-            systemAudioDenied = true
-            systemAudioNotice = String(localized: "System audio off: permission denied",
-                                       comment: "Record tab notice: no Screen & System Audio Recording permission")
-            return nil
+            return .denied
         }
         let recorder = SystemAudioRecorder()
         do {
             try await recorder.start()
-            return recorder
+            return .started(recorder)
         } catch SystemAudioRecorderError.permissionDenied {
-            systemAudioDenied = true
-            systemAudioNotice = String(localized: "System audio off: permission denied",
-                                       comment: "Record tab notice: no Screen & System Audio Recording permission")
+            return .denied
         } catch {
-            systemAudioNotice = String(localized: "System audio off: \(String(describing: error))",
-                                           comment: "Record tab notice. %@ is the reason.")
+            return .failed(String(describing: error))
         }
-        return nil
     }
 
     // MARK: - Pipeline
@@ -701,15 +785,21 @@ final class RecordingController {
         if systemLevelFraction != nil {
             systemLevelFraction = LevelMeter.levelFraction(rmsDB: chunk.systemRMSDB)
         }
-        silenceWarning = meter.isSilenceWarning
-            ? String(localized: "Silent for \(Int(meter.silenceSeconds))s \u{2014} check the input device",
-                     comment: "Silence warning while recording. %lld is a number of seconds.")
-            : nil
+        if !meter.isSilenceWarning {
+            silenceWarning = nil
+        } else if sessionRecordsMicrophone {
+            silenceWarning = String(localized: "Silent for \(Int(meter.silenceSeconds))s \u{2014} check the input device",
+                                    comment: "Silence warning while recording. %lld is a number of seconds.")
+        } else {
+            silenceWarning = String(localized: "Silent for \(Int(meter.silenceSeconds))s \u{2014} check that something is playing",
+                                    comment: "Silence warning while recording system audio only (no microphone). %lld is a number of seconds.")
+        }
     }
 
     /// A source's stream finished. The microphone ending on its own (device
     /// unplugged) ends the recording; system audio ending on its own leaves
-    /// the recording going mic-only with a notice.
+    /// the recording going mic-only with a notice, or ends it when it was
+    /// the only source (PLAN.md 4.13).
     private func sourceEnded(_ source: AudioMixer.Source) {
         guard isCapturing else { return }
         switch source {
@@ -719,7 +809,10 @@ final class RecordingController {
                 systemRecorder?.stop()
             }
         case .system:
-            if let failure = systemRecorder?.failure {
+            if recorder == nil, systemRecorder?.failure != nil {
+                // `recordingEnded` reports the failure and keeps the WAV.
+                phase = .stopping
+            } else if let failure = systemRecorder?.failure {
                 systemAudioNotice = String(localized: "System audio off: \(failure.description)",
                                            comment: "Record tab notice. %@ is the reason.")
                 systemLevelFraction = nil
@@ -738,6 +831,14 @@ final class RecordingController {
         let micDelivered = recorder?.diagnostics.samplesDelivered ?? 0
         if let noAudioFailure {
             problems.append(noAudioMessage(noAudioFailure))
+        } else if !sessionRecordsMicrophone {
+            // System audio only (PLAN.md 4.13): its failure ends the recording.
+            if let failure = systemRecorder?.failure {
+                problems.append(failure.description)
+            } else if sampleCount == 0 {
+                problems.append(String(localized: "No audio arrived from system audio.",
+                                       comment: "Recording error: a recording with \"No microphone (system audio only)\" got no samples."))
+            }
         } else if sampleCount == 0, micDelivered == 0, recorder?.failure == nil {
             // Stopped before the watchdog fired, with nothing captured.
             problems.append(noAudioMessage(.noAudio(deviceName: recordingDeviceName)))
@@ -1070,7 +1171,9 @@ struct CaptureSources: Sendable {
     var requestMicrophonePermission: @MainActor @Sendable () async -> Bool
     var makeMicrophone: @MainActor @Sendable () -> any MicrophoneCapture
     /// nil: the real system audio (permission check and `SystemAudioRecorder`).
-    var makeSystemAudio: (@MainActor @Sendable () async throws -> any SystemAudioCapture)?
+    /// The argument is true when system audio is the only source (no
+    /// microphone, PLAN.md 4.13).
+    var makeSystemAudio: (@MainActor @Sendable (_ withoutMicrophone: Bool) async throws -> any SystemAudioCapture)?
     var modelLocation: @MainActor @Sendable (ModelStore) throws -> WhisperModelLocation
 
     static let live = CaptureSources(

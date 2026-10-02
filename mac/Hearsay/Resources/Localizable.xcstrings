@@ -5183,30 +5183,31 @@
         }
       }
     },
-    "No input device" : {
+    "No audio arrived from system audio." : {
+      "comment" : "Recording error: a recording with \"No microphone (system audio only)\" got no samples.",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kein Eingabegerät"
+            "value" : "Vom Systemaudio kam kein Ton."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ningún dispositivo de entrada"
+            "value" : "No ha llegado sonido del audio del sistema."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无输入设备"
+            "value" : "没有收到系统声音。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "沒有輸入裝置"
+            "value" : "沒有收到系統聲音。"
           }
         }
       }
@@ -5350,6 +5351,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "尚無會議"
+          }
+        }
+      }
+    },
+    "No microphone (system audio only)" : {
+      "comment" : "Record tab: last row of the Microphone picker; records only the sound the Mac plays.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein Mikrofon (nur Systemaudio)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin micrófono (solo audio del sistema)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不使用麦克风（仅系统声音）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不使用麥克風（僅系統聲音）"
           }
         }
       }
@@ -5610,6 +5640,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "筆記語言："
+          }
+        }
+      }
+    },
+    "Nothing to record: the microphone is off and system audio could not start: %@" : {
+      "comment" : "Record tab error when Start had \"No microphone (system audio only)\" chosen and system audio failed. %@ is the reason, a full sentence.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nichts aufzunehmen: Das Mikrofon ist aus und Systemaudio konnte nicht starten: %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay nada que grabar: el micrófono está desactivado y el audio del sistema no se ha podido iniciar: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有可录制的内容：麦克风已关闭，且系统声音无法开始：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沒有可錄製的內容：麥克風已關閉，且系統聲音無法開始：%@"
           }
         }
       }
@@ -8016,6 +8075,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "錄音時顯示即時預覽"
+          }
+        }
+      }
+    },
+    "Silent for %llds — check that something is playing" : {
+      "comment" : "Silence warning while recording system audio only (no microphone). %lld is a number of seconds.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seit %lld s still – prüfen, ob etwas abgespielt wird"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin sonido durante %lld s — comprueba que se esté reproduciendo algo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已有 %lld 秒无声音——请确认正在播放声音"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 秒沒有聲音，請確認有在播放聲音"
           }
         }
       }
