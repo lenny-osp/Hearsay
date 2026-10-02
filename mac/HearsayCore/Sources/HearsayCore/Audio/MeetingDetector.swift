@@ -47,8 +47,9 @@ public struct CaptureProcess: Equatable, Sendable {
 /// (Teams closes and reopens its stream on a device switch). After `ended` a
 /// new `started` needs the full delay again.
 ///
-/// The Mac probe is listener-driven, not polled: use `nextDeadline` to
-/// schedule the re-observation that lets a pending start or end fire.
+/// The app observes every 2 s and on CoreAudio listener events; between
+/// them, `nextDeadline` says when to re-observe so a pending start or end
+/// fires on time.
 /// Not thread-safe: use from one actor or queue.
 public struct MeetingDetector: Sendable {
     /// How long a Teams input stream must be seen before the meeting counts as started.
@@ -76,7 +77,7 @@ public struct MeetingDetector: Sendable {
     /// - In a meeting and the last observation saw no Teams stream: the last
     ///   observation that saw one plus `endGrace`.
     /// - Otherwise nil (idle, or in a meeting whose stream is still there:
-    ///   the stream's disappearance is itself a change the probe reports).
+    ///   the regular observations notice when it goes).
     ///
     /// The caller re-observes (with the current probe result and time) at
     /// this moment, then asks again: an observation that sees a change

@@ -13,13 +13,15 @@ import UserNotifications
 /// controller, set the Record tab notice, post notifications, and open the
 /// language question.
 ///
-/// Watching uses `MeetingAudioObserver` (CoreAudio listeners, macOS 14.2 and
-/// later; before that nothing is watched). The observer only says that
-/// something changed: the shell re-reads the process list and feeds the
-/// detector. The detector needs the clock too (a Teams stream must last 2 s,
-/// and 15 s without one end the meeting), so after every observation a
-/// one-shot task re-observes at `detector.nextDeadline`. No timer runs while
-/// nothing is pending.
+/// Watching (macOS 14.2 and later; before that nothing is watched) reads the
+/// CoreAudio process list every `pollInterval`, as Windows does: CoreAudio
+/// never reports a process's own input starting or stopping, and the device
+/// it records from may stay running (Hearsay records from it too), so no
+/// listener catches a meeting's end by itself (PLAN.md 4.10). The
+/// `MeetingAudioObserver` listeners (process list, devices) only make a
+/// change noticed sooner. After every observation a one-shot task also
+/// re-observes at `detector.nextDeadline`, so the 2 s start delay and the
+/// 15 s end grace fire on time.
 ///
 /// Created by `AppDelegate` after the debug entry points had their chance, so
 /// a debug run never auto-records.
@@ -28,6 +30,8 @@ final class MeetingAutoRecord {
     private static let logger = Logger(subsystem: "tw.og1o.hearsay", category: "meetings")
     /// Where the CoreAudio listeners call back.
     private static let probeQueue = DispatchQueue(label: "tw.og1o.hearsay.meeting-audio")
+    /// How often the process list is read while watching (Windows: 2 s).
+    static let pollInterval: Duration = .seconds(2)
 
     private let settings: AppSettings
     private let controller: RecordingController
@@ -43,6 +47,7 @@ final class MeetingAutoRecord {
     /// older watch is ignored.
     private var watchGeneration = 0
     private var deadlineTask: Task<Void, Never>?
+    private var pollTask: Task<Void, Never>?
     private var probeFailureLogged = false
     private var begun = false
     private var seenEnabled: Bool
@@ -203,6 +208,13 @@ final class MeetingAutoRecord {
             return
         }
         watcher = AudioProcessWatcher(observer: observer)
+        pollTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: Self.pollInterval)
+                guard !Task.isCancelled, let self else { return }
+                self.observe(generation: generation)
+            }
+        }
         // A meeting may already be running (the setting was just turned on,
         // or Hearsay opened during a call).
         observe(generation: generation)
@@ -214,6 +226,8 @@ final class MeetingAutoRecord {
         watcher = nil
         deadlineTask?.cancel()
         deadlineTask = nil
+        pollTask?.cancel()
+        pollTask = nil
         detector = MeetingDetector()
     }
 

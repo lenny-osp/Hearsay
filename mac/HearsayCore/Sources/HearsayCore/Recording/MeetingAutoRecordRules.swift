@@ -32,8 +32,8 @@ public enum MeetingSessionState: Equatable, Sendable {
 /// returned `Action`s, and holds no rules of its own.
 ///
 /// The shell's duties:
-/// - Watching: on `.startWatching` start `MeetingAudioObserver` and feed the
-///   detector; on `.stopWatching` stop it and discard the detector (a new
+/// - Watching: on `.startWatching` poll the probe (every 2 s, plus
+///   `MeetingAudioObserver` events) and feed the detector; on `.stopWatching` stop it and discard the detector (a new
 ///   `MeetingDetector()` next time). Feed `.meetingStarted` / `.meetingEnded`
 ///   from the detector's events.
 /// - Controller: send `.controller(state)` on every phase change, and also

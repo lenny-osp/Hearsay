@@ -136,32 +136,41 @@ public enum MeetingAudioProbe {
     }
 }
 
-/// Reports changes of the audio process list and of each process's
-/// `isRunningInput` through one callback, with no polling timer. The
-/// callback says only that something changed: the owner re-reads
-/// `MeetingAudioProbe.captureProcesses()` and feeds the detector.
+/// Reports changes that may mean a process started or stopped capturing,
+/// through one callback. The callback says only that something changed: the
+/// owner re-reads `MeetingAudioProbe.captureProcesses()` and feeds the
+/// detector.
 ///
-/// Listeners: one on the system object's process list, one on every process
-/// object's `kAudioProcessPropertyIsRunningInput`; the per-process ones are
-/// re-attached whenever the list changes and all are removed by `stop()` and
-/// `deinit`. The callback runs on `queue` (CoreAudio delivers there), may run
-/// several times in a row, and may run once after `stop()` returns if it was
-/// already queued; the owner should ignore it then.
+/// Listeners: the system object's process list and device list, and every
+/// audio device's `kAudioDevicePropertyDeviceIsRunningSomewhere`; the device
+/// ones are re-attached whenever the device list changes, and all are
+/// removed by `stop()` and `deinit`. A listener on a process object's
+/// `kAudioProcessPropertyIsRunningInput` is not used: measured on macOS 27
+/// (2026-10-02), CoreAudio never calls it, although the property itself
+/// changes. The device listener does not fire either when another process
+/// keeps the device running (Hearsay's own recording from the microphone
+/// Teams uses), so these listeners only make a change noticed sooner: the
+/// owner must still poll (PLAN.md 4.10).
+///
+/// The callback runs on `queue` (CoreAudio delivers there), may run several
+/// times in a row, and may run once after `stop()` returns if it was already
+/// queued; the owner should ignore it then.
 @available(macOS 14.2, *)
 public final class MeetingAudioObserver: @unchecked Sendable {
     private let queue: DispatchQueue
     private let handler: @Sendable () -> Void
     private let lock = NSLock()
-    /// Serializes `syncProcessListeners` (called from `start` and from `queue`).
+    /// Serializes `syncDeviceListeners` (called from `start` and from `queue`).
     private let syncLock = NSLock()
     // All guarded by `lock`.
     private var running = false
-    private var listListener: AudioObjectPropertyListenerBlock?
-    private var processListeners: [AudioObjectID: AudioObjectPropertyListenerBlock] = [:]
+    private var systemListeners: [(AudioObjectPropertyAddress, AudioObjectPropertyListenerBlock)] = []
+    private var deviceListeners: [AudioObjectID: AudioObjectPropertyListenerBlock] = [:]
 
     /// - Parameters:
     ///   - queue: where `handler` runs.
-    ///   - handler: called when the process list or any process's input state changed.
+    ///   - handler: called when the process list, the device list or a
+    ///     device's running state changed.
     public init(queue: DispatchQueue, handler: @escaping @Sendable () -> Void) {
         self.queue = queue
         self.handler = handler
@@ -175,8 +184,8 @@ public final class MeetingAudioObserver: @unchecked Sendable {
     public var isObserving: Bool { lock.withLock { running } }
 
     /// Attaches the listeners. Does nothing when already started; throws
-    /// (and leaves nothing attached) when the process list cannot be
-    /// observed or read.
+    /// (and leaves nothing attached) when the system object cannot be
+    /// observed or the device list cannot be read.
     public func start() throws {
         let alreadyRunning: Bool = lock.withLock {
             if running { return true }
@@ -185,19 +194,23 @@ public final class MeetingAudioObserver: @unchecked Sendable {
         }
         if alreadyRunning { return }
 
-        let block: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
-            self?.processListChanged()
+        let processList: AudioObjectPropertyListenerBlock = { [weak self] _, _ in self?.changed() }
+        let deviceList: AudioObjectPropertyListenerBlock = { [weak self] _, _ in self?.deviceListChanged() }
+        for (selector, block) in [
+            (kAudioHardwarePropertyProcessObjectList, processList),
+            (kAudioHardwarePropertyDevices, deviceList),
+        ] {
+            var address = MeetingAudioProbe.address(selector)
+            let status = AudioObjectAddPropertyListenerBlock(
+                AudioObjectID(kAudioObjectSystemObject), &address, queue, block)
+            guard status == noErr else {
+                removeAll()
+                throw MeetingAudioProbeError(operation: "observing the audio system", status: status)
+            }
+            lock.withLock { systemListeners.append((address, block)) }
         }
-        var address = MeetingAudioProbe.processListAddress
-        let status = AudioObjectAddPropertyListenerBlock(
-            AudioObjectID(kAudioObjectSystemObject), &address, queue, block)
-        guard status == noErr else {
-            lock.withLock { running = false }
-            throw MeetingAudioProbeError(operation: "observing the audio process list", status: status)
-        }
-        lock.withLock { listListener = block }
         do {
-            try syncProcessListeners()
+            try syncDeviceListeners()
         } catch {
             removeAll()
             throw error
@@ -209,44 +222,62 @@ public final class MeetingAudioObserver: @unchecked Sendable {
         removeAll()
     }
 
-    private func processListChanged() {
-        guard isObserving else { return }
-        try? syncProcessListeners()
-        handler()
-    }
-
-    private func inputChanged() {
+    private func changed() {
         guard isObserving else { return }
         handler()
     }
 
-    /// Makes the per-process listeners match the current process list.
-    private func syncProcessListeners() throws {
-        syncLock.lock()
-        defer { syncLock.unlock() }
-        let current = Set(try MeetingAudioProbe.processObjectIDs())
-        var address = MeetingAudioProbe.address(kAudioProcessPropertyIsRunningInput)
+    private func deviceListChanged() {
+        guard isObserving else { return }
+        try? syncDeviceListeners()
+        handler()
+    }
 
-        let stale: [(AudioObjectID, AudioObjectPropertyListenerBlock)] = lock.withLock {
-            let gone = processListeners.filter { !current.contains($0.key) }
-            for key in gone.keys { processListeners[key] = nil }
-            return gone.map { ($0.key, $0.value) }
+    /// `kAudioHardwarePropertyDevices` on the system object.
+    private static func deviceIDs() throws -> [AudioObjectID] {
+        var address = MeetingAudioProbe.address(kAudioHardwarePropertyDevices)
+        var size: UInt32 = 0
+        var status = AudioObjectGetPropertyDataSize(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size)
+        guard status == noErr else {
+            throw MeetingAudioProbeError(operation: "listing audio devices (size)", status: status)
         }
-        for (object, block) in stale {
-            // The object is gone: a failure here is expected and harmless.
-            AudioObjectRemovePropertyListenerBlock(object, &address, queue, block)
+        var ids = [AudioObjectID](repeating: 0, count: Int(size) / MemoryLayout<AudioObjectID>.size)
+        guard !ids.isEmpty else { return [] }
+        status = ids.withUnsafeMutableBytes { buffer in
+            guard let base = buffer.baseAddress else { return kAudioHardwareUnspecifiedError }
+            return AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size, base)
         }
+        guard status == noErr else {
+            throw MeetingAudioProbeError(operation: "listing audio devices", status: status)
+        }
+        return Array(ids.prefix(Int(size) / MemoryLayout<AudioObjectID>.size))
+    }
 
-        for object in current {
-            let known = lock.withLock { !running || processListeners[object] != nil }
-            if known { continue }
-            let block: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
-                self?.inputChanged()
+    /// Makes the per-device listeners match the current device list.
+    private func syncDeviceListeners() throws {
+        try syncLock.withLock {
+            let current = Set(try Self.deviceIDs())
+            var address = MeetingAudioProbe.address(kAudioDevicePropertyDeviceIsRunningSomewhere)
+
+            let stale: [(AudioObjectID, AudioObjectPropertyListenerBlock)] = lock.withLock {
+                let gone = deviceListeners.filter { !current.contains($0.key) }
+                for key in gone.keys { deviceListeners[key] = nil }
+                return gone.map { ($0.key, $0.value) }
             }
-            let status = AudioObjectAddPropertyListenerBlock(object, &address, queue, block)
-            // A process that vanished since the list was read: skip it.
-            guard status == noErr else { continue }
-            lock.withLock { processListeners[object] = block }
+            for (device, block) in stale {
+                // The device is gone: a failure here is expected and harmless.
+                AudioObjectRemovePropertyListenerBlock(device, &address, queue, block)
+            }
+
+            for device in current {
+                let known = lock.withLock { !running || deviceListeners[device] != nil }
+                if known { continue }
+                let block: AudioObjectPropertyListenerBlock = { [weak self] _, _ in self?.changed() }
+                let status = AudioObjectAddPropertyListenerBlock(device, &address, queue, block)
+                // A device that vanished since the list was read: skip it.
+                guard status == noErr else { continue }
+                lock.withLock { deviceListeners[device] = block }
+            }
         }
     }
 
@@ -255,23 +286,22 @@ public final class MeetingAudioObserver: @unchecked Sendable {
         // cannot be left attached; a later sync sees `running` false and adds
         // nothing. The listeners are removed outside the lock, in case
         // CoreAudio waits for a callback that is itself waiting for the lock.
-        let (list, processes): (AudioObjectPropertyListenerBlock?, [AudioObjectID: AudioObjectPropertyListenerBlock]) =
-            syncLock.withLock {
-                lock.withLock {
-                    running = false
-                    let result = (listListener, processListeners)
-                    listListener = nil
-                    processListeners = [:]
-                    return result
-                }
+        let (system, devices) = syncLock.withLock {
+            lock.withLock {
+                running = false
+                let result = (systemListeners, deviceListeners)
+                systemListeners = []
+                deviceListeners = [:]
+                return result
             }
-        if let list {
-            var address = MeetingAudioProbe.processListAddress
-            AudioObjectRemovePropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &address, queue, list)
         }
-        var address = MeetingAudioProbe.address(kAudioProcessPropertyIsRunningInput)
-        for (object, block) in processes {
-            AudioObjectRemovePropertyListenerBlock(object, &address, queue, block)
+        for (address, block) in system {
+            var address = address
+            AudioObjectRemovePropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &address, queue, block)
+        }
+        var address = MeetingAudioProbe.address(kAudioDevicePropertyDeviceIsRunningSomewhere)
+        for (device, block) in devices {
+            AudioObjectRemovePropertyListenerBlock(device, &address, queue, block)
         }
     }
 }

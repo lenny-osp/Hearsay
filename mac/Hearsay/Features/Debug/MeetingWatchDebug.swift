@@ -9,7 +9,7 @@ import HearsayCore
 /// `MeetingDetector`. It only prints: nothing is recorded, and the coordinator
 /// does not exist in a debug run. Exit status 0, or 1 for a bad value or on
 /// macOS before 14.2 (the process-object API is new there). Port of
-/// `MeetingWatchDebug.cs`; unlike the app it polls, which is fine here.
+/// `MeetingWatchDebug.cs`; it polls every second (the app every 2 s).
 ///
 ///     HEARSAY_WATCH_MEETINGS=90 .build/derived/Build/Products/Release/Hearsay.app/Contents/MacOS/Hearsay
 @MainActor

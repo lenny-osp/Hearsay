@@ -723,13 +723,26 @@ and `RecordingController`):
   the bundle id does not match, an executable inside an app bundle named
   "Microsoft Teams…". Rule 3 holds for free: the list covers every input
   device.
-- **Listeners and a deadline, not a poll.** `MeetingAudioObserver` listens
-  on the process list and on each process's `isRunningInput` and only says
-  "something changed"; `MeetingAutoRecord` (`Features/Recording`, a thin
-  shell on `RecordingController`) re-reads the list and feeds the detector.
-  Because the detector also needs the clock (2 s to start, 15 s to end), a
-  one-shot task re-observes at `detector.nextDeadline` after every
-  observation; with nothing pending no timer exists. A failed probe is
+- **A 2 s poll, listeners and a deadline.** `MeetingAutoRecord`
+  (`Features/Recording`, a thin shell on `RecordingController`) reads the
+  process list every 2 s while the setting is on, as Windows does, and
+  feeds the detector. `MeetingAudioObserver` listens on the process list,
+  the device list and every device's `kAudioDevicePropertyDeviceIsRunningSomewhere`
+  and only says "something changed", so a change is noticed sooner; a
+  one-shot task also re-observes at `detector.nextDeadline`, so the 2 s
+  start and the 15 s end fire on time. Fixed 2026-10-02 (owner report: only
+  the first meeting after a launch was recorded): the first build relied on
+  a listener on each process's `kAudioProcessPropertyIsRunningInput` and had
+  no poll. Measured on macOS 27, CoreAudio never calls that listener
+  although the property changes (a 0.5 s poll saw 0 → 1, the listener
+  stayed silent), so a meeting was noticed only through an unrelated
+  process-list change, its end was missed, and the detector stayed in the
+  meeting until Hearsay quit. The device listener alone is not enough
+  either: while Hearsay records from the microphone Teams uses, the device
+  keeps running when Teams stops. Checked with a harness on the same probe,
+  detector and 2 s poll, with Hearsay's own record debug entry (silence from
+  the Teams virtual device) standing in for Teams: two cycles printed
+  started, ended, started, ended. A failed probe is
   logged once (`os.Logger`, category `meetings`) until one succeeds again,
   and counts as no Teams stream, as on Windows. Before macOS 14.2 nothing
   is watched and the Meetings section is hidden.
@@ -1442,7 +1455,9 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
   Meetings, `HEARSAY_WATCH_MEETINGS`, snapshots, help, README, and the 15
   strings moved from catalog `windows` to the app catalog. Mac differences
   from Windows: bundle id and path matching instead of the parent hedge;
-  listeners plus a deadline re-observation instead of a 2 s poll; the notice
+  a 2 s poll plus listeners and a deadline re-observation (fixed the same
+  day: the first build had no poll and missed every meeting after the
+  first); the notice
   clears when the setting is turned off; notifications ask for permission
   when the setting is turned on; a sheet instead of a dialog; the section is
   hidden before macOS 14.2. Verified: `swift test`, the Release build, the
@@ -2688,8 +2703,8 @@ moved them from `windows`; only the prompt's "Record" stays under
   that appear later, so the coordinator probes every 2 s on the thread pool
   while the setting is on and decides on the UI thread; off, no timer
   runs. A probe failure is logged once until a probe succeeds again. The
-  Mac's process-object API has one listener for all devices and needs no
-  timer.
+  Mac polls every 2 s too: CoreAudio does not report a process's input
+  starting or stopping (4.10, "As built (Mac)").
 - **Coordinator.** `Hearsay.App/Features/Recording/MeetingAutoRecord.cs`
   follows 4.10's behavior list: Start when idle (the session is marked
   automatic), nothing when the user is already recording, Stop at the
