@@ -110,8 +110,9 @@ Settings is a tab, not a separate window; ⌘, opens it.
   once; finished recordings wait in the Record tab's transcription queue
   and are transcribed in the background (or, per Settings > General, only
   while nothing is recording, or "When I start them", which keeps recordings
-  in the queue until you click Transcribe or Transcribe All). Quitting keeps
-  the queue for the next launch.
+  in the queue until you click Transcribe or Transcribe All, or move one to
+  the Trash with "Move to Trash…"). Quitting keeps the queue for the next
+  launch.
 - **Teams meetings** (macOS 14.2 or later): Settings > General > Meetings >
   "Record Microsoft Teams meetings automatically" starts a recording when
   Microsoft Teams begins using your microphone and stops it when the meeting
