@@ -97,6 +97,9 @@ final class RecordingController {
     private(set) var liveNotice: String?
     /// The current session transcribes live chunks.
     private(set) var isLivePreviewEnabled = false
+    /// The current session has no live preview because Settings turned it
+    /// off (PLAN.md 4.12); read once at each Start.
+    private(set) var isLivePreviewTurnedOff = false
     /// The last failure was the missing model; the view links to Models.
     private(set) var needsModel = false
     /// A recording the File tab should pick up ("Transcribe this file").
@@ -481,6 +484,30 @@ final class RecordingController {
         NSWorkspace.shared.open(url)
     }
 
+    /// Shows a session recording `elapsed` seconds, with the live preview
+    /// as Settings has it and no capture behind it (UI snapshots only).
+    func showSampleRecording(elapsed: TimeInterval) {
+        guard !isSessionActive else { return }
+        languageTracker = SessionLanguageTracker(
+            choice: settings.languageChoice, preferred: settings.preferredLanguage
+        )
+        startLivePreview()
+        self.elapsed = elapsed
+        levelFraction = 0.6
+        micLevelFraction = 0.6
+        phase = .recording
+    }
+
+    /// Ends `showSampleRecording(elapsed:)` (UI snapshots only).
+    func endSampleRecording() {
+        guard recorder == nil, isCapturing else { return }
+        resetLivePreview()
+        elapsed = 0
+        levelFraction = 0
+        micLevelFraction = 0
+        phase = .idle
+    }
+
     // MARK: - Start
 
     private func performStart() async {
@@ -792,7 +819,9 @@ final class RecordingController {
             liveEnabled: isLivePreviewEnabled,
             liveSink: liveSink,
             languageNotice: languageNotice,
-            liveNotice: liveNotice
+            // "Live preview is off" is about recording; the job has nothing
+            // to show under it.
+            liveNotice: isLivePreviewTurnedOff ? nil : liveNotice
         )
         liveSink = nil
         recordedSamples = []
@@ -801,6 +830,7 @@ final class RecordingController {
         liveNotice = nil
         languageNotice = nil
         isLivePreviewEnabled = false
+        isLivePreviewTurnedOff = false
         queue.enqueue(handover)
         if startingNext, !isQuitting {
             beginStart(clearingFinished: false)
@@ -837,6 +867,7 @@ final class RecordingController {
         latestLiveLine = nil
         liveNotice = nil
         isLivePreviewEnabled = false
+        isLivePreviewTurnedOff = false
         chunker = LiveChunker()
         chunkedSamples = 0
         liveJobCount = 0
@@ -845,10 +876,19 @@ final class RecordingController {
         detectionTask = nil
     }
 
-    /// Opens the live queue when a model is ready; otherwise the recording
-    /// goes on without a preview.
+    /// Opens the live queue when a model is ready and Settings has the
+    /// preview on; otherwise the recording goes on without a preview. With
+    /// the preview off there is no live model location either, so Auto
+    /// detects nothing during the session: the queue detects over the whole
+    /// recording at Stop (PLAN.md 4.12).
     private func startLivePreview() {
         resetLivePreview()
+        guard settings.livePreviewMode.showsPreview else {
+            isLivePreviewTurnedOff = true
+            liveNotice = String(localized: "Live preview is off. Turn it on in Settings > General.",
+                                comment: "Record tab notice in the live preview area while the live preview is turned off in Settings. Quote the translated names of the Settings tab and its General section exactly.")
+            return
+        }
         let location: WhisperModelLocation
         do {
             location = try sources.modelLocation(modelStore)

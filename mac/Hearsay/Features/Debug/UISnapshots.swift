@@ -255,6 +255,20 @@ enum UISnapshots {
         await render("39-record-automatic-notice", width: 720, height: 560,
                      context.with(queue: emptyQueue).apply(to: MainView().environment(grantedPermissions)))
         controller.automaticStartNotice = nil
+
+        // The live preview turned off (PLAN.md 4.12): the switch in
+        // Settings > General, and a recording in Auto with the notice in
+        // the live area and no live line in the menu bar.
+        settings.livePreviewMode = .off
+        await render("40-settings-general-live-preview-off", width: 720, height: 1000,
+                     SettingsView(initialPane: .general))
+        controller.showSampleRecording(elapsed: 754)
+        await render("41-record-live-preview-off", width: 720, height: 700,
+                     context.with(queue: emptyQueue).apply(to: MainView().environment(grantedPermissions)))
+        await render("42-menu-bar-live-preview-off", width: 260,
+                     context.with(queue: emptyQueue).apply(to: MenuBarView()))
+        controller.endSampleRecording()
+        settings.livePreviewMode = .automatic
         say("help file \(HelpWindow.contentURL?.path ?? "missing")")
         for (name, fragment) in [("19-help-top", nil), ("20-help-meeting-notes", "meeting-notes")] as [(String, String?)] {
             let url = directory.appendingPathComponent("\(name).png")

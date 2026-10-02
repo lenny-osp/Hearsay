@@ -100,6 +100,8 @@ Settings is a tab, not a separate window; ⌘, opens it.
   "Fix…": turn Hearsay on again in System Settings > Privacy & Security >
   Screen & System Audio Recording.
 - **Live preview:** new text about every 30 seconds while you record.
+  Settings > General > "Show the live preview while recording" turns it
+  off; the transcript is then made only after Stop.
 - **Final pass:** after Stop, Hearsay transcribes the whole recording once
   more for the SRT. "Use live preview instead" skips it and saves the
   preview.

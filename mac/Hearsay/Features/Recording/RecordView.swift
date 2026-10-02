@@ -91,7 +91,14 @@ struct RecordView: View {
                 controls
             }
 
-            if model.isCapturing || model.phase == .stopping || !model.liveSegments.isEmpty
+            if model.isLivePreviewTurnedOff, let notice = model.liveNotice {
+                // Settings turned the preview off (PLAN.md 4.12): no empty
+                // transcript box, only the notice.
+                Section("Live preview") {
+                    Label(notice, systemImage: "text.bubble")
+                        .foregroundStyle(.secondary)
+                }
+            } else if model.isCapturing || model.phase == .stopping || !model.liveSegments.isEmpty
                 || model.liveNotice != nil {
                 liveTranscript(
                     segments: model.liveSegments, waiting: model.liveChunksWaiting,

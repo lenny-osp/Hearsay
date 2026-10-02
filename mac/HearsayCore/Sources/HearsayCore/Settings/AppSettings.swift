@@ -29,6 +29,28 @@ public enum WindowMode: String, CaseIterable, Codable, Sendable {
     public var showsDockIcon: Bool { self != .menuBarOnly }
 }
 
+/// Whether recordings get a live preview (PLAN.md 4.12, key
+/// `livePreviewMode`, shared with Windows). The raw values are the stored
+/// values. On the Mac `automatic` and `on` behave the same (Apple Silicon
+/// needs no speed probe); only Windows tells them apart (PLAN.md 18.9).
+public enum LivePreviewMode: String, CaseIterable, Codable, Sendable {
+    /// The default: the preview runs (on Windows, when the speed probe allows).
+    case automatic
+    /// The preview always runs (Windows ignores the speed probe).
+    case on
+    /// No live preview: the transcript is made only after Stop.
+    case off
+
+    /// The session transcribes live chunks (the Mac's reading of the mode).
+    public var showsPreview: Bool { self != .off }
+
+    /// The mode the Mac's on/off toggle stores: on is `automatic`, off is
+    /// `off`.
+    public init(toggleOn: Bool) {
+        self = toggleOn ? .automatic : .off
+    }
+}
+
 /// User preferences backed by `UserDefaults`. Every write is persisted
 /// immediately; SwiftUI observes changes through the Observation framework.
 @Observable
@@ -48,6 +70,7 @@ public final class AppSettings {
         public static let pauseHotkey = "pauseHotkey"
         public static let stopStartNextHotkey = "stopStartNextHotkey"
         public static let finalPassTiming = "finalPassTiming"
+        public static let livePreviewMode = "livePreviewMode"
         public static let keepRecording = "keepRecording"
         /// Legacy "Chinese output" setting ("traditional" or "simplified"),
         /// read only to migrate a stored "zh" into ZH-TW or ZH-CN.
@@ -163,6 +186,14 @@ public final class AppSettings {
         didSet { defaults.set(finalPassTiming.rawValue, forKey: Key.finalPassTiming) }
     }
 
+    /// "Show the live preview while recording" (Settings > General >
+    /// Transcription, PLAN.md 4.12). Default `.automatic`; stored as the raw
+    /// value, an unknown stored value reads as the default. Read once at
+    /// each session's Start.
+    public var livePreviewMode: LivePreviewMode {
+        didSet { defaults.set(livePreviewMode.rawValue, forKey: Key.livePreviewMode) }
+    }
+
     /// Keep the recording (WAV) in the output folder after a successful
     /// transcription (PLAN.md section 8). Default on, like the Python tool.
     /// Off deletes it; a failed transcription always keeps it.
@@ -246,6 +277,8 @@ public final class AppSettings {
             ?? .defaultStopStartNext
         self.finalPassTiming = FinalPassTiming(
             rawValue: defaults.string(forKey: Key.finalPassTiming) ?? "") ?? .immediate
+        self.livePreviewMode = LivePreviewMode(
+            rawValue: defaults.string(forKey: Key.livePreviewMode) ?? "") ?? .automatic
         self.keepRecording = defaults.object(forKey: Key.keepRecording) as? Bool ?? true
         self.interfaceLanguage = InterfaceLanguage(
             rawValue: defaults.string(forKey: Key.interfaceLanguage) ?? "") ?? .english

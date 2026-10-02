@@ -84,6 +84,11 @@ private struct GeneralSettingsView: View {
                 MeetingsSection()
             }
             Section("Transcription") {
+                LivePreviewToggle()
+                Text("Transcribes as you record, so you can read along. When off, the transcript is made only after you stop, and Auto detects the language then. Applies from the next recording.",
+                     comment: "Settings > General > Transcription: caption under \"Show the live preview while recording\". \"Auto\" is the language picker's Auto.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 PreferredLanguagePicker()
                 Text("Used when Auto can't tell the language. When Auto hears Chinese, it writes 简体中文 if that is chosen here, otherwise 繁體中文.",
                      comment: "Settings > General caption under Auto mode default language. 简体中文 and 繁體中文 are language names; keep them as they are.")
@@ -212,6 +217,22 @@ private struct PreferredLanguagePicker: View {
                 Text(language.displayName).tag(language)
             }
         }
+    }
+}
+
+/// "Show the live preview while recording" (PLAN.md 4.12,
+/// `AppSettings.livePreviewMode`). On stores `automatic` and off stores
+/// `off`; a stored `on` (Windows' "Always on") shows as on.
+private struct LivePreviewToggle: View {
+    @Environment(AppSettings.self) private var settings
+
+    var body: some View {
+        Toggle(String(localized: "Show the live preview while recording",
+                      comment: "Settings > General > Transcription switch: transcribe 30 s chunks while recording and show them on the Record tab"),
+               isOn: Binding(
+                get: { settings.livePreviewMode.showsPreview },
+                set: { settings.livePreviewMode = LivePreviewMode(toggleOn: $0) }
+               ))
     }
 }
 

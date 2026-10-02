@@ -33,6 +33,9 @@ import os
 /// job is not a failure); `HEARSAY_REPLAY_RELEASE=<seconds>` instead waits
 /// that long after the last session stops and calls `releaseAll` ("Transcribe
 /// All"), then runs the final passes as usual.
+/// `HEARSAY_REPLAY_LIVE=off` turns the live preview off in the throwaway
+/// settings (PLAN.md 4.12): no live job runs, and an Auto session's language
+/// is settled by the queue at Stop.
 /// `HEARSAY_REPLAY_SYSTEM=silence`
 /// adds a second, silent source in place of system audio. Settings live in
 /// a throwaway defaults suite and every file goes to a temporary folder, so
@@ -64,6 +67,7 @@ enum RecordingReplay {
             releaseAfter = seconds
         }
         let silentSystem = environment["HEARSAY_REPLAY_SYSTEM"] == "silence"
+        let livePreview: LivePreviewMode = environment["HEARSAY_REPLAY_LIVE"] == "off" ? .off : .automatic
         let modelURL = URL(fileURLWithPath: directory, isDirectory: true)
         let files = file.split(separator: ",").map { URL(fileURLWithPath: String($0)) }
         Task { @MainActor in
@@ -74,6 +78,7 @@ enum RecordingReplay {
                 timing: timing,
                 releaseAfter: releaseAfter,
                 silentSystem: silentSystem,
+                livePreview: livePreview,
                 engine: engine
             )
             DebugDefaults.removeSuite()
@@ -124,7 +129,7 @@ enum RecordingReplay {
 
     private static func run(
         files: [URL], location: WhisperModelLocation, language: LanguageChoice, timing: FinalPassTiming,
-        releaseAfter: Double?, silentSystem: Bool, engine: WhisperEngine
+        releaseAfter: Double?, silentSystem: Bool, livePreview: LivePreviewMode, engine: WhisperEngine
     ) async -> Int32 {
         var loaded: [[Float]] = []
         for file in files {
@@ -166,6 +171,7 @@ enum RecordingReplay {
         settings.captureSystemAudio = silentSystem
         settings.keepRecording = false
         settings.finalPassTiming = timing
+        settings.livePreviewMode = livePreview
 
         let clock = ReplayClock()
         let exhausted = AsyncStream<Int>.makeStream()
@@ -291,11 +297,11 @@ enum RecordingReplay {
         }()
         defer { window?.close() }
         let names = zip(files, loaded).map { String(format: "%@ (%.2f s)", $0.lastPathComponent, Double($1.count) / 16_000) }
-        say(String(format: "replaying %@, language %@, preferred %@, timing %@%@, system audio %@",
+        say(String(format: "replaying %@, language %@, preferred %@, timing %@%@, system audio %@, live preview %@",
                    names.joined(separator: ", "), language.storageValue,
                    settings.preferredLanguage.rawValue, timing.rawValue,
                    releaseAfter.map { String(format: ", release %.1f s after the last Stop", $0) } ?? "",
-                   silentSystem ? "silence" : "off"))
+                   silentSystem ? "silence" : "off", livePreview.rawValue))
         clock.reset()
         controller.start()
         let snapshots = ProcessInfo.processInfo.environment["HEARSAY_REPLAY_SNAPSHOTS"]

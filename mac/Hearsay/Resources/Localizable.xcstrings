@@ -4122,6 +4122,35 @@
         }
       }
     },
+    "Live preview is off. Turn it on in Settings > General." : {
+      "comment" : "Record tab notice in the live preview area while the live preview is turned off in Settings. Quote the translated names of the Settings tab and its General section exactly.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Live-Vorschau ist aus. Einschalten unter Einstellungen > Allgemein."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La vista previa en directo está desactivada. Actívala en Ajustes > General."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "实时预览已关闭。可在“设置 > 通用”中打开。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "即時預覽已關閉。可在「設定 > 一般」中開啟。"
+          }
+        }
+      }
+    },
     "Live preview missed a chunk: %@" : {
       "comment" : "Record tab notice. %@ is the reason.",
       "localizations" : {
@@ -7875,6 +7904,35 @@
         }
       }
     },
+    "Show the live preview while recording" : {
+      "comment" : "Settings > General > Transcription switch: transcribe 30 s chunks while recording and show them on the Record tab",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live-Vorschau während der Aufnahme anzeigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar la vista previa en directo al grabar"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "录音时显示实时预览"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "錄音時顯示即時預覽"
+          }
+        }
+      }
+    },
     "Silent for %llds — check the input device" : {
       "comment" : "Silence warning while recording. %lld is a number of seconds.",
       "localizations" : {
@@ -9999,6 +10057,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "以 %@ 重新轉錄此錄音。你的語言選擇維持不變。"
+          }
+        }
+      }
+    },
+    "Transcribes as you record, so you can read along. When off, the transcript is made only after you stop, and Auto detects the language then. Applies from the next recording." : {
+      "comment" : "Settings > General > Transcription: caption under \"Show the live preview while recording\". \"Auto\" is the language picker's Auto.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transkribiert schon während der Aufnahme, zum Mitlesen. Wenn aus, entsteht das Transkript erst nach dem Stoppen, und „Automatisch“ erkennt die Sprache dann. Gilt ab der nächsten Aufnahme."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcribe mientras grabas, para que puedas leer a la vez. Si está desactivada, la transcripción se hace solo después de detener la grabación, y Automático detecta el idioma entonces. Se aplica a partir de la próxima grabación."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "录音时同步转录，方便边录边看。关闭时，转录稿在停止后才生成，“自动”也在那时检测语言。从下一次录音开始生效。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "錄音時同步轉錄，方便邊錄邊看。關閉時，逐字稿要在停止後才產生，「自動」也在那時偵測語言。從下一次錄音開始生效。"
           }
         }
       }

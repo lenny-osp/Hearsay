@@ -47,6 +47,47 @@ final class AppSettingsTests {
         #expect(AppSettings(defaults: defaults).keepRecording == false)
     }
 
+    @Test func livePreviewModeDefaultsToAutomatic() {
+        let defaults = scratch.make()
+        #expect(AppSettings(defaults: defaults).livePreviewMode == .automatic)
+    }
+
+    @Test(arguments: LivePreviewMode.allCases)
+    func livePreviewModeRoundTrips(mode: LivePreviewMode) {
+        let defaults = scratch.make()
+        let settings = AppSettings(defaults: defaults)
+        settings.livePreviewMode = mode
+        #expect(defaults.string(forKey: AppSettings.Key.livePreviewMode) == mode.rawValue)
+        #expect(AppSettings(defaults: defaults).livePreviewMode == mode)
+    }
+
+    @Test func unknownLivePreviewModeReadsAsAutomatic() {
+        let defaults = scratch.make()
+        defaults.set("sometimes", forKey: AppSettings.Key.livePreviewMode)
+        #expect(AppSettings(defaults: defaults).livePreviewMode == .automatic)
+    }
+
+    @Test func livePreviewModeStoredValuesAreShared() {
+        // The shared key and values (PLAN.md 4.12); Windows reads the same.
+        #expect(AppSettings.Key.livePreviewMode == "livePreviewMode")
+        #expect(LivePreviewMode.allCases.map(\.rawValue) == ["automatic", "on", "off"])
+    }
+
+    @Test func livePreviewToggleMapsOnToAutomaticAndOffToOff() {
+        #expect(LivePreviewMode(toggleOn: true) == .automatic)
+        #expect(LivePreviewMode(toggleOn: false) == .off)
+        // A stored "on" shows as on; only "off" turns the preview off.
+        #expect(LivePreviewMode.automatic.showsPreview)
+        #expect(LivePreviewMode.on.showsPreview)
+        #expect(!LivePreviewMode.off.showsPreview)
+        // Off then on again stores automatic, not on.
+        let settings = AppSettings(defaults: scratch.make())
+        settings.livePreviewMode = .on
+        settings.livePreviewMode = LivePreviewMode(toggleOn: false)
+        settings.livePreviewMode = LivePreviewMode(toggleOn: true)
+        #expect(settings.livePreviewMode == .automatic)
+    }
+
     @Test func menuBarShowsStatusDefaultOnAndRoundTrips() {
         let defaults = scratch.make()
         let settings = AppSettings(defaults: defaults)

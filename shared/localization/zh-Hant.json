@@ -1243,6 +1243,14 @@
   },
   {
     "catalog": "app",
+    "key": "Live preview is off. Turn it on in Settings > General.",
+    "english": "Live preview is off. Turn it on in Settings > General.",
+    "comment": "Record tab notice in the live preview area while the live preview is turned off in Settings. Quote the translated names of the Settings tab and its General section exactly.",
+    "placeholders": [],
+    "translation": "即時預覽已關閉。可在「設定 > 一般」中開啟。"
+  },
+  {
+    "catalog": "app",
     "key": "Live preview missed a chunk: %@",
     "english": "Live preview missed a chunk: %@",
     "comment": "Record tab notice. %@ is the reason.",
@@ -2319,6 +2327,14 @@
   },
   {
     "catalog": "app",
+    "key": "Show the live preview while recording",
+    "english": "Show the live preview while recording",
+    "comment": "Settings > General > Transcription switch: transcribe 30 s chunks while recording and show them on the Record tab",
+    "placeholders": [],
+    "translation": "錄音時顯示即時預覽"
+  },
+  {
+    "catalog": "app",
     "key": "Silent for %llds — check the input device",
     "english": "Silent for %llds — check the input device",
     "comment": "Silence warning while recording. %lld is a number of seconds.",
@@ -2951,6 +2967,14 @@
       "%@"
     ],
     "translation": "以 %@ 重新轉錄此錄音。你的語言選擇維持不變。"
+  },
+  {
+    "catalog": "app",
+    "key": "Transcribes as you record, so you can read along. When off, the transcript is made only after you stop, and Auto detects the language then. Applies from the next recording.",
+    "english": "Transcribes as you record, so you can read along. When off, the transcript is made only after you stop, and Auto detects the language then. Applies from the next recording.",
+    "comment": "Settings > General > Transcription: caption under \"Show the live preview while recording\". \"Auto\" is the language picker's Auto.",
+    "placeholders": [],
+    "translation": "錄音時同步轉錄，方便邊錄邊看。關閉時，逐字稿要在停止後才產生，「自動」也在那時偵測語言。從下一次錄音開始生效。"
   },
   {
     "catalog": "app",

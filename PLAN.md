@@ -29,7 +29,7 @@ output rule ported here.
 | Models | Downloaded on demand from Hugging Face `mlx-community/whisper-*` repos into the app's own model directory. User picks the model. Nothing ships inside the bundle. |
 | Audio I/O | AVFoundation. Mic via `AVCaptureSession` + `AVCaptureAudioDataOutput` (16 kHz mono Float32), chosen by CoreAudio UID; `AVAudioFile` for files. No FFmpeg. Changed 2026-09-28: the `AVAudioEngine` tap got no buffers after switching input device, because the input node kept reporting the previous device's rate. |
 | System audio | Captured with ScreenCaptureKit (`SCStream`, audio only) and mixed with the mic, so Zoom/Teams/Meet calls are transcribed, not just the room. Decided 2026-09-28. |
-| Live transcript | Yes in v1. 30 s chunks are transcribed while recording and shown as a live preview; the final SRT comes from one full pass after Stop. Decided 2026-09-28. |
+| Live transcript | Yes in v1. 30 s chunks are transcribed while recording and shown as a live preview; the final SRT comes from one full pass after Stop. Decided 2026-09-28. Can be turned off in Settings (4.12, owner request 2026-10-02); Auto then detects the language at Stop. |
 | Output folder | Default `~/Documents/Hearsay`, user-configurable in Settings. Decided 2026-09-28. |
 | Languages | Added 2026-09-28 (owner request): Auto, EN, ZH-TW, ZH-CN, DE, ES (the two Chinese choices replaced ZH plus a separate "Chinese output" setting, owner request 2026-09-28: both call Whisper with "zh", ZH-TW transcripts are converted to Traditional characters and ZH-CN to Simplified; when Auto detects Chinese it uses the Auto mode default language's Chinese variant, else ZH-TW; the setting was labeled "Preferred language" until 2026-09-29 (owner request; `preferredLanguage` in code); stored "zh" settings migrate by the old Chinese output setting). Auto is the picker default for new users. Detection only compares the four supported languages (probabilities renormalized over them), skips silent windows (below about -60 dBFS, or no-speech probability above 0.6; the turbo model's no-speech probability alone never flags silence, measured 2026-09-28), averages the restricted probabilities of up to three speech windows, and locks the language once per session. Below the confidence threshold it uses the **preferred language** from Settings > General (default English, owner choice; never changed automatically by what the user picks elsewhere) and says so, with one-click re-run in another language. When the user picked a language and detection is confident it is a different one, a banner offers to re-run in the detected language; nothing switches automatically. Meeting notes default to the transcript language; the confirm sheet can pick another of the four for that run only (added 2026-09-28, owner request). History SRTs with no stored language default to the language NaturalLanguage detects in the text (probability at least 0.6), else the language choice or preferred language. Mixed-language (code-switching) meetings are out of scope. |
 | v1 extras | Global hotkey, pause/resume, an update check against GitHub Releases (section 4.6; replaced Sparkle 2026-09-28), crash recovery of an unfinished recording, custom prompt templates, and a setting that decides whether the WAV is kept at all. Decided 2026-09-28. |
@@ -932,6 +932,65 @@ run):
   Hold among held jobs, the single held meeting, on hold, released, and Settings
   > General with `manual` selected.
 
+### 4.12 Live preview setting
+
+Owner request 2026-10-02: a setting that turns the live preview off, so a
+recording runs no live chunks at all (less load while the user works on
+something else, nothing to read along). A shared design; **the Mac was
+built first (2026-10-02)**, Windows follows (18.9 "Live preview
+override").
+
+**Setting.** Key `livePreviewMode`, string values `automatic` (default),
+`on`, `off`; a stored value a build does not know reads as `automatic`.
+On the Mac `automatic` and `on` behave the same (Apple Silicon needs no
+speed probe); only Windows tells them apart. The Mac shows a switch, first
+in Settings > General > Transcription: "Show the live preview while
+recording" (on stores `automatic`, off stores `off`; a stored `on` shows
+as on, and turning it off and on again stores `automatic`), with the
+caption "Transcribes as you record, so you can read along. When off, the
+transcript is made only after you stop, and Auto detects the language
+then. Applies from the next recording."
+
+**Off.** The mode is read once at each session's Start (Stop & Start Next
+reads it again); a change during a session does not affect it. With the
+preview off the session opens no live queue, cuts no live chunks, and
+runs no language detection during the recording (both need the live model
+location). The Record tab's live area says "Live preview is off. Turn it
+on in Settings > General."; nothing says "Detecting language…" during the
+session, and the menu bar shows no live line. Stop hands the job over with
+`liveEnabled` false, so "Use live preview instead" is not offered, and an
+undecided Auto language is detected over the whole recording at Stop
+(4.9, `settleEarly`). The fixed-language path (and its background check),
+the final pass, and the failure rules are unchanged; a capture failure
+keeps the WAV and has no live preview to save.
+
+**As built (Mac, 2026-10-02).**
+- `LivePreviewMode` and `AppSettings.livePreviewMode` in HearsayCore
+  (`Settings/AppSettings.swift`), with tests for the default, the round
+  trip, an unknown value, the shared raw values, and the toggle mapping.
+- `RecordingController.startLivePreview()` checks the mode before the model
+  location; `isLivePreviewTurnedOff` marks the session, and the off notice
+  goes through `liveNotice` (nothing else overwrites it while no live chunk
+  runs). The Record tab shows it as the only line of the "Live preview"
+  section, without the empty transcript box. The notice is not handed to
+  the queue job: after Stop it explains nothing the job shows.
+- `LivePreviewToggle` in `SettingsView.swift`; the three strings are in the
+  app catalog with translations in all four languages.
+- Replay: `HEARSAY_REPLAY_LIVE=off` (AGENTS.md). Measured on this Mac
+  (`en-30s.wav` then `de-30s.wav`, whisper-large-v3-turbo fp16, timing
+  immediate): Auto with the preview off ran 0 live jobs; job 1 settled `en`
+  3.1 s and job 2 `de` 0.5 s after their Stop, and both SRTs' first lines
+  equal the run with the preview on (2 live jobs). EN with the preview off:
+  0 live jobs, both jobs `chosen` en, job 2 suggests de as before.
+- Snapshots `40-settings-general-live-preview-off`,
+  `41-record-live-preview-off` (a sample recording in Auto, through
+  `RecordingController.showSampleRecording(elapsed:)`, snapshots only) and
+  `42-menu-bar-live-preview-off`.
+- Help: one Mac sentence in the live preview step of each Help.html;
+  README: one sentence under "Live preview".
+- Not verified: the live GUI (the owner runs the Release app), section 16
+  item 32.
+
 ## 5. Model catalog and download
 
 Built-in `ModelCatalog.json`, editable later without a code change. Every
@@ -1048,6 +1107,9 @@ a one-line prompt.
   recording (`autoRecordAsksLanguage`, default off), section 4.10. Windows
   first (18.11), Mac 2026-10-02 (4.10 "As built (Mac, 2026-10-02)"); the
   Mac hides it before macOS 14.2.
+- Show the live preview while recording (`livePreviewMode`, default
+  `automatic`; the Mac's switch stores `automatic` or `off`), section 4.12.
+  Mac 2026-10-02; Windows adds Always on (18.9).
 
 ## 9. Entitlements and privacy
 
@@ -1409,6 +1471,16 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
     counts as Don't record; with the sheet open, hang up and check it
     closes. The second toggle is greyed out while the first is off.
 
+32. Mac, live preview setting (section 4.12, added 2026-10-02): turn off
+    Settings > General > Transcription > "Show the live preview while
+    recording" in the real app and record a minute in Auto: the live area
+    says "Live preview is off. Turn it on in Settings > General.", no
+    "Detecting language…" appears, the menu bar panel shows no live line,
+    and after Stop the row has no "Use live preview instead" and settles
+    the language before its pass. Turn the switch on during a recording:
+    the running session stays without preview; Stop & Start Next starts the
+    next one with it.
+
 ## 17. Polish list (found during review, not yet scheduled)
 
 - **Decided 2026-09-28: Antigravity CLI isolation.** agy honors the
@@ -1479,6 +1551,16 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
   replays (manual with and without release, immediate, whenIdle) and the UI
   snapshots in English and German. The live GUI was not driven (the owner
   runs the Release app): a hands-on pass is item 30 in section 16.
+
+- **Done 2026-10-02: Mac live preview setting (section 4.12, owner
+  request).** Settings > General > Transcription > "Show the live preview
+  while recording" (key `livePreviewMode`, shared with Windows); off runs
+  no live chunks and no in-session detection, says so in the live area,
+  and Auto detects at Stop. Built as in 4.12 "As built (Mac, 2026-10-02)";
+  verified with `swift test`, the Release build, replays (Auto and EN with
+  the preview off, Auto with it on) and the UI snapshots in English and
+  Traditional Chinese. Windows: 18.9 "Live preview override". Hands-on:
+  section 16 item 32.
 
 - **To do (owner request 2026-09-28): "Reduce background noise" switch** on
   the Record tab. Routes only the mic through Apple voice processing so
@@ -2372,15 +2454,20 @@ findings only in a chat report.
   30 s window on Vulkan. The speed probe (18.4 "Speed", 15 s limit) ran
   once at the first recording, while agents were building and testing on
   the machine, and its result is cached for the process, so a busy moment
-  sticks until relaunch. Add a Windows-only setting in Settings > General,
-  "Live preview: Automatic / Always on / Off" (`livePreviewMode`; the Mac
-  has none because Apple Silicon is always fast enough), where Always on
-  ignores the probe and lets the preview lag on a slow machine; and re-run
-  the probe when a recording starts more than a few minutes after the
-  cached result, or when it was measured under load. First confirm from
-  the log (`whisper: runtime …` and `whisper: speed probe …` lines,
-  visible when Hearsay.exe is started with stdout redirected) whether the
-  GUI launch loaded Vulkan or fell back to CPU.
+  sticks until relaunch. Build the shared setting of section 4.12 (key
+  `livePreviewMode`, built on the Mac 2026-10-02): Windows shows a picker
+  in Settings > General > Transcription, "Live preview: Automatic / Always
+  on / Off", where Automatic follows the speed probe, Always on ignores it
+  and lets the preview lag on a slow machine, and Off behaves as on the
+  Mac (no live chunks, Auto detects at Stop). Reuse the Mac's strings for
+  the Off behavior: the notice "Live preview is off. Turn it on in
+  Settings > General." and the caption sentence about Stop (the Mac
+  caption's second sentence). Also re-run the probe when a recording
+  starts more than a few minutes after the cached result, or when it was
+  measured under load. First confirm from the log (`whisper: runtime …`
+  and `whisper: speed probe …` lines, visible when Hearsay.exe is started
+  with stdout redirected) whether the GUI launch loaded Vulkan or fell
+  back to CPU.
 - **Core texts still English** (the Windows-only Core texts got `windows`
   keys on 2026-09-30, 18.3 Localization row): the technical detail inside
   a translated sentence (the whisper.cpp or runtime message after "Could
