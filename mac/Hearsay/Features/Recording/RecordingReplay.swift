@@ -32,7 +32,12 @@ import os
 /// done, listing the held jobs and exiting with its normal status (a held
 /// job is not a failure); `HEARSAY_REPLAY_RELEASE=<seconds>` instead waits
 /// that long after the last session stops and calls `releaseAll` ("Transcribe
-/// All"), then runs the final passes as usual.
+/// All"), then runs the final passes as usual. `HEARSAY_REPLAY_TRASH=1`
+/// (manual only) right after the last Stop moves the first held job's WAV to
+/// the Trash ("Move to Trash…", PLAN.md 4.11), checks that it left the
+/// replay's temporary spool, prints a `trashed` event, and removes the
+/// trashed copy from the Trash again (a file this run wrote); before it
+/// trashes anything it checks that the spool is inside the temporary folder.
 /// `HEARSAY_REPLAY_LIVE=off` turns the live preview off in the throwaway
 /// settings (PLAN.md 4.12): no live job runs, and an Auto session's language
 /// is settled by the queue at Stop.
@@ -66,6 +71,11 @@ enum RecordingReplay {
             }
             releaseAfter = seconds
         }
+        let trashFirst = environment["HEARSAY_REPLAY_TRASH"] == "1"
+        if trashFirst, timing != .manual {
+            say("HEARSAY_REPLAY_TRASH needs HEARSAY_REPLAY_TIMING=manual")
+            exit(1)
+        }
         let silentSystem = environment["HEARSAY_REPLAY_SYSTEM"] == "silence"
         let livePreview: LivePreviewMode = environment["HEARSAY_REPLAY_LIVE"] == "off" ? .off : .automatic
         let modelURL = URL(fileURLWithPath: directory, isDirectory: true)
@@ -77,6 +87,7 @@ enum RecordingReplay {
                 language: language,
                 timing: timing,
                 releaseAfter: releaseAfter,
+                trashFirst: trashFirst,
                 silentSystem: silentSystem,
                 livePreview: livePreview,
                 engine: engine
@@ -129,7 +140,7 @@ enum RecordingReplay {
 
     private static func run(
         files: [URL], location: WhisperModelLocation, language: LanguageChoice, timing: FinalPassTiming,
-        releaseAfter: Double?, silentSystem: Bool, livePreview: LivePreviewMode, engine: WhisperEngine
+        releaseAfter: Double?, trashFirst: Bool, silentSystem: Bool, livePreview: LivePreviewMode, engine: WhisperEngine
     ) async -> Int32 {
         var loaded: [[Float]] = []
         for file in files {
@@ -260,6 +271,9 @@ enum RecordingReplay {
                 say(String(format: "%7.2f  %@ held", now, label(id)))
             case let .released(id):
                 say(String(format: "%7.2f  %@ released", now, label(id)))
+            case let .trashed(id, recording, trashedAs):
+                say(String(format: "%7.2f  %@ trashed: %@ -> %@", now, label(id), recording.path,
+                           trashedAs?.path ?? "(unknown)"))
             }
         }
 
@@ -340,6 +354,9 @@ enum RecordingReplay {
                 break
             }
         }
+        if trashFirst {
+            if !trashFirstHeldJob(queue: queue, spool: spool, numbers: numbers, clock: clock) { failed = true }
+        }
         if let delay = releaseAfter {
             try? await Task.sleep(for: .seconds(delay))
             say(String(format: "%7.2f  Transcribe All: releasing %d held job(s) of %d pending",
@@ -368,8 +385,9 @@ enum RecordingReplay {
                    jobs.count, latencies.max() ?? 0, doneAt - stopAt,
                    gaps.isEmpty ? "" : ", session gaps " + gaps.map { String(format: "%.3f s", $0) }.joined(separator: ", ")))
 
-        for (offset, job) in queue.jobs.enumerated() {
-            let number = offset + 1
+        for job in queue.jobs {
+            // The job's number from the events (a trashed job leaves a gap).
+            let number = numbers.job(job.id)
             print("queue job \(number) decision: " + (job.tracker.decision?.debugSummary ?? "none"))
             if let notice = job.languageNotice {
                 print("queue job \(number) notice: " + notice.message)
@@ -404,6 +422,53 @@ enum RecordingReplay {
             try? fileManager.removeItem(at: url)
         }
         return failed ? 1 : 0
+    }
+
+    /// HEARSAY_REPLAY_TRASH: "Move to Trash…" on the first held job. Refuses
+    /// unless its WAV is in the replay's spool inside the temporary folder;
+    /// afterwards the WAV must be gone from there, and its copy in the Trash
+    /// (written by this run) is removed again.
+    private static func trashFirstHeldJob(
+        queue: TranscriptionQueue, spool: RecordingSpool, numbers: ReplayNumbers, clock: ReplayClock
+    ) -> Bool {
+        let fileManager = FileManager.default
+        guard let job = queue.jobs.first(where: { queue.isHeld($0) }) else {
+            say("trash: no held job")
+            return false
+        }
+        let temporary = fileManager.temporaryDirectory.resolvingSymlinksInPath().path + "/"
+        let spoolPath = spool.root.resolvingSymlinksInPath().path + "/"
+        let wav = job.recording.url
+        guard spoolPath.hasPrefix(temporary), wav.resolvingSymlinksInPath().path.hasPrefix(spoolPath) else {
+            say("trash: refusing, \(wav.path) is not in a spool inside \(temporary)")
+            return false
+        }
+        say(String(format: "%7.2f  Move to Trash: queue job %d (%@), spool %@", clock.now, numbers.job(job.id),
+                   wav.lastPathComponent, spoolPath))
+        var trashedAs: URL?
+        let previous = queue.eventObserver
+        queue.eventObserver = { event in
+            if case let .trashed(_, _, landed) = event { trashedAs = landed }
+            previous?(event)
+        }
+        queue.trash(job)
+        queue.eventObserver = previous
+        if let error = job.trashError {
+            say("trash: failed: \(error)")
+            return false
+        }
+        guard !queue.jobs.contains(where: { $0 === job }), !fileManager.fileExists(atPath: wav.path) else {
+            say("trash: the job or its WAV is still there")
+            return false
+        }
+        say("trash: \(wav.lastPathComponent) left the spool; \(queue.jobs.count) job(s) left, queue.json "
+            + (fileManager.fileExists(atPath: spool.root.appendingPathComponent("queue.json").path) ? "kept" : "removed"))
+        // The copy in the Trash is a temporary file this run wrote.
+        if let trashedAs, trashedAs.lastPathComponent.hasPrefix(wav.deletingPathExtension().lastPathComponent) {
+            say("removing the trashed copy \(trashedAs.path)")
+            try? fileManager.removeItem(at: trashedAs)
+        }
+        return true
     }
 
     /// Logs where every scroll view inside the window is scrolled to, so a

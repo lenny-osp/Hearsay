@@ -202,6 +202,24 @@ public enum TranscriptionQueuePolicy {
         return !pending.isEmpty && pending.allSatisfy { !$0.released }
     }
 
+    /// Whether the Record tab shows the queue's only job as the single
+    /// meeting (PLAN.md 4.9 item 5): no session is active and the queue holds
+    /// exactly one job. Never under `manual` (PLAN.md 4.11, 2026-10-02):
+    /// there every recording is a row of the queue list, so its name and time
+    /// always show.
+    public static func showsSingleMeeting(timing: FinalPassTiming, sessionActive: Bool, jobCount: Int) -> Bool {
+        timing != .manual && !sessionActive && jobCount == 1
+    }
+
+    /// Whether "Move to Trash…" applies to a job (PLAN.md 4.11, 2026-10-02):
+    /// it is held (the timing is `manual`, it is not released) and idle, i.e.
+    /// waiting or suspended, and `busy` is false (no step task, not saving
+    /// its live preview). A running job, even one whose Hold has not taken
+    /// effect yet, cannot be trashed.
+    public static func canTrash(timing: FinalPassTiming, job: Job, busy: Bool) -> Bool {
+        isHeld(timing: timing, job: job) && (job.state == .waiting || job.state == .suspended) && !busy
+    }
+
     /// The released flag a pending job gets when the timing changes (PLAN.md
     /// 4.11): switching to `manual` releases jobs that already started
     /// (running or suspended) and holds waiting ones; any other switch

@@ -1571,6 +1571,35 @@
         }
       }
     },
+    "Could not move the recording to the Trash: %@" : {
+      "comment" : "Record tab queue row error after Move to Trash… on a recording that waits. %@ is the system reason.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Aufnahme konnte nicht in den Papierkorb gelegt werden: %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se ha podido trasladar la grabación a la Papelera: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法将录音移到废纸篓：%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法將錄音丟到垃圾桶：%@"
+          }
+        }
+      }
+    },
     "Could not move the recording to the output folder: %@" : {
       "comment" : "Recording error. %@ is the system error message.",
       "localizations" : {
@@ -3839,6 +3868,35 @@
         }
       }
     },
+    "It is not transcribed, and its live preview is discarded." : {
+      "comment" : "Message of the alert that asks before a recording that waits in the Record tab's queue is moved to the Trash.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sie wurde noch nicht transkribiert, und ihre Live-Vorschau wird verworfen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aún no se ha transcrito y su vista previa en directo se descartará."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这段录音尚未转录，其实时预览也会被丢弃。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這段錄音尚未轉錄，其即時預覽也會被捨棄。"
+          }
+        }
+      }
+    },
     "Keep" : {
       "localizations" : {
         "de" : {
@@ -4836,6 +4894,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "要將此會議丟到垃圾桶嗎？"
+          }
+        }
+      }
+    },
+    "Move this recording to the Trash?" : {
+      "comment" : "Alert title after Move to Trash… on a Record tab queue row of a recording that waits (\"When I start them\").",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Aufnahme in den Papierkorb legen?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Trasladar esta grabación a la Papelera?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要将此录音移到废纸篓吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要將此錄音丟到垃圾桶嗎？"
           }
         }
       }

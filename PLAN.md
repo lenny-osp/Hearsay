@@ -504,6 +504,8 @@ with no complete transcript.
 5. **Single meeting unchanged.** With one recording and nothing queued
    the Record tab looks and behaves as before: progress, "Use live
    preview instead", the finished card, the notes sheet.
+   (Not under "When I start them": there every recording is a queue
+   row, 4.11, 2026-10-02.)
 
 **Resumable decoding (Mac).** `Transcriber` gains a checkpoint: the
 state its loop carries between windows (`seek`, `allTokens`,
@@ -578,8 +580,8 @@ moves to the job at Stop with the live task still running.
 - The decoder decodes one window before it can yield, so the queue checks
   `mayRun` again just before each step and puts the job back when a
   session started or foreground work arrived meanwhile.
-- With no session and one job, the Record tab shows that job as the single
-  meeting always was (live preview, progress, "Use live preview instead",
+- With no session and one job (and a timing other than `manual`, 4.11), the
+  Record tab shows that job as the single meeting always was (live preview, progress, "Use live preview instead",
   the saved files, the language banner, the notes sheet); otherwise the
   "Transcription queue" section lists every job. A plain Start dismisses
   Done rows whose notes flow already opened (as the finished card was
@@ -874,11 +876,47 @@ run):
 - Single meeting (one job, no session): a held job shows its live
   preview, "Not transcribed yet", **Transcribe** and "Use live preview
   instead". Once released it looks as today, with progress, plus
-  **Hold**.
+  **Hold**. *Replaced 2026-10-02 by "Queue list always under manual"
+  below.*
 - Tray or menu bar: the queue line reads "Not transcribed yet · in
   queue: N" when every pending job is held. The menu gets "Transcribe
   All", enabled while a job is held.
 - Help and README: one sentence each, next to the timing passage.
+
+**Queue list always under manual** (owner request 2026-10-02). With one
+recording the single-meeting view showed "Not transcribed yet" and
+Transcribe but no name or time, so the user could not tell which
+recording it was. While the timing is `manual` there is no single meeting
+(`featuredJob` / `FeaturedJob` is nil): every finished recording is a row
+of the "Transcription queue" card (title = meeting name or time, state,
+buttons), even the only one, in every state (held, released, running,
+done, failed). The other timings keep 4.9 item 5. The rule reads the
+timing, so a change at runtime re-renders at once. The state text at the
+top right of the Record tab reads as it does for the queue list ("Ready"
+with no session), never "Finalizing…" for a held job. The live preview of
+a single held job is no longer shown (a row has none); "Use live preview
+instead" stays on the row. Pure rule:
+`TranscriptionQueuePolicy.showsSingleMeeting(timing, sessionActive, jobCount)`.
+
+**Move to Trash on a held row** (owner request 2026-10-02). A held row
+(timing `manual`, not released, state waiting or suspended, no step
+running, not saving its live preview) offers **Move to Trash…** (Windows:
+**Move to Recycle Bin…**) after its other buttons. It asks first: "Move
+this recording to the Trash?" (Windows: "…Recycle Bin?"), "It is not
+transcribed, and its live preview is discarded.", **Move to Trash**
+(destructive, default; Windows **Move to Recycle Bin**) and Cancel.
+Confirming (`TranscriptionQueue.trash(job)` / `Trash(job)`): cancels the
+job's language detection, closes and drops its live sink, moves the job's
+own WAV to the Trash (Windows: the Recycle Bin) and nothing else (a
+retry's WAV in the output folder: that WAV only; its saved live preview
+stays), removes `<id>.live.srt`, removes the job, saves `queue.json`,
+and evaluates the queue again. If the WAV cannot be moved, the job stays
+and its row shows "Could not move the recording to the Trash: %@"
+(Windows: "…Recycle Bin: %@") with the system reason. The queue guards
+too: a no-op unless the job is held and idle
+(`TranscriptionQueuePolicy.canTrash(timing, job, busy)`). Queue event
+`trashed` for the replay. The menu bar or tray line, Transcribe All and
+the quit alert count only the jobs left.
 
 **As built (Mac, 2026-10-02).**
 - Core: `FinalPassTiming.manual` (raw `manual`, after `whenIdle`; the Mac
@@ -931,6 +969,35 @@ run):
 - Snapshots `29` to `35`: held queue, its menu bar panel, a released job with
   Hold among held jobs, the single held meeting, on hold, released, and Settings
   > General with `manual` selected.
+- **Changed 2026-10-02** (the two rules above). Core:
+  `TranscriptionQueuePolicy.showsSingleMeeting` and `canTrash`, with
+  exhaustive tests in `TranscriptionQueuePolicyTests` (not in the shared
+  vectors). `TranscriptionQueue.featuredJob` uses the first, so it is nil
+  under manual; `canTrash(_:)` (busy = step task, live-preview save task, or
+  saving the live preview) and `trash(_:)` (`FileManager.trashItem`, under
+  the output folder's bookmark for a retry's WAV), `TranscriptionJob.trashError`
+  (cleared by Transcribe and Transcribe All), event `trashed(id:recording:trashedAs:)`.
+  `RecordView`: the held branches of the single-meeting card and of the state
+  text are gone (unreachable); `QueueRow` has the button (reusing History's
+  "Move to Trash…" and "Move to Trash"), the alert and the error line. Three
+  new app-catalog keys, translated with History's Trash wording: "Move this
+  recording to the Trash?", "It is not transcribed, and its live preview is
+  discarded.", "Could not move the recording to the Trash: %@". Help: the Mac
+  sentence about "When I start them" adds "Move to Trash…" (the Windows twin
+  is unchanged until Windows has it). Replay: `HEARSAY_REPLAY_TRASH=1`
+  (manual only) trashes the first held job right after the last Stop,
+  refusing unless its WAV is in the replay's spool under the temporary
+  folder, checks the WAV left the spool, and removes its copy from the Trash
+  again; the final listing numbers jobs as the events do. Snapshots `32` to
+  `34` are now `32-record-queue-single-held` (a row with Transcribe, "Use
+  live preview instead" and Move to Trash…), `33-record-queue-single-on-hold`
+  and `34-record-queue-single-released` (Hold, no trash); new
+  `43-record-queue-trash-failed` (a held row with the error line). Verified:
+  `swift test`; the manual replays (`en-30s.wav`, `de-30s.wav`, Auto) without
+  release (both held, exit 0), with release 2 s (both done), and with
+  `HEARSAY_REPLAY_TRASH=1` (job 1's WAV moved to the Trash and gone from the
+  spool, `queue.json` kept for job 2, exit 0); snapshots in en and zh-Hant.
+  Not verified: the alert with a real pointer (the owner's item 30).
 
 ### 4.12 Live preview setting
 
@@ -1446,6 +1513,16 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
     held jobs: "They stay in the queue until you transcribe them."; reopen
     and check they are still held. Switch the timing back to "Right away"
     with held jobs: they start at once.
+    Added 2026-10-02: with "When I start them" and a single recording, the
+    Record tab shows it as a row of the "Transcription queue" card with its
+    time (or meeting name), "Not transcribed yet", Transcribe and Move to
+    Trash… (no separate single-meeting card); switching to "Right away"
+    with that one recording shows the single meeting again. Click Move to
+    Trash… on a held row: the alert "Move this recording to the Trash?"
+    appears; Cancel keeps it; Move to Trash removes the row, the WAV is in
+    the Finder's Trash, the menu bar line and the quit alert count one less,
+    and after a relaunch the recording does not come back. Move to Trash…
+    is not offered on a released or running row.
 
 31. Mac, Teams meetings (section 4.10, added 2026-10-02): no agent could
     join a Teams meeting, so detection against real Teams is unverified.
@@ -2972,3 +3049,28 @@ Work items:
   rebuild rule are tested), the buttons with a real pointer, a held job
   running a real pass (the queue is covered by `ManualQueueTests` and the
   replay of WI-1). No CUDA path was run.
+
+**To do (owner request 2026-10-02).** The two 4.11 rules "Queue list always
+under manual" and "Move to Trash on a held row", built on the Mac first:
+- `FeaturedJob` is null while the timing is Manual (port
+  `showsSingleMeeting` and its test); the single-meeting card's held states
+  and the held state text at the top right become unreachable; check the
+  tray and the notes hand-off still read right.
+- A held, idle row gets **Move to Recycle Bin…** (the existing History key)
+  after its other buttons, with a confirmation dialog: title "Move this
+  recording to the Recycle Bin?", message "It is not transcribed, and its
+  live preview is discarded." (the Mac's app key, usable as is), primary
+  **Move to Recycle Bin** (existing key) and Cancel.
+- `TranscriptionQueue.Trash(job)` with the Mac's guards and steps (port
+  `canTrash` and its test), the Recycle Bin through the shell's
+  recycle-bin delete (the one History uses), the row's error line, a
+  `Trashed` queue event and `HEARSAY_REPLAY_TRASH=1` in the replay.
+- Strings: two Windows-only keys (catalog `windows`, translated in de, es,
+  zh-Hant, zh-Hans as History's Recycle Bin keys are): "Move this recording
+  to the Recycle Bin?" and "Could not move the recording to the Recycle Bin:
+  %@"; the Mac's "It is not transcribed, and its live preview is discarded."
+  is read with `App(...)`.
+- Help: the Windows twin of the "When I start them" sentence adds "…or move
+  one to the Recycle Bin with Move to Recycle Bin…".
+- Snapshots: the single held job as a row (and at 480 px), a held row with
+  Move to Recycle Bin…, and the error line.

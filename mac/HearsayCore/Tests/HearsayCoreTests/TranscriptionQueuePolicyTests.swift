@@ -310,6 +310,48 @@ struct TranscriptionQueuePolicyTests {
         }
     }
 
+    /// PLAN.md 4.11 (2026-10-02): under manual every job is a queue row, even
+    /// the only one; the other timings keep the single meeting of 4.9 item 5.
+    @Test func singleMeetingNeverUnderManual() {
+        typealias P = TranscriptionQueuePolicy
+        for timing in FinalPassTiming.allCases {
+            for session in [false, true] {
+                for count in 0...3 {
+                    let expected = timing != .manual && !session && count == 1
+                    #expect(P.showsSingleMeeting(timing: timing, sessionActive: session, jobCount: count) == expected,
+                            "\(timing) \(session) \(count)")
+                }
+            }
+        }
+        #expect(P.showsSingleMeeting(timing: .immediate, sessionActive: false, jobCount: 1))
+        #expect(P.showsSingleMeeting(timing: .whenIdle, sessionActive: false, jobCount: 1))
+        #expect(!P.showsSingleMeeting(timing: .manual, sessionActive: false, jobCount: 1))
+    }
+
+    /// PLAN.md 4.11 (2026-10-02): "Move to Trash…" only on a held, idle job.
+    @Test func canTrashOnlyHeldIdleJobs() {
+        typealias P = TranscriptionQueuePolicy
+        for timing in FinalPassTiming.allCases {
+            for state in TranscriptionJobState.allCases {
+                for released in [false, true] {
+                    for busy in [false, true] {
+                        let job = P.Job(id: "j", state: state, released: released)
+                        let expected = timing == .manual && !released && !busy
+                            && (state == .waiting || state == .suspended)
+                        #expect(P.canTrash(timing: timing, job: job, busy: busy) == expected,
+                                "\(timing) \(state) \(released) \(busy)")
+                    }
+                }
+            }
+        }
+        // A running job whose Hold has not taken effect yet is held but not idle.
+        #expect(!P.canTrash(timing: .manual, job: .init(id: "r", state: .running, released: false), busy: false))
+        #expect(P.canTrash(timing: .manual, job: .init(id: "w", state: .waiting), busy: false))
+        #expect(P.canTrash(timing: .manual, job: .init(id: "s", state: .suspended), busy: false))
+        #expect(!P.canTrash(timing: .manual, job: .init(id: "w", state: .waiting), busy: true))
+        #expect(!P.canTrash(timing: .immediate, job: .init(id: "w", state: .waiting), busy: false))
+    }
+
     @Test func unknownStoredTimingReadsAsNil() {
         #expect(FinalPassTiming(rawValue: "someFutureValue") == nil)
         #expect(FinalPassTiming(rawValue: "manual") == .manual)

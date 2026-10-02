@@ -11,7 +11,9 @@ import SwiftUI
 /// The current session is on top. With no session and one recording in the
 /// queue, that recording is shown as the single meeting always was (live
 /// preview, progress, "Use live preview instead", the saved files, the
-/// notes flow); otherwise the queue is a list of rows below the session.
+/// notes flow), except under "When I start them" (PLAN.md 4.11), where every
+/// recording is a row; otherwise the queue is a list of rows below the
+/// session.
 struct RecordView: View {
     @Environment(RecordingController.self) private var model
     @Environment(TranscriptionQueue.self) private var queue
@@ -259,30 +261,16 @@ struct RecordView: View {
         }
 
         if let progress = job.displayProgress {
-            // A held job (PLAN.md 4.11) reads "Not transcribed yet" with no bar,
-            // or "On hold · N%" with the progress it kept; Transcribe releases
-            // it. A released one shows Hold while the timing is manual.
-            let held = queue.isHeld(job)
+            // Never held: under "When I start them" (PLAN.md 4.11) there is
+            // no single meeting, every recording is a queue row.
             Section {
-                if !(held && job.state == .waiting) {
-                    ProgressView(value: progress)
-                        .progressViewStyle(.linear)
-                }
+                ProgressView(value: progress)
+                    .progressViewStyle(.linear)
                 HStack {
-                    if !held {
-                        Text(progress, format: .percent.precision(.fractionLength(0)))
-                            .monospacedDigit()
-                            .foregroundStyle(.secondary)
-                    }
+                    Text(progress, format: .percent.precision(.fractionLength(0)))
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
                     Spacer()
-                    if held {
-                        Button("Transcribe") { queue.release(job) }
-                            .buttonStyle(.borderedProminent)
-                    }
-                    if queue.canHold(job) {
-                        Button(String(localized: "Hold", comment: "Button on a queue row being transcribed: stop transcribing it for now.")) { queue.hold(job) }
-                            .help(Self.holdHelp)
-                    }
                     if job.canUseLivePreview {
                         Button("Use live preview instead") { queue.useLivePreviewInstead(job) }
                             .help("Skip the full pass and save the live preview as the transcript")
@@ -291,11 +279,7 @@ struct RecordView: View {
                     }
                 }
             } header: {
-                if held {
-                    Text(heldStateText(job))
-                } else {
-                    Text("Transcribing")
-                }
+                Text("Transcribing")
             }
         }
 
@@ -441,10 +425,10 @@ struct RecordView: View {
     private var statusLabel: some View {
         switch model.phase {
         case .idle, .failed:
+            // Under "When I start them" there is no single meeting (PLAN.md
+            // 4.11): the rows explain themselves, and this reads "Ready".
             if let job = queue.featuredJob, model.errorMessage == nil {
-                if queue.isHeld(job) {
-                    Text(heldStateText(job)).foregroundStyle(.secondary)
-                } else if job.isPending || job.isRerunning {
+                if job.isPending || job.isRerunning {
                     Text("Finalizing…").foregroundStyle(.secondary)
                 } else if job.state == .done {
                     Text("Saved").foregroundStyle(.secondary)
@@ -517,6 +501,8 @@ private struct QueueRow: View {
     let isPausedForSession: Bool
     let canGenerateNotes: Bool
     let onGenerateNotes: () -> Void
+    /// "Move to Trash…" was clicked; the alert asks first (PLAN.md 4.11).
+    @State private var confirmsTrash = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -560,6 +546,26 @@ private struct QueueRow: View {
                     .font(.caption)
                     .foregroundStyle(.orange)
             }
+            if let trashError = job.trashError {
+                Text(trashError)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .textSelection(.enabled)
+                    .lineLimit(4)
+            }
+        }
+        .alert(
+            String(localized: "Move this recording to the Trash?",
+                   comment: "Alert title after Move to Trash… on a Record tab queue row of a recording that waits (\"When I start them\")."),
+            isPresented: $confirmsTrash
+        ) {
+            // Default action so Return confirms, as in History.
+            Button("Move to Trash", role: .destructive) { queue.trash(job) }
+                .keyboardShortcut(.defaultAction)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("It is not transcribed, and its live preview is discarded.",
+                 comment: "Message of the alert that asks before a recording that waits in the Record tab's queue is moved to the Trash.")
         }
     }
 
@@ -636,6 +642,9 @@ private struct QueueRow: View {
                 }
                 .help("Reveal in Finder")
                 .accessibilityLabel(Text("Reveal in Finder"))
+            }
+            if queue.canTrash(job) {
+                Button("Move to Trash…", role: .destructive) { confirmsTrash = true }
             }
             if job.canDismiss {
                 Button {

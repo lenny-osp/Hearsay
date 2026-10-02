@@ -486,6 +486,16 @@
   },
   {
     "catalog": "app",
+    "key": "Could not move the recording to the Trash: %@",
+    "english": "Could not move the recording to the Trash: %@",
+    "comment": "Record tab queue row error after Move to Trash… on a recording that waits. %@ is the system reason.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "无法将录音移到废纸篓：%@"
+  },
+  {
+    "catalog": "app",
     "key": "Could not move the recording to the output folder: %@",
     "english": "Could not move the recording to the output folder: %@",
     "comment": "Recording error. %@ is the system error message.",
@@ -1161,6 +1171,14 @@
   },
   {
     "catalog": "app",
+    "key": "It is not transcribed, and its live preview is discarded.",
+    "english": "It is not transcribed, and its live preview is discarded.",
+    "comment": "Message of the alert that asks before a recording that waits in the Record tab's queue is moved to the Trash.",
+    "placeholders": [],
+    "translation": "这段录音尚未转录，其实时预览也会被丢弃。"
+  },
+  {
+    "catalog": "app",
     "key": "Keep",
     "english": "Keep",
     "comment": "UI text in UnfinishedRecordingSheet.swift.",
@@ -1447,9 +1465,17 @@
   },
   {
     "catalog": "app",
+    "key": "Move this recording to the Trash?",
+    "english": "Move this recording to the Trash?",
+    "comment": "Alert title after Move to Trash… on a Record tab queue row of a recording that waits (\"When I start them\").",
+    "placeholders": [],
+    "translation": "要将此录音移到废纸篓吗？"
+  },
+  {
+    "catalog": "app",
     "key": "Move to Trash",
     "english": "Move to Trash",
-    "comment": "UI text in HistoryView.swift.",
+    "comment": "UI text in HistoryView.swift, RecordView.swift.",
     "placeholders": [],
     "translation": "移到废纸篓"
   },

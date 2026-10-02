@@ -70,6 +70,9 @@ final class TranscriptionJob: Identifiable {
     fileprivate(set) var rerunError: String?
     /// The job finished while notes could not open; its row offers them.
     fileprivate(set) var offersNotes = false
+    /// "Move to Trash…" failed (PLAN.md 4.11): the job stayed, and its row
+    /// says why.
+    fileprivate(set) var trashError: String?
 
     /// Told when `state` or `isReleased` changes (the queue recomputes its
     /// decoder hold flag).
@@ -226,6 +229,10 @@ final class TranscriptionQueue {
         /// Manual timing: the job was released (Transcribe, Transcribe All,
         /// Try Again, or a switch to manual for a job that had started).
         case released(id: String)
+        /// Manual timing: "Move to Trash…" on a held row moved the job's WAV
+        /// to the Trash (`trashedAs`, where it landed, when the system says)
+        /// and removed the job.
+        case trashed(id: String, recording: URL, trashedAs: URL?)
     }
 
     /// A finished SRT waiting for the Record tab's notes flow.
@@ -347,10 +354,25 @@ final class TranscriptionQueue {
     }
 
     /// With no session active and exactly one job, the Record tab shows it
-    /// as the single meeting it always showed (PLAN.md 4.9 item 5).
+    /// as the single meeting it always showed (PLAN.md 4.9 item 5). Never
+    /// under manual (PLAN.md 4.11, 2026-10-02): every recording is a row of
+    /// the queue list, so its name and time show. Reads the timing, so a
+    /// view re-renders when it changes.
     var featuredJob: TranscriptionJob? {
-        guard !isSessionActive, jobs.count == 1 else { return nil }
+        guard TranscriptionQueuePolicy.showsSingleMeeting(
+            timing: settings.finalPassTiming, sessionActive: isSessionActive, jobCount: jobs.count)
+        else { return nil }
         return jobs.first
+    }
+
+    /// "Move to Trash…" applies (PLAN.md 4.11): the job is held and idle,
+    /// i.e. waiting or suspended, with no step running and not saving its
+    /// live preview.
+    func canTrash(_ job: TranscriptionJob) -> Bool {
+        TranscriptionQueuePolicy.canTrash(
+            timing: settings.finalPassTiming,
+            job: .init(id: job.id, state: job.state, released: job.isReleased),
+            busy: job.stepTask != nil || job.finishTask != nil || job.isUsingLivePreview)
     }
 
     /// Output-folder stems the queue is working on: History does not rename
@@ -603,7 +625,7 @@ final class TranscriptionQueue {
     func insertSample(
         recording: URL, state: TranscriptionJobState, progress: Double = 0, srt: URL? = nil,
         language: TranscriptLanguage = .english, offersNotes: Bool = false, released: Bool = false,
-        liveSegments: [CoreSegment] = []
+        liveSegments: [CoreSegment] = [], trashError: String? = nil
     ) {
         var tracker = SessionLanguageTracker(choice: .fixed(language), preferred: language)
         tracker.choose(language)
@@ -617,6 +639,7 @@ final class TranscriptionQueue {
         job.wav = state == .done ? recording : nil
         job.offersNotes = offersNotes
         job.isReleased = released
+        job.trashError = trashError
         jobs.append(job)
         watch(job)
     }
@@ -960,6 +983,7 @@ final class TranscriptionQueue {
     /// ignore the flag.
     func release(_ job: TranscriptionJob) {
         guard job.isPending else { return }
+        job.trashError = nil
         setReleased(job, true)
         updateHold()
         evaluate()
@@ -967,7 +991,10 @@ final class TranscriptionQueue {
 
     /// Manual timing, "Transcribe All": releases every held job.
     func releaseAll() {
-        for job in jobs where job.isPending { setReleased(job, true) }
+        for job in jobs where job.isPending {
+            job.trashError = nil
+            setReleased(job, true)
+        }
         updateHold()
         evaluate()
     }
@@ -979,6 +1006,51 @@ final class TranscriptionQueue {
         guard job.isPending else { return }
         setReleased(job, false)
         updateHold()
+        evaluate()
+    }
+
+    /// Manual timing, "Move to Trash…" on a held row, after the user
+    /// confirmed (PLAN.md 4.11): moves the job's own WAV (and nothing else; a
+    /// retry's saved live preview stays) to the Trash, then drops the job:
+    /// its language detection is cancelled, its live sink closed, its live
+    /// segments file removed, and `queue.json` saved. When the WAV cannot be
+    /// moved, the job stays and its row shows `trashError`. A no-op unless
+    /// `canTrash(job)`.
+    func trash(_ job: TranscriptionJob) {
+        guard canTrash(job), jobs.contains(where: { $0 === job }) else { return }
+        let url = job.recording.url
+        // A retry's WAV is in the output folder, reached through its bookmark.
+        let folder = job.recording.inSpool ? nil : try? TranscriptOutput.resolveFolder(settings: settings)
+        defer { folder?.stopAccessing() }
+        var landed: NSURL?
+        do {
+            try FileManager.default.trashItem(at: url, resultingItemURL: &landed)
+        } catch {
+            job.trashError = String(
+                localized: "Could not move the recording to the Trash: \(error.localizedDescription)",
+                comment: "Record tab queue row error after Move to Trash… on a recording that waits. %@ is the system reason.")
+            Self.logger.error("could not trash \(job.id, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            return
+        }
+        job.trashError = nil
+        job.settleTask?.cancel()
+        job.settleTask = nil
+        if let sink = job.liveSink {
+            sink.onResult = nil
+            sink.close()
+            job.liveSink = nil
+        }
+        job.samples = nil
+        job.checkpoint = nil
+        job.onChange = nil
+        job.liveSegmentsDirty = false
+        jobs.removeAll { $0 === job }
+        store.removeLiveSegments(jobID: job.id)
+        if notesRequest?.jobID == job.id { notesRequest = nil }
+        eventObserver?(.trashed(id: job.id, recording: url, trashedAs: landed as URL?))
+        Self.logger.info("trashed \(job.id, privacy: .public) \(url.lastPathComponent, privacy: .public)")
+        updateHold()
+        persist()
         evaluate()
     }
 

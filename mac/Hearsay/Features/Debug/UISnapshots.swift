@@ -210,7 +210,9 @@ enum UISnapshots {
         mixedQueue.insertSample(recording: wav("2026-09-30_11-00-00.wav"), state: .waiting)
         await render("31-record-queue-held-mixed", width: 720, height: 800,
                      context.with(queue: mixedQueue).apply(to: MainView().environment(grantedPermissions)))
-        // The single meeting, held with its live preview, and on hold.
+        // One recording under manual is a queue row too (PLAN.md 4.11,
+        // 2026-10-02): held with Transcribe and Move to Trash…, on hold, and
+        // released with Hold. Its live preview is not shown in the row.
         let live = [
             CoreSegment(start: 0, end: 4, text: "Good morning, everyone. Let's start with the quarterly numbers."),
             CoreSegment(start: 4, end: 9.5, text: "Revenue is up, and the launch moves to the second week of October."),
@@ -218,22 +220,33 @@ enum UISnapshots {
         let singleHeld = makeQueue(
             settings: settings, modelStore: modelStore, engine: delegate.whisperEngine, spool: spool)
         singleHeld.insertSample(recording: wav("2026-09-30_09-00-00.wav"), state: .waiting, liveSegments: live)
-        await render("32-record-single-held", width: 720, height: 1000,
+        await render("32-record-queue-single-held", width: 720, height: 800,
                      context.with(queue: singleHeld).apply(to: MainView().environment(grantedPermissions)))
         let singleOnHold = makeQueue(
             settings: settings, modelStore: modelStore, engine: delegate.whisperEngine, spool: spool)
         singleOnHold.insertSample(recording: wav("2026-09-30_09-00-00.wav"), state: .suspended, progress: 0.45,
                                   liveSegments: live)
-        await render("33-record-single-on-hold", width: 720, height: 1000,
+        await render("33-record-queue-single-on-hold", width: 720, height: 800,
                      context.with(queue: singleOnHold).apply(to: MainView().environment(grantedPermissions)))
-        // Released again: today's card plus Hold.
+        // Released again: the row with its progress and Hold.
         let singleReleased = makeQueue(
             settings: settings, modelStore: modelStore, engine: delegate.whisperEngine, spool: spool)
         singleReleased.insertSample(recording: wav("2026-09-30_09-00-00.wav"), state: .running, progress: 0.45,
                                     released: true, liveSegments: live)
-        await render("34-record-single-released", width: 720, height: 1000,
+        await render("34-record-queue-single-released", width: 720, height: 800,
                      context.with(queue: singleReleased).apply(to: MainView().environment(grantedPermissions)))
         await render("35-settings-general-manual", width: 720, height: 1000, SettingsView(initialPane: .general))
+        // Move to Trash… failed: the held row stays and says why.
+        let trashFailed = makeQueue(
+            settings: settings, modelStore: modelStore, engine: delegate.whisperEngine, spool: spool)
+        trashFailed.insertSample(
+            recording: wav("2026-09-30_09-00-00.wav"), state: .waiting, liveSegments: live,
+            trashError: String(
+                localized: "Could not move the recording to the Trash: \(CocoaError(.fileWriteNoPermission).localizedDescription)",
+                comment: "Record tab queue row error after Move to Trash… on a recording that waits. %@ is the system reason."))
+        trashFailed.insertSample(recording: wav("2026-09-30_10-00-00.wav"), state: .waiting)
+        await render("43-record-queue-trash-failed", width: 720, height: 800,
+                     context.with(queue: trashFailed).apply(to: MainView().environment(grantedPermissions)))
         settings.finalPassTiming = .immediate
 
         // Automatic recording of Teams meetings (PLAN.md 4.10): the Meetings
