@@ -269,6 +269,10 @@
     <value>Modelo activo</value>
     <comment>app: Active model</comment>
   </data>
+  <data name="app_35db9e8df3274ed3" xml:space="preserve">
+    <value>Transcribir todo</value>
+    <comment>app: Transcribe All</comment>
+  </data>
   <data name="app_3769bbd12cefb7ed" xml:space="preserve">
     <value>Omitir la pasada completa y guardar la vista previa como transcripción</value>
     <comment>app: Skip the full pass and save the live preview as the transcript</comment>
@@ -352,6 +356,10 @@
   <data name="app_48f19eda6304813b" xml:space="preserve">
     <value>Abrir Modelos</value>
     <comment>app: Open Models</comment>
+  </data>
+  <data name="app_4b897b8f423ef8b3" xml:space="preserve">
+    <value>Aplaza la transcripción por ahora. «Transcribir» continúa donde se quedó.</value>
+    <comment>app: Stops transcribing for now. Transcribe continues where it stopped.</comment>
   </data>
   <data name="app_4bcbc1a7b6042a20" xml:space="preserve">
     <value>No se han podido buscar actualizaciones.</value>
@@ -513,6 +521,10 @@
     <value>Proveedor:</value>
     <comment>app: Provider:</comment>
   </data>
+  <data name="app_67700d3b457d11b5" xml:space="preserve">
+    <value>Se quedan en la cola hasta que las transcribas.</value>
+    <comment>app: They stay in the queue until you transcribe them.</comment>
+  </data>
   <data name="app_67e9ba5528303599" xml:space="preserve">
     <value>Se mantienen los nombres de archivo con fecha y hora.</value>
     <comment>app: Keeping the timestamp file names.</comment>
@@ -536,6 +548,10 @@
   <data name="app_6a348c7601683724" xml:space="preserve">
     <value>Grabación sin terminar</value>
     <comment>app: Unfinished recording</comment>
+  </data>
+  <data name="app_6c71b9b29660b967" xml:space="preserve">
+    <value>Aún sin transcribir</value>
+    <comment>app: Not transcribed yet</comment>
   </data>
   <data name="app_6d0953f0ebeeab27" xml:space="preserve">
     <value>Nivel de {0}</value>
@@ -712,6 +728,10 @@
   <data name="app_8a7525b1492fb848" xml:space="preserve">
     <value>Notas</value>
     <comment>app: Notes</comment>
+  </data>
+  <data name="app_8e685d5409b3a543" xml:space="preserve">
+    <value>Aplazar</value>
+    <comment>app: Hold</comment>
   </data>
   <data name="app_8e8a51b606c9e743" xml:space="preserve">
     <value>Hearsay continuará con ellas la próxima vez que se abra.</value>
@@ -1017,6 +1037,10 @@
     <value>No hay ninguna app disponible para abrir {0}.</value>
     <comment>app: No app is available to open %@.</comment>
   </data>
+  <data name="app_d018c786d31799da" xml:space="preserve">
+    <value>La siguiente grabación puede empezar de inmediato, elijas lo que elijas. Con «Cuando yo las inicie», las grabaciones esperan en la pestaña Grabar hasta que pulses «Transcribir» o «Transcribir todo».</value>
+    <comment>app: The next recording can start at once, whichever you choose. With “When I start them”, recordings wait on the Record tab until you click Transcribe or Transcribe All.</comment>
+  </data>
   <data name="app_d139a2e0a0d3c5d1" xml:space="preserve">
     <value>Error: No se encuentra el archivo SRT o no se puede leer ({0}): {1}</value>
     <comment>app: Error: SRT file not found or unreadable (%@): %@</comment>
@@ -1068,6 +1092,10 @@
   <data name="app_d95c6550abb6efa7" xml:space="preserve">
     <value>Transcripción en pausa mientras se graba · en cola: {0}</value>
     <comment>app: Transcription paused while recording · in queue: %lld</comment>
+  </data>
+  <data name="app_d976a3c4ef0d2456" xml:space="preserve">
+    <value>Aplazada · {0}%</value>
+    <comment>app: On hold · %lld%%</comment>
   </data>
   <data name="app_da8c46fd1e93e757" xml:space="preserve">
     <value>No se ha generado ninguna nota de la reunión. Puedes renombrar el SRT y su grabación, o mantener los nombres con fecha y hora.</value>
@@ -1200,6 +1228,10 @@
   <data name="app_fae6ce42a3ec73bc" xml:space="preserve">
     <value>Finalizando…</value>
     <comment>app: Finalizing…</comment>
+  </data>
+  <data name="app_fb58188d9bbd2b79" xml:space="preserve">
+    <value>Aún sin transcribir · en cola: {0}</value>
+    <comment>app: Not transcribed yet · in queue: %lld</comment>
   </data>
   <data name="app_fbc6e67f32c5cb7b" xml:space="preserve">
     <value>Pausar / Reanudar:</value>
@@ -1593,6 +1625,10 @@
     <value>De inmediato (en segundo plano)</value>
     <comment>core: Right away (in the background)</comment>
   </data>
+  <data name="core_d9e5b3fc43a43c1d" xml:space="preserve">
+    <value>Cuando yo las inicie</value>
+    <comment>core: When I start them</comment>
+  </data>
   <data name="core_daa0fbaaaaa9241d" xml:space="preserve">
     <value>Barra de menús y Dock</value>
     <comment>core: Menu bar and Dock</comment>
@@ -1681,10 +1717,6 @@
     <value>Ya se usa para Pausar / Reanudar.</value>
     <comment>windows: Already used for Pause / Resume.</comment>
   </data>
-  <data name="windows_35db9e8df3274ed3" xml:space="preserve">
-    <value>Transcribir todo</value>
-    <comment>windows: Transcribe All</comment>
-  </data>
   <data name="windows_39e17d7a7d2ee080" xml:space="preserve">
     <value>No se ha podido abrir el archivo</value>
     <comment>windows: Could not open the file</comment>
@@ -1708,10 +1740,6 @@
   <data name="windows_494fae321ac72722" xml:space="preserve">
     <value>Desactivado: la grabación usa el idioma elegido en la pestaña Grabar, y Automático lo detecta. Activado: cuando empieza una reunión, Hearsay pregunta si quieres grabarla y en qué idioma, y graba cuando lo confirmas.</value>
     <comment>windows: Off: the recording uses the language chosen on the Record tab, and Auto detects it. On: when a meeting starts, Hearsay asks whether to record it and in which language, and records when you confirm.</comment>
-  </data>
-  <data name="windows_4b897b8f423ef8b3" xml:space="preserve">
-    <value>Aplaza la transcripción por ahora. «Transcribir» continúa donde se quedó.</value>
-    <comment>windows: Stops transcribing for now. Transcribe continues where it stopped.</comment>
   </data>
   <data name="windows_4d6f50f3f1d532cc" xml:space="preserve">
     <value>No grabar</value>
@@ -1745,10 +1773,6 @@
     <value>No se han podido guardar los ajustes: {0} El cambio se mantiene hasta que se cierre Hearsay.</value>
     <comment>windows: Could not save the settings: %@ The change holds until Hearsay quits.</comment>
   </data>
-  <data name="windows_67700d3b457d11b5" xml:space="preserve">
-    <value>Se quedan en la cola hasta que las transcribas.</value>
-    <comment>windows: They stay in the queue until you transcribe them.</comment>
-  </data>
   <data name="windows_6ab7c6f11835ac7c" xml:space="preserve">
     <value>No se ha podido cargar el modelo de voz: {0}</value>
     <comment>windows: Could not load the speech model: %@</comment>
@@ -1756,10 +1780,6 @@
   <data name="windows_6af8eef13809f390" xml:space="preserve">
     <value>Algunos archivos no se han podido mover a la Papelera de reciclaje:</value>
     <comment>windows: Some files could not be moved to the Recycle Bin:</comment>
-  </data>
-  <data name="windows_6c71b9b29660b967" xml:space="preserve">
-    <value>Aún sin transcribir</value>
-    <comment>windows: Not transcribed yet</comment>
   </data>
   <data name="windows_70c02b4d20ec1f05" xml:space="preserve">
     <value>No se ha iniciado la grabación</value>
@@ -1804,10 +1824,6 @@
   <data name="windows_87b7917d027b1c03" xml:space="preserve">
     <value>La nueva versión está firmada por {0}, no por {1} como esta copia de Hearsay.</value>
     <comment>windows: The new version is signed by %@, not by %@ like this copy of Hearsay.</comment>
-  </data>
-  <data name="windows_8e685d5409b3a543" xml:space="preserve">
-    <value>Aplazar</value>
-    <comment>windows: Hold</comment>
   </data>
   <data name="windows_8f8367e088351c7b" xml:space="preserve">
     <value>No se han podido mostrar los archivos en el Explorador de archivos: {0}</value>
@@ -1909,10 +1925,6 @@
     <value>Vista previa en directo desactivada: este equipo es demasiado lento para ella</value>
     <comment>windows: Live preview off: this computer is too slow for it</comment>
   </data>
-  <data name="windows_d018c786d31799da" xml:space="preserve">
-    <value>La siguiente grabación puede empezar de inmediato, elijas lo que elijas. Con «Cuando yo las inicie», las grabaciones esperan en la pestaña Grabar hasta que pulses «Transcribir» o «Transcribir todo».</value>
-    <comment>windows: The next recording can start at once, whichever you choose. With “When I start them”, recordings wait on the Record tab until you click Transcribe or Transcribe All.</comment>
-  </data>
   <data name="windows_d06dc9e77902afe4" xml:space="preserve">
     <value>Se enviará la transcripción completa a {0}. Por lo demás, nada sale de este PC.</value>
     <comment>windows: This sends the whole transcript to %@. Nothing leaves this PC otherwise.</comment>
@@ -1932,14 +1944,6 @@
   <data name="windows_d813f1147af1497b" xml:space="preserve">
     <value>Mover a la Papelera de reciclaje…</value>
     <comment>windows: Move to Recycle Bin…</comment>
-  </data>
-  <data name="windows_d976a3c4ef0d2456" xml:space="preserve">
-    <value>Aplazada · {0}%</value>
-    <comment>windows: On hold · %lld%%</comment>
-  </data>
-  <data name="windows_d9e5b3fc43a43c1d" xml:space="preserve">
-    <value>Cuando yo las inicie</value>
-    <comment>windows: When I start them</comment>
   </data>
   <data name="windows_db1423267c535dfc" xml:space="preserve">
     <value>No se ha podido instalar la última actualización. Hearsay sigue en la versión anterior.</value>
@@ -1992,9 +1996,5 @@
   <data name="windows_f7b1e9954acd73a9" xml:space="preserve">
     <value>Usa Claude Code instalado en este PC y el inicio de sesión de tu suscripción a Claude; las solicitudes cuentan para sus límites de uso. Ejecuta `claude` una vez en Terminal para iniciar sesión. Modelo: un alias (sonnet, opus) o un id completo. Esfuerzo: low, medium, high, xhigh o max (none y minimal pasan a low).</value>
     <comment>windows: Uses Claude Code installed on this PC and your Claude subscription login; requests count against its usage limits. Run `claude` once in Terminal to log in. Model: an alias (sonnet, opus) or a full id. Effort: low, medium, high, xhigh, or max (none and minimal become low).</comment>
-  </data>
-  <data name="windows_fb58188d9bbd2b79" xml:space="preserve">
-    <value>Aún sin transcribir · en cola: {0}</value>
-    <comment>windows: Not transcribed yet · in queue: %lld</comment>
   </data>
 </root>

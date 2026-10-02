@@ -86,8 +86,8 @@ private struct GeneralSettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 FinalPassTimingPicker()
-                Text("Either way, the next recording can start at once.",
-                     comment: "Settings > General caption under the final-pass timing picker (Transcribe finished recordings)")
+                Text("The next recording can start at once, whichever you choose. With “When I start them”, recordings wait on the Record tab until you click Transcribe or Transcribe All.",
+                     comment: "Settings > General > Transcription: caption under the \"Transcribe finished recordings\" picker. Quote the translated labels of the picker row, the Record tab, and the buttons \"Transcribe\" and \"Transcribe All\" exactly.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

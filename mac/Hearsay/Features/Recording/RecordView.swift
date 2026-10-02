@@ -142,7 +142,7 @@ struct RecordView: View {
             if let job = queue.featuredJob {
                 featuredSections(job)
             } else if !queue.jobs.isEmpty {
-                Section("Transcription queue") {
+                Section {
                     ForEach(queue.jobs) { job in
                         QueueRow(
                             job: job,
@@ -150,6 +150,17 @@ struct RecordView: View {
                             canGenerateNotes: notes.notes?.isRunning != true,
                             onGenerateNotes: { startNotes(for: job) }
                         )
+                    }
+                } header: {
+                    // "When I start them" (PLAN.md 4.11): Transcribe All while a job is held.
+                    HStack {
+                        Text("Transcription queue")
+                        Spacer()
+                        if queue.heldCount > 0 {
+                            Button(String(localized: "Transcribe All", comment: "Button of the Record tab's queue card and menu bar panel: start the transcription of every recording that waits for the user.")) { queue.releaseAll() }
+                                .buttonStyle(.borderedProminent)
+                                .controlSize(.small)
+                        }
                     }
                 }
             }
@@ -177,6 +188,12 @@ struct RecordView: View {
                 self.notesSRT = nil
             }
         }
+    }
+
+    /// Tooltip of Hold (PLAN.md 4.11).
+    fileprivate static var holdHelp: String {
+        String(localized: "Stops transcribing for now. Transcribe continues where it stopped.",
+               comment: "Tooltip of the Hold button. \"Transcribe\" is the translated button of that name.")
     }
 
     private func pathText(_ url: URL) -> some View {
@@ -229,20 +246,42 @@ struct RecordView: View {
         }
 
         if let progress = job.displayProgress {
-            Section("Transcribing") {
-                ProgressView(value: progress)
-                    .progressViewStyle(.linear)
+            // A held job (PLAN.md 4.11) reads "Not transcribed yet" with no bar,
+            // or "On hold · N%" with the progress it kept; Transcribe releases
+            // it. A released one shows Hold while the timing is manual.
+            let held = queue.isHeld(job)
+            Section {
+                if !(held && job.state == .waiting) {
+                    ProgressView(value: progress)
+                        .progressViewStyle(.linear)
+                }
                 HStack {
-                    Text(progress, format: .percent.precision(.fractionLength(0)))
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
+                    if !held {
+                        Text(progress, format: .percent.precision(.fractionLength(0)))
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                    }
                     Spacer()
+                    if held {
+                        Button("Transcribe") { queue.release(job) }
+                            .buttonStyle(.borderedProminent)
+                    }
+                    if queue.canHold(job) {
+                        Button(String(localized: "Hold", comment: "Button on a queue row being transcribed: stop transcribing it for now.")) { queue.hold(job) }
+                            .help(Self.holdHelp)
+                    }
                     if job.canUseLivePreview {
                         Button("Use live preview instead") { queue.useLivePreviewInstead(job) }
                             .help("Skip the full pass and save the live preview as the transcript")
                     } else if job.isUsingLivePreview {
                         Text("Saving the live preview…").foregroundStyle(.secondary)
                     }
+                }
+            } header: {
+                if held {
+                    Text(heldStateText(job))
+                } else {
+                    Text("Transcribing")
                 }
             }
         }
@@ -390,7 +429,9 @@ struct RecordView: View {
         switch model.phase {
         case .idle, .failed:
             if let job = queue.featuredJob, model.errorMessage == nil {
-                if job.isPending || job.isRerunning {
+                if queue.isHeld(job) {
+                    Text(heldStateText(job)).foregroundStyle(.secondary)
+                } else if job.isPending || job.isRerunning {
                     Text("Finalizing…").foregroundStyle(.secondary)
                 } else if job.state == .done {
                     Text("Saved").foregroundStyle(.secondary)
@@ -441,6 +482,18 @@ struct RecordView: View {
             .help(String(localized: "Save this recording and start the next one at once (\(settings.stopStartNextHotkey.displayString)). This one is transcribed in the background.",
                          comment: "Record tab tooltip of Stop & Start Next. %@ is a shortcut such as ⌃⌥⌘N."))
     }
+}
+
+/// The state text of a held job (PLAN.md 4.11): "Not transcribed yet", or
+/// "On hold · N%" once its pass had started.
+@MainActor
+private func heldStateText(_ job: TranscriptionJob) -> String {
+    if job.state == .waiting {
+        return String(localized: "Not transcribed yet",
+                      comment: "Record tab queue row state: the recording waits until the user starts its transcription (\"When I start them\").")
+    }
+    return String(localized: "On hold · \(Int((job.progress * 100).rounded()))%",
+                  comment: "Record tab queue row state: the user put a partly transcribed recording on hold. %lld is a percentage; keep the % sign after it.")
 }
 
 /// One recording in the Record tab's queue list: its name, its state, and
@@ -498,6 +551,7 @@ private struct QueueRow: View {
     }
 
     private var stateText: String {
+        if queue.isHeld(job) { return heldStateText(job) }
         if job.isRerunning {
             return String(localized: "Transcribing \(Int((job.rerunProgress * 100).rounded()))%",
                           comment: "Record tab queue row state. %lld is a percentage; keep the % sign after it.")
@@ -537,6 +591,14 @@ private struct QueueRow: View {
     @ViewBuilder
     private var actions: some View {
         HStack(spacing: 6) {
+            if queue.isHeld(job) {
+                Button("Transcribe") { queue.release(job) }
+                    .buttonStyle(.borderedProminent)
+            }
+            if queue.canHold(job) {
+                Button(String(localized: "Hold", comment: "Button on a queue row being transcribed: stop transcribing it for now.")) { queue.hold(job) }
+                    .help(RecordView.holdHelp)
+            }
             if job.canUseLivePreview {
                 Button("Use live preview instead") { queue.useLivePreviewInstead(job) }
                     .help("Skip the full pass and save the live preview as the transcript")

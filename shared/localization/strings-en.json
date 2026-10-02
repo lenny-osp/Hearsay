@@ -665,13 +665,6 @@
   },
   {
     "catalog": "app",
-    "key": "Either way, the next recording can start at once.",
-    "english": "Either way, the next recording can start at once.",
-    "comment": "Settings > General caption under the final-pass timing picker (Transcribe finished recordings)",
-    "placeholders": []
-  },
-  {
-    "catalog": "app",
     "key": "Endpoint URL:",
     "english": "Endpoint URL:",
     "comment": "UI text in AISettingsTab.swift.",
@@ -925,6 +918,13 @@
     "key": "History",
     "english": "History",
     "comment": "Main window tab",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "Hold",
+    "english": "Hold",
+    "comment": "Button on a queue row being transcribed: stop transcribing it for now.",
     "placeholders": []
   },
   {
@@ -1366,6 +1366,22 @@
   },
   {
     "catalog": "app",
+    "key": "Not transcribed yet",
+    "english": "Not transcribed yet",
+    "comment": "Record tab queue row state: the recording waits until the user starts its transcription (\"When I start them\").",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "Not transcribed yet · in queue: %lld",
+    "english": "Not transcribed yet · in queue: %lld",
+    "comment": "Menu bar panel line when every recording in the queue waits for the user to start it. %lld is their number.",
+    "placeholders": [
+      "%lld"
+    ]
+  },
+  {
+    "catalog": "app",
     "key": "Notes",
     "english": "Notes",
     "comment": "History badge: the meeting has meeting notes",
@@ -1398,6 +1414,15 @@
     "english": "OK",
     "comment": "Alert button",
     "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "On hold · %lld%%",
+    "english": "On hold · %lld%%",
+    "comment": "Record tab queue row state: the user put a partly transcribed recording on hold. %lld is a percentage; keep the % sign after it.",
+    "placeholders": [
+      "%lld"
+    ]
   },
   {
     "catalog": "app",
@@ -2078,6 +2103,13 @@
   },
   {
     "catalog": "app",
+    "key": "Stops transcribing for now. Transcribe continues where it stopped.",
+    "english": "Stops transcribing for now. Transcribe continues where it stopped.",
+    "comment": "Tooltip of the Hold button. \"Transcribe\" is the translated button of that name.",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
     "key": "System",
     "english": "System",
     "comment": "Record tab: system audio level meter (tooltip)",
@@ -2278,6 +2310,13 @@
   },
   {
     "catalog": "app",
+    "key": "The next recording can start at once, whichever you choose. With “When I start them”, recordings wait on the Record tab until you click Transcribe or Transcribe All.",
+    "english": "The next recording can start at once, whichever you choose. With “When I start them”, recordings wait on the Record tab until you click Transcribe or Transcribe All.",
+    "comment": "Settings > General > Transcription: caption under the \"Transcribe finished recordings\" picker. Quote the translated labels of the picker row, the Record tab, and the buttons \"Transcribe\" and \"Transcribe All\" exactly.",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
     "key": "The preview lags behind the recording but stays complete.",
     "english": "The preview lags behind the recording but stays complete.",
     "comment": "UI text in RecordView.swift.",
@@ -2334,6 +2373,13 @@
     "key": "The transcript, notes, and recording are renamed to <timestamp>_<name>.",
     "english": "The transcript, notes, and recording are renamed to <timestamp>_<name>.",
     "comment": "Rename sheet explanation (History > Rename). Translate the words inside <timestamp>_<name> but keep the angle brackets and underscore.",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "They stay in the queue until you transcribe them.",
+    "english": "They stay in the queue until you transcribe them.",
+    "comment": "Alert when quitting while every recording in the queue waits for the user to start it (second line, after \"Recordings not transcribed yet: %lld\").",
     "placeholders": []
   },
   {
@@ -2398,7 +2444,14 @@
     "catalog": "app",
     "key": "Transcribe",
     "english": "Transcribe",
-    "comment": "UI text in UnfinishedRecordingSheet.swift.",
+    "comment": "UI text in RecordView.swift, UnfinishedRecordingSheet.swift.",
+    "placeholders": []
+  },
+  {
+    "catalog": "app",
+    "key": "Transcribe All",
+    "english": "Transcribe All",
+    "comment": "Button of the Record tab's queue card and menu bar panel: start the transcription of every recording that waits for the user.",
     "placeholders": []
   },
   {
@@ -3646,6 +3699,13 @@
   },
   {
     "catalog": "core",
+    "key": "When I start them",
+    "english": "When I start them",
+    "comment": "Settings > General > Transcription: row of the \"Transcribe finished recordings\" picker. Finished recordings wait on the Record tab until the user starts their transcription.",
+    "placeholders": []
+  },
+  {
+    "catalog": "core",
     "key": "When no recording is running",
     "english": "When no recording is running",
     "comment": "Settings > General > Transcription: final-pass timing that waits until no recording is running",
@@ -4336,73 +4396,6 @@
     "key": "Don't record",
     "english": "Don't record",
     "comment": "Button of the \"Microsoft Teams meeting started\" dialog: do not record this meeting. Windows only.",
-    "placeholders": []
-  },
-  {
-    "catalog": "windows",
-    "key": "When I start them",
-    "english": "When I start them",
-    "comment": "Settings > General > Transcription: row of the \"Transcribe finished recordings\" picker. Finished recordings wait on the Record tab until the user starts their transcription. Windows only.",
-    "placeholders": []
-  },
-  {
-    "catalog": "windows",
-    "key": "The next recording can start at once, whichever you choose. With “When I start them”, recordings wait on the Record tab until you click Transcribe or Transcribe All.",
-    "english": "The next recording can start at once, whichever you choose. With “When I start them”, recordings wait on the Record tab until you click Transcribe or Transcribe All.",
-    "comment": "Settings > General > Transcription: caption under the \"Transcribe finished recordings\" picker. Quote the translated labels of the picker row, the Record tab, and the buttons \"Transcribe\" and \"Transcribe All\" exactly. Windows only.",
-    "placeholders": []
-  },
-  {
-    "catalog": "windows",
-    "key": "Not transcribed yet",
-    "english": "Not transcribed yet",
-    "comment": "Record tab queue row state: the recording waits until the user starts its transcription (\"When I start them\"). Windows only.",
-    "placeholders": []
-  },
-  {
-    "catalog": "windows",
-    "key": "On hold · %lld%%",
-    "english": "On hold · %lld%%",
-    "comment": "Record tab queue row state: the user put a partly transcribed recording on hold. %lld is a percentage; keep the % sign after it. Windows only.",
-    "placeholders": [
-      "%lld"
-    ]
-  },
-  {
-    "catalog": "windows",
-    "key": "Transcribe All",
-    "english": "Transcribe All",
-    "comment": "Button of the Record tab's queue card and tray menu item: start the transcription of every recording that waits for the user. Windows only.",
-    "placeholders": []
-  },
-  {
-    "catalog": "windows",
-    "key": "Hold",
-    "english": "Hold",
-    "comment": "Button on a queue row being transcribed: stop transcribing it for now. Windows only.",
-    "placeholders": []
-  },
-  {
-    "catalog": "windows",
-    "key": "Stops transcribing for now. Transcribe continues where it stopped.",
-    "english": "Stops transcribing for now. Transcribe continues where it stopped.",
-    "comment": "Tooltip of the Hold button. \"Transcribe\" is the translated button of that name. Windows only.",
-    "placeholders": []
-  },
-  {
-    "catalog": "windows",
-    "key": "Not transcribed yet · in queue: %lld",
-    "english": "Not transcribed yet · in queue: %lld",
-    "comment": "Tray menu line when every recording in the queue waits for the user to start it. %lld is their number. Windows only.",
-    "placeholders": [
-      "%lld"
-    ]
-  },
-  {
-    "catalog": "windows",
-    "key": "They stay in the queue until you transcribe them.",
-    "english": "They stay in the queue until you transcribe them.",
-    "comment": "Alert when quitting while every recording in the queue waits for the user to start it (second line, after \"Recordings not transcribed yet: %lld\"). Windows only.",
     "placeholders": []
   }
 ]

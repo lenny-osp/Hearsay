@@ -238,8 +238,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let alert = NSAlert()
             alert.messageText = String(localized: "Recordings not transcribed yet: \(pending)",
                                        comment: "Alert when quitting while the transcription queue has recordings. %lld is their number.")
-            alert.informativeText = String(localized: "Hearsay continues with them the next time it opens.",
-                                           comment: "Alert when quitting while the transcription queue has recordings")
+            // With "When I start them" and every job held, nothing continues by itself (PLAN.md 4.11).
+            alert.informativeText = queue.allPendingHeld
+                ? String(localized: "They stay in the queue until you transcribe them.",
+                         comment: "Alert when quitting while every recording in the queue waits for the user to start it (second line, after \"Recordings not transcribed yet: %lld\").")
+                : String(localized: "Hearsay continues with them the next time it opens.",
+                         comment: "Alert when quitting while the transcription queue has recordings")
             alert.addButton(withTitle: String(localized: "Quit", comment: "Alert button: quit Hearsay"))
             alert.addButton(withTitle: String(localized: "Cancel", comment: "Alert button"))
             guard alert.runModal() == .alertFirstButtonReturn else {

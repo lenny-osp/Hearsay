@@ -60,6 +60,7 @@ struct MenuBarView: View {
 
             controls
             stopStartNextRow
+            transcribeAllRow
 
             Divider()
 
@@ -129,6 +130,12 @@ struct MenuBarView: View {
     private var queueLine: String? {
         let pending = queue.pendingCount
         guard pending > 0 else { return nil }
+        // With "When I start them" and every job held (PLAN.md 4.11), before
+        // the other rules, with or without a session.
+        if queue.allPendingHeld {
+            return String(localized: "Not transcribed yet · in queue: \(pending)",
+                          comment: "Menu bar panel line when every recording in the queue waits for the user to start it. %lld is their number.")
+        }
         if !recording.isSessionActive, queue.activeJob != nil {
             // The state line already shows the percentage.
             guard pending > 1 else { return nil }
@@ -232,6 +239,21 @@ struct MenuBarView: View {
             }
             .controlSize(.large)
             .help("Stop & Start Next (\(settings.stopStartNextHotkey.displayString))")
+        }
+    }
+
+    /// Transcribe All, while a job is held (PLAN.md 4.11). Left out otherwise,
+    /// as Stop & Start Next is, because the panel reflows.
+    @ViewBuilder
+    private var transcribeAllRow: some View {
+        if queue.heldCount > 0 {
+            Button {
+                queue.releaseAll()
+            } label: {
+                Label(String(localized: "Transcribe All", comment: "Button of the Record tab's queue card and menu bar panel: start the transcription of every recording that waits for the user."), systemImage: "text.bubble")
+                    .frame(maxWidth: .infinity)
+            }
+            .controlSize(.large)
         }
     }
 

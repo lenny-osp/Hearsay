@@ -75,7 +75,7 @@
     "catalog": "app",
     "key": "%@ of %@",
     "english": "%1$@ of %2$@",
-    "comment": "UI text in ModelRowView.swift.",
+    "comment": "Update download progress. %1$@ is the amount received, %2$@ the total size.",
     "placeholders": [
       "%@",
       "%@"
@@ -268,6 +268,14 @@
     "comment": "Tooltip of the language picker. ZH-TW and ZH-CN are the picker's labels; keep them as they are.",
     "placeholders": [],
     "translation": "Automático detecta inglés, chino, alemán o español con las primeras palabras. ZH-TW escribe caracteres tradicionales; ZH-CN, simplificados."
+  },
+  {
+    "catalog": "app",
+    "key": "Auto mode default language",
+    "english": "Auto mode default language",
+    "comment": "UI text in SettingsView.swift.",
+    "placeholders": [],
+    "translation": "Idioma predeterminado para Automático"
   },
   {
     "catalog": "app",
@@ -673,7 +681,7 @@
     "catalog": "app",
     "key": "Dismiss",
     "english": "Dismiss",
-    "comment": "UI text in LanguageViews.swift.",
+    "comment": "UI text in LanguageViews.swift, RecordView.swift.",
     "placeholders": [],
     "translation": "Descartar"
   },
@@ -713,6 +721,16 @@
   },
   {
     "catalog": "app",
+    "key": "Downloading Hearsay %@…",
+    "english": "Downloading Hearsay %@…",
+    "comment": "Update progress. %@ is the new version.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Descargando Hearsay %@…"
+  },
+  {
+    "catalog": "app",
     "key": "Drop an audio or video file here",
     "english": "Drop an audio or video file here",
     "comment": "UI text in FileView.swift.",
@@ -726,14 +744,6 @@
     "comment": "UI text in AISettingsTab.swift.",
     "placeholders": [],
     "translation": "Editar"
-  },
-  {
-    "catalog": "app",
-    "key": "Either way, the next recording can start at once.",
-    "english": "Either way, the next recording can start at once.",
-    "comment": "Settings > General caption under the final-pass timing picker (Transcribe finished recordings)",
-    "placeholders": [],
-    "translation": "En ambos casos, la siguiente grabación puede empezar de inmediato."
   },
   {
     "catalog": "app",
@@ -812,6 +822,14 @@
   },
   {
     "catalog": "app",
+    "key": "Finish the recording first.",
+    "english": "Finish the recording first.",
+    "comment": "Alert when Install and Relaunch is chosen while recording or transcribing",
+    "placeholders": [],
+    "translation": "Termina primero la grabación."
+  },
+  {
+    "catalog": "app",
     "key": "Fix…",
     "english": "Fix…",
     "comment": "Record tab, Permissions row: open the re-approval instructions",
@@ -875,11 +893,53 @@
   },
   {
     "catalog": "app",
+    "key": "Hearsay %@ is ready to install.",
+    "english": "Hearsay %@ is ready to install.",
+    "comment": "Update ready alert title and Settings line. %@ is the new version.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Hearsay %@ está listo para instalarse."
+  },
+  {
+    "catalog": "app",
     "key": "Hearsay Help",
     "english": "Hearsay Help",
     "comment": "Help menu item and the title of the help window",
     "placeholders": [],
     "translation": "Ayuda de Hearsay"
+  },
+  {
+    "catalog": "app",
+    "key": "Hearsay cannot install the update here.",
+    "english": "Hearsay cannot install the update here.",
+    "comment": "Alert title: the running app cannot replace itself",
+    "placeholders": [],
+    "translation": "Hearsay no puede instalar la actualización aquí."
+  },
+  {
+    "catalog": "app",
+    "key": "Hearsay continues with them the next time it opens.",
+    "english": "Hearsay continues with them the next time it opens.",
+    "comment": "Alert when quitting while the transcription queue has recordings",
+    "placeholders": [],
+    "translation": "Hearsay continuará con ellas la próxima vez que se abra."
+  },
+  {
+    "catalog": "app",
+    "key": "Hearsay could not download the update.",
+    "english": "Hearsay could not download the update.",
+    "comment": "Alert title: the update download failed",
+    "placeholders": [],
+    "translation": "Hearsay no ha podido descargar la actualización."
+  },
+  {
+    "catalog": "app",
+    "key": "Hearsay could not install the update.",
+    "english": "Hearsay could not install the update.",
+    "comment": "Alert title: staging or replacing the app bundle failed",
+    "placeholders": [],
+    "translation": "Hearsay no ha podido instalar la actualización."
   },
   {
     "catalog": "app",
@@ -893,9 +953,17 @@
     "catalog": "app",
     "key": "Hearsay could not restart.",
     "english": "Hearsay could not restart.",
-    "comment": "Alert when the automatic restart after a language change failed",
+    "comment": "Alert when the automatic restart (language change or update) failed",
     "placeholders": [],
     "translation": "Hearsay no se ha podido reiniciar."
+  },
+  {
+    "catalog": "app",
+    "key": "Hearsay could not verify the downloaded update.",
+    "english": "Hearsay could not verify the downloaded update.",
+    "comment": "Alert title: checksum or code signature check of an update failed",
+    "placeholders": [],
+    "translation": "Hearsay no ha podido verificar la actualización descargada."
   },
   {
     "catalog": "app",
@@ -931,6 +999,14 @@
   },
   {
     "catalog": "app",
+    "key": "Hearsay will quit and open again as the new version.",
+    "english": "Hearsay will quit and open again as the new version.",
+    "comment": "Update ready alert",
+    "placeholders": [],
+    "translation": "Hearsay se cerrará y se volverá a abrir con la nueva versión."
+  },
+  {
+    "catalog": "app",
     "key": "Hearsay, paused",
     "english": "Hearsay, paused",
     "comment": "UI text in MenuBarView.swift.",
@@ -963,6 +1039,14 @@
   },
   {
     "catalog": "app",
+    "key": "Hold",
+    "english": "Hold",
+    "comment": "Button on a queue row being transcribed: stop transcribing it for now.",
+    "placeholders": [],
+    "translation": "Aplazar"
+  },
+  {
+    "catalog": "app",
     "key": "Idle",
     "english": "Idle",
     "comment": "Menu bar panel state: not recording",
@@ -992,6 +1076,32 @@
     "comment": "UI text in MenuBarView.swift, RecordView.swift.",
     "placeholders": [],
     "translation": "Nivel de entrada"
+  },
+  {
+    "catalog": "app",
+    "key": "Install Update",
+    "english": "Install Update",
+    "comment": "Update available alert button: download and install the new version",
+    "placeholders": [],
+    "translation": "Instalar actualización"
+  },
+  {
+    "catalog": "app",
+    "key": "Install and Relaunch",
+    "english": "Install and Relaunch",
+    "comment": "Update ready alert button: replace the app and relaunch",
+    "placeholders": [],
+    "translation": "Instalar y reiniciar"
+  },
+  {
+    "catalog": "app",
+    "key": "Installing Hearsay %@…",
+    "english": "Installing Hearsay %@…",
+    "comment": "Update progress. %@ is the new version.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Instalando Hearsay %@…"
   },
   {
     "catalog": "app",
@@ -1435,6 +1545,24 @@
   },
   {
     "catalog": "app",
+    "key": "Not transcribed yet",
+    "english": "Not transcribed yet",
+    "comment": "Record tab queue row state: the recording waits until the user starts its transcription (\"When I start them\").",
+    "placeholders": [],
+    "translation": "Aún sin transcribir"
+  },
+  {
+    "catalog": "app",
+    "key": "Not transcribed yet · in queue: %lld",
+    "english": "Not transcribed yet · in queue: %lld",
+    "comment": "Menu bar panel line when every recording in the queue waits for the user to start it. %lld is their number.",
+    "placeholders": [
+      "%lld"
+    ],
+    "translation": "Aún sin transcribir · en cola: %lld"
+  },
+  {
+    "catalog": "app",
     "key": "Notes",
     "english": "Notes",
     "comment": "History badge: the meeting has meeting notes",
@@ -1469,9 +1597,19 @@
     "catalog": "app",
     "key": "OK",
     "english": "OK",
-    "comment": "UI text in MainView.swift, ModelRowView.swift.",
+    "comment": "Alert button",
     "placeholders": [],
     "translation": "Aceptar"
+  },
+  {
+    "catalog": "app",
+    "key": "On hold · %lld%%",
+    "english": "On hold · %lld%%",
+    "comment": "Record tab queue row state: the user put a partly transcribed recording on hold. %lld is a percentage; keep the % sign after it.",
+    "placeholders": [
+      "%lld"
+    ],
+    "translation": "Aplazada · %lld%%"
   },
   {
     "catalog": "app",
@@ -1533,7 +1671,7 @@
     "catalog": "app",
     "key": "Open Transcript",
     "english": "Open Transcript",
-    "comment": "UI text in HistoryView.swift.",
+    "comment": "UI text in HistoryView.swift, RecordView.swift.",
     "placeholders": [],
     "translation": "Abrir transcripción"
   },
@@ -1631,14 +1769,6 @@
   },
   {
     "catalog": "app",
-    "key": "Auto mode default language",
-    "english": "Auto mode default language",
-    "comment": "UI text in SettingsView.swift.",
-    "placeholders": [],
-    "translation": "Idioma predeterminado para Automático"
-  },
-  {
-    "catalog": "app",
     "key": "Preset:",
     "english": "Preset:",
     "comment": "UI text in AISettingsTab.swift.",
@@ -1700,6 +1830,14 @@
     "comment": "Menu bar panel",
     "placeholders": [],
     "translation": "Salir de Hearsay"
+  },
+  {
+    "catalog": "app",
+    "key": "Quit Hearsay and open it again.",
+    "english": "Quit Hearsay and open it again.",
+    "comment": "Alert when the automatic restart (language change or update) failed",
+    "placeholders": [],
+    "translation": "Sal de Hearsay y vuelve a abrirlo."
   },
   {
     "catalog": "app",
@@ -2103,6 +2241,14 @@
   },
   {
     "catalog": "app",
+    "key": "Software Update",
+    "english": "Software Update",
+    "comment": "Update progress window title",
+    "placeholders": [],
+    "translation": "Actualización de software"
+  },
+  {
+    "catalog": "app",
     "key": "Software updates",
     "english": "Software updates",
     "comment": "Settings > General section header",
@@ -2237,6 +2383,14 @@
   },
   {
     "catalog": "app",
+    "key": "Stops transcribing for now. Transcribe continues where it stopped.",
+    "english": "Stops transcribing for now. Transcribe continues where it stopped.",
+    "comment": "Tooltip of the Hold button. \"Transcribe\" is the translated button of that name.",
+    "placeholders": [],
+    "translation": "Aplaza la transcripción por ahora. «Transcribir» continúa donde se quedó."
+  },
+  {
+    "catalog": "app",
     "key": "System",
     "english": "System",
     "comment": "Record tab: system audio level meter (tooltip)",
@@ -2337,11 +2491,69 @@
   },
   {
     "catalog": "app",
+    "key": "The checksum of %@ does not match the release's checksum list.",
+    "english": "The checksum of %@ does not match the release's checksum list.",
+    "comment": "Update verification error. %@ is a file name.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "La suma de comprobación de %@ no coincide con la lista de sumas de comprobación de la versión."
+  },
+  {
+    "catalog": "app",
+    "key": "The code signature of the new version is not valid: %@",
+    "english": "The code signature of the new version is not valid: %@",
+    "comment": "Update verification error. %@ is the Security framework's message.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "La firma de código de la nueva versión no es válida: %@"
+  },
+  {
+    "catalog": "app",
     "key": "The current notes will be moved to the Trash when the new ones are saved.",
     "english": "The current notes will be moved to the Trash when the new ones are saved.",
     "comment": "UI text in ConfirmSendSheet.swift.",
     "placeholders": [],
     "translation": "Las notas actuales se trasladarán a la Papelera cuando se guarden las nuevas."
+  },
+  {
+    "catalog": "app",
+    "key": "The disk image could not be opened: %@",
+    "english": "The disk image could not be opened: %@",
+    "comment": "Update verification error. %@ is the hdiutil error.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "No se ha podido abrir la imagen de disco: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "The disk image should contain one app but contains %lld.",
+    "english": "The disk image should contain one app but contains %lld.",
+    "comment": "Update verification error. %lld is a number of apps.",
+    "placeholders": [
+      "%lld"
+    ],
+    "translation": "La imagen de disco debería contener una app, pero contiene %lld."
+  },
+  {
+    "catalog": "app",
+    "key": "The download failed: %@",
+    "english": "The download failed: %@",
+    "comment": "Update download error. %@ is the underlying error.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "La descarga ha fallado: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "The download page opens in your browser.",
+    "english": "The download page opens in your browser.",
+    "comment": "Update available alert, when the app cannot install the update itself",
+    "placeholders": [],
+    "translation": "La página de descarga se abrirá en el navegador."
   },
   {
     "catalog": "app",
@@ -2383,6 +2595,35 @@
   },
   {
     "catalog": "app",
+    "key": "The new app has the bundle identifier %@, not tw.og1o.hearsay.",
+    "english": "The new app has the bundle identifier %@, not tw.og1o.hearsay.",
+    "comment": "Update verification error. %@ is a bundle identifier.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "La nueva app tiene el identificador de paquete %@, no tw.og1o.hearsay."
+  },
+  {
+    "catalog": "app",
+    "key": "The new app is version %@, not %@.",
+    "english": "The new app is version %1$@, not %2$@.",
+    "comment": "Update verification error. %1$@ is the version found, %2$@ the release version.",
+    "placeholders": [
+      "%@",
+      "%@"
+    ],
+    "translation": "La nueva app es la versión %1$@, no la %2$@."
+  },
+  {
+    "catalog": "app",
+    "key": "The next recording can start at once, whichever you choose. With “When I start them”, recordings wait on the Record tab until you click Transcribe or Transcribe All.",
+    "english": "The next recording can start at once, whichever you choose. With “When I start them”, recordings wait on the Record tab until you click Transcribe or Transcribe All.",
+    "comment": "Settings > General > Transcription: caption under the \"Transcribe finished recordings\" picker. Quote the translated labels of the picker row, the Record tab, and the buttons \"Transcribe\" and \"Transcribe All\" exactly.",
+    "placeholders": [],
+    "translation": "La siguiente grabación puede empezar de inmediato, elijas lo que elijas. Con «Cuando yo las inicie», las grabaciones esperan en la pestaña Grabar hasta que pulses «Transcribir» o «Transcribir todo»."
+  },
+  {
+    "catalog": "app",
     "key": "The preview lags behind the recording but stays complete.",
     "english": "The preview lags behind the recording but stays complete.",
     "comment": "UI text in RecordView.swift.",
@@ -2417,6 +2658,24 @@
   },
   {
     "catalog": "app",
+    "key": "The release has no disk image or checksum list.",
+    "english": "The release has no disk image or checksum list.",
+    "comment": "Update error",
+    "placeholders": [],
+    "translation": "La versión no incluye una imagen de disco o una lista de sumas de comprobación."
+  },
+  {
+    "catalog": "app",
+    "key": "The release's checksum list has no entry for %@.",
+    "english": "The release's checksum list has no entry for %@.",
+    "comment": "Update verification error. %@ is a file name.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "La lista de sumas de comprobación de la versión no incluye %@."
+  },
+  {
+    "catalog": "app",
     "key": "The transcript and recording are renamed to <timestamp>_<name>.",
     "english": "The transcript and recording are renamed to <timestamp>_<name>.",
     "comment": "Naming sheet explanation. Translate the words inside <timestamp>_<name> but keep the angle brackets and underscore.",
@@ -2430,6 +2689,14 @@
     "comment": "Rename sheet explanation (History > Rename). Translate the words inside <timestamp>_<name> but keep the angle brackets and underscore.",
     "placeholders": [],
     "translation": "La transcripción, las notas y la grabación se renombran como <fecha-hora>_<nombre>."
+  },
+  {
+    "catalog": "app",
+    "key": "They stay in the queue until you transcribe them.",
+    "english": "They stay in the queue until you transcribe them.",
+    "comment": "Alert when quitting while every recording in the queue waits for the user to start it (second line, after \"Recordings not transcribed yet: %lld\").",
+    "placeholders": [],
+    "translation": "Se quedan en la cola hasta que las transcribas."
   },
   {
     "catalog": "app",
@@ -2501,9 +2768,17 @@
     "catalog": "app",
     "key": "Transcribe",
     "english": "Transcribe",
-    "comment": "UI text in UnfinishedRecordingSheet.swift.",
+    "comment": "UI text in RecordView.swift, UnfinishedRecordingSheet.swift.",
     "placeholders": [],
     "translation": "Transcribir"
+  },
+  {
+    "catalog": "app",
+    "key": "Transcribe All",
+    "english": "Transcribe All",
+    "comment": "Button of the Record tab's queue card and menu bar panel: start the transcription of every recording that waits for the user.",
+    "placeholders": [],
+    "translation": "Transcribir todo"
   },
   {
     "catalog": "app",
@@ -2808,6 +3083,16 @@
   },
   {
     "catalog": "app",
+    "key": "Verifying Hearsay %@…",
+    "english": "Verifying Hearsay %@…",
+    "comment": "Update progress. %@ is the new version.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Verificando Hearsay %@…"
+  },
+  {
+    "catalog": "app",
     "key": "Version %@ (%@)",
     "english": "Version %1$@ (%2$@)",
     "comment": "Settings > General > Software updates. %1$@ is the version, %2$@ the build number.",
@@ -2816,6 +3101,30 @@
       "%@"
     ],
     "translation": "Versión %1$@ (%2$@)"
+  },
+  {
+    "catalog": "app",
+    "key": "View on GitHub",
+    "english": "View on GitHub",
+    "comment": "Update alert button: open the release page in the browser",
+    "placeholders": [],
+    "translation": "Ver en GitHub"
+  },
+  {
+    "catalog": "app",
+    "key": "Wait until the transcriptions are finished.",
+    "english": "Wait until the transcriptions are finished.",
+    "comment": "Alert when Install and Relaunch is chosen while recordings wait for their transcription",
+    "placeholders": [],
+    "translation": "Espera a que terminen las transcripciones."
+  },
+  {
+    "catalog": "app",
+    "key": "Waiting",
+    "english": "Waiting",
+    "comment": "Record tab queue row state: not started yet",
+    "placeholders": [],
+    "translation": "En espera"
   },
   {
     "catalog": "app",
@@ -2876,6 +3185,16 @@
       "%@"
     ],
     "translation": "Error al escribir la grabación: %@"
+  },
+  {
+    "catalog": "app",
+    "key": "You have version %@.",
+    "english": "You have version %@.",
+    "comment": "Update available alert. %@ is the installed version.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Tienes la versión %@."
   },
   {
     "catalog": "app",
@@ -2981,16 +3300,6 @@
   },
   {
     "catalog": "core",
-    "key": "%@ (your language choice; this transcript's language was not recorded)",
-    "english": "%@ (your language choice; this transcript's language was not recorded)",
-    "comment": "Confirm sheet, after 'Transcript language:'. %@ is a language name in its own language.",
-    "placeholders": [
-      "%@"
-    ],
-    "translation": "%@ (tu elección de idioma; no se ha registrado el idioma de esta transcripción)"
-  },
-  {
-    "catalog": "core",
     "key": "%@ (your Auto mode default language; this transcript's language was not recorded)",
     "english": "%@ (your Auto mode default language; this transcript's language was not recorded)",
     "comment": "Confirm sheet, after 'Transcript language:'. %@ is a language name in its own language.",
@@ -2998,6 +3307,16 @@
       "%@"
     ],
     "translation": "%@ (tu idioma predeterminado para Automático; no se ha registrado el idioma de esta transcripción)"
+  },
+  {
+    "catalog": "core",
+    "key": "%@ (your language choice; this transcript's language was not recorded)",
+    "english": "%@ (your language choice; this transcript's language was not recorded)",
+    "comment": "Confirm sheet, after 'Transcript language:'. %@ is a language name in its own language.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "%@ (tu elección de idioma; no se ha registrado el idioma de esta transcripción)"
   },
   {
     "catalog": "core",
@@ -3404,6 +3723,16 @@
   },
   {
     "catalog": "core",
+    "key": "Hearsay cannot write to the folder %@. Move Hearsay to the Applications folder or another folder you can write to, open it from there, then check for updates again.",
+    "english": "Hearsay cannot write to the folder %@. Move Hearsay to the Applications folder or another folder you can write to, open it from there, then check for updates again.",
+    "comment": "Update install error. %@ is a folder path.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "Hearsay no puede escribir en la carpeta %@. Traslada Hearsay a la carpeta Aplicaciones u otra carpeta en la que puedas escribir, ábrelo desde allí y vuelve a buscar actualizaciones."
+  },
+  {
+    "catalog": "core",
     "key": "Hearsay has no microphone access. Allow it in System Settings > Privacy & Security > Microphone.",
     "english": "Hearsay has no microphone access. Allow it in System Settings > Privacy & Security > Microphone.",
     "comment": "Recording error. Use the macOS wording for the System Settings path.",
@@ -3417,6 +3746,14 @@
     "comment": "Recording error. Use the macOS wording for the System Settings path.",
     "placeholders": [],
     "translation": "Hearsay no tiene acceso al audio del sistema. Permítelo en Ajustes del Sistema > Privacidad y seguridad > Grabación de pantalla y audio del sistema y, a continuación, inicia una nueva grabación."
+  },
+  {
+    "catalog": "core",
+    "key": "Hearsay is running from the disk image. Drag Hearsay to the Applications folder, open it from there, then check for updates again.",
+    "english": "Hearsay is running from the disk image. Drag Hearsay to the Applications folder, open it from there, then check for updates again.",
+    "comment": "Update install error: the app runs from the mounted DMG",
+    "placeholders": [],
+    "translation": "Hearsay se está ejecutando desde la imagen de disco. Arrastra Hearsay a la carpeta Aplicaciones, ábrelo desde allí y vuelve a buscar actualizaciones."
   },
   {
     "catalog": "core",
@@ -3769,6 +4106,14 @@
   },
   {
     "catalog": "core",
+    "key": "This copy of Hearsay is not an app bundle, so it cannot update itself. Download the new version from the release page.",
+    "english": "This copy of Hearsay is not an app bundle, so it cannot update itself. Download the new version from the release page.",
+    "comment": "Update install error",
+    "placeholders": [],
+    "translation": "Esta copia de Hearsay no es un paquete de app, por lo que no puede actualizarse sola. Descarga la nueva versión desde la página de la versión."
+  },
+  {
+    "catalog": "core",
     "key": "This sounds like %@. Transcribe again in %@?",
     "english": "This sounds like %1$@. Transcribe again in %2$@?",
     "comment": "Language banner. Both %@ are the same language name in its own language (English, 繁體中文, 简体中文, Deutsch, Español).",
@@ -3834,6 +4179,14 @@
   },
   {
     "catalog": "core",
+    "key": "When I start them",
+    "english": "When I start them",
+    "comment": "Settings > General > Transcription: row of the \"Transcribe finished recordings\" picker. Finished recordings wait on the Record tab until the user starts their transcription.",
+    "placeholders": [],
+    "translation": "Cuando yo las inicie"
+  },
+  {
+    "catalog": "core",
     "key": "When no recording is running",
     "english": "When no recording is running",
     "comment": "Settings > General > Transcription: final-pass timing that waits until no recording is running",
@@ -3850,6 +4203,14 @@
       "%@"
     ],
     "translation": "`agy models` ha fallado (código de salida %1$d). %2$@"
+  },
+  {
+    "catalog": "core",
+    "key": "macOS is running Hearsay from a temporary location. Move Hearsay to the Applications folder, open it from there, then check for updates again.",
+    "english": "macOS is running Hearsay from a temporary location. Move Hearsay to the Applications folder, open it from there, then check for updates again.",
+    "comment": "Update install error: the app is translocated by Gatekeeper",
+    "placeholders": [],
+    "translation": "macOS está ejecutando Hearsay desde una ubicación temporal. Traslada Hearsay a la carpeta Aplicaciones, ábrelo desde allí y vuelve a buscar actualizaciones."
   },
   {
     "catalog": "infoplist",
@@ -3882,299 +4243,6 @@
     "comment": "Credits shown in the About Hearsay window (en.lproj/Credits.rtf). Plain text; line breaks are kept. 'Settings > General > Acknowledgements' names the Settings tab, its General section, and the Acknowledgements section: use the translated names of those labels.",
     "placeholders": [],
     "translation": "© 2026 Chihling Wang. Licencia MIT.\nIncluye software de código abierto; consulta Ajustes > General > Agradecimientos.\nApoya Hearsay: Buy Me a Coffee"
-  },
-  {
-    "catalog": "app",
-    "key": "Downloading Hearsay %@…",
-    "english": "Downloading Hearsay %@…",
-    "comment": "Update progress. %@ is the new version.",
-    "placeholders": [
-      "%@"
-    ],
-    "translation": "Descargando Hearsay %@…"
-  },
-  {
-    "catalog": "app",
-    "key": "Finish the recording first.",
-    "english": "Finish the recording first.",
-    "comment": "Alert when Install and Relaunch is chosen while recording or transcribing",
-    "placeholders": [],
-    "translation": "Termina primero la grabación."
-  },
-  {
-    "catalog": "app",
-    "key": "Hearsay %@ is ready to install.",
-    "english": "Hearsay %@ is ready to install.",
-    "comment": "Update ready alert title and Settings line. %@ is the new version.",
-    "placeholders": [
-      "%@"
-    ],
-    "translation": "Hearsay %@ está listo para instalarse."
-  },
-  {
-    "catalog": "app",
-    "key": "Hearsay cannot install the update here.",
-    "english": "Hearsay cannot install the update here.",
-    "comment": "Alert title: the running app cannot replace itself",
-    "placeholders": [],
-    "translation": "Hearsay no puede instalar la actualización aquí."
-  },
-  {
-    "catalog": "app",
-    "key": "Hearsay continues with them the next time it opens.",
-    "english": "Hearsay continues with them the next time it opens.",
-    "comment": "Alert when quitting while the transcription queue has recordings",
-    "placeholders": [],
-    "translation": "Hearsay continuará con ellas la próxima vez que se abra."
-  },
-  {
-    "catalog": "app",
-    "key": "Hearsay could not download the update.",
-    "english": "Hearsay could not download the update.",
-    "comment": "Alert title: the update download failed",
-    "placeholders": [],
-    "translation": "Hearsay no ha podido descargar la actualización."
-  },
-  {
-    "catalog": "app",
-    "key": "Hearsay could not install the update.",
-    "english": "Hearsay could not install the update.",
-    "comment": "Alert title: staging or replacing the app bundle failed",
-    "placeholders": [],
-    "translation": "Hearsay no ha podido instalar la actualización."
-  },
-  {
-    "catalog": "app",
-    "key": "Hearsay could not verify the downloaded update.",
-    "english": "Hearsay could not verify the downloaded update.",
-    "comment": "Alert title: checksum or code signature check of an update failed",
-    "placeholders": [],
-    "translation": "Hearsay no ha podido verificar la actualización descargada."
-  },
-  {
-    "catalog": "app",
-    "key": "Hearsay will quit and open again as the new version.",
-    "english": "Hearsay will quit and open again as the new version.",
-    "comment": "Update ready alert",
-    "placeholders": [],
-    "translation": "Hearsay se cerrará y se volverá a abrir con la nueva versión."
-  },
-  {
-    "catalog": "app",
-    "key": "Install Update",
-    "english": "Install Update",
-    "comment": "Update available alert button: download and install the new version",
-    "placeholders": [],
-    "translation": "Instalar actualización"
-  },
-  {
-    "catalog": "app",
-    "key": "Install and Relaunch",
-    "english": "Install and Relaunch",
-    "comment": "Update ready alert button: replace the app and relaunch",
-    "placeholders": [],
-    "translation": "Instalar y reiniciar"
-  },
-  {
-    "catalog": "app",
-    "key": "Installing Hearsay %@…",
-    "english": "Installing Hearsay %@…",
-    "comment": "Update progress. %@ is the new version.",
-    "placeholders": [
-      "%@"
-    ],
-    "translation": "Instalando Hearsay %@…"
-  },
-  {
-    "catalog": "app",
-    "key": "Quit Hearsay and open it again.",
-    "english": "Quit Hearsay and open it again.",
-    "comment": "Alert when the automatic restart (language change or update) failed",
-    "placeholders": [],
-    "translation": "Sal de Hearsay y vuelve a abrirlo."
-  },
-  {
-    "catalog": "app",
-    "key": "Software Update",
-    "english": "Software Update",
-    "comment": "Update progress window title",
-    "placeholders": [],
-    "translation": "Actualización de software"
-  },
-  {
-    "catalog": "app",
-    "key": "The checksum of %@ does not match the release's checksum list.",
-    "english": "The checksum of %@ does not match the release's checksum list.",
-    "comment": "Update verification error. %@ is a file name.",
-    "placeholders": [
-      "%@"
-    ],
-    "translation": "La suma de comprobación de %@ no coincide con la lista de sumas de comprobación de la versión."
-  },
-  {
-    "catalog": "app",
-    "key": "The code signature of the new version is not valid: %@",
-    "english": "The code signature of the new version is not valid: %@",
-    "comment": "Update verification error. %@ is the Security framework's message.",
-    "placeholders": [
-      "%@"
-    ],
-    "translation": "La firma de código de la nueva versión no es válida: %@"
-  },
-  {
-    "catalog": "app",
-    "key": "The disk image could not be opened: %@",
-    "english": "The disk image could not be opened: %@",
-    "comment": "Update verification error. %@ is the hdiutil error.",
-    "placeholders": [
-      "%@"
-    ],
-    "translation": "No se ha podido abrir la imagen de disco: %@"
-  },
-  {
-    "catalog": "app",
-    "key": "The disk image should contain one app but contains %lld.",
-    "english": "The disk image should contain one app but contains %lld.",
-    "comment": "Update verification error. %lld is a number of apps.",
-    "placeholders": [
-      "%lld"
-    ],
-    "translation": "La imagen de disco debería contener una app, pero contiene %lld."
-  },
-  {
-    "catalog": "app",
-    "key": "The download failed: %@",
-    "english": "The download failed: %@",
-    "comment": "Update download error. %@ is the underlying error.",
-    "placeholders": [
-      "%@"
-    ],
-    "translation": "La descarga ha fallado: %@"
-  },
-  {
-    "catalog": "app",
-    "key": "The download page opens in your browser.",
-    "english": "The download page opens in your browser.",
-    "comment": "Update available alert, when the app cannot install the update itself",
-    "placeholders": [],
-    "translation": "La página de descarga se abrirá en el navegador."
-  },
-  {
-    "catalog": "app",
-    "key": "The new app has the bundle identifier %@, not tw.og1o.hearsay.",
-    "english": "The new app has the bundle identifier %@, not tw.og1o.hearsay.",
-    "comment": "Update verification error. %@ is a bundle identifier.",
-    "placeholders": [
-      "%@"
-    ],
-    "translation": "La nueva app tiene el identificador de paquete %@, no tw.og1o.hearsay."
-  },
-  {
-    "catalog": "app",
-    "key": "The new app is version %@, not %@.",
-    "english": "The new app is version %1$@, not %2$@.",
-    "comment": "Update verification error. %1$@ is the version found, %2$@ the release version.",
-    "placeholders": [
-      "%@",
-      "%@"
-    ],
-    "translation": "La nueva app es la versión %1$@, no la %2$@."
-  },
-  {
-    "catalog": "app",
-    "key": "The release has no disk image or checksum list.",
-    "english": "The release has no disk image or checksum list.",
-    "comment": "Update error",
-    "placeholders": [],
-    "translation": "La versión no incluye una imagen de disco o una lista de sumas de comprobación."
-  },
-  {
-    "catalog": "app",
-    "key": "The release's checksum list has no entry for %@.",
-    "english": "The release's checksum list has no entry for %@.",
-    "comment": "Update verification error. %@ is a file name.",
-    "placeholders": [
-      "%@"
-    ],
-    "translation": "La lista de sumas de comprobación de la versión no incluye %@."
-  },
-  {
-    "catalog": "app",
-    "key": "Verifying Hearsay %@…",
-    "english": "Verifying Hearsay %@…",
-    "comment": "Update progress. %@ is the new version.",
-    "placeholders": [
-      "%@"
-    ],
-    "translation": "Verificando Hearsay %@…"
-  },
-  {
-    "catalog": "app",
-    "key": "View on GitHub",
-    "english": "View on GitHub",
-    "comment": "Update alert button: open the release page in the browser",
-    "placeholders": [],
-    "translation": "Ver en GitHub"
-  },
-  {
-    "catalog": "app",
-    "key": "Wait until the transcriptions are finished.",
-    "english": "Wait until the transcriptions are finished.",
-    "comment": "Alert when Install and Relaunch is chosen while recordings wait for their transcription",
-    "placeholders": [],
-    "translation": "Espera a que terminen las transcripciones."
-  },
-  {
-    "catalog": "app",
-    "key": "Waiting",
-    "english": "Waiting",
-    "comment": "Record tab queue row state: not started yet",
-    "placeholders": [],
-    "translation": "En espera"
-  },
-  {
-    "catalog": "app",
-    "key": "You have version %@.",
-    "english": "You have version %@.",
-    "comment": "Update available alert. %@ is the installed version.",
-    "placeholders": [
-      "%@"
-    ],
-    "translation": "Tienes la versión %@."
-  },
-  {
-    "catalog": "core",
-    "key": "Hearsay cannot write to the folder %@. Move Hearsay to the Applications folder or another folder you can write to, open it from there, then check for updates again.",
-    "english": "Hearsay cannot write to the folder %@. Move Hearsay to the Applications folder or another folder you can write to, open it from there, then check for updates again.",
-    "comment": "Update install error. %@ is a folder path.",
-    "placeholders": [
-      "%@"
-    ],
-    "translation": "Hearsay no puede escribir en la carpeta %@. Traslada Hearsay a la carpeta Aplicaciones u otra carpeta en la que puedas escribir, ábrelo desde allí y vuelve a buscar actualizaciones."
-  },
-  {
-    "catalog": "core",
-    "key": "Hearsay is running from the disk image. Drag Hearsay to the Applications folder, open it from there, then check for updates again.",
-    "english": "Hearsay is running from the disk image. Drag Hearsay to the Applications folder, open it from there, then check for updates again.",
-    "comment": "Update install error: the app runs from the mounted DMG",
-    "placeholders": [],
-    "translation": "Hearsay se está ejecutando desde la imagen de disco. Arrastra Hearsay a la carpeta Aplicaciones, ábrelo desde allí y vuelve a buscar actualizaciones."
-  },
-  {
-    "catalog": "core",
-    "key": "This copy of Hearsay is not an app bundle, so it cannot update itself. Download the new version from the release page.",
-    "english": "This copy of Hearsay is not an app bundle, so it cannot update itself. Download the new version from the release page.",
-    "comment": "Update install error",
-    "placeholders": [],
-    "translation": "Esta copia de Hearsay no es un paquete de app, por lo que no puede actualizarse sola. Descarga la nueva versión desde la página de la versión."
-  },
-  {
-    "catalog": "core",
-    "key": "macOS is running Hearsay from a temporary location. Move Hearsay to the Applications folder, open it from there, then check for updates again.",
-    "english": "macOS is running Hearsay from a temporary location. Move Hearsay to the Applications folder, open it from there, then check for updates again.",
-    "comment": "Update install error: the app is translocated by Gatekeeper",
-    "placeholders": [],
-    "translation": "macOS está ejecutando Hearsay desde una ubicación temporal. Traslada Hearsay a la carpeta Aplicaciones, ábrelo desde allí y vuelve a buscar actualizaciones."
   },
   {
     "catalog": "windows",
@@ -4901,81 +4969,5 @@
     "comment": "Button of the \"Microsoft Teams meeting started\" dialog: do not record this meeting. Windows only.",
     "placeholders": [],
     "translation": "No grabar"
-  },
-  {
-    "catalog": "windows",
-    "key": "When I start them",
-    "english": "When I start them",
-    "comment": "Settings > General > Transcription: row of the \"Transcribe finished recordings\" picker. Finished recordings wait on the Record tab until the user starts their transcription. Windows only.",
-    "placeholders": [],
-    "translation": "Cuando yo las inicie"
-  },
-  {
-    "catalog": "windows",
-    "key": "The next recording can start at once, whichever you choose. With “When I start them”, recordings wait on the Record tab until you click Transcribe or Transcribe All.",
-    "english": "The next recording can start at once, whichever you choose. With “When I start them”, recordings wait on the Record tab until you click Transcribe or Transcribe All.",
-    "comment": "Settings > General > Transcription: caption under the \"Transcribe finished recordings\" picker. Quote the translated labels of the picker row, the Record tab, and the buttons \"Transcribe\" and \"Transcribe All\" exactly. Windows only.",
-    "placeholders": [],
-    "translation": "La siguiente grabación puede empezar de inmediato, elijas lo que elijas. Con «Cuando yo las inicie», las grabaciones esperan en la pestaña Grabar hasta que pulses «Transcribir» o «Transcribir todo»."
-  },
-  {
-    "catalog": "windows",
-    "key": "Not transcribed yet",
-    "english": "Not transcribed yet",
-    "comment": "Record tab queue row state: the recording waits until the user starts its transcription (\"When I start them\"). Windows only.",
-    "placeholders": [],
-    "translation": "Aún sin transcribir"
-  },
-  {
-    "catalog": "windows",
-    "key": "On hold · %lld%%",
-    "english": "On hold · %lld%%",
-    "comment": "Record tab queue row state: the user put a partly transcribed recording on hold. %lld is a percentage; keep the % sign after it. Windows only.",
-    "placeholders": [
-      "%lld"
-    ],
-    "translation": "Aplazada · %lld%%"
-  },
-  {
-    "catalog": "windows",
-    "key": "Transcribe All",
-    "english": "Transcribe All",
-    "comment": "Button of the Record tab's queue card and tray menu item: start the transcription of every recording that waits for the user. Windows only.",
-    "placeholders": [],
-    "translation": "Transcribir todo"
-  },
-  {
-    "catalog": "windows",
-    "key": "Hold",
-    "english": "Hold",
-    "comment": "Button on a queue row being transcribed: stop transcribing it for now. Windows only.",
-    "placeholders": [],
-    "translation": "Aplazar"
-  },
-  {
-    "catalog": "windows",
-    "key": "Stops transcribing for now. Transcribe continues where it stopped.",
-    "english": "Stops transcribing for now. Transcribe continues where it stopped.",
-    "comment": "Tooltip of the Hold button. \"Transcribe\" is the translated button of that name. Windows only.",
-    "placeholders": [],
-    "translation": "Aplaza la transcripción por ahora. «Transcribir» continúa donde se quedó."
-  },
-  {
-    "catalog": "windows",
-    "key": "Not transcribed yet · in queue: %lld",
-    "english": "Not transcribed yet · in queue: %lld",
-    "comment": "Tray menu line when every recording in the queue waits for the user to start it. %lld is their number. Windows only.",
-    "placeholders": [
-      "%lld"
-    ],
-    "translation": "Aún sin transcribir · en cola: %lld"
-  },
-  {
-    "catalog": "windows",
-    "key": "They stay in the queue until you transcribe them.",
-    "english": "They stay in the queue until you transcribe them.",
-    "comment": "Alert when quitting while every recording in the queue waits for the user to start it (second line, after \"Recordings not transcribed yet: %lld\"). Windows only.",
-    "placeholders": [],
-    "translation": "Se quedan en la cola hasta que las transcribas."
   }
 ]

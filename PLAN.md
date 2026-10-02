@@ -724,8 +724,9 @@ stream does not say which site uses it.
 Owner request 2026-10-01: some users' computers are too slow to transcribe
 while they work on something else. A third value of the 4.9 final-pass
 timing lets recordings wait in the queue until the user starts them. A
-shared design; **Windows is built first (18.12), the Mac port is on the
-polish list (17)**. Same setting key, same rules, same strings.
+shared design; **Windows was built first (18.12), the Mac port followed
+(2026-10-02, "As built (Mac)" below)**. Same setting key, same rules, same
+strings.
 
 **Setting.** `finalPassTiming` gains `manual`, row "When I start them" in
 Settings > General > Transcription > "Transcribe finished recordings",
@@ -762,8 +763,8 @@ is pending (waiting, running or suspended) and it is not released.
   pass by itself.
 
 **Queue rules** (`TranscriptionQueuePolicy`, vectors in the `manual`
-section of `shared/transcription-queue-tests.json`, which only Windows
-reads until the Mac port):
+section of `shared/transcription-queue-tests.json`, which both platforms
+run):
 - `next` with `manual`: running is allowed when no session is active and
   no foreground work waits. A running job that is not released, or while
   running is not allowed, gets `suspend`. With nothing running and
@@ -795,6 +796,58 @@ reads until the Mac port):
   queue: N" when every pending job is held. The menu gets "Transcribe
   All", enabled while a job is held.
 - Help and README: one sentence each, next to the timing passage.
+
+**As built (Mac, 2026-10-02).**
+- Core: `FinalPassTiming.manual` (raw `manual`, after `whenIdle`; the Mac
+  default stays `immediate`, and a stored value the build does not know still
+  reads as the default through `init(rawValue:)`). `TranscriptionQueuePolicy`
+  is the C# one for one: `Job.released` (default false), `mayRun`,
+  `isHeld(timing:job:)`, `next`, `shouldYield(..., runningReleased:)`,
+  `blocksUpdateInstall(timing:jobs:)` (the timing-less overload stays for the
+  old vectors), `allPendingHeld(timing:jobs:)`, plus
+  `releasedAfterTimingChange(from:to:state:)`, the pure rule for a timing
+  switch. `TranscriptionQueuePolicyTests` decodes and runs the `manual`
+  section of the shared vectors (33 `next`, 12 `shouldYield`, 12
+  `blocksUpdateInstall`, 11 `allPendingHeld`).
+- `TranscriptionQueue`/`TranscriptionJob`: in-memory `isReleased`, `isHeld(_:)`,
+  `heldCount`, `allPendingHeld`, `canHold(_:)`, `release`, `releaseAll`, `hold`,
+  events `held` and `released` (only under `manual`; `held` also for a job
+  queued or restored held and for waiting jobs held by a switch to `manual`).
+  The decoder's hold flag is (whenIdle or manual) with a session active, or
+  manual with a running job that is not released and not saving its live
+  preview; it is recomputed from a `didSet` on a job's `state` and
+  `isReleased`, and on session and timing changes. The pre-step check is
+  `shouldYield(..., runningReleased:)`; held jobs are not polled for;
+  `isPausedForSession` is false and `activeJob` skips a held suspended job;
+  `blocksUpdateInstall` passes the timing; a job saving its live preview counts
+  as running and released. `retry`, `enqueueRetry` and
+  `useLivePreviewInstead` release the job. A timing change applies
+  `releasedAfterTimingChange` (the previous timing is tracked) and evaluates at
+  once. `queue.json` is unchanged; restored jobs are unreleased.
+- UI: the picker shows the third row (it iterates `allCases`) and the caption
+  is the Windows one. Record tab rows, the queue card header ("Transcribe
+  All"), the single meeting and the state text follow 18.12. Menu bar panel:
+  the queue line "Not transcribed yet · in queue: N" when every pending job is
+  held (before the other rules); "Transcribe All" appears only while a job is
+  held (Mac difference: the SwiftUI panel reflows, so the button is left out
+  instead of disabled, as Stop & Start Next is). The menu bar label shows no
+  activity for a held suspended job. Quit alert: "They stay in the queue until
+  you transcribe them." when every pending job is held. Update install uses
+  the timing-aware rule.
+- Replay: `HEARSAY_REPLAY_TIMING=manual` and `HEARSAY_REPLAY_RELEASE=<s>` as on
+  Windows (AGENTS.md). Measured on this Mac (`en-30s.wav` then `de-30s.wav`,
+  Auto, whisper-large-v3-turbo fp16): manual with release 2 s: both jobs held at
+  queue time (19.1 s and 41.1 s), no pass until Transcribe All at 43.1 s, then
+  both SRTs done at 43.6 s and 44.1 s with the same first lines as an immediate
+  run; manual without release: no pass, both jobs listed as held, exit 0;
+  immediate and whenIdle replays behave as before.
+- Strings: the nine 4.11 keys moved from catalog `windows` to the app catalog
+  ("When I start them" to core) with their translations; "Either way, the next
+  recording can start at once." is gone (neither platform uses it). Help and
+  README: the Mac passages got the sentence their Windows twins have.
+- Snapshots `29` to `35`: held queue, its menu bar panel, a released job with
+  Hold among held jobs, the single held meeting, on hold, released, and Settings
+  > General with `manual` selected.
 
 ## 5. Model catalog and download
 
@@ -905,8 +958,7 @@ a one-line prompt.
   the version (section 4.6).
 - Final-pass timing: right away in the background (Mac default) / when
   no recording is running (Windows default), section 4.9 / when I start
-  them (`manual`), section 4.11. Windows first (18.12); Mac on the polish
-  list.
+  them (`manual`), section 4.11 (Windows 18.12, Mac 4.11 "As built (Mac)").
 - Global shortcut for Stop & Start Next (default ⌃⌥⌘N), section 4.9.
 - Record Microsoft Teams meetings automatically (`autoRecordTeamsMeetings`,
   default off) and ask which language to use before each automatic
@@ -1237,6 +1289,18 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
     recording only, the single meeting shows "Not transcribed yet",
     Transcribe and "Use live preview instead", then Hold once released.
 
+30. Mac, "When I start them" (section 4.11, added 2026-10-02): the same walk
+    as item 29 in the Mac app: Settings > General > Transcription > "When I
+    start them"; record twice with Stop & Start Next; both rows read "Not
+    transcribed yet" and nothing is transcribed; Transcribe on the second row
+    only runs it; Hold mid-way reads "On hold · N%"; Transcribe All finishes
+    both; start a recording while a released job runs ("Paused while
+    recording"). The menu bar panel line reads "Not transcribed yet · in
+    queue: N" and Transcribe All shows only while a job is held. Quit with
+    held jobs: "They stay in the queue until you transcribe them."; reopen
+    and check they are still held. Switch the timing back to "Right away"
+    with held jobs: they start at once.
+
 ## 17. Polish list (found during review, not yet scheduled)
 
 - **Decided 2026-09-28: Antigravity CLI isolation.** agy honors the
@@ -1284,22 +1348,20 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
   already in `shared/localization` under catalog `windows`; move them to
   the app catalog when both platforms use them. About one day.
 
-- **To do (owner request 2026-10-01): Mac port of section 4.11, manual
-  final passes ("When I start them").** Windows has it (18.12). On the
-  Mac:
-  - Add `manual` to `FinalPassTiming` and the `released` flag to the
-    policy's job.
-  - Decode and run the `manual` section of
-    `shared/transcription-queue-tests.json`.
-  - In `TranscriptionQueue`: release, hold and release-all, the
-    timing-change rule, and Try Again queuing released.
-  - Add the picker row, the row and single-meeting buttons, Transcribe
-    All in the queue card and the menu bar panel, the held queue line,
-    and the quit alert's held variant.
-  - Help passage: give the Windows twin its Mac text.
-  - Move the strings from catalog `windows` to the app catalog.
-
-  About half a day.
+- **Done 2026-10-02: Mac port of section 4.11, manual final passes ("When I
+  start them").** Built as described in 4.11 "As built (Mac)": `manual` in
+  `FinalPassTiming` and the policy (the shared `manual` vectors run in
+  `swift test`), release, hold and release-all in `TranscriptionQueue`
+  with the timing-change rule and Try Again queuing released, the picker row,
+  the Record tab rows, single meeting and Transcribe All, the held menu bar
+  line, the quit alert variant, replay support, help, README and snapshots.
+  Mac differences from Windows: Transcribe All is left out of the menu bar
+  panel while no job is held instead of disabled; the queue is not unit tested
+  (it lives in the app target), so its rules are covered by the policy tests
+  and the replay runs. Verified: `swift test` (all green), the Release build,
+  replays (manual with and without release, immediate, whenIdle) and the UI
+  snapshots in English and German. The live GUI was not driven (the owner
+  runs the Release app): a hands-on pass is item 30 in section 16.
 
 - **To do (owner request 2026-09-28): "Reduce background noise" switch** on
   the Record tab. Routes only the mic through Apple voice processing so
@@ -2585,12 +2647,11 @@ rules, same setting keys (`autoRecordTeamsMeetings`,
 
 ### 18.12 Manual final passes (port of section 4.11, added 2026-10-01)
 
-The Windows implementation of section 4.11, built first. The Mac port is
-on the section 17 list. Same rules and setting value (`manual`). The new
-strings are in `shared/localization` under catalog `windows` until the Mac
-uses them. The `manual` vectors are a separate section of
-`shared/transcription-queue-tests.json`, which the Mac's decoder ignores
-until its port, so the Mac tests stay green.
+The Windows implementation of section 4.11, built first. The Mac port
+followed on 2026-10-02 (4.11 "As built (Mac)"). Same rules and setting value
+(`manual`). The nine new strings moved from catalog `windows` to the app and
+core catalogs with the Mac port. The `manual` vectors are a separate section
+of `shared/transcription-queue-tests.json`, which both platforms run.
 
 Work items:
 - **WI-1, Core and queue.** Policy, vectors, the setting value, and the
@@ -2691,7 +2752,8 @@ Work items:
   tooltip, "Not transcribed yet · in queue: %lld" and "They stay in the queue
   until you transcribe them." ("Transcribe" is the existing Mac key). Hold
   is "Zurückstellen" / "Aplazar" (defer), not a word for pause or stop. The
-  Mac port moves the keys to the app catalog.
+  Mac port moved the keys to the app catalog ("When I start them" to core),
+  and `Strings.cs` reads them with `App(...)` / `Core(...)` now.
 - Help and README: one sentence in each Windows twin of the Stop & Start Next
   passage (and one in the README's "Back to back" paragraph).
 - Snapshots `71` to `76`: the held queue (an on-hold job with progress and a

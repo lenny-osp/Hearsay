@@ -107,7 +107,9 @@ Settings is a tab, not a separate window; ⌘, opens it.
 - **Back to back:** "Stop & Start Next" (⌃⌥⌘N) starts the next recording at
   once; finished recordings wait in the Record tab's transcription queue
   and are transcribed in the background (or, per Settings > General, only
-  while nothing is recording). Quitting keeps the queue for the next launch.
+  while nothing is recording, or "When I start them", which keeps recordings
+  in the queue until you click Transcribe or Transcribe All). Quitting keeps
+  the queue for the next launch.
 
 ## Languages
 

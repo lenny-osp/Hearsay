@@ -2392,35 +2392,6 @@
         }
       }
     },
-    "Either way, the next recording can start at once." : {
-      "comment" : "Settings > General caption under the final-pass timing picker (Transcribe finished recordings)",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "In beiden Fällen kann die nächste Aufnahme sofort beginnen."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "En ambos casos, la siguiente grabación puede empezar de inmediato."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "两种方式都能立即开始下一场录音。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "兩種方式都能立即開始下一場錄音。"
-          }
-        }
-      }
-    },
     "Endpoint URL:" : {
       "localizations" : {
         "de" : {
@@ -3432,6 +3403,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "歷史記錄"
+          }
+        }
+      }
+    },
+    "Hold" : {
+      "comment" : "Button on a queue row being transcribed: stop transcribing it for now.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zurückstellen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplazar"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂缓"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暫緩"
           }
         }
       }
@@ -5181,6 +5181,64 @@
         }
       }
     },
+    "Not transcribed yet" : {
+      "comment" : "Record tab queue row state: the recording waits until the user starts its transcription (\"When I start them\").",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch nicht transkribiert"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aún sin transcribir"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未转录"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未轉錄"
+          }
+        }
+      }
+    },
+    "Not transcribed yet · in queue: %lld" : {
+      "comment" : "Menu bar panel line when every recording in the queue waits for the user to start it. %lld is their number.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch nicht transkribiert · in der Warteschlange: %lld"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aún sin transcribir · en cola: %lld"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未转录 · 队列中：%lld"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未轉錄 · 佇列中：%lld"
+          }
+        }
+      }
+    },
     "Notes" : {
       "comment" : "History badge: the meeting has meeting notes",
       "localizations" : {
@@ -5321,6 +5379,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "好"
+          }
+        }
+      }
+    },
+    "On hold · %lld%%" : {
+      "comment" : "Record tab queue row state: the user put a partly transcribed recording on hold. %lld is a percentage; keep the % sign after it.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zurückgestellt · %lld %%"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplazada · %lld%%"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂缓中 · %lld%%"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暫緩中 · %lld%%"
           }
         }
       }
@@ -7975,6 +8062,35 @@
         }
       }
     },
+    "Stops transcribing for now. Transcribe continues where it stopped." : {
+      "comment" : "Tooltip of the Hold button. \"Transcribe\" is the translated button of that name.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stellt die Transkription vorerst zurück. „Transkribieren“ setzt sie dort fort, wo sie stehen geblieben ist."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplaza la transcripción por ahora. «Transcribir» continúa donde se quedó."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂时停止转录。点按“转录”会从停下的地方继续。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暫時停止轉錄。按下「轉錄」會從停下的地方繼續。"
+          }
+        }
+      }
+    },
     "System" : {
       "comment" : "Record tab: system audio level meter (tooltip)",
       "localizations" : {
@@ -8701,6 +8817,35 @@
         }
       }
     },
+    "The next recording can start at once, whichever you choose. With “When I start them”, recordings wait on the Record tab until you click Transcribe or Transcribe All." : {
+      "comment" : "Settings > General > Transcription: caption under the \"Transcribe finished recordings\" picker. Quote the translated labels of the picker row, the Record tab, and the buttons \"Transcribe\" and \"Transcribe All\" exactly.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die nächste Aufnahme kann in jedem Fall sofort beginnen. Bei „Wenn ich sie starte“ warten Aufnahmen im Tab „Aufnahme“, bis „Transkribieren“ oder „Alle transkribieren“ gewählt wird."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La siguiente grabación puede empezar de inmediato, elijas lo que elijas. Con «Cuando yo las inicie», las grabaciones esperan en la pestaña Grabar hasta que pulses «Transcribir» o «Transcribir todo»."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无论选哪一项，下一场录音都能立即开始。选择“等我手动开始时再做”时，录音会在录音标签页等候，直到你点按“转录”或“全部转录”。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無論選哪一項，下一場錄音都能立即開始。選擇「等我手動開始時再做」時，錄音會在「錄音」標籤頁等候，直到你按下「轉錄」或「全部轉錄」。"
+          }
+        }
+      }
+    },
     "The preview lags behind the recording but stays complete." : {
       "localizations" : {
         "de" : {
@@ -8928,6 +9073,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "逐字稿、筆記與錄音會重新命名為 <時間戳記>_<名稱>。"
+          }
+        }
+      }
+    },
+    "They stay in the queue until you transcribe them." : {
+      "comment" : "Alert when quitting while every recording in the queue waits for the user to start it (second line, after \"Recordings not transcribed yet: %lld\").",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sie bleiben in der Warteschlange, bis sie transkribiert werden."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se quedan en la cola hasta que las transcribas."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "它们会留在队列中，直到你开始转录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "它們會留在佇列中，直到你開始轉錄。"
           }
         }
       }
@@ -9184,6 +9358,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "轉錄"
+          }
+        }
+      }
+    },
+    "Transcribe All" : {
+      "comment" : "Button of the Record tab's queue card and menu bar panel: start the transcription of every recording that waits for the user.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle transkribieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcribir todo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部转录"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部轉錄"
           }
         }
       }

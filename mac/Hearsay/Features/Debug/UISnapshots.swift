@@ -7,7 +7,7 @@ import SwiftUI
 /// `<dir>`: every main-window tab, every Settings section, the confirm,
 /// naming, rename, onboarding, unfinished-recording, and permission sheets with
 /// sample data (and the Record tab with both permissions granted, and with a
-/// transcription queue), the
+/// transcription queue, and the "When I start them" states), the
 /// menu bar panel, the update progress window, and the help page (top and the Meeting notes section).
 /// Then it quits with status 0 (1 when a file could not be written).
 ///
@@ -187,6 +187,54 @@ enum UISnapshots {
         tabs.tab = .record
         await render("27-record-queue", width: 720, height: 1000, MainView().environment(grantedPermissions))
         await render("28-menu-bar-queue", width: 260, MenuBarView())
+
+        // "When I start them" (PLAN.md 4.11): held jobs read "Not transcribed
+        // yet" or "On hold · N%" and offer Transcribe; the queue card and the
+        // menu bar panel offer Transcribe All. Each scene has its own queue.
+        settings.finalPassTiming = .manual
+        let wav = { (name: String) in spool.root.appendingPathComponent(name) }
+        let heldQueue = makeQueue(
+            settings: settings, modelStore: modelStore, engine: delegate.whisperEngine, spool: spool)
+        heldQueue.insertSample(recording: wav("2026-09-30_09-00-00.wav"), state: .suspended, progress: 0.45)
+        heldQueue.insertSample(recording: wav("2026-09-30_10-00-00.wav"), state: .waiting)
+        let heldContext = context.with(queue: heldQueue)
+        tabs.tab = .record
+        await render("29-record-queue-held", width: 720, height: 800,
+                     heldContext.apply(to: MainView().environment(grantedPermissions)))
+        await render("30-menu-bar-queue-held", width: 260, heldContext.apply(to: MenuBarView()))
+        // A released running job with Hold, among held jobs.
+        let mixedQueue = makeQueue(
+            settings: settings, modelStore: modelStore, engine: delegate.whisperEngine, spool: spool)
+        mixedQueue.insertSample(recording: wav("2026-09-30_09-00-00.wav"), state: .running, progress: 0.45, released: true)
+        mixedQueue.insertSample(recording: wav("2026-09-30_10-00-00.wav"), state: .waiting)
+        mixedQueue.insertSample(recording: wav("2026-09-30_11-00-00.wav"), state: .waiting)
+        await render("31-record-queue-held-mixed", width: 720, height: 800,
+                     context.with(queue: mixedQueue).apply(to: MainView().environment(grantedPermissions)))
+        // The single meeting, held with its live preview, and on hold.
+        let live = [
+            CoreSegment(start: 0, end: 4, text: "Good morning, everyone. Let's start with the quarterly numbers."),
+            CoreSegment(start: 4, end: 9.5, text: "Revenue is up, and the launch moves to the second week of October."),
+        ]
+        let singleHeld = makeQueue(
+            settings: settings, modelStore: modelStore, engine: delegate.whisperEngine, spool: spool)
+        singleHeld.insertSample(recording: wav("2026-09-30_09-00-00.wav"), state: .waiting, liveSegments: live)
+        await render("32-record-single-held", width: 720, height: 1000,
+                     context.with(queue: singleHeld).apply(to: MainView().environment(grantedPermissions)))
+        let singleOnHold = makeQueue(
+            settings: settings, modelStore: modelStore, engine: delegate.whisperEngine, spool: spool)
+        singleOnHold.insertSample(recording: wav("2026-09-30_09-00-00.wav"), state: .suspended, progress: 0.45,
+                                  liveSegments: live)
+        await render("33-record-single-on-hold", width: 720, height: 1000,
+                     context.with(queue: singleOnHold).apply(to: MainView().environment(grantedPermissions)))
+        // Released again: today's card plus Hold.
+        let singleReleased = makeQueue(
+            settings: settings, modelStore: modelStore, engine: delegate.whisperEngine, spool: spool)
+        singleReleased.insertSample(recording: wav("2026-09-30_09-00-00.wav"), state: .running, progress: 0.45,
+                                    released: true, liveSegments: live)
+        await render("34-record-single-released", width: 720, height: 1000,
+                     context.with(queue: singleReleased).apply(to: MainView().environment(grantedPermissions)))
+        await render("35-settings-general-manual", width: 720, height: 1000, SettingsView(initialPane: .general))
+        settings.finalPassTiming = .immediate
         say("help file \(HelpWindow.contentURL?.path ?? "missing")")
         for (name, fragment) in [("19-help-top", nil), ("20-help-meeting-notes", "meeting-notes")] as [(String, String?)] {
             let url = directory.appendingPathComponent("\(name).png")
@@ -276,6 +324,13 @@ enum UISnapshots {
         }
     }
 
+    /// A queue that only holds sample jobs (it never runs them).
+    private static func makeQueue(
+        settings: AppSettings, modelStore: ModelStore, engine: WhisperEngine, spool: RecordingSpool
+    ) -> TranscriptionQueue {
+        TranscriptionQueue(settings: settings, modelStore: modelStore, engine: engine, spool: spool, drives: false)
+    }
+
     private static func say(_ line: String) {
         FileHandle.standardError.write(Data(("hearsay ui snapshots: " + line + "\n").utf8))
     }
@@ -295,6 +350,15 @@ enum UISnapshots {
         let relauncher: AppRelauncher
         let updates: UpdateService
         let permissions: PermissionMonitor
+
+        /// The same environment with another queue (UI snapshots of other queue states).
+        func with(queue: TranscriptionQueue) -> Context {
+            Context(
+                settings: settings, modelStore: modelStore, aiStore: aiStore, controller: controller, queue: queue,
+                engine: engine, hotkeys: hotkeys, tabs: tabs, opener: opener, relauncher: relauncher,
+                updates: updates, permissions: permissions
+            )
+        }
 
         func apply(to view: some View) -> some View {
             view

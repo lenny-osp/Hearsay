@@ -198,7 +198,7 @@ public sealed class TrayQueueTests : IDisposable
         Assert.Contains("45", transcribing, StringComparison.Ordinal);
         Assert.Contains("3", transcribing, StringComparison.Ordinal);
         Assert.Equal(Translations.Text(language, "app", "Stop & Start Next"), Strings.StopAndStartNext);
-        Assert.Equal(Translations.Format(language, "windows", "Not transcribed yet · in queue: %lld", 3), Strings.QueueLineHeld(3));
-        Assert.Equal(Translations.Text(language, "windows", "Transcribe All"), Strings.TranscribeAll);
+        Assert.Equal(Translations.Format(language, "app", "Not transcribed yet · in queue: %lld", 3), Strings.QueueLineHeld(3));
+        Assert.Equal(Translations.Text(language, "app", "Transcribe All"), Strings.TranscribeAll);
     }
 }

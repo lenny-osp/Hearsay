@@ -215,12 +215,10 @@ public sealed class QueueRowsTests
         Assert.Equal(Translations.Text(language, "core", "Right away (in the background)"), Strings.TimingImmediate);
         Assert.Equal(Translations.Text(language, "core", "When no recording is running"), Strings.TimingWhenIdle);
         Assert.Equal(Translations.Text(language, "app", "Transcribe finished recordings"), Strings.FinalPassTimingLabel);
-        Assert.Equal(Translations.Text(language, "windows", "When I start them"), Strings.TimingManual);
-        // The Mac caption stays in the catalog for the Mac; Windows has its own for three rows.
+        Assert.Equal(Translations.Text(language, "core", "When I start them"), Strings.TimingManual);
         Assert.Equal(
-            Translations.Text(language, "windows", "The next recording can start at once, whichever you choose. With “When I start them”, recordings wait on the Record tab until you click Transcribe or Transcribe All."),
+            Translations.Text(language, "app", "The next recording can start at once, whichever you choose. With “When I start them”, recordings wait on the Record tab until you click Transcribe or Transcribe All."),
             Strings.FinalPassTimingCaption);
-        Assert.NotEqual(Translations.Text(language, "app", "Either way, the next recording can start at once."), Strings.FinalPassTimingCaption);
     }
 
     [Theory]
@@ -240,15 +238,15 @@ public sealed class QueueRowsTests
     public void HeldRowTextsComeFromTheSharedTranslations(InterfaceLanguage language)
     {
         using var scope = new InterfaceLanguageScope(language);
-        Assert.Equal(Translations.Text(language, "windows", "Not transcribed yet"), Strings.QueueNotTranscribedYet);
-        Assert.Equal(Translations.Format(language, "windows", "On hold · %lld%%", 42), Strings.QueueOnHold(42));
+        Assert.Equal(Translations.Text(language, "app", "Not transcribed yet"), Strings.QueueNotTranscribedYet);
+        Assert.Equal(Translations.Format(language, "app", "On hold · %lld%%", 42), Strings.QueueOnHold(42));
         Assert.Contains("42", Strings.QueueOnHold(42), StringComparison.Ordinal);
-        Assert.Equal(Translations.Text(language, "windows", "Transcribe All"), Strings.TranscribeAll);
-        Assert.Equal(Translations.Text(language, "windows", "Hold"), Strings.Hold);
-        Assert.Equal(Translations.Text(language, "windows", "Stops transcribing for now. Transcribe continues where it stopped."), Strings.HoldTooltip);
+        Assert.Equal(Translations.Text(language, "app", "Transcribe All"), Strings.TranscribeAll);
+        Assert.Equal(Translations.Text(language, "app", "Hold"), Strings.Hold);
+        Assert.Equal(Translations.Text(language, "app", "Stops transcribing for now. Transcribe continues where it stopped."), Strings.HoldTooltip);
         Assert.Equal(Translations.Text(language, "app", "Transcribe"), Strings.TranscribeButton);
-        Assert.Equal(Translations.Text(language, "windows", "They stay in the queue until you transcribe them."), Strings.TheyStayInQueue);
-        Assert.Equal(Translations.Format(language, "windows", "Not transcribed yet · in queue: %lld", 3), Strings.QueueLineHeld(3));
+        Assert.Equal(Translations.Text(language, "app", "They stay in the queue until you transcribe them."), Strings.TheyStayInQueue);
+        Assert.Equal(Translations.Format(language, "app", "Not transcribed yet · in queue: %lld", 3), Strings.QueueLineHeld(3));
         // Each is its own text, not a copy of a neighbour.
         Assert.NotEqual(Strings.QueueNotTranscribedYet, Strings.QueueWaiting);
         Assert.NotEqual(Strings.Hold, Strings.TranscribeAll);

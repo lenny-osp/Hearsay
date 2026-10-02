@@ -2864,6 +2864,35 @@
         }
       }
     },
+    "When I start them" : {
+      "comment" : "Settings > General > Transcription: row of the \"Transcribe finished recordings\" picker. Finished recordings wait on the Record tab until the user starts their transcription.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wenn ich sie starte"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuando yo las inicie"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等我手动开始时再做"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等我手動開始時再做"
+          }
+        }
+      }
+    },
     "When no recording is running" : {
       "comment" : "Settings > General > Transcription: final-pass timing that waits until no recording is running",
       "localizations" : {

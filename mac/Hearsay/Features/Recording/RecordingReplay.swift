@@ -25,8 +25,15 @@ import os
 /// `HEARSAY_LANGUAGE` (auto, en, zh-TW, zh-CN, de, es; zh is an alias for
 /// zh-TW; default en) is optional and applies to every session. Every
 /// language detection and each job's final language decision are printed
-/// to stdout. `HEARSAY_REPLAY_TIMING=immediate|whenIdle` picks the
-/// final-pass timing (default immediate). `HEARSAY_REPLAY_SYSTEM=silence`
+/// to stdout. `HEARSAY_REPLAY_TIMING=immediate|whenIdle|manual` picks the
+/// final-pass timing (default immediate). With `manual` (PLAN.md 4.11) every
+/// job is held (queue events `held` and `released` are printed next to the
+/// others), nothing is transcribed, and the run ends once the live tails are
+/// done, listing the held jobs and exiting with its normal status (a held
+/// job is not a failure); `HEARSAY_REPLAY_RELEASE=<seconds>` instead waits
+/// that long after the last session stops and calls `releaseAll` ("Transcribe
+/// All"), then runs the final passes as usual.
+/// `HEARSAY_REPLAY_SYSTEM=silence`
 /// adds a second, silent source in place of system audio. Settings live in
 /// a throwaway defaults suite and every file goes to a temporary folder, so
 /// the user's settings, spool, and output folder are never touched
@@ -48,6 +55,14 @@ enum RecordingReplay {
         let language = environment["HEARSAY_LANGUAGE"].flatMap(LanguageChoice.init(debugValue:))
             ?? .fixed(.english)
         let timing = environment["HEARSAY_REPLAY_TIMING"].flatMap(FinalPassTiming.init(rawValue:)) ?? .immediate
+        var releaseAfter: Double?
+        if let value = environment["HEARSAY_REPLAY_RELEASE"], !value.isEmpty {
+            guard let seconds = Double(value), seconds >= 0, seconds.isFinite else {
+                say("HEARSAY_REPLAY_RELEASE must be a number of seconds, not \(value)")
+                exit(1)
+            }
+            releaseAfter = seconds
+        }
         let silentSystem = environment["HEARSAY_REPLAY_SYSTEM"] == "silence"
         let modelURL = URL(fileURLWithPath: directory, isDirectory: true)
         let files = file.split(separator: ",").map { URL(fileURLWithPath: String($0)) }
@@ -57,6 +72,7 @@ enum RecordingReplay {
                 location: WhisperModelLocation(modelDirectory: modelURL, tokenizerDirectory: modelURL),
                 language: language,
                 timing: timing,
+                releaseAfter: releaseAfter,
                 silentSystem: silentSystem,
                 engine: engine
             )
@@ -108,7 +124,7 @@ enum RecordingReplay {
 
     private static func run(
         files: [URL], location: WhisperModelLocation, language: LanguageChoice, timing: FinalPassTiming,
-        silentSystem: Bool, engine: WhisperEngine
+        releaseAfter: Double?, silentSystem: Bool, engine: WhisperEngine
     ) async -> Int32 {
         var loaded: [[Float]] = []
         for file in files {
@@ -234,6 +250,10 @@ enum RecordingReplay {
             case let .failed(id, message):
                 failed = true
                 say(String(format: "%7.2f  %@ failed: %@", now, label(id), message))
+            case let .held(id):
+                say(String(format: "%7.2f  %@ held", now, label(id)))
+            case let .released(id):
+                say(String(format: "%7.2f  %@ released", now, label(id)))
             }
         }
 
@@ -271,9 +291,11 @@ enum RecordingReplay {
         }()
         defer { window?.close() }
         let names = zip(files, loaded).map { String(format: "%@ (%.2f s)", $0.lastPathComponent, Double($1.count) / 16_000) }
-        say(String(format: "replaying %@, language %@, preferred %@, timing %@, system audio %@",
+        say(String(format: "replaying %@, language %@, preferred %@, timing %@%@, system audio %@",
                    names.joined(separator: ", "), language.storageValue,
-                   settings.preferredLanguage.rawValue, timing.rawValue, silentSystem ? "silence" : "off"))
+                   settings.preferredLanguage.rawValue, timing.rawValue,
+                   releaseAfter.map { String(format: ", release %.1f s after the last Stop", $0) } ?? "",
+                   silentSystem ? "silence" : "off"))
         clock.reset()
         controller.start()
         let snapshots = ProcessInfo.processInfo.environment["HEARSAY_REPLAY_SNAPSHOTS"]
@@ -312,7 +334,14 @@ enum RecordingReplay {
                 break
             }
         }
-        while controller.isSessionActive || queue.pendingCount > 0 || queue.hasWorkInFlight
+        if let delay = releaseAfter {
+            try? await Task.sleep(for: .seconds(delay))
+            say(String(format: "%7.2f  Transcribe All: releasing %d held job(s) of %d pending",
+                       clock.now, queue.heldCount, queue.pendingCount))
+            queue.releaseAll()
+        }
+        // Held jobs (manual) wait for the user: they do not keep the run open.
+        while controller.isSessionActive || queue.pendingCount > queue.heldCount || queue.hasWorkInFlight
             || queue.jobs.contains(where: \.hasLiveTail) {
             try? await Task.sleep(for: .milliseconds(100))
         }
@@ -349,6 +378,10 @@ enum RecordingReplay {
                 say("queue job \(number) failed: \(job.errorMessage ?? "")")
                 failed = true
             default:
+                if queue.isHeld(job) {
+                    say("queue job \(number) held, not transcribed yet (\(job.state.rawValue)); \(job.recording.url.path)")
+                    break
+                }
                 say("queue job \(number) ended in \(job.state.rawValue)")
                 failed = true
             }

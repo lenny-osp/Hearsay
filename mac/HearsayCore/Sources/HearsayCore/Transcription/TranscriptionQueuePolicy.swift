@@ -10,6 +10,10 @@ public enum FinalPassTiming: String, CaseIterable, Codable, Sendable {
     /// Jobs run only while no session is active (Starting, Recording,
     /// Paused, Stopping). The Windows default.
     case whenIdle
+    /// "When I start them" (PLAN.md 4.11): a finished recording waits, held,
+    /// until the user releases it (Transcribe, Transcribe All, or Try Again);
+    /// a released job then follows `whenIdle`.
+    case manual
 
     /// Label for the Settings picker.
     public var displayName: String {
@@ -20,6 +24,9 @@ public enum FinalPassTiming: String, CaseIterable, Codable, Sendable {
         case .whenIdle:
             String(localized: "When no recording is running", bundle: .module,
                    comment: "Settings > General > Transcription: final-pass timing that waits until no recording is running")
+        case .manual:
+            String(localized: "When I start them", bundle: .module,
+                   comment: "Settings > General > Transcription: row of the \"Transcribe finished recordings\" picker. Finished recordings wait on the Record tab until the user starts their transcription.")
         }
     }
 }
@@ -47,17 +54,25 @@ public enum TranscriptionJobState: String, CaseIterable, Codable, Sendable {
     }
 }
 
-/// The pure queue rules of PLAN.md 4.9 ("Queue rules"), shared with Windows
-/// through `shared/transcription-queue-tests.json`.
+/// The pure queue rules of PLAN.md 4.9 ("Queue rules") and 4.11 (`manual`),
+/// shared with Windows through `shared/transcription-queue-tests.json`.
 ///
 /// Scheduling contract (`next`):
 /// - The engine may run a queued job when `foregroundWaiting == 0` and, for
-///   `whenIdle`, no session is active.
+///   `whenIdle` and `manual`, no session is active.
 /// - At most one job runs. If a job is running, the decision is `suspend`
-///   of that job when running is no longer allowed, else `none`.
+///   of that job when running is no longer allowed (or, under `manual`,
+///   when the job is not released), else `none`.
 /// - With no running job and running allowed: `resume` the first suspended
-///   job in queue order, else `start` the first waiting job, else `none`.
+///   job in queue order, else `start` the first waiting job, else `none`;
+///   under `manual` only released jobs are candidates.
 ///   Done and failed jobs are skipped wherever they are.
+///
+/// Manual (4.11): `Job.released` is read only under `manual`. A pending job
+/// that is not released is held (`isHeld`): it is never started or resumed,
+/// and a running one is suspended at its next window. Among released jobs
+/// queue order decides, so releasing job 2 before job 1 does not let job 2
+/// run first.
 ///
 /// Invalid inputs are handled tolerantly and deterministically (no
 /// assertion, so both platforms can run the same vectors):
@@ -71,14 +86,17 @@ public enum TranscriptionJobState: String, CaseIterable, Codable, Sendable {
 /// - A suspended job behind a waiting job: the suspended job is resumed
 ///   first (it holds a checkpoint; in a valid queue it is always the head).
 public enum TranscriptionQueuePolicy {
-    /// What `next` reads of a job: its identifier and state.
+    /// What `next` reads of a job: its identifier, its state and, under
+    /// `manual` only, whether the user released it.
     public struct Job: Equatable, Hashable, Sendable {
         public var id: String
         public var state: TranscriptionJobState
+        public var released: Bool
 
-        public init(id: String, state: TranscriptionJobState) {
+        public init(id: String, state: TranscriptionJobState, released: Bool = false) {
             self.id = id
             self.state = state
+            self.released = released
         }
     }
 
@@ -94,13 +112,20 @@ public enum TranscriptionQueuePolicy {
         case none
     }
 
-    /// Whether a queued job may run now.
+    /// Whether a queued job may run now. `manual` follows `whenIdle` here;
+    /// whether a particular job is released is asked separately (`isHeld`).
     public static func mayRun(timing: FinalPassTiming, sessionActive: Bool, foregroundWaiting: Int) -> Bool {
         guard foregroundWaiting <= 0 else { return false }
         switch timing {
         case .immediate: return true
-        case .whenIdle: return !sessionActive
+        case .whenIdle, .manual: return !sessionActive
         }
+    }
+
+    /// Held (PLAN.md 4.11): the timing is `manual` and the job is pending and
+    /// not released. Never true under the other timings, whatever the flag says.
+    public static func isHeld(timing: FinalPassTiming, job: Job) -> Bool {
+        timing == .manual && job.state.isPending && !job.released
     }
 
     /// The next queue action; see the type's documentation for the rules.
@@ -113,22 +138,29 @@ public enum TranscriptionQueuePolicy {
     ) -> Decision {
         let allowed = mayRun(timing: timing, sessionActive: sessionActive, foregroundWaiting: foregroundWaiting)
         if let running = jobs.first(where: { $0.state == .running }) {
-            return allowed ? .none : .suspend(running.id)
+            return !allowed || isHeld(timing: timing, job: running) ? .suspend(running.id) : .none
         }
         guard allowed else { return .none }
-        if let suspended = jobs.first(where: { $0.state == .suspended }) {
+        if let suspended = jobs.first(where: { $0.state == .suspended && !isHeld(timing: timing, job: $0) }) {
             return .resume(suspended.id)
         }
-        if let waiting = jobs.first(where: { $0.state == .waiting }) {
+        if let waiting = jobs.first(where: { $0.state == .waiting && !isHeld(timing: timing, job: $0) }) {
             return .start(waiting.id)
         }
         return .none
     }
 
     /// For the decoder's yield check: true exactly when `next` would
-    /// suspend a running job under these conditions.
-    public static func shouldYield(timing: FinalPassTiming, sessionActive: Bool, foregroundWaiting: Int) -> Bool {
+    /// suspend a running job under these conditions. `runningReleased` is
+    /// the running job's released flag, read only under `manual`.
+    public static func shouldYield(
+        timing: FinalPassTiming,
+        sessionActive: Bool,
+        foregroundWaiting: Int,
+        runningReleased: Bool = true
+    ) -> Bool {
         !mayRun(timing: timing, sessionActive: sessionActive, foregroundWaiting: foregroundWaiting)
+            || (timing == .manual && !runningReleased)
     }
 
     /// Whether a job that just finished opens its notes flow (PLAN.md 4.9
@@ -139,14 +171,48 @@ public enum TranscriptionQueuePolicy {
     }
 
     /// The number of recordings not transcribed yet (waiting, running, or
-    /// suspended). Quit asks for confirmation when it is above 0.
+    /// suspended), held ones included. Quit asks for confirmation when it
+    /// is above 0.
     public static func quitNeedsConfirmation(jobs: [Job]) -> Int {
         jobs.filter(\.state.isPending).count
     }
 
     /// Whether an update install must refuse: true while any job is
-    /// waiting, running, or suspended. Done and failed rows do not block.
+    /// waiting, running, or suspended; done and failed rows do not block.
+    /// Under `manual` held waiting and suspended jobs do not block (they are
+    /// in `queue.json` and come back held after the relaunch); a released
+    /// job and a running one (even one whose Hold has not taken effect yet)
+    /// still do.
+    public static func blocksUpdateInstall(timing: FinalPassTiming, jobs: [Job]) -> Bool {
+        jobs.contains { $0.state.isPending && ($0.state == .running || !isHeld(timing: timing, job: $0)) }
+    }
+
+    /// The rule of the timing-less shared vectors: any pending job blocks
+    /// (no job is held under the other timings).
     public static func blocksUpdateInstall(jobs: [Job]) -> Bool {
-        jobs.contains(where: \.state.isPending)
+        blocksUpdateInstall(timing: .immediate, jobs: jobs)
+    }
+
+    /// Whether every pending job is held, with at least one pending (PLAN.md
+    /// 4.11, Quit): false under the other timings and for a queue with
+    /// nothing pending. A running job that is not released counts as held.
+    public static func allPendingHeld(timing: FinalPassTiming, jobs: [Job]) -> Bool {
+        guard timing == .manual else { return false }
+        let pending = jobs.filter(\.state.isPending)
+        return !pending.isEmpty && pending.allSatisfy { !$0.released }
+    }
+
+    /// The released flag a pending job gets when the timing changes (PLAN.md
+    /// 4.11): switching to `manual` releases jobs that already started
+    /// (running or suspended) and holds waiting ones; any other switch
+    /// returns nil, meaning the flag is left as it is (and ignored by the
+    /// other timings).
+    public static func releasedAfterTimingChange(
+        from previous: FinalPassTiming,
+        to timing: FinalPassTiming,
+        state: TranscriptionJobState
+    ) -> Bool? {
+        guard timing == .manual, previous != .manual, state.isPending else { return nil }
+        return state == .running || state == .suspended
     }
 }

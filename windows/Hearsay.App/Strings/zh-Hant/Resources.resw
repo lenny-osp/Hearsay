@@ -269,6 +269,10 @@
     <value>使用中的模型</value>
     <comment>app: Active model</comment>
   </data>
+  <data name="app_35db9e8df3274ed3" xml:space="preserve">
+    <value>全部轉錄</value>
+    <comment>app: Transcribe All</comment>
+  </data>
   <data name="app_3769bbd12cefb7ed" xml:space="preserve">
     <value>略過完整轉錄，將即時預覽儲存為逐字稿</value>
     <comment>app: Skip the full pass and save the live preview as the transcript</comment>
@@ -352,6 +356,10 @@
   <data name="app_48f19eda6304813b" xml:space="preserve">
     <value>打開「模型」</value>
     <comment>app: Open Models</comment>
+  </data>
+  <data name="app_4b897b8f423ef8b3" xml:space="preserve">
+    <value>暫時停止轉錄。按下「轉錄」會從停下的地方繼續。</value>
+    <comment>app: Stops transcribing for now. Transcribe continues where it stopped.</comment>
   </data>
   <data name="app_4bcbc1a7b6042a20" xml:space="preserve">
     <value>無法檢查更新。</value>
@@ -513,6 +521,10 @@
     <value>提供者：</value>
     <comment>app: Provider:</comment>
   </data>
+  <data name="app_67700d3b457d11b5" xml:space="preserve">
+    <value>它們會留在佇列中，直到你開始轉錄。</value>
+    <comment>app: They stay in the queue until you transcribe them.</comment>
+  </data>
   <data name="app_67e9ba5528303599" xml:space="preserve">
     <value>保留時間戳記檔案名稱。</value>
     <comment>app: Keeping the timestamp file names.</comment>
@@ -536,6 +548,10 @@
   <data name="app_6a348c7601683724" xml:space="preserve">
     <value>未完成的錄音</value>
     <comment>app: Unfinished recording</comment>
+  </data>
+  <data name="app_6c71b9b29660b967" xml:space="preserve">
+    <value>尚未轉錄</value>
+    <comment>app: Not transcribed yet</comment>
   </data>
   <data name="app_6d0953f0ebeeab27" xml:space="preserve">
     <value>{0}音量</value>
@@ -712,6 +728,10 @@
   <data name="app_8a7525b1492fb848" xml:space="preserve">
     <value>筆記</value>
     <comment>app: Notes</comment>
+  </data>
+  <data name="app_8e685d5409b3a543" xml:space="preserve">
+    <value>暫緩</value>
+    <comment>app: Hold</comment>
   </data>
   <data name="app_8e8a51b606c9e743" xml:space="preserve">
     <value>Hearsay 下次開啟時會繼續轉錄。</value>
@@ -1017,6 +1037,10 @@
     <value>沒有可打開 {0} 的 App。</value>
     <comment>app: No app is available to open %@.</comment>
   </data>
+  <data name="app_d018c786d31799da" xml:space="preserve">
+    <value>無論選哪一項，下一場錄音都能立即開始。選擇「等我手動開始時再做」時，錄音會在「錄音」標籤頁等候，直到你按下「轉錄」或「全部轉錄」。</value>
+    <comment>app: The next recording can start at once, whichever you choose. With “When I start them”, recordings wait on the Record tab until you click Transcribe or Transcribe All.</comment>
+  </data>
   <data name="app_d139a2e0a0d3c5d1" xml:space="preserve">
     <value>錯誤：找不到或無法讀取 SRT 檔案（{0}）：{1}</value>
     <comment>app: Error: SRT file not found or unreadable (%@): %@</comment>
@@ -1068,6 +1092,10 @@
   <data name="app_d95c6550abb6efa7" xml:space="preserve">
     <value>錄音中暫停轉錄 · 佇列中：{0}</value>
     <comment>app: Transcription paused while recording · in queue: %lld</comment>
+  </data>
+  <data name="app_d976a3c4ef0d2456" xml:space="preserve">
+    <value>暫緩中 · {0}%</value>
+    <comment>app: On hold · %lld%%</comment>
   </data>
   <data name="app_da8c46fd1e93e757" xml:space="preserve">
     <value>未產生會議筆記。你可以重新命名 SRT 及其錄音，或保留時間戳記名稱。</value>
@@ -1200,6 +1228,10 @@
   <data name="app_fae6ce42a3ec73bc" xml:space="preserve">
     <value>正在完成…</value>
     <comment>app: Finalizing…</comment>
+  </data>
+  <data name="app_fb58188d9bbd2b79" xml:space="preserve">
+    <value>尚未轉錄 · 佇列中：{0}</value>
+    <comment>app: Not transcribed yet · in queue: %lld</comment>
   </data>
   <data name="app_fbc6e67f32c5cb7b" xml:space="preserve">
     <value>暫停／繼續：</value>
@@ -1593,6 +1625,10 @@
     <value>立即（背景）</value>
     <comment>core: Right away (in the background)</comment>
   </data>
+  <data name="core_d9e5b3fc43a43c1d" xml:space="preserve">
+    <value>等我手動開始時再做</value>
+    <comment>core: When I start them</comment>
+  </data>
   <data name="core_daa0fbaaaaa9241d" xml:space="preserve">
     <value>選單列與 Dock</value>
     <comment>core: Menu bar and Dock</comment>
@@ -1681,10 +1717,6 @@
     <value>已用於「暫停／繼續」。</value>
     <comment>windows: Already used for Pause / Resume.</comment>
   </data>
-  <data name="windows_35db9e8df3274ed3" xml:space="preserve">
-    <value>全部轉錄</value>
-    <comment>windows: Transcribe All</comment>
-  </data>
   <data name="windows_39e17d7a7d2ee080" xml:space="preserve">
     <value>無法打開檔案</value>
     <comment>windows: Could not open the file</comment>
@@ -1708,10 +1740,6 @@
   <data name="windows_494fae321ac72722" xml:space="preserve">
     <value>關閉：錄音會使用「錄音」標籤頁中選擇的語言，選擇「自動」時會自動偵測。開啟：會議開始時，Hearsay 會詢問是否錄製以及使用哪種語言，並在你確認後開始錄音。</value>
     <comment>windows: Off: the recording uses the language chosen on the Record tab, and Auto detects it. On: when a meeting starts, Hearsay asks whether to record it and in which language, and records when you confirm.</comment>
-  </data>
-  <data name="windows_4b897b8f423ef8b3" xml:space="preserve">
-    <value>暫時停止轉錄。按下「轉錄」會從停下的地方繼續。</value>
-    <comment>windows: Stops transcribing for now. Transcribe continues where it stopped.</comment>
   </data>
   <data name="windows_4d6f50f3f1d532cc" xml:space="preserve">
     <value>不要錄音</value>
@@ -1745,10 +1773,6 @@
     <value>無法儲存設定：{0} 此變更在 Hearsay 結束前有效。</value>
     <comment>windows: Could not save the settings: %@ The change holds until Hearsay quits.</comment>
   </data>
-  <data name="windows_67700d3b457d11b5" xml:space="preserve">
-    <value>它們會留在佇列中，直到你開始轉錄。</value>
-    <comment>windows: They stay in the queue until you transcribe them.</comment>
-  </data>
   <data name="windows_6ab7c6f11835ac7c" xml:space="preserve">
     <value>無法載入語音模型：{0}</value>
     <comment>windows: Could not load the speech model: %@</comment>
@@ -1756,10 +1780,6 @@
   <data name="windows_6af8eef13809f390" xml:space="preserve">
     <value>部分檔案無法移至資源回收筒：</value>
     <comment>windows: Some files could not be moved to the Recycle Bin:</comment>
-  </data>
-  <data name="windows_6c71b9b29660b967" xml:space="preserve">
-    <value>尚未轉錄</value>
-    <comment>windows: Not transcribed yet</comment>
   </data>
   <data name="windows_70c02b4d20ec1f05" xml:space="preserve">
     <value>未開始錄音</value>
@@ -1804,10 +1824,6 @@
   <data name="windows_87b7917d027b1c03" xml:space="preserve">
     <value>新版本由 {0} 簽署，而不是像這份 Hearsay 一樣由 {1} 簽署。</value>
     <comment>windows: The new version is signed by %@, not by %@ like this copy of Hearsay.</comment>
-  </data>
-  <data name="windows_8e685d5409b3a543" xml:space="preserve">
-    <value>暫緩</value>
-    <comment>windows: Hold</comment>
   </data>
   <data name="windows_8f8367e088351c7b" xml:space="preserve">
     <value>無法在檔案總管中顯示檔案：{0}</value>
@@ -1909,10 +1925,6 @@
     <value>即時預覽已關閉：這台電腦的速度不足</value>
     <comment>windows: Live preview off: this computer is too slow for it</comment>
   </data>
-  <data name="windows_d018c786d31799da" xml:space="preserve">
-    <value>無論選哪一項，下一場錄音都能立即開始。選擇「等我手動開始時再做」時，錄音會在「錄音」標籤頁等候，直到你按下「轉錄」或「全部轉錄」。</value>
-    <comment>windows: The next recording can start at once, whichever you choose. With “When I start them”, recordings wait on the Record tab until you click Transcribe or Transcribe All.</comment>
-  </data>
   <data name="windows_d06dc9e77902afe4" xml:space="preserve">
     <value>這會將完整逐字稿傳送至 {0}。除此之外，不會有任何資料離開這台電腦。</value>
     <comment>windows: This sends the whole transcript to %@. Nothing leaves this PC otherwise.</comment>
@@ -1932,14 +1944,6 @@
   <data name="windows_d813f1147af1497b" xml:space="preserve">
     <value>移至資源回收筒…</value>
     <comment>windows: Move to Recycle Bin…</comment>
-  </data>
-  <data name="windows_d976a3c4ef0d2456" xml:space="preserve">
-    <value>暫緩中 · {0}%</value>
-    <comment>windows: On hold · %lld%%</comment>
-  </data>
-  <data name="windows_d9e5b3fc43a43c1d" xml:space="preserve">
-    <value>等我手動開始時再做</value>
-    <comment>windows: When I start them</comment>
   </data>
   <data name="windows_db1423267c535dfc" xml:space="preserve">
     <value>上次的更新無法安裝，Hearsay 仍是先前的版本。</value>
@@ -1992,9 +1996,5 @@
   <data name="windows_f7b1e9954acd73a9" xml:space="preserve">
     <value>使用這台電腦上安裝的 Claude Code 與你的 Claude 訂閱登入；請求會計入其用量限制。請在「終端機」中執行一次 `claude` 以登入。模型：別名（sonnet、opus）或完整 ID。推理強度：low、medium、high、xhigh 或 max（none 與 minimal 會視為 low）。</value>
     <comment>windows: Uses Claude Code installed on this PC and your Claude subscription login; requests count against its usage limits. Run `claude` once in Terminal to log in. Model: an alias (sonnet, opus) or a full id. Effort: low, medium, high, xhigh, or max (none and minimal become low).</comment>
-  </data>
-  <data name="windows_fb58188d9bbd2b79" xml:space="preserve">
-    <value>尚未轉錄 · 佇列中：{0}</value>
-    <comment>windows: Not transcribed yet · in queue: %lld</comment>
   </data>
 </root>

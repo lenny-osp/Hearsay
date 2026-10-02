@@ -41,7 +41,16 @@ final class TranscriptionJob: Identifiable {
     fileprivate(set) var liveSegments: [CoreSegment]
     fileprivate(set) var liveEnabled: Bool
     fileprivate(set) var liveNotice: String?
-    fileprivate(set) var state: TranscriptionJobState
+    fileprivate(set) var state: TranscriptionJobState {
+        didSet { if state != oldValue { onChange?() } }
+    }
+    /// Manual timing (PLAN.md 4.11): the user released this job, so it may
+    /// run (when no session is active and no foreground work waits). In
+    /// memory only: `queue.json` does not store it, so every job restored at
+    /// launch is unreleased. Read only while the timing is `manual`.
+    fileprivate(set) var isReleased = false {
+        didSet { if isReleased != oldValue { onChange?() } }
+    }
     /// Final-pass progress, 0...1.
     fileprivate(set) var progress: Double = 0
     fileprivate(set) var languageNotice: LanguageNotice?
@@ -62,6 +71,9 @@ final class TranscriptionJob: Identifiable {
     /// The job finished while notes could not open; its row offers them.
     fileprivate(set) var offersNotes = false
 
+    /// Told when `state` or `isReleased` changes (the queue recomputes its
+    /// decoder hold flag).
+    @ObservationIgnored fileprivate var onChange: (@MainActor () -> Void)?
     /// The session's live sink while its tail is still being transcribed.
     @ObservationIgnored fileprivate var liveSink: LiveSink?
     @ObservationIgnored fileprivate var checkpoint: TranscriptionCheckpoint?
@@ -160,8 +172,9 @@ final class TranscriptionJob: Identifiable {
     }
 }
 
-/// A Sendable snapshot of "timing is whenIdle and a session is active",
-/// read by the decoder's yield check between windows (PLAN.md 4.9).
+/// A Sendable snapshot of "whenIdle or manual with a session active, or
+/// manual with a running job that is not released", read by the decoder's
+/// yield check between windows (PLAN.md 4.9, 4.11).
 private final class HoldFlag: Sendable {
     private let value = OSAllocatedUnfairLock(initialState: false)
 
@@ -180,8 +193,16 @@ private final class HoldFlag: Sendable {
 /// and every 250 ms while a job waits or is suspended (the engine's
 /// foreground counter is not observable). A step runs through
 /// `WhisperEngine.transcribeStep`, which suspends at the next 30 s window
-/// while foreground work waits or `holdWhile` (whenIdle and a session
-/// active) is true.
+/// while foreground work waits or `holdWhile` is true (whenIdle or manual
+/// with a session active; manual with a running job that is not released,
+/// i.e. a Hold).
+///
+/// Manual timing (PLAN.md 4.11): every job has an in-memory `isReleased`
+/// flag, read only while the timing is `manual`. A pending, unreleased job is
+/// held (`isHeld(_:)`); the driver never starts or resumes it. `release`,
+/// `releaseAll` and `hold` change the flag; Try Again and "Use live preview
+/// instead" release the job; a switch to manual releases started jobs and
+/// holds waiting ones.
 ///
 /// Completion and failure follow PLAN.md 4.1 (`TranscriptOutput.saveTranscript`
 /// and `keepAfterFailure`). The queue is saved to `<spool>/queue.json` on every
@@ -199,6 +220,12 @@ final class TranscriptionQueue {
         case language(id: String, decision: LanguageDecision)
         case done(id: String, srt: URL)
         case failed(id: String, message: String)
+        /// Manual timing: the job is held (queued unreleased, put on hold, or
+        /// held by a switch to manual).
+        case held(id: String)
+        /// Manual timing: the job was released (Transcribe, Transcribe All,
+        /// Try Again, or a switch to manual for a job that had started).
+        case released(id: String)
     }
 
     /// A finished SRT waiting for the Record tab's notes flow.
@@ -218,7 +245,7 @@ final class TranscriptionQueue {
     /// A session is active (Starting, Recording, Paused, Stopping); set by
     /// `RecordingController`.
     private(set) var isSessionActive = false
-    /// whenIdle and a session is active: jobs do not run.
+    /// whenIdle or manual, and a session is active: released jobs do not run.
     private(set) var isHeldForSession = false
 
     /// Debug only: sees every queue event (see `RecordingReplay`).
@@ -238,6 +265,7 @@ final class TranscriptionQueue {
     @ObservationIgnored private var pollTask: Task<Void, Never>?
     @ObservationIgnored private var liveWriteTask: Task<Void, Never>?
     @ObservationIgnored private var isQuitting = false
+    @ObservationIgnored private var lastTiming: FinalPassTiming
 
     init(
         settings: AppSettings,
@@ -256,6 +284,7 @@ final class TranscriptionQueue {
         self.store = TranscriptionQueueStore(spool: spool)
         self.modelLocation = modelLocation
         self.drives = drives
+        self.lastTiming = settings.finalPassTiming
         updateHold()
         observeTiming()
     }
@@ -263,29 +292,58 @@ final class TranscriptionQueue {
     // MARK: - State
 
     /// The jobs as the policy reads them. A job saving its live preview is
-    /// left out once its step returned, so the next job can start.
+    /// left out once its step returned, so the next job can start; while its
+    /// step runs it counts as running and released (the user asked for that
+    /// save, so it is never held).
     private var policyJobs: [TranscriptionQueuePolicy.Job] {
         jobs.compactMap { job in
             if job.isUsingLivePreview, job.isPending {
-                return job.stepTask == nil ? nil : .init(id: job.id, state: .running)
+                return job.stepTask == nil ? nil : .init(id: job.id, state: .running, released: true)
             }
-            return .init(id: job.id, state: job.state)
+            return .init(id: job.id, state: job.state, released: job.isReleased)
         }
     }
 
     private var stateJobs: [TranscriptionQueuePolicy.Job] {
-        jobs.map { .init(id: $0.id, state: $0.state) }
+        jobs.map { .init(id: $0.id, state: $0.state, released: $0.isReleased) }
     }
 
-    /// Recordings not transcribed yet; Quit asks when above 0.
+    /// Recordings not transcribed yet, held ones included; Quit asks when above 0.
     var pendingCount: Int { TranscriptionQueuePolicy.quitNeedsConfirmation(jobs: stateJobs) }
 
-    /// An update install must wait.
-    var blocksUpdateInstall: Bool { TranscriptionQueuePolicy.blocksUpdateInstall(jobs: stateJobs) }
+    /// An update install must wait. Held jobs (manual) do not block: they
+    /// are in `queue.json` and come back held after the relaunch.
+    var blocksUpdateInstall: Bool {
+        TranscriptionQueuePolicy.blocksUpdateInstall(timing: settings.finalPassTiming, jobs: stateJobs)
+    }
 
-    /// The job being transcribed or suspended, for the menu bar.
+    /// The job is held: the timing is manual and it is pending and not
+    /// released (PLAN.md 4.11).
+    func isHeld(_ job: TranscriptionJob) -> Bool {
+        TranscriptionQueuePolicy.isHeld(
+            timing: settings.finalPassTiming, job: .init(id: job.id, state: job.state, released: job.isReleased))
+    }
+
+    /// Hold applies: the timing is manual and the job is pending, released,
+    /// and not saving its live preview.
+    func canHold(_ job: TranscriptionJob) -> Bool {
+        settings.finalPassTiming == .manual && job.isPending && job.isReleased && !job.isUsingLivePreview
+    }
+
+    /// How many jobs are held; "Transcribe All" shows while this is above 0.
+    var heldCount: Int { jobs.filter { isHeld($0) }.count }
+
+    /// Every pending job is held, and there is at least one: the quit alert
+    /// and the menu bar line say so. False unless the timing is manual.
+    var allPendingHeld: Bool {
+        TranscriptionQueuePolicy.allPendingHeld(timing: settings.finalPassTiming, jobs: stateJobs)
+    }
+
+    /// The job being transcribed or suspended, for the menu bar. A suspended
+    /// job that is held (manual, put on hold) is not active: it waits for
+    /// the user.
     var activeJob: TranscriptionJob? {
-        jobs.first { $0.state == .running || $0.state == .suspended }
+        jobs.first { $0.state == .running || ($0.state == .suspended && !isHeld($0)) }
     }
 
     /// With no session active and exactly one job, the Record tab shows it
@@ -307,10 +365,12 @@ final class TranscriptionQueue {
         return stems
     }
 
-    /// A job waits or is suspended because a session runs in whenIdle; its
-    /// row says "Paused while recording".
+    /// A job waits or is suspended because a session runs in whenIdle or
+    /// manual; its row says "Paused while recording". A held job (manual,
+    /// not released) is not paused for the session: it waits for the user.
     func isPausedForSession(_ job: TranscriptionJob) -> Bool {
-        isHeldForSession && (job.state == .suspended || job.state == .waiting) && !job.isUsingLivePreview
+        isHeldForSession && (job.state == .suspended || job.state == .waiting)
+            && !job.isUsingLivePreview && !isHeld(job)
     }
 
     /// The finished SRT waiting for the notes flow, once. The request is
@@ -348,10 +408,21 @@ final class TranscriptionQueue {
         evaluate()
     }
 
+    /// Recomputes the flag the decoder's yield check reads (whenIdle or
+    /// manual with a session active; manual with a running job that is not
+    /// released, i.e. a Hold) and `isHeldForSession`.
     private func updateHold() {
-        let held = settings.finalPassTiming == .whenIdle && isSessionActive
-        hold.set(held)
-        if held != isHeldForSession { isHeldForSession = held }
+        let timing = settings.finalPassTiming
+        let sessionHold = (timing == .whenIdle || timing == .manual) && isSessionActive
+        let holdRunning = timing == .manual
+            && jobs.contains { $0.state == .running && !$0.isReleased && !$0.isUsingLivePreview }
+        hold.set(sessionHold || holdRunning)
+        if sessionHold != isHeldForSession { isHeldForSession = sessionHold }
+    }
+
+    /// Wires a new job's state and released changes to the hold flag.
+    private func watch(_ job: TranscriptionJob) {
+        job.onChange = { [weak self] in self?.updateHold() }
     }
 
     private func observeTiming() {
@@ -361,11 +432,42 @@ final class TranscriptionQueue {
             // onChange fires before the new value is stored.
             Task { @MainActor in
                 guard let self else { return }
+                self.applyTimingChange()
                 self.updateHold()
                 self.evaluate()
                 self.observeTiming()
             }
         }
+    }
+
+    /// PLAN.md 4.11: switching to manual releases the jobs that already
+    /// started (running or suspended) and holds the waiting ones; switching
+    /// away ignores the flags, and `evaluate` applies the other timing's
+    /// rules at once.
+    private func applyTimingChange() {
+        let timing = settings.finalPassTiming
+        let previous = lastTiming
+        lastTiming = timing
+        for job in jobs {
+            guard let value = TranscriptionQueuePolicy.releasedAfterTimingChange(
+                from: previous, to: timing, state: job.state) else { continue }
+            let changes = job.isReleased != value
+            setReleased(job, value)
+            // A waiting job that was never released becomes held without a
+            // flag change: announce it too.
+            if !value, !changes { eventObserver?(.held(id: job.id)) }
+        }
+    }
+
+    /// Sets the released flag. Under manual a change is announced to the
+    /// observer (the debug replay) as a held or released event; under the
+    /// other timings the flag has no visible meaning and nothing is announced.
+    private func setReleased(_ job: TranscriptionJob, _ value: Bool) {
+        guard job.isReleased != value else { return }
+        job.isReleased = value
+        guard settings.finalPassTiming == .manual else { return }
+        eventObserver?(value ? .released(id: job.id) : .held(id: job.id))
+        Self.logger.info("\(value ? "released" : "held", privacy: .public) \(job.id, privacy: .public)")
     }
 
     // MARK: - Adding jobs
@@ -420,12 +522,17 @@ final class TranscriptionQueue {
             liveSegments: liveSegments, liveEnabled: false
         )
         job.srt = transcript
+        // The user asked for this pass (PLAN.md 4.11): not held under manual.
+        job.isReleased = true
         add(job)
     }
 
     private func add(_ job: TranscriptionJob) {
         jobs.append(job)
+        watch(job)
+        updateHold()
         eventObserver?(.queued(id: job.id, recording: job.recording.url))
+        if isHeld(job) { eventObserver?(.held(id: job.id)) }
         Self.logger.info("queued \(job.id, privacy: .public) \(job.recording.url.lastPathComponent, privacy: .public)")
         if !job.liveSegments.isEmpty { markLiveSegmentsChanged(job) }
         persist()
@@ -479,10 +586,15 @@ final class TranscriptionQueue {
                 keepRecording: entry.keepRecording, liveSegments: live, liveEnabled: !live.isEmpty
             )
             job.displayName = entry.displayName
+            // Not released: with manual the app never starts a pass by itself
+            // after a relaunch (PLAN.md 4.11).
             jobs.append(job)
+            watch(job)
             Self.logger.info("restored \(entry.id, privacy: .public) \(entry.wavFileName, privacy: .public)")
             eventObserver?(.queued(id: job.id, recording: job.recording.url))
+            if isHeld(job) { eventObserver?(.held(id: job.id)) }
         }
+        updateHold()
         persist()
         evaluate()
     }
@@ -490,20 +602,23 @@ final class TranscriptionQueue {
     /// Inserts a job as it is, without running it (UI snapshots only).
     func insertSample(
         recording: URL, state: TranscriptionJobState, progress: Double = 0, srt: URL? = nil,
-        language: TranscriptLanguage = .english, offersNotes: Bool = false
+        language: TranscriptLanguage = .english, offersNotes: Bool = false, released: Bool = false,
+        liveSegments: [CoreSegment] = []
     ) {
         var tracker = SessionLanguageTracker(choice: .fixed(language), preferred: language)
         tracker.choose(language)
         let job = TranscriptionJob(
             id: UUID().uuidString, recording: .init(url: recording, inSpool: state.isPending),
             stopTime: Date(), tracker: tracker, chineseScript: language.chineseScript,
-            keepRecording: true, liveSegments: [], liveEnabled: state.isPending, state: state
+            keepRecording: true, liveSegments: liveSegments, liveEnabled: state.isPending, state: state
         )
         job.progress = progress
         job.srt = srt
         job.wav = state == .done ? recording : nil
         job.offersNotes = offersNotes
+        job.isReleased = released
         jobs.append(job)
+        watch(job)
     }
 
     // MARK: - Driver
@@ -530,7 +645,13 @@ final class TranscriptionQueue {
 
     private func schedulePoll() {
         let running = policyJobs.contains { $0.state == .running }
-        let queued = policyJobs.contains { $0.state == .waiting || $0.state == .suspended }
+        // Held jobs (manual) wait for the user, not for foreground work or
+        // the session: no polling for them.
+        let timing = settings.finalPassTiming
+        let queued = policyJobs.contains {
+            ($0.state == .waiting || $0.state == .suspended)
+                && !TranscriptionQueuePolicy.isHeld(timing: timing, job: $0)
+        }
         guard !running, queued, pollTask == nil else { return }
         pollTask = Task { [weak self] in
             try? await Task.sleep(for: Self.pollInterval)
@@ -575,10 +696,11 @@ final class TranscriptionQueue {
         // The decoder runs at least one window before it checks for a
         // yield; do not start one when the job may not run any more (a
         // session started, or foreground work arrived, while the samples
-        // were read or the language detected).
-        guard TranscriptionQueuePolicy.mayRun(
+        // were read or the language detected), or the user put it on hold
+        // (manual).
+        guard !TranscriptionQueuePolicy.shouldYield(
             timing: settings.finalPassTiming, sessionActive: isSessionActive,
-            foregroundWaiting: engine.foregroundWaiting
+            foregroundWaiting: engine.foregroundWaiting, runningReleased: job.isReleased
         ) else {
             job.state = job.checkpoint == nil ? .waiting : .suspended
             eventObserver?(.suspended(id: job.id, progress: job.progress))
@@ -792,6 +914,10 @@ final class TranscriptionQueue {
     /// the live tail.
     func useLivePreviewInstead(_ job: TranscriptionJob) {
         guard job.canUseLivePreview else { return }
+        // The user asked for this save: a held job (manual) is released, so
+        // it is not listed as "not transcribed yet" while the live preview
+        // is written (PLAN.md 4.11).
+        setReleased(job, true)
         job.isUsingLivePreview = true
         job.stepTask?.cancel()
         job.finishTask = Task { [weak self] in
@@ -814,6 +940,8 @@ final class TranscriptionQueue {
     /// Retry after a failure: the job waits in line again, reading its kept WAV.
     func retry(_ job: TranscriptionJob) {
         guard job.canRetry else { return }
+        // The user asked for this pass: released under manual (PLAN.md 4.11).
+        setReleased(job, true)
         job.state = .waiting
         job.errorMessage = nil
         job.needsModel = false
@@ -822,6 +950,35 @@ final class TranscriptionQueue {
         job.isUsingLivePreview = false
         job.offersNotes = false
         persist()
+        evaluate()
+    }
+
+    /// Manual timing, "Transcribe" on a held row (PLAN.md 4.11): the job may
+    /// run; released jobs run first in, first out (queue order), so
+    /// releasing a later job first does not let it jump an earlier released
+    /// one. A pending job only; harmless under the other timings, which
+    /// ignore the flag.
+    func release(_ job: TranscriptionJob) {
+        guard job.isPending else { return }
+        setReleased(job, true)
+        updateHold()
+        evaluate()
+    }
+
+    /// Manual timing, "Transcribe All": releases every held job.
+    func releaseAll() {
+        for job in jobs where job.isPending { setReleased(job, true) }
+        updateHold()
+        evaluate()
+    }
+
+    /// Manual timing, "Hold" on a released row (PLAN.md 4.11): clears the
+    /// flag. A running job suspends at its next 30 s window and keeps its
+    /// checkpoint, so a later `release` continues where it stopped.
+    func hold(_ job: TranscriptionJob) {
+        guard job.isPending else { return }
+        setReleased(job, false)
+        updateHold()
         evaluate()
     }
 
