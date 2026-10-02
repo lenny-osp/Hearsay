@@ -29,6 +29,7 @@ internal sealed class RecordingStatus : INotifyPropertyChanged
     private Action? startStop;
     private Action? pause;
     private Action? stopStartNext;
+    private Action? transcribeAll;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -69,6 +70,15 @@ internal sealed class RecordingStatus : INotifyPropertyChanged
     /// <summary>The queue waits for the recording to stop (timing "when no recording is running").</summary>
     public bool QueueHeld { get; private set; }
 
+    /// <summary>Every pending job is held ("When I start them", PLAN.md 4.11): the line reads "Not transcribed yet".</summary>
+    public bool QueueAllHeld { get; private set; }
+
+    /// <summary>Jobs waiting for the user to start them (the queue's <c>HeldCount</c>).</summary>
+    public int QueueHeldCount { get; private set; }
+
+    /// <summary>Transcribe All applies (the tray item is enabled): at least one job is held.</summary>
+    public bool CanTranscribeAll => QueueHeldCount > 0;
+
     /// <summary>Starting, recording, paused or stopping.</summary>
     public bool IsSessionActive => Phase is RecordingPhase.Starting or RecordingPhase.Recording or RecordingPhase.Paused or RecordingPhase.Stopping;
 
@@ -77,15 +87,21 @@ internal sealed class RecordingStatus : INotifyPropertyChanged
 
     /// <summary>
     /// The queue's state, pushed by the shell. Raises <see cref="QueueLine"/>
-    /// when the line of the tray menu changed.
+    /// when the line of the tray menu changed, and <see cref="CanTranscribeAll"/> when
+    /// that changed. <paramref name="allHeld"/> and <paramref name="heldCount"/> are the
+    /// queue's <c>AllPendingHeld</c> and <c>HeldCount</c> ("When I start them").
     /// </summary>
-    public void SetQueue(int pending, double? activeProgress, bool held)
+    public void SetQueue(int pending, double? activeProgress, bool held, bool allHeld = false, int heldCount = 0)
     {
         var before = QueueLine;
+        var couldTranscribeAll = CanTranscribeAll;
         QueuePending = pending;
         QueueProgress = activeProgress;
         QueueHeld = held;
+        QueueAllHeld = allHeld;
+        QueueHeldCount = heldCount;
         if (QueueLine != before) PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(QueueLine)));
+        if (CanTranscribeAll != couldTranscribeAll) PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CanTranscribeAll)));
     }
 
     /// <summary>
@@ -99,6 +115,8 @@ internal sealed class RecordingStatus : INotifyPropertyChanged
         get
         {
             if (QueuePending <= 0) return null;
+            // Every job waits for the user: no percentage to show, whether or not a session runs.
+            if (QueueAllHeld) return Strings.QueueLineHeld(QueuePending);
             if (!IsSessionActive && QueueProgress is not null)
             {
                 // The state line already shows the percentage.
@@ -131,11 +149,20 @@ internal sealed class RecordingStatus : INotifyPropertyChanged
     }
 
     /// <summary>Routes the tray and hotkey commands to the recording controller.</summary>
-    public void Connect(Action toggleStartStop, Action togglePause, Action? stopAndStartNext = null)
+    public void Connect(Action toggleStartStop, Action togglePause, Action? stopAndStartNext = null, Action? transcribeAllHeld = null)
     {
         startStop = toggleStartStop;
         pause = togglePause;
         stopStartNext = stopAndStartNext;
+        transcribeAll = transcribeAllHeld;
+    }
+
+    /// <summary>The tray's Transcribe All (<c>queue.ReleaseAll()</c>); nothing unless a job is held.</summary>
+    public void TranscribeAll()
+    {
+        if (!CanTranscribeAll) return;
+        AppLog.Write("recording: transcribe all command");
+        transcribeAll?.Invoke();
     }
 
     /// <summary>The Stop &amp; Start Next hotkey and menu command (<c>stopAndStartNext()</c>); the controller ignores it unless recording.</summary>

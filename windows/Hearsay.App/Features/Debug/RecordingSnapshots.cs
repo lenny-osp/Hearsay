@@ -2,12 +2,14 @@ using Hearsay.App.Features.FileTranscription;
 using Hearsay.App.Features.Main;
 using Hearsay.App.Features.Recording;
 using Hearsay.App.Features.Recovery;
+using Hearsay.App.Features.Settings;
 using Hearsay.App.Features.Transcription;
 using Hearsay.Core.Audio;
 using Hearsay.Core.Settings;
 using Hearsay.Core.Transcription;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 
 namespace Hearsay.App.Features.Debug;
 
@@ -169,6 +171,8 @@ internal static class RecordingSnapshots
     /// a language banner, and the same at a narrow window. The rows and the
     /// tray's queue line are checked against the queue's states. Mirrors the
     /// "27-record-queue" render of mac/Hearsay/Features/Debug/UISnapshots.swift.
+    /// "When I start them" (PLAN.md 4.11, Windows only until the Mac port) follows in
+    /// <see cref="HeldQueueAsync"/>.
     /// </summary>
     private static async Task QueueStatesAsync(
         AppShell shell, string sampleOutput, Tools tools, List<TranscriptSegment> cues, RecordingSample recording)
@@ -245,6 +249,145 @@ internal static class RecordingSnapshots
         controller.ShowSample(idle);
         window.ResizeClient(MainWindow.DefaultWidth, 1000);
         await tools.Settle().ConfigureAwait(true);
+
+        await HeldQueueAsync(shell, tools, cues, idle).ConfigureAwait(true);
+    }
+
+    /// <summary>
+    /// "When I start them" (PLAN.md 4.11, 18.12), all stubbed: two held jobs (one
+    /// on hold with its progress) under Transcribe All, a released running job
+    /// with Hold among held ones, the single held meeting (then on hold, then
+    /// released), Settings > General with the third row selected, and the held
+    /// queue at a narrow window. The row texts, the buttons, the tray's line and
+    /// Transcribe All input, and the quit alert's line are checked.
+    /// </summary>
+    private static async Task HeldQueueAsync(AppShell shell, Tools tools, List<TranscriptSegment> cues, RecordingSample idle)
+    {
+        var window = shell.MainWindow;
+        var controller = shell.RecordingController;
+        var queue = shell.Queue;
+        var spool = shell.Spool.Root;
+        string Pending(string stem) => Path.Combine(spool, stem + ".wav");
+        List<string> RowStates() => [.. window.RecordView.QueueRowViews.Select(row => row.StateText)];
+        bool Shows(string text) => ShowsText(window.RenderRoot, text);
+
+        // The switch to Manual is applied by the queue before the samples exist.
+        shell.Settings.FinalPassTiming = FinalPassTiming.Manual;
+        await tools.Settle().ConfigureAwait(true);
+        queue.ClearSamples();
+        controller.ShowSample(idle);
+        window.ResizeClient(MainWindow.DefaultWidth, 1000);
+        shell.Tabs.Tab = MainTab.Record;
+
+        // Two held jobs, one of them stopped half way: Transcribe All in the card's header.
+        var onHold = queue.InsertSample(Pending("2026-09-30_09-00-00"), TranscriptionJobState.Suspended, 0.45, live: cues);
+        queue.InsertSample(Pending("2026-09-30_10-00-00"), TranscriptionJobState.Waiting);
+        await tools.Settle().ConfigureAwait(true);
+        tools.Check(onHold.IsHeld && queue.HeldCount == 2 && queue.AllPendingHeld, "Manual holds both pending jobs");
+        tools.Check(RowStates().SequenceEqual([Strings.QueueOnHold(45), Strings.QueueNotTranscribedYet]),
+            $"the held rows read on hold and not transcribed yet ({string.Join(" | ", RowStates())})");
+        foreach (var row in window.RecordView.QueueRowViews)
+        {
+            tools.Check(row.ShownButtons.SequenceEqual([Strings.TranscribeButton, Strings.UseLivePreviewInstead]),
+                $"a held row offers Transcribe first, then the live preview ({string.Join(", ", row.ShownButtons)})");
+        }
+        tools.Check(Shows(Strings.TranscribeAll), "Transcribe All shows while jobs are held");
+        tools.Check(shell.Recording.QueueLine == Strings.QueueLineHeld(2) && shell.Recording.CanTranscribeAll,
+            $"the tray says not transcribed yet and offers Transcribe All ({shell.Recording.QueueLine})");
+        tools.Check(Strings.QuitQueueMessage(queue.AllPendingHeld) == Strings.TheyStayInQueue, "the quit alert says the jobs stay in the queue");
+        await tools.Render("71-record-queue-held", window.RenderRoot).ConfigureAwait(true);
+
+        // The same at a narrow window: the header and the actions wrap.
+        window.ResizeClient(480, 1300);
+        await tools.Settle().ConfigureAwait(true);
+        await tools.Render("75-record-queue-held-narrow", window.RenderRoot).ConfigureAwait(true);
+        window.ResizeClient(MainWindow.DefaultWidth, 1000);
+
+        // A released running job (Hold) among held jobs.
+        queue.ClearSamples();
+        var running = queue.InsertSample(Pending("2026-09-30_09-00-00"), TranscriptionJobState.Running, 0.45, live: cues);
+        running.IsReleased = true;
+        queue.InsertSample(Pending("2026-09-30_10-00-00"), TranscriptionJobState.Waiting);
+        queue.InsertSample(Pending("2026-09-30_11-00-00"), TranscriptionJobState.Waiting);
+        await tools.Settle().ConfigureAwait(true);
+        tools.Check(RowStates().SequenceEqual([Strings.QueueTranscribing(45), Strings.QueueNotTranscribedYet, Strings.QueueNotTranscribedYet]),
+            $"the released job runs while the others are held ({string.Join(" | ", RowStates())})");
+        var released = window.RecordView.QueueRowViews[0].ShownButtons;
+        tools.Check(released.SequenceEqual([Strings.Hold, Strings.UseLivePreviewInstead]), $"a released row offers Hold ({string.Join(", ", released)})");
+        tools.Check(queue.HeldCount == 2 && !queue.AllPendingHeld && shell.Recording.CanTranscribeAll
+            && shell.Recording.QueueLine == Strings.QueueLineCount(3), $"two of three are held ({shell.Recording.QueueLine})");
+        tools.Check(Strings.QuitQueueMessage(queue.AllPendingHeld) == Strings.HearsayContinuesNextTime, "the quit alert keeps the Mac's line while a job is released");
+        await tools.Render("72-record-queue-held-mixed", window.RenderRoot).ConfigureAwait(true);
+
+        // The single meeting: held (live preview, Transcribe), on hold, then released (Hold).
+        queue.ClearSamples();
+        var single = queue.InsertSample(Pending("2026-09-30_09-00-00"), TranscriptionJobState.Waiting, live: cues);
+        window.ResizeClient(MainWindow.DefaultWidth, 1000);
+        await tools.Settle().ConfigureAwait(true);
+        tools.Check(queue.FeaturedJob == single && !QueueRows.ShowsList(queue), "one held job and no session is the single meeting");
+        tools.Check(Shows(Strings.QueueNotTranscribedYet) && Shows(Strings.TranscribeButton) && Shows(Strings.UseLivePreviewInstead)
+            && !Shows(Strings.Hold) && !Shows(Strings.Transcribing), "the single held meeting offers Transcribe and the live preview, no progress");
+        await tools.Render("73-record-held-meeting", window.RenderRoot).ConfigureAwait(true);
+        window.ResizeClient(480, 1000);
+        await tools.Settle().ConfigureAwait(true);
+        await tools.Render("76-record-held-meeting-narrow", window.RenderRoot).ConfigureAwait(true);
+        window.ResizeClient(MainWindow.DefaultWidth, 1000);
+        queue.ClearSamples();
+        var stopped = queue.InsertSample(Pending("2026-09-30_09-00-00"), TranscriptionJobState.Suspended, 0.45, live: cues);
+        await tools.Settle().ConfigureAwait(true);
+        tools.Check(queue.FeaturedJob == stopped && Shows(Strings.QueueOnHold(45)) && Shows(Strings.TranscribeButton),
+            "the single meeting on hold keeps its progress and offers Transcribe");
+        queue.Release(stopped);
+        await tools.Settle().ConfigureAwait(true);
+        tools.Check(!stopped.IsHeld && Shows(Strings.Transcribing) && Shows(Strings.Hold) && !Shows(Strings.TranscribeButton),
+            "once released the single meeting shows its progress and Hold");
+
+        // Settings > General with the third row selected.
+        queue.ClearSamples();
+        shell.Tabs.Tab = MainTab.Settings;
+        window.SettingsView.Show(SettingsPane.General);
+        await tools.Settle().ConfigureAwait(true);
+        // The window is not taller than the screen: scroll the page so the Transcription card shows whole.
+        if (Scroller(window.RenderRoot) is { } scroller)
+        {
+            scroller.ChangeView(null, 420, null, disableAnimation: true);
+            await tools.Settle().ConfigureAwait(true);
+        }
+        tools.Check(Shows(Strings.TimingManual) && Shows(Strings.FinalPassTimingCaption),
+            "Settings > General shows the third row selected and its caption");
+        await tools.Render("74-settings-general-manual", window.RenderRoot).ConfigureAwait(true);
+
+        shell.Tabs.Tab = MainTab.Record;
+        shell.Settings.FinalPassTiming = FinalPassTiming.WhenIdle;
+        await tools.Settle().ConfigureAwait(true);
+        controller.ShowSample(idle);
+    }
+
+    /// <summary>The first scroll viewer of the shown page that can scroll vertically.</summary>
+    private static ScrollViewer? Scroller(DependencyObject root)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is UIElement { Visibility: Visibility.Collapsed }) continue;
+            if (child is ScrollViewer { ScrollableHeight: > 0 } found) return found;
+            if (Scroller(child) is { } nested) return nested;
+        }
+        return null;
+    }
+
+    /// <summary>A visible text block or button in <paramref name="root"/> reads <paramref name="text"/> (collapsed subtrees are skipped).</summary>
+    private static bool ShowsText(DependencyObject root, string text)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is UIElement { Visibility: Visibility.Collapsed }) continue;
+            if (child is TextBlock block && block.Text == text) return true;
+            if (child is ContentControl { Content: string content } && content == text) return true;
+            if (ShowsText(child, text)) return true;
+        }
+        return false;
     }
 
     /// <summary>The cues of en-30s.expected.srt as a live preview.</summary>

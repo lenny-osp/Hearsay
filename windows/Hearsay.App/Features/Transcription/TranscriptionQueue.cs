@@ -60,6 +60,12 @@ internal abstract record QueueEvent
 
     public sealed record Resumed(string Id) : QueueEvent;
 
+    /// <summary>Manual timing (PLAN.md 4.11): the job is held (queued unreleased, put on hold, or held by a switch to Manual).</summary>
+    public sealed record Held(string Id) : QueueEvent;
+
+    /// <summary>Manual timing: the user released the job (Transcribe, Transcribe All, Try Again, or a switch to Manual for a job that had started).</summary>
+    public sealed record Released(string Id) : QueueEvent;
+
     public sealed record Language(string Id, LanguageDecision Decision) : QueueEvent;
 
     public sealed record Done(string Id, string Srt) : QueueEvent;
@@ -94,6 +100,8 @@ internal sealed class TranscriptionJob : INotifyPropertyChanged
     private double rerunProgress;
     private string? rerunError;
     private bool offersNotes;
+    private bool isReleased;
+    private bool isHeld;
 
     internal TranscriptionJob(
         string id, TranscriptOutput.PendingRecording recording, DateTimeOffset stopTime, SessionLanguageTracker tracker,
@@ -240,6 +248,29 @@ internal sealed class TranscriptionJob : INotifyPropertyChanged
         internal set => Set(ref offersNotes, value, nameof(OffersNotes));
     }
 
+    /// <summary>
+    /// Manual timing (PLAN.md 4.11): the user released this job, so it may run
+    /// (when no session is active and no foreground work waits). In memory
+    /// only: <c>queue.json</c> does not store it, so every job restored at
+    /// launch is unreleased. Read only while the timing is Manual.
+    /// </summary>
+    public bool IsReleased
+    {
+        get => isReleased;
+        internal set => Set(ref isReleased, value, nameof(IsReleased));
+    }
+
+    /// <summary>
+    /// Held (PLAN.md 4.11): the timing is Manual and this job is pending and not
+    /// released. Kept up to date by the queue (on release, hold, state and timing
+    /// changes); the row reads "Not transcribed yet" and offers Transcribe.
+    /// </summary>
+    public bool IsHeld
+    {
+        get => isHeld;
+        internal set => Set(ref isHeld, value, nameof(IsHeld));
+    }
+
     // Internal state of the queue's driver (the Mac's fileprivate / ObservationIgnored members).
 
     /// <summary>The session's live sink while its tail is still being transcribed.</summary>
@@ -378,8 +409,9 @@ internal sealed class TranscriptionJob : INotifyPropertyChanged
 /// changes, and every <see cref="PollInterval"/> while a job waits or is
 /// suspended (the engine's foreground counter is not observable). A step runs
 /// through <see cref="IQueueEngine.TranscribeStepAsync"/>, which suspends at
-/// the next 30 s window while foreground work waits or the hold flag
-/// (whenIdle and a session active) is set. The queue checks
+/// the next 30 s window while foreground work waits or the hold flag is set
+/// (whenIdle or Manual with a session active, or Manual and the running job
+/// not released). The queue checks
 /// <see cref="TranscriptionQueuePolicy.MayRun"/> again just before each step,
 /// because a step decodes one window before it can yield.
 /// </para>
@@ -400,8 +432,16 @@ internal sealed class TranscriptionJob : INotifyPropertyChanged
 /// list, tray, Settings): bind to <see cref="Jobs"/> (an observable
 /// collection), each job's <see cref="TranscriptionJob.PropertyChanged"/>,
 /// <see cref="PropertyChanged"/> (PendingCount, ActiveJob, FeaturedJob,
-/// IsSessionActive, IsHeldForSession) or the catch-all <see cref="Changed"/>,
-/// and call the row commands below.
+/// IsSessionActive, IsHeldForSession, HeldCount, AllPendingHeld) or the
+/// catch-all <see cref="Changed"/>, and call the row commands below.
+/// </para>
+/// <para>
+/// Manual timing (PLAN.md 4.11, 18.12): every job has an in-memory
+/// <see cref="TranscriptionJob.IsReleased"/> flag, read only while the timing
+/// is Manual. A pending, unreleased job is held (<see cref="IsHeld"/>); the
+/// driver never starts or resumes it. <see cref="Release"/>, <see cref="ReleaseAll"/>
+/// and <see cref="Hold"/> change the flag; "Try Again" queues the job
+/// released; a switch to Manual releases started jobs and holds waiting ones.
 /// </para>
 /// </summary>
 internal sealed class TranscriptionQueue : INotifyPropertyChanged, IDisposable
@@ -421,6 +461,7 @@ internal sealed class TranscriptionQueue : INotifyPropertyChanged, IDisposable
     private TranscriptionQueueStore store;
     private Func<string> modelLocation;
     private volatile bool held;
+    private FinalPassTiming lastTiming;
     private bool isSessionActive;
     private bool isHeldForSession;
     private NotesRequest? notesRequest;
@@ -458,6 +499,7 @@ internal sealed class TranscriptionQueue : INotifyPropertyChanged, IDisposable
         context = SynchronizationContext.Current;
         Jobs = new ReadOnlyObservableCollection<TranscriptionJob>(jobs);
         jobs.CollectionChanged += OnJobsChanged;
+        lastTiming = settings.FinalPassTiming;
         UpdateHold();
         settings.PropertyChanged += OnSettingsChanged;
     }
@@ -482,7 +524,7 @@ internal sealed class TranscriptionQueue : INotifyPropertyChanged, IDisposable
     /// <summary>A session is active (Starting, Recording, Paused, Stopping); set by the recording controller.</summary>
     public bool IsSessionActive => isSessionActive;
 
-    /// <summary>whenIdle and a session is active: jobs do not run.</summary>
+    /// <summary>whenIdle or Manual, and a session is active: released jobs do not run.</summary>
     public bool IsHeldForSession => isHeldForSession;
 
     /// <summary>The finished SRT waiting for the notes flow (taken with <see cref="TakeNotesRequest"/>).</summary>
@@ -501,25 +543,54 @@ internal sealed class TranscriptionQueue : INotifyPropertyChanged, IDisposable
         {
             if (job is { IsUsingLivePreview: true, IsPending: true })
             {
-                if (job.StepTask is not null) list.Add(new(job.Id, TranscriptionJobState.Running));
+                // The user chose the live preview for this job: its save is never held.
+                if (job.StepTask is not null) list.Add(new(job.Id, TranscriptionJobState.Running, Released: true));
                 continue;
             }
-            list.Add(new(job.Id, job.State));
+            list.Add(new(job.Id, job.State, job.IsReleased));
         }
         return list;
     }
 
-    private List<TranscriptionQueuePolicy.Job> StateJobs() => [.. jobs.Select(job => new TranscriptionQueuePolicy.Job(job.Id, job.State))];
+    private List<TranscriptionQueuePolicy.Job> StateJobs() =>
+        [.. jobs.Select(job => new TranscriptionQueuePolicy.Job(job.Id, job.State, job.IsReleased))];
 
-    /// <summary>Recordings not transcribed yet; Quit asks when above 0.</summary>
+    /// <summary>Recordings not transcribed yet, held ones included; Quit asks when above 0.</summary>
     public int PendingCount => TranscriptionQueuePolicy.QuitNeedsConfirmation(StateJobs());
 
-    /// <summary>An update install must wait.</summary>
-    public bool BlocksUpdateInstall => TranscriptionQueuePolicy.BlocksUpdateInstall(StateJobs());
+    /// <summary>
+    /// An update install must wait. Held jobs (Manual) do not block: they are in
+    /// <c>queue.json</c> and come back held after the relaunch.
+    /// </summary>
+    public bool BlocksUpdateInstall => TranscriptionQueuePolicy.BlocksUpdateInstall(settings.FinalPassTiming, StateJobs());
 
-    /// <summary>The job being transcribed or suspended, for the tray.</summary>
+    /// <summary>The job is held: the timing is Manual and it is pending and not released (PLAN.md 4.11).</summary>
+    public bool IsHeld(TranscriptionJob job)
+    {
+        ArgumentNullException.ThrowIfNull(job);
+        return TranscriptionQueuePolicy.IsHeld(settings.FinalPassTiming, new(job.Id, job.State, job.IsReleased));
+    }
+
+    /// <summary>How many jobs are held; "Transcribe All" shows while this is above 0.</summary>
+    public int HeldCount => jobs.Count(IsHeld);
+
+    /// <summary>
+    /// Every pending job is held, and there is at least one: the quit alert reads
+    /// "They stay in the queue until you transcribe them." and the tray line reads
+    /// "Not transcribed yet · in queue: N". False unless the timing is Manual.
+    /// </summary>
+    public bool AllPendingHeld => TranscriptionQueuePolicy.AllPendingHeld(settings.FinalPassTiming, StateJobs());
+
+    /// <summary>At least one job waits for a session to end (a released job under whenIdle or Manual; held jobs do not count).</summary>
+    public bool HasJobPausedForSession => jobs.Any(IsPausedForSession);
+
+    /// <summary>
+    /// The job being transcribed or suspended, for the tray. A suspended job
+    /// that is held (Manual, put on hold) is not active: it waits for the user.
+    /// </summary>
     public TranscriptionJob? ActiveJob =>
-        jobs.FirstOrDefault(job => job.State is TranscriptionJobState.Running or TranscriptionJobState.Suspended);
+        jobs.FirstOrDefault(job => job.State == TranscriptionJobState.Running
+            || (job.State == TranscriptionJobState.Suspended && !IsHeld(job)));
 
     /// <summary>
     /// With no session active and exactly one job, the Record tab shows it as
@@ -549,9 +620,17 @@ internal sealed class TranscriptionQueue : INotifyPropertyChanged, IDisposable
     public IReadOnlySet<string> BusyStems =>
         BusyFiles.Select(Path.GetFileNameWithoutExtension).OfType<string>().ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>A job waits or is suspended because a session runs in whenIdle; its row says "Paused while recording".</summary>
-    public bool IsPausedForSession(TranscriptionJob job) =>
-        isHeldForSession && job.State is TranscriptionJobState.Suspended or TranscriptionJobState.Waiting && !job.IsUsingLivePreview;
+    /// <summary>
+    /// A job waits or is suspended because a session runs in whenIdle or Manual;
+    /// its row says "Paused while recording". A held job (Manual, not released)
+    /// is not paused for the session: it waits for the user.
+    /// </summary>
+    public bool IsPausedForSession(TranscriptionJob job)
+    {
+        ArgumentNullException.ThrowIfNull(job);
+        return isHeldForSession && job.State is TranscriptionJobState.Suspended or TranscriptionJobState.Waiting
+            && !job.IsUsingLivePreview && !IsHeld(job);
+    }
 
     /// <summary>
     /// The finished SRT waiting for the notes flow, once. The request is
@@ -594,12 +673,20 @@ internal sealed class TranscriptionQueue : INotifyPropertyChanged, IDisposable
         Evaluate();
     }
 
+    /// <summary>
+    /// Recomputes the volatile flag the decoder's <c>shouldYield</c> reads
+    /// (whenIdle or Manual with a session active; Manual with a running job that
+    /// is not released, i.e. a Hold) and <see cref="IsHeldForSession"/>.
+    /// </summary>
     private void UpdateHold()
     {
-        var value = settings.FinalPassTiming == FinalPassTiming.WhenIdle && isSessionActive;
-        held = value;
-        if (value == isHeldForSession) return;
-        isHeldForSession = value;
+        var timing = settings.FinalPassTiming;
+        var sessionHold = timing is FinalPassTiming.WhenIdle or FinalPassTiming.Manual && isSessionActive;
+        var holdRunning = timing == FinalPassTiming.Manual
+            && jobs.Any(job => job.State == TranscriptionJobState.Running && !job.IsReleased && !job.IsUsingLivePreview);
+        held = sessionHold || holdRunning;
+        if (sessionHold == isHeldForSession) return;
+        isHeldForSession = sessionHold;
         RaiseQueueChanged(nameof(IsHeldForSession));
     }
 
@@ -608,9 +695,52 @@ internal sealed class TranscriptionQueue : INotifyPropertyChanged, IDisposable
         if (e.PropertyName != nameof(AppSettings.FinalPassTiming)) return;
         Post(() =>
         {
+            ApplyTimingChange();
             UpdateHold();
             Evaluate();
         });
+    }
+
+    /// <summary>
+    /// PLAN.md 4.11: switching to Manual releases the jobs that already started
+    /// (running or suspended) and holds the waiting ones; switching away ignores
+    /// the flags, and <see cref="Evaluate"/> applies the other timing's rules at once.
+    /// </summary>
+    private void ApplyTimingChange()
+    {
+        var timing = settings.FinalPassTiming;
+        var previous = lastTiming;
+        lastTiming = timing;
+        if (timing == FinalPassTiming.Manual && previous != FinalPassTiming.Manual)
+        {
+            foreach (var job in jobs.Where(job => job.IsPending))
+            {
+                var started = job.State is TranscriptionJobState.Running or TranscriptionJobState.Suspended;
+                var changes = job.IsReleased != started;
+                SetReleased(job, started);
+                // A waiting job that was never released becomes held without a flag change: announce it too.
+                if (!started && !changes) EventObserver?.Invoke(new QueueEvent.Held(job.Id));
+            }
+        }
+        foreach (var job in jobs) SyncHeld(job);
+        RaiseQueueChanged(nameof(HeldCount), nameof(AllPendingHeld));
+    }
+
+    /// <summary>Keeps <see cref="TranscriptionJob.IsHeld"/> equal to <see cref="IsHeld"/>.</summary>
+    private void SyncHeld(TranscriptionJob job) => job.IsHeld = IsHeld(job);
+
+    /// <summary>
+    /// Sets the released flag. Under Manual a change is announced to the observer
+    /// (the debug replay) as a Held or Released event; under the other timings
+    /// the flag has no visible meaning and nothing is announced.
+    /// </summary>
+    private void SetReleased(TranscriptionJob job, bool value)
+    {
+        if (job.IsReleased == value) return;
+        job.IsReleased = value;
+        if (settings.FinalPassTiming != FinalPassTiming.Manual) return;
+        EventObserver?.Invoke(value ? new QueueEvent.Released(job.Id) : new QueueEvent.Held(job.Id));
+        AppLog.Write($"queue: {(value ? "released" : "held")} {job.Id}");
     }
 
     // MARK: - Adding jobs
@@ -696,6 +826,8 @@ internal sealed class TranscriptionQueue : INotifyPropertyChanged, IDisposable
             liveEnabled: false)
         {
             Srt = transcript,
+            // The user asked for this pass (PLAN.md 4.11): not held under Manual.
+            IsReleased = true,
         };
         Add(job);
     }
@@ -704,7 +836,9 @@ internal sealed class TranscriptionQueue : INotifyPropertyChanged, IDisposable
     {
         jobs.Add(job);
         job.PropertyChanged += OnJobPropertyChanged;
+        SyncHeld(job);
         EventObserver?.Invoke(new QueueEvent.Queued(job.Id, job.Recording.Path));
+        if (job.IsHeld) EventObserver?.Invoke(new QueueEvent.Held(job.Id));
         AppLog.Write($"queue: queued {job.Id} {Path.GetFileName(job.Recording.Path)}");
         if (job.LiveSegments.Count > 0) MarkLiveSegmentsChanged(job);
         Persist();
@@ -764,10 +898,13 @@ internal sealed class TranscriptionQueue : INotifyPropertyChanged, IDisposable
             {
                 DisplayName = entry.DisplayName,
             };
+            // Not released: with Manual the app never starts a pass by itself after a relaunch (PLAN.md 4.11).
             jobs.Add(job);
             job.PropertyChanged += OnJobPropertyChanged;
+            SyncHeld(job);
             AppLog.Write($"queue: restored {entry.Id} {entry.WavFileName}");
             EventObserver?.Invoke(new QueueEvent.Queued(job.Id, job.Recording.Path));
+            if (job.IsHeld) EventObserver?.Invoke(new QueueEvent.Held(job.Id));
         }
         Persist();
         Evaluate();
@@ -798,6 +935,7 @@ internal sealed class TranscriptionQueue : INotifyPropertyChanged, IDisposable
         showsSamples = true;
         jobs.Add(job);
         job.PropertyChanged += OnJobPropertyChanged;
+        SyncHeld(job);
         return job;
     }
 
@@ -848,7 +986,10 @@ internal sealed class TranscriptionQueue : INotifyPropertyChanged, IDisposable
     {
         var policy = PolicyJobs();
         var running = policy.Any(job => job.State == TranscriptionJobState.Running);
-        var queued = policy.Any(job => job.State is TranscriptionJobState.Waiting or TranscriptionJobState.Suspended);
+        // Held jobs (Manual) wait for the user, not for foreground work or the session: no polling for them.
+        var timing = settings.FinalPassTiming;
+        var queued = policy.Any(job =>
+            job.State is TranscriptionJobState.Waiting or TranscriptionJobState.Suspended && !TranscriptionQueuePolicy.IsHeld(timing, job));
         if (running || !queued || polling) return;
         polling = true;
         pollCancellation?.Dispose();
@@ -933,8 +1074,8 @@ internal sealed class TranscriptionQueue : INotifyPropertyChanged, IDisposable
         // The decoder runs at least one window before it checks for a yield;
         // do not start one when the job may not run any more (a session
         // started, or foreground work arrived, while the samples were read or
-        // the language detected).
-        if (!TranscriptionQueuePolicy.MayRun(settings.FinalPassTiming, isSessionActive, engine.ForegroundWaiting))
+        // the language detected), or the user put it on hold (Manual).
+        if (TranscriptionQueuePolicy.ShouldYield(settings.FinalPassTiming, isSessionActive, engine.ForegroundWaiting, job.IsReleased))
         {
             job.State = job.Checkpoint is null ? TranscriptionJobState.Waiting : TranscriptionJobState.Suspended;
             EventObserver?.Invoke(new QueueEvent.Suspended(job.Id, job.Progress));
@@ -991,7 +1132,11 @@ internal sealed class TranscriptionQueue : INotifyPropertyChanged, IDisposable
         }
     }
 
-    /// <summary>The decoder's yield check, on the engine's thread: only the lock-free counter and a volatile flag.</summary>
+    /// <summary>
+    /// The decoder's yield check, on the engine's thread: only the lock-free
+    /// counter and a volatile flag (<see cref="UpdateHold"/>: a session under
+    /// whenIdle or Manual, or Manual with a running job that was put on hold).
+    /// </summary>
     private bool ShouldYield() => engine.ForegroundWaiting > 0 || held;
 
     private bool IsStillRunning(TranscriptionJob job, CancellationToken token) =>
@@ -1190,6 +1335,9 @@ internal sealed class TranscriptionQueue : INotifyPropertyChanged, IDisposable
         ArgumentNullException.ThrowIfNull(job);
         if (!job.CanUseLivePreview) return;
         job.IsUsingLivePreview = true;
+        // The user asked for this save: a held job (Manual) is released, so it is not
+        // listed as "not transcribed yet" while the live preview is written (PLAN.md 4.11, WI-2).
+        SetReleased(job, true);
         job.StepCancellation?.Cancel();
         job.FinishTask = FinishWithLivePreviewAsync(job);
         Evaluate();
@@ -1235,6 +1383,8 @@ internal sealed class TranscriptionQueue : INotifyPropertyChanged, IDisposable
     {
         ArgumentNullException.ThrowIfNull(job);
         if (!job.CanRetry) return;
+        // The user asked for this pass: released under Manual (PLAN.md 4.11).
+        SetReleased(job, true);
         job.State = TranscriptionJobState.Waiting;
         job.ErrorMessage = null;
         job.NeedsModel = false;
@@ -1243,6 +1393,43 @@ internal sealed class TranscriptionQueue : INotifyPropertyChanged, IDisposable
         job.IsUsingLivePreview = false;
         job.OffersNotes = false;
         Persist();
+        Evaluate();
+    }
+
+    /// <summary>
+    /// Manual timing, "Transcribe" on a held row (PLAN.md 4.11): the job may run;
+    /// released jobs run first in, first out (queue order), so releasing a later
+    /// job first does not let it jump an earlier released one. A pending job only;
+    /// harmless under the other timings, which ignore the flag.
+    /// </summary>
+    public void Release(TranscriptionJob job)
+    {
+        ArgumentNullException.ThrowIfNull(job);
+        if (!job.IsPending) return;
+        SetReleased(job, true);
+        UpdateHold();
+        Evaluate();
+    }
+
+    /// <summary>Manual timing, "Transcribe All": releases every held job.</summary>
+    public void ReleaseAll()
+    {
+        foreach (var job in jobs.Where(job => job.IsPending).ToList()) SetReleased(job, true);
+        UpdateHold();
+        Evaluate();
+    }
+
+    /// <summary>
+    /// Manual timing, "Hold" on a released row (PLAN.md 4.11): clears the flag. A
+    /// running job suspends at its next 30 s window and keeps its checkpoint, so a
+    /// later <see cref="Release"/> continues where it stopped. A pending job only.
+    /// </summary>
+    public void Hold(TranscriptionJob job)
+    {
+        ArgumentNullException.ThrowIfNull(job);
+        if (!job.IsPending) return;
+        SetReleased(job, false);
+        UpdateHold();
         Evaluate();
     }
 
@@ -1530,7 +1717,19 @@ internal sealed class TranscriptionQueue : INotifyPropertyChanged, IDisposable
     {
         if (e.PropertyName is null or nameof(TranscriptionJob.State))
         {
-            RaiseQueueChanged(nameof(PendingCount), nameof(ActiveJob));
+            if (sender is TranscriptionJob changed) SyncHeld(changed);
+            UpdateHold();
+            RaiseQueueChanged(nameof(PendingCount), nameof(ActiveJob), nameof(HeldCount), nameof(AllPendingHeld));
+        }
+        else if (e.PropertyName == nameof(TranscriptionJob.IsReleased))
+        {
+            if (sender is TranscriptionJob changed) SyncHeld(changed);
+            UpdateHold();
+            RaiseQueueChanged(nameof(HeldCount), nameof(AllPendingHeld));
+        }
+        else if (e.PropertyName == nameof(TranscriptionJob.IsHeld))
+        {
+            RaiseQueueChanged(nameof(HeldCount), nameof(AllPendingHeld));
         }
         else
         {

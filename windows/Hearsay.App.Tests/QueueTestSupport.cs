@@ -261,6 +261,8 @@ internal sealed class QueueRig : IDisposable
             QueueEvent.Running running => $"running {Number(running.Id)}",
             QueueEvent.Suspended suspended => $"suspended {Number(suspended.Id)}",
             QueueEvent.Resumed resumed => $"resumed {Number(resumed.Id)}",
+            QueueEvent.Held held => $"held {Number(held.Id)}",
+            QueueEvent.Released released => $"released {Number(released.Id)}",
             QueueEvent.Language language => $"language {Number(language.Id)}",
             QueueEvent.Done done => $"done {Number(done.Id)}",
             QueueEvent.Failed failed => $"failed {Number(failed.Id)}",

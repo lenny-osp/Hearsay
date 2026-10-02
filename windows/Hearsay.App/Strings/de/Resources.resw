@@ -1049,10 +1049,6 @@
     <value>{0} unter {1}</value>
     <comment>app: %@ at %@</comment>
   </data>
-  <data name="app_d4d87ff16597b559" xml:space="preserve">
-    <value>In beiden Fällen kann die nächste Aufnahme sofort beginnen.</value>
-    <comment>app: Either way, the next recording can start at once.</comment>
-  </data>
   <data name="app_d640c7421da06661" xml:space="preserve">
     <value>Fortsetzen</value>
     <comment>app: Resume</comment>
@@ -1685,6 +1681,10 @@
     <value>Bereits für „Pausieren / Fortsetzen“ verwendet.</value>
     <comment>windows: Already used for Pause / Resume.</comment>
   </data>
+  <data name="windows_35db9e8df3274ed3" xml:space="preserve">
+    <value>Alle transkribieren</value>
+    <comment>windows: Transcribe All</comment>
+  </data>
   <data name="windows_39e17d7a7d2ee080" xml:space="preserve">
     <value>Die Datei konnte nicht geöffnet werden</value>
     <comment>windows: Could not open the file</comment>
@@ -1708,6 +1708,10 @@
   <data name="windows_494fae321ac72722" xml:space="preserve">
     <value>Aus: Die Aufnahme verwendet die im Tab „Aufnahme“ gewählte Sprache, und „Automatisch“ erkennt sie. Ein: Wenn eine Besprechung beginnt, fragt Hearsay, ob und in welcher Sprache sie aufgenommen werden soll, und nimmt nach der Bestätigung auf.</value>
     <comment>windows: Off: the recording uses the language chosen on the Record tab, and Auto detects it. On: when a meeting starts, Hearsay asks whether to record it and in which language, and records when you confirm.</comment>
+  </data>
+  <data name="windows_4b897b8f423ef8b3" xml:space="preserve">
+    <value>Stellt die Transkription vorerst zurück. „Transkribieren“ setzt sie dort fort, wo sie stehen geblieben ist.</value>
+    <comment>windows: Stops transcribing for now. Transcribe continues where it stopped.</comment>
   </data>
   <data name="windows_4d6f50f3f1d532cc" xml:space="preserve">
     <value>Nicht aufnehmen</value>
@@ -1741,6 +1745,10 @@
     <value>Die Einstellungen konnten nicht gesichert werden: {0} Die Änderung gilt, bis Hearsay beendet wird.</value>
     <comment>windows: Could not save the settings: %@ The change holds until Hearsay quits.</comment>
   </data>
+  <data name="windows_67700d3b457d11b5" xml:space="preserve">
+    <value>Sie bleiben in der Warteschlange, bis sie transkribiert werden.</value>
+    <comment>windows: They stay in the queue until you transcribe them.</comment>
+  </data>
   <data name="windows_6ab7c6f11835ac7c" xml:space="preserve">
     <value>Das Sprachmodell konnte nicht geladen werden: {0}</value>
     <comment>windows: Could not load the speech model: %@</comment>
@@ -1748,6 +1756,10 @@
   <data name="windows_6af8eef13809f390" xml:space="preserve">
     <value>Einige Dateien konnten nicht in den Papierkorb verschoben werden:</value>
     <comment>windows: Some files could not be moved to the Recycle Bin:</comment>
+  </data>
+  <data name="windows_6c71b9b29660b967" xml:space="preserve">
+    <value>Noch nicht transkribiert</value>
+    <comment>windows: Not transcribed yet</comment>
   </data>
   <data name="windows_70c02b4d20ec1f05" xml:space="preserve">
     <value>Aufnahme nicht gestartet</value>
@@ -1792,6 +1804,10 @@
   <data name="windows_87b7917d027b1c03" xml:space="preserve">
     <value>Die neue Version ist von {0} signiert, nicht wie diese Kopie von Hearsay von {1}.</value>
     <comment>windows: The new version is signed by %@, not by %@ like this copy of Hearsay.</comment>
+  </data>
+  <data name="windows_8e685d5409b3a543" xml:space="preserve">
+    <value>Zurückstellen</value>
+    <comment>windows: Hold</comment>
   </data>
   <data name="windows_8f8367e088351c7b" xml:space="preserve">
     <value>Die Dateien konnten nicht im Explorer angezeigt werden: {0}</value>
@@ -1893,6 +1909,10 @@
     <value>Live-Vorschau aus: Dieser Computer ist dafür zu langsam</value>
     <comment>windows: Live preview off: this computer is too slow for it</comment>
   </data>
+  <data name="windows_d018c786d31799da" xml:space="preserve">
+    <value>Die nächste Aufnahme kann in jedem Fall sofort beginnen. Bei „Wenn ich sie starte“ warten Aufnahmen im Tab „Aufnahme“, bis „Transkribieren“ oder „Alle transkribieren“ gewählt wird.</value>
+    <comment>windows: The next recording can start at once, whichever you choose. With “When I start them”, recordings wait on the Record tab until you click Transcribe or Transcribe All.</comment>
+  </data>
   <data name="windows_d06dc9e77902afe4" xml:space="preserve">
     <value>Das gesamte Transkript wird an {0} gesendet. Ansonsten verlässt nichts diesen PC.</value>
     <comment>windows: This sends the whole transcript to %@. Nothing leaves this PC otherwise.</comment>
@@ -1912,6 +1932,14 @@
   <data name="windows_d813f1147af1497b" xml:space="preserve">
     <value>In den Papierkorb verschieben …</value>
     <comment>windows: Move to Recycle Bin…</comment>
+  </data>
+  <data name="windows_d976a3c4ef0d2456" xml:space="preserve">
+    <value>Zurückgestellt · {0} %</value>
+    <comment>windows: On hold · %lld%%</comment>
+  </data>
+  <data name="windows_d9e5b3fc43a43c1d" xml:space="preserve">
+    <value>Wenn ich sie starte</value>
+    <comment>windows: When I start them</comment>
   </data>
   <data name="windows_db1423267c535dfc" xml:space="preserve">
     <value>Das letzte Update konnte nicht installiert werden. Hearsay ist noch die vorherige Version.</value>
@@ -1964,5 +1992,9 @@
   <data name="windows_f7b1e9954acd73a9" xml:space="preserve">
     <value>Verwendet das auf diesem PC installierte Claude Code und die Anmeldung mit dem Claude-Abonnement; Anfragen zählen zu dessen Nutzungslimits. Zum Anmelden einmal `claude` im Terminal ausführen. Modell: ein Alias (sonnet, opus) oder eine vollständige ID. Aufwand: low, medium, high, xhigh oder max (none und minimal werden zu low).</value>
     <comment>windows: Uses Claude Code installed on this PC and your Claude subscription login; requests count against its usage limits. Run `claude` once in Terminal to log in. Model: an alias (sonnet, opus) or a full id. Effort: low, medium, high, xhigh, or max (none and minimal become low).</comment>
+  </data>
+  <data name="windows_fb58188d9bbd2b79" xml:space="preserve">
+    <value>Noch nicht transkribiert · in der Warteschlange: {0}</value>
+    <comment>windows: Not transcribed yet · in queue: %lld</comment>
   </data>
 </root>

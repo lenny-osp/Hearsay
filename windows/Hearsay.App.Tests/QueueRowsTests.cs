@@ -173,18 +173,20 @@ public sealed class QueueRowsTests
     }
 
     [Fact]
-    public void TheTimingPickerHasTheTwoRowsInOrderAndMapsBothWays()
+    public void TheTimingPickerHasTheThreeRowsInOrderAndMapsBothWays()
     {
         using var english = new InterfaceLanguageScope(InterfaceLanguage.English);
-        Assert.Equal([FinalPassTiming.Immediate, FinalPassTiming.WhenIdle], FinalPassTimingChoices.All);
+        Assert.Equal([FinalPassTiming.Immediate, FinalPassTiming.WhenIdle, FinalPassTiming.Manual], FinalPassTimingChoices.All);
         Assert.Equal("Right away (in the background)", FinalPassTimingChoices.Label(FinalPassTiming.Immediate));
         Assert.Equal("When no recording is running", FinalPassTimingChoices.Label(FinalPassTiming.WhenIdle));
+        Assert.Equal("When I start them", FinalPassTimingChoices.Label(FinalPassTiming.Manual));
         foreach (var timing in FinalPassTimingChoices.All)
         {
             Assert.Equal(timing, FinalPassTimingChoices.At(FinalPassTimingChoices.IndexOf(timing)));
         }
+        Assert.Equal(2, FinalPassTimingChoices.IndexOf(FinalPassTiming.Manual));
         Assert.Null(FinalPassTimingChoices.At(-1));
-        Assert.Null(FinalPassTimingChoices.At(2));
+        Assert.Null(FinalPassTimingChoices.At(3));
     }
 
     [Fact]
@@ -199,6 +201,10 @@ public sealed class QueueRowsTests
         settings.FinalPassTiming = FinalPassTimingChoices.At(0) ?? throw new InvalidOperationException("no first row");
         Assert.Equal(FinalPassTiming.Immediate, settings.FinalPassTiming);
         Assert.Equal(FinalPassTiming.Immediate, new AppSettings(folder.Path).FinalPassTiming);
+        // The third row stores "manual" and a stored "manual" selects that row (it selected none before WI-2).
+        settings.FinalPassTiming = FinalPassTimingChoices.At(2) ?? throw new InvalidOperationException("no third row");
+        Assert.Equal(FinalPassTiming.Manual, settings.FinalPassTiming);
+        Assert.Equal(2, FinalPassTimingChoices.IndexOf(new AppSettings(folder.Path).FinalPassTiming));
     }
 
     [Theory]
@@ -209,8 +215,213 @@ public sealed class QueueRowsTests
         Assert.Equal(Translations.Text(language, "core", "Right away (in the background)"), Strings.TimingImmediate);
         Assert.Equal(Translations.Text(language, "core", "When no recording is running"), Strings.TimingWhenIdle);
         Assert.Equal(Translations.Text(language, "app", "Transcribe finished recordings"), Strings.FinalPassTimingLabel);
-        Assert.Equal(Translations.Text(language, "app", "Either way, the next recording can start at once."), Strings.FinalPassTimingCaption);
+        Assert.Equal(Translations.Text(language, "windows", "When I start them"), Strings.TimingManual);
+        // The Mac caption stays in the catalog for the Mac; Windows has its own for three rows.
+        Assert.Equal(
+            Translations.Text(language, "windows", "The next recording can start at once, whichever you choose. With “When I start them”, recordings wait on the Record tab until you click Transcribe or Transcribe All."),
+            Strings.FinalPassTimingCaption);
+        Assert.NotEqual(Translations.Text(language, "app", "Either way, the next recording can start at once."), Strings.FinalPassTimingCaption);
     }
+
+    [Theory]
+    [MemberData(nameof(StringsTests.Languages), MemberType = typeof(StringsTests))]
+    public void TheCaptionQuotesTheTranslatedLabelsExactly(InterfaceLanguage language)
+    {
+        using var scope = new InterfaceLanguageScope(language);
+        var caption = Strings.FinalPassTimingCaption;
+        Assert.Contains(Strings.TimingManual, caption, StringComparison.Ordinal);
+        Assert.Contains(Strings.TranscribeButton, caption, StringComparison.Ordinal);
+        Assert.Contains(Strings.TranscribeAll, caption, StringComparison.Ordinal);
+        Assert.Contains(Translations.Text(language, "app", "Record"), caption, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [MemberData(nameof(StringsTests.Languages), MemberType = typeof(StringsTests))]
+    public void HeldRowTextsComeFromTheSharedTranslations(InterfaceLanguage language)
+    {
+        using var scope = new InterfaceLanguageScope(language);
+        Assert.Equal(Translations.Text(language, "windows", "Not transcribed yet"), Strings.QueueNotTranscribedYet);
+        Assert.Equal(Translations.Format(language, "windows", "On hold · %lld%%", 42), Strings.QueueOnHold(42));
+        Assert.Contains("42", Strings.QueueOnHold(42), StringComparison.Ordinal);
+        Assert.Equal(Translations.Text(language, "windows", "Transcribe All"), Strings.TranscribeAll);
+        Assert.Equal(Translations.Text(language, "windows", "Hold"), Strings.Hold);
+        Assert.Equal(Translations.Text(language, "windows", "Stops transcribing for now. Transcribe continues where it stopped."), Strings.HoldTooltip);
+        Assert.Equal(Translations.Text(language, "app", "Transcribe"), Strings.TranscribeButton);
+        Assert.Equal(Translations.Text(language, "windows", "They stay in the queue until you transcribe them."), Strings.TheyStayInQueue);
+        Assert.Equal(Translations.Format(language, "windows", "Not transcribed yet · in queue: %lld", 3), Strings.QueueLineHeld(3));
+        // Each is its own text, not a copy of a neighbour.
+        Assert.NotEqual(Strings.QueueNotTranscribedYet, Strings.QueueWaiting);
+        Assert.NotEqual(Strings.Hold, Strings.TranscribeAll);
+    }
+
+    [Fact]
+    public void TheQuitAlertSecondLineIsTheMacLineUnlessEveryPendingJobIsHeld()
+    {
+        using var english = new InterfaceLanguageScope(InterfaceLanguage.English);
+        Assert.Equal("Hearsay continues with them the next time it opens.", Strings.QuitQueueMessage(allPendingHeld: false));
+        Assert.Equal("They stay in the queue until you transcribe them.", Strings.QuitQueueMessage(allPendingHeld: true));
+    }
+
+    [Fact]
+    public Task TheQuitAlertReadsTheQueueAllPendingHeld() => RunAsync(FinalPassTiming.Manual, rig =>
+    {
+        var queue = rig.Queue;
+        using var english = new InterfaceLanguageScope(InterfaceLanguage.English);
+        var first = queue.InsertSample(Wav, TranscriptionJobState.Waiting);
+        var second = queue.InsertSample(Wav, TranscriptionJobState.Suspended, 0.3);
+        Assert.True(queue.AllPendingHeld);
+        Assert.Equal(2, queue.PendingCount);
+        Assert.Equal("They stay in the queue until you transcribe them.", Strings.QuitQueueMessage(queue.AllPendingHeld));
+        // One released job: the alert keeps the Mac line.
+        queue.Release(first);
+        Assert.False(queue.AllPendingHeld);
+        Assert.Equal("Hearsay continues with them the next time it opens.", Strings.QuitQueueMessage(queue.AllPendingHeld));
+        queue.Hold(first);
+        Assert.True(queue.AllPendingHeld);
+        Assert.True(second.IsHeld);
+        return Task.CompletedTask;
+    });
+
+    // "When I start them" rows (PLAN.md 4.11)
+
+    [Fact]
+    public Task AJobIsHeldOnlyUnderManualWhenPendingAndNotReleased() => RunAsync(FinalPassTiming.Manual, rig =>
+    {
+        var queue = rig.Queue;
+        var waiting = queue.InsertSample(Wav, TranscriptionJobState.Waiting);
+        var suspended = queue.InsertSample(Wav, TranscriptionJobState.Suspended, 0.4);
+        var done = queue.InsertSample(Wav, TranscriptionJobState.Done, 1, Srt);
+        var failed = queue.InsertSample(Wav, TranscriptionJobState.Failed);
+        Assert.True(QueueRows.IsHeld(waiting, FinalPassTiming.Manual));
+        Assert.True(QueueRows.IsHeld(suspended, FinalPassTiming.Manual));
+        Assert.False(QueueRows.IsHeld(done, FinalPassTiming.Manual));
+        Assert.False(QueueRows.IsHeld(failed, FinalPassTiming.Manual));
+        Assert.False(QueueRows.IsHeld(waiting, FinalPassTiming.WhenIdle));
+        Assert.False(QueueRows.IsHeld(waiting, FinalPassTiming.Immediate));
+        // The row rule is the queue own.
+        foreach (var job in queue.Jobs) Assert.Equal(queue.IsHeld(job), QueueRows.IsHeld(job, FinalPassTiming.Manual));
+        waiting.IsReleased = true;
+        Assert.False(QueueRows.IsHeld(waiting, FinalPassTiming.Manual));
+        Assert.Equal(queue.IsHeld(waiting), QueueRows.IsHeld(waiting, FinalPassTiming.Manual));
+        return Task.CompletedTask;
+    });
+
+    [Fact]
+    public Task HeldRowsReadNotTranscribedYetOrOnHoldWithTheirProgress() => RunAsync(FinalPassTiming.Manual, rig =>
+    {
+        var queue = rig.Queue;
+        using var english = new InterfaceLanguageScope(InterfaceLanguage.English);
+        var waiting = queue.InsertSample(Wav, TranscriptionJobState.Waiting);
+        var suspended = queue.InsertSample(Wav, TranscriptionJobState.Suspended, 0.454);
+        Assert.Equal("Not transcribed yet", QueueRows.StateText(waiting, pausedForSession: false, held: true));
+        Assert.Equal("On hold · 45%", QueueRows.StateText(suspended, pausedForSession: false, held: true));
+        // A running job that is held (its Hold has not taken effect yet) reads the same.
+        var running = queue.InsertSample(Wav, TranscriptionJobState.Running, 0.5);
+        Assert.Equal("On hold · 50%", QueueRows.StateText(running, false, held: true));
+        // Released jobs read as before, including "Paused while recording" for those waiting for a session.
+        Assert.Equal("Waiting", QueueRows.StateText(waiting, false));
+        Assert.Equal("Paused while recording", QueueRows.StateText(waiting, true));
+        Assert.Equal("Paused while recording", QueueRows.StateText(suspended, true));
+        Assert.Equal("Transcribing 45%", QueueRows.StateText(suspended, false));
+        // A held job is never paused for a session; the queue says so too.
+        queue.SetSessionActive(true);
+        Assert.False(queue.IsPausedForSession(waiting));
+        Assert.False(queue.IsPausedForSession(suspended));
+        queue.Release(waiting);
+        Assert.True(queue.IsPausedForSession(waiting));
+        Assert.Equal("Paused while recording",
+            QueueRows.StateText(waiting, queue.IsPausedForSession(waiting), QueueRows.IsHeld(waiting, FinalPassTiming.Manual)));
+        return Task.CompletedTask;
+    });
+
+    [Fact]
+    public Task HeldRowsOfferTranscribeAndReleasedPendingRowsOfferHoldOnlyUnderManual() => RunAsync(FinalPassTiming.Manual, rig =>
+    {
+        var queue = rig.Queue;
+        var waiting = queue.InsertSample(Wav, TranscriptionJobState.Waiting);
+        var suspended = queue.InsertSample(Wav, TranscriptionJobState.Suspended, 0.4);
+        var running = queue.InsertSample(Wav, TranscriptionJobState.Running, 0.4);
+        running.IsReleased = true;
+        var done = queue.InsertSample(Wav, TranscriptionJobState.Done, 1, Srt);
+        var failed = queue.InsertSample(Wav, TranscriptionJobState.Failed);
+        const FinalPassTiming manual = FinalPassTiming.Manual;
+
+        // Held: Transcribe, the live preview stays, no Hold.
+        foreach (var held in new[] { waiting, suspended })
+        {
+            var actions = QueueRows.Actions(held, manual);
+            Assert.True(actions.Transcribe);
+            Assert.False(actions.Hold);
+            Assert.True(actions.UseLivePreview);
+            Assert.False(actions.Reveal);
+            Assert.False(actions.Dismiss);
+        }
+        // Released and pending: Hold, no Transcribe.
+        var released = QueueRows.Actions(running, manual);
+        Assert.True(released.Hold);
+        Assert.False(released.Transcribe);
+        Assert.True(released.UseLivePreview);
+        // Done and failed rows are unchanged.
+        Assert.Equal(new QueueRowActions(false, false, OpenTranscript: true, false, false, Reveal: true, Dismiss: true), QueueRows.Actions(done, manual));
+        Assert.Equal(new QueueRowActions(false, false, false, false, TryAgain: true, Reveal: true, Dismiss: true), QueueRows.Actions(failed, manual));
+        // Hold stops being offered once the job saves its live preview.
+        running.IsUsingLivePreview = true;
+        Assert.False(QueueRows.Actions(running, manual).Hold);
+        Assert.True(QueueRows.Actions(running, manual).SavingLivePreview);
+        running.IsUsingLivePreview = false;
+        // Under the other timings nothing new shows, whatever the flags say.
+        foreach (var timing in new[] { FinalPassTiming.Immediate, FinalPassTiming.WhenIdle })
+        {
+            foreach (var job in new[] { waiting, suspended, running, done, failed })
+            {
+                var actions = QueueRows.Actions(job, timing);
+                Assert.False(actions.Transcribe);
+                Assert.False(actions.Hold);
+            }
+        }
+        // Without a timing the rows are the two-timing rows.
+        Assert.False(QueueRows.Actions(waiting).Transcribe);
+        return Task.CompletedTask;
+    });
+
+    [Fact]
+    public Task TheButtonsCallTheQueue() => RunAsync(FinalPassTiming.Manual, rig =>
+    {
+        // What the row Transcribe, Hold and the header Transcribe All do (QueueRowView and RecordView
+        // call exactly these): Release, Hold, ReleaseAll; the rows then follow the queue.
+        var queue = rig.Queue;
+        var first = queue.InsertSample(Wav, TranscriptionJobState.Waiting);
+        var second = queue.InsertSample(Wav, TranscriptionJobState.Waiting);
+        Assert.Equal(2, queue.HeldCount);
+        queue.Release(first);
+        Assert.True(QueueRows.Actions(first, FinalPassTiming.Manual).Hold);
+        Assert.False(QueueRows.Actions(first, FinalPassTiming.Manual).Transcribe);
+        Assert.Equal(1, queue.HeldCount);
+        queue.Hold(first);
+        Assert.True(QueueRows.Actions(first, FinalPassTiming.Manual).Transcribe);
+        queue.ReleaseAll();
+        Assert.Equal(0, queue.HeldCount);
+        Assert.All(new[] { first, second }, job => Assert.True(QueueRows.Actions(job, FinalPassTiming.Manual).Hold));
+        return Task.CompletedTask;
+    });
+
+    [Fact]
+    public Task AHeldJobAloneIsStillTheSingleMeeting() => RunAsync(FinalPassTiming.Manual, rig =>
+    {
+        // PLAN.md 4.11: one held job and no session shows as the single meeting; ActiveJob skips a held suspended one.
+        var queue = rig.Queue;
+        var job = queue.InsertSample(Wav, TranscriptionJobState.Suspended, 0.4);
+        Assert.True(job.IsHeld);
+        Assert.Same(job, queue.FeaturedJob);
+        Assert.False(QueueRows.ShowsList(queue));
+        Assert.Null(queue.ActiveJob);
+        Assert.Equal(1, queue.PendingCount);
+        Assert.True(QueueRows.IsHeld(job, FinalPassTiming.Manual));
+        queue.SetSessionActive(true);
+        Assert.Null(queue.FeaturedJob);
+        Assert.True(QueueRows.ShowsList(queue));
+        return Task.CompletedTask;
+    });
 
     [Fact]
     public void ResetHasWorkWhenAnyOfTheThreeShortcutsIsChanged()

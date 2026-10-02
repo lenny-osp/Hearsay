@@ -109,7 +109,7 @@ internal sealed class AppShell
             Settings, RecordingController, MeetingAudioProbe.CaptureSessions, () => DateTimeOffset.Now, Tray.Notify,
             token => MeetingRecordPrompt.AskAsync(this, token));
         FileModel = new FileViewModel(Settings, Models, Engine);
-        Recording.Connect(RecordingController.ToggleStartStop, RecordingController.TogglePause, RecordingController.StopAndStartNext);
+        Recording.Connect(RecordingController.ToggleStartStop, RecordingController.TogglePause, RecordingController.StopAndStartNext, Queue.ReleaseAll);
         RecordingController.PropertyChanged += (_, _) => SyncRecordingStatus();
         Queue.Changed += (_, _) => SyncRecordingStatus();
         // PLAN.md 4.6 and 18.4: the update check and install (the Mac's
@@ -313,7 +313,10 @@ internal sealed class AppShell
             _ => job is null ? RecordingPhase.Idle : RecordingPhase.Transcribing,
         };
         Recording.Update(phase, TimeSpan.FromSeconds(controller.Elapsed), phase == RecordingPhase.Transcribing ? job?.Progress : null);
-        Recording.SetQueue(Queue.PendingCount, Queue.ActiveJob?.Progress, Queue.IsHeldForSession);
+        // "Paused" only when a released job waits for the session; held jobs (Manual) wait for the user.
+        Recording.SetQueue(
+            Queue.PendingCount, Queue.ActiveJob?.Progress, Queue.IsHeldForSession && Queue.HasJobPausedForSession,
+            Queue.AllPendingHeld, Queue.HeldCount);
         Recording.SetBusyFiles(Queue.BusyFiles);
         if (controller.TranscribeFileRequest is { } file && !FileModel.IsBusy)
         {
@@ -436,7 +439,7 @@ internal sealed class AppShell
         {
             ShowMain();
             if (MainWindow.RenderRoot.XamlRoot is not { } root) return;
-            var dialog = Alert.Make(root, Strings.RecordingsNotTranscribedYet(pending), Alert.Message(Strings.HearsayContinuesNextTime));
+            var dialog = Alert.Make(root, Strings.RecordingsNotTranscribedYet(pending), Alert.Message(Strings.QuitQueueMessage(Queue.AllPendingHeld)));
             dialog.PrimaryButtonText = Strings.QuitButton;
             dialog.CloseButtonText = Strings.Cancel;
             if (await Alert.PresentAsync(dialog).ConfigureAwait(true) != Microsoft.UI.Xaml.Controls.ContentDialogResult.Primary)

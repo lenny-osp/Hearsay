@@ -75,7 +75,11 @@ internal sealed partial class RecordView : UserControl
     private readonly LanguageNoticeView noticeView;
     private readonly Border progressCard;
     private readonly ProgressBar progress = new() { Minimum = 0, Maximum = 1 };
+    private readonly TextBlock progressTitle = new() { Text = Strings.Transcribing, Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"], TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock progressText = new() { VerticalAlignment = VerticalAlignment.Center };
+    private readonly Button transcribe = new() { Content = Strings.TranscribeButton };
+    private readonly Button hold = new() { Content = Strings.Hold };
+    private readonly Button transcribeAll = new() { Content = Strings.TranscribeAll, VerticalAlignment = VerticalAlignment.Center };
     private readonly Button useLivePreview = new() { Content = Strings.UseLivePreviewInstead };
     private readonly TextBlock savingLivePreview = new() { Text = Strings.SavingLivePreview, VerticalAlignment = VerticalAlignment.Center };
     private readonly Border errorCard;
@@ -171,19 +175,32 @@ internal sealed partial class RecordView : UserControl
             if (queue.FeaturedJob is { } job) queue.UseLivePreviewInstead(job);
         };
         ToolTipService.SetToolTip(useLivePreview, Strings.UseLivePreviewTooltip);
-        var progressRow = new Grid();
-        progressRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        // "When I start them" (PLAN.md 4.11): Transcribe on the held job, Hold on a released one.
+        var accentStyle = Application.Current.Resources.TryGetValue("AccentButtonStyle", out var accent) && accent is Style found ? found : null;
+        if (accentStyle is not null) transcribe.Style = accentStyle;
+        ToolTipService.SetToolTip(hold, Strings.HoldTooltip);
+        transcribe.Click += (_, _) =>
+        {
+            if (queue.FeaturedJob is { } job) queue.Release(job);
+        };
+        hold.Click += (_, _) =>
+        {
+            if (queue.FeaturedJob is { } job) queue.Hold(job);
+        };
+        var progressRow = new Grid { ColumnSpacing = 12 };
         progressRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        progressRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         progressText.Foreground = FileView.Secondary();
         progressRow.Children.Add(progressText);
-        var progressButtons = new StackPanel { Orientation = Orientation.Horizontal };
+        // The buttons wrap onto a second line in a narrow window.
+        var progressButtons = new QueueRowView.WrapRow { HorizontalSpacing = 8, VerticalSpacing = 6, HorizontalAlignment = HorizontalAlignment.Right };
+        progressButtons.Children.Add(transcribe);
+        progressButtons.Children.Add(hold);
         progressButtons.Children.Add(useLivePreview);
         progressButtons.Children.Add(savingLivePreview);
         Grid.SetColumn(progressButtons, 1);
         progressRow.Children.Add(progressButtons);
-        progressCard = Card(
-            new TextBlock { Text = Strings.Transcribing, Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"] },
-            progress, progressRow);
+        progressCard = Card(progressTitle, progress, progressRow);
         page.Children.Add(progressCard);
 
         errorCard = Card(errorArea);
@@ -192,9 +209,22 @@ internal sealed partial class RecordView : UserControl
         page.Children.Add(savedCard);
 
         // The queue: one row per recording below the session (PLAN.md 4.9 "UI").
-        queueCard = Card(
-            new TextBlock { Text = Strings.TranscriptionQueue, Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"] },
-            queueArea);
+        // Its header carries Transcribe All while a job is held (PLAN.md 4.11).
+        if (accentStyle is not null) transcribeAll.Style = accentStyle;
+        transcribeAll.Click += (_, _) => queue.ReleaseAll();
+        var queueHeader = new Grid { ColumnSpacing = 12 };
+        queueHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        queueHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        queueHeader.Children.Add(new TextBlock
+        {
+            Text = Strings.TranscriptionQueue,
+            Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"],
+            VerticalAlignment = VerticalAlignment.Center,
+            TextWrapping = TextWrapping.Wrap,
+        });
+        Grid.SetColumn(transcribeAll, 1);
+        queueHeader.Children.Add(transcribeAll);
+        queueCard = Card(queueHeader, queueArea);
         page.Children.Add(queueCard);
 
         Content = new ScrollViewer { Content = CenteredColumn.Host(page, 760), HorizontalScrollMode = ScrollMode.Disabled };
@@ -281,11 +311,21 @@ internal sealed partial class RecordView : UserControl
 
         if (job?.DisplayProgress is { } fraction)
         {
+            // A held job (PLAN.md 4.11) reads "Not transcribed yet" with no bar, or "On hold · N%" with
+            // the progress it kept; Transcribe releases it. A released one shows Hold while the timing is Manual.
+            var timing = shell.Settings.FinalPassTiming;
+            var held = QueueRows.IsHeld(job, timing);
             progressCard.Visibility = Visibility.Visible;
+            progressTitle.Text = held ? QueueRows.StateText(job, pausedForSession: false, held: true) : Strings.Transcribing;
             progress.Value = fraction;
+            progress.Visibility = held && job.State == TranscriptionJobState.Waiting ? Visibility.Collapsed : Visibility.Visible;
             progressText.Text = FileView.Percent(fraction);
-            useLivePreview.Visibility = job.CanUseLivePreview ? Visibility.Visible : Visibility.Collapsed;
-            savingLivePreview.Visibility = !job.CanUseLivePreview && job.IsUsingLivePreview && job.IsPending ? Visibility.Visible : Visibility.Collapsed;
+            progressText.Visibility = held ? Visibility.Collapsed : Visibility.Visible;
+            var shown = QueueRows.Actions(job, timing);
+            transcribe.Visibility = shown.Transcribe ? Visibility.Visible : Visibility.Collapsed;
+            hold.Visibility = shown.Hold ? Visibility.Visible : Visibility.Collapsed;
+            useLivePreview.Visibility = shown.UseLivePreview ? Visibility.Visible : Visibility.Collapsed;
+            savingLivePreview.Visibility = shown.SavingLivePreview ? Visibility.Visible : Visibility.Collapsed;
         }
         else
         {
@@ -324,6 +364,7 @@ internal sealed partial class RecordView : UserControl
             return;
         }
         queueCard.Visibility = Visibility.Visible;
+        transcribeAll.Visibility = queue.HeldCount > 0 ? Visibility.Visible : Visibility.Collapsed;
         var ids = queue.Jobs.Select(job => job.Id).ToList();
         if (!ids.SequenceEqual(shownQueueRows))
         {
@@ -351,9 +392,10 @@ internal sealed partial class RecordView : UserControl
             shownQueueRows = ids;
         }
         var canNotes = GenerateNotes is not null && !NotesFlowViewModel.IsAnyRunning;
+        var timing = shell.Settings.FinalPassTiming;
         foreach (var job in queue.Jobs)
         {
-            if (queueRows.TryGetValue(job.Id, out var row)) row.Update(queue.IsPausedForSession(job), canNotes);
+            if (queueRows.TryGetValue(job.Id, out var row)) row.Update(queue.IsPausedForSession(job), canNotes, timing);
         }
     }
 
@@ -398,6 +440,8 @@ internal sealed partial class RecordView : UserControl
             ControllerPhase.Recording => ("● " + Strings.RecordingState, FileView.Critical()),
             ControllerPhase.Paused => ("❚❚ " + Strings.PausedState, FileView.Secondary()),
             ControllerPhase.Stopping => (Strings.Saving, FileView.Secondary()),
+            _ when job is not null && model.ErrorMessage is null && QueueRows.IsHeld(job, shell.Settings.FinalPassTiming) =>
+                (QueueRows.StateText(job, pausedForSession: false, held: true), FileView.Secondary()),
             _ when job is not null && model.ErrorMessage is null && (job.IsPending || job.IsRerunning) => (Strings.Finalizing, FileView.Secondary()),
             _ when job is { State: TranscriptionJobState.Done } && model.ErrorMessage is null => (Strings.Saved, FileView.Secondary()),
             _ => (Strings.Ready, FileView.Secondary()),

@@ -259,7 +259,9 @@ in PowerShell with the zip's line in the release's `SHA256SUMS.txt`.
 of ⌃⌥⌘: Ctrl+Alt+Win+N is "Stop & Start Next" (with R and P for
 Start / Stop and Pause / Resume). Unlike the Mac, finished recordings wait
 until no recording is running by default; Settings > General > Transcribe
-finished recordings can change that to "Right away (in the background)".
+finished recordings can change that to "Right away (in the background)", or
+to "When I start them", which keeps recordings in the queue until you click
+Transcribe (or Transcribe All) on the Record tab.
 
 **Teams meetings** (Windows first): Settings > General > Meetings >
 "Record Microsoft Teams meetings automatically" starts a recording when

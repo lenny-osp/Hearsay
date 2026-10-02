@@ -19,11 +19,12 @@ namespace Hearsay.App.Features.MenuBar;
 /// Built on H.NotifyIcon.WinUI (the Windows App SDK 2.5 has no
 /// notification-icon API). The menu is a native Win32 popup menu
 /// (<see cref="ContextMenuMode.PopupMenu"/>) built from a
-/// <see cref="MenuFlyout"/> each time it opens, so it looks like every other
-/// tray menu. A left click opens the main window, as Windows tray icons do;
+/// <see cref="MenuFlyout"/> (rebuilt when <see cref="RebuildsMenu"/> says an input
+/// changed, not each time it opens), so it looks like every other tray menu. A left click opens the main window, as Windows tray icons do;
 /// the Mac's click opens its panel. The menu adds one disabled queue line
 /// under the state line and Stop &amp; Start Next (enabled while recording or
-/// paused) under Pause / Resume (PLAN.md 4.9, 18.10). The notification area cannot show text
+/// paused) under Pause / Resume (PLAN.md 4.9, 18.10), then Transcribe All (always present, enabled while a
+/// job is held: PLAN.md 4.11, 18.12). The notification area cannot show text
 /// beside the icon, so the elapsed time and the final pass's percentage are
 /// in the tooltip.
 /// </para>
@@ -151,8 +152,16 @@ internal sealed class TrayIcon : IDisposable
         if (e.PropertyName == nameof(AppSettings.MenuBarShowsStatus)) Refresh(menuChanged: false);
     }
 
-    private void OnStateChanged(object? sender, PropertyChangedEventArgs e) =>
-        Refresh(menuChanged: e.PropertyName is nameof(RecordingStatus.Phase) or nameof(RecordingStatus.QueueLine));
+    private void OnStateChanged(object? sender, PropertyChangedEventArgs e) => Refresh(menuChanged: RebuildsMenu(e.PropertyName));
+
+    /// <summary>
+    /// The status changes the menu is rebuilt for: the phase (Start or Stop, Pause or Resume,
+    /// Stop &amp; Start Next enabled), the queue line, and whether Transcribe All is enabled.
+    /// The menu is not rebuilt when it opens, so every input of an item's text or enabled
+    /// state must be listed here.
+    /// </summary>
+    internal static bool RebuildsMenu(string? propertyName) =>
+        propertyName is nameof(RecordingStatus.Phase) or nameof(RecordingStatus.QueueLine) or nameof(RecordingStatus.CanTranscribeAll);
 
     /// <summary>Applies the icon, tooltip and (when the phase changed) menu for the current state.</summary>
     private void Refresh(bool menuChanged)
@@ -209,6 +218,14 @@ internal sealed class TrayIcon : IDisposable
             Text = $"{Strings.StopAndStartNext}	{settings.StopStartNextHotkey.DisplayString}",
             Command = new RelayCommand(recording.StopAndStartNext),
             IsEnabled = recording.CanStopAndStartNext,
+        });
+        // Always in the menu, enabled while a job is held ("When I start them", PLAN.md 4.11);
+        // the menu is rebuilt when that changes, as for Stop & Start Next's phases.
+        menu.Items.Add(new MenuFlyoutItem
+        {
+            Text = Strings.TranscribeAll,
+            Command = new RelayCommand(recording.TranscribeAll),
+            IsEnabled = recording.CanTranscribeAll,
         });
         menu.Items.Add(new MenuFlyoutSeparator());
         menu.Items.Add(new MenuFlyoutItem { Text = Strings.OpenHearsay, Command = new RelayCommand(openMain) });

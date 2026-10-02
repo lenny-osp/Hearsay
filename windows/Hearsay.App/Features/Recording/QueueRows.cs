@@ -11,7 +11,9 @@ internal readonly record struct QueueRowActions(
     bool GenerateNotes,
     bool TryAgain,
     bool Reveal,
-    bool Dismiss);
+    bool Dismiss,
+    bool Transcribe = false,
+    bool Hold = false);
 
 /// <summary>
 /// The rules of the Record tab's "Transcription queue" list (PLAN.md 4.9
@@ -20,7 +22,9 @@ internal readonly record struct QueueRowActions(
 /// <c>QueueRow</c> (<c>stateText</c>, <c>actions</c>) and of the
 /// <c>featuredJob</c> / <c>jobs.isEmpty</c> branch of <c>body</c> in
 /// mac/Hearsay/Features/Recording/RecordView.swift. The row control is
-/// <see cref="QueueRowView"/>.
+/// <see cref="QueueRowView"/>. With "When I start them" (PLAN.md 4.11, Windows
+/// 18.12) a held job reads "Not transcribed yet" or "On hold · N%" and offers
+/// Transcribe; a released pending job offers Hold; the other timings change nothing.
 /// </summary>
 internal static class QueueRows
 {
@@ -36,16 +40,30 @@ internal static class QueueRows
         return queue.FeaturedJob is null && queue.Jobs.Count > 0;
     }
 
-    /// <summary>The state under the row's name: Waiting, Paused while recording, Transcribing N%, Done or Failed.</summary>
-    public static string StateText(TranscriptionJob job, bool pausedForSession)
+    /// <summary>
+    /// Held (PLAN.md 4.11): the timing is <see cref="FinalPassTiming.Manual"/> and the job
+    /// is pending and not released. The queue's own rule, so the row never disagrees with it.
+    /// </summary>
+    public static bool IsHeld(TranscriptionJob job, FinalPassTiming timing)
+    {
+        ArgumentNullException.ThrowIfNull(job);
+        return TranscriptionQueuePolicy.IsHeld(timing, new(job.Id, job.State, job.IsReleased));
+    }
+
+    /// <summary>
+    /// The state under the row's name: Waiting, Paused while recording, Transcribing N%, Done or
+    /// Failed; for a held job "Not transcribed yet", or "On hold · N%" once it had started.
+    /// </summary>
+    public static string StateText(TranscriptionJob job, bool pausedForSession, bool held = false)
     {
         ArgumentNullException.ThrowIfNull(job);
         if (job.IsRerunning) return Strings.QueueTranscribing(Percent(job.RerunProgress));
         return job.State switch
         {
-            TranscriptionJobState.Waiting => pausedForSession ? Strings.QueuePausedWhileRecording : Strings.QueueWaiting,
-            TranscriptionJobState.Running => Strings.QueueTranscribing(Percent(job.Progress)),
-            TranscriptionJobState.Suspended => pausedForSession ? Strings.QueuePausedWhileRecording : Strings.QueueTranscribing(Percent(job.Progress)),
+            TranscriptionJobState.Waiting => held ? Strings.QueueNotTranscribedYet : pausedForSession ? Strings.QueuePausedWhileRecording : Strings.QueueWaiting,
+            TranscriptionJobState.Running => held ? Strings.QueueOnHold(Percent(job.Progress)) : Strings.QueueTranscribing(Percent(job.Progress)),
+            TranscriptionJobState.Suspended => held ? Strings.QueueOnHold(Percent(job.Progress))
+                : pausedForSession ? Strings.QueuePausedWhileRecording : Strings.QueueTranscribing(Percent(job.Progress)),
             TranscriptionJobState.Done => Strings.QueueDone,
             _ => Strings.QueueFailed,
         };
@@ -65,11 +83,16 @@ internal static class QueueRows
         return job.LanguageNotice is not null && job.State is TranscriptionJobState.Done or TranscriptionJobState.Waiting;
     }
 
-    /// <summary>The buttons of the row by state.</summary>
-    public static QueueRowActions Actions(TranscriptionJob job)
+    /// <summary>
+    /// The buttons of the row by state. <paramref name="timing"/>: Transcribe on a held job
+    /// (Manual only); Hold on a released pending job while the timing is Manual and the job is not
+    /// saving its live preview. The Mac's other actions are unchanged.
+    /// </summary>
+    public static QueueRowActions Actions(TranscriptionJob job, FinalPassTiming timing = FinalPassTiming.Immediate)
     {
         ArgumentNullException.ThrowIfNull(job);
         var done = job.State == TranscriptionJobState.Done && job.Srt is not null;
+        var held = IsHeld(job, timing);
         return new QueueRowActions(
             UseLivePreview: job.CanUseLivePreview,
             SavingLivePreview: !job.CanUseLivePreview && job.IsUsingLivePreview && job.IsPending,
@@ -77,7 +100,16 @@ internal static class QueueRows
             GenerateNotes: done && job.OffersNotes,
             TryAgain: job.State == TranscriptionJobState.Failed,
             Reveal: !job.IsPending,
-            Dismiss: job.CanDismiss);
+            Dismiss: job.CanDismiss,
+            Transcribe: held,
+            Hold: CanHold(job, timing));
+    }
+
+    /// <summary>Hold applies: the timing is Manual and the job is pending, released, and not saving its live preview.</summary>
+    public static bool CanHold(TranscriptionJob job, FinalPassTiming timing)
+    {
+        ArgumentNullException.ThrowIfNull(job);
+        return timing == FinalPassTiming.Manual && job.IsPending && job.IsReleased && !job.IsUsingLivePreview;
     }
 
     private static int Percent(double fraction) => (int)Math.Round(fraction * 100, MidpointRounding.AwayFromZero);

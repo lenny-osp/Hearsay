@@ -402,6 +402,7 @@ public sealed class AppSettingsTests : IDisposable
     [Theory]
     [InlineData(FinalPassTiming.Immediate)]
     [InlineData(FinalPassTiming.WhenIdle)]
+    [InlineData(FinalPassTiming.Manual)]
     public void FinalPassTimingRoundTripsAsStoredValue(FinalPassTiming timing)
     {
         var folder = scratch.Make();
@@ -411,6 +412,20 @@ public sealed class AppSettingsTests : IDisposable
         settings.FinalPassTiming = timing;
         Assert.Equal(timing.StorageValue(), Stored(folder, AppSettings.Key.FinalPassTiming));
         Assert.Equal(timing, new AppSettings(folder).FinalPassTiming);
+    }
+
+    [Fact]
+    public void ManualFinalPassTimingIsStoredAndReadAsTheSharedValue()
+    {
+        // PLAN.md 4.11: the third value is the string "manual", and the default stays whenIdle.
+        var folder = scratch.Make();
+        new AppSettings(folder).FinalPassTiming = FinalPassTiming.Manual;
+        Assert.Equal("manual", Stored(folder, AppSettings.Key.FinalPassTiming));
+        Assert.Equal(FinalPassTiming.Manual, new AppSettings(folder).FinalPassTiming);
+        var raw = scratch.Make();
+        ScratchSettings.Raw(raw).SetString(AppSettings.Key.FinalPassTiming, "manual");
+        Assert.Equal(FinalPassTiming.Manual, new AppSettings(raw).FinalPassTiming);
+        Assert.Equal(FinalPassTiming.WhenIdle, FinalPassTimings.Default);
     }
 
     [Fact]

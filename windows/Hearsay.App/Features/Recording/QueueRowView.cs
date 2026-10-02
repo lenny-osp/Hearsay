@@ -14,8 +14,9 @@ namespace Hearsay.App.Features.Recording;
 /// mac/Hearsay/Features/Recording/RecordView.swift. The controls are built
 /// once per job and <see cref="Update"/> only changes their texts and
 /// visibility, so a button is never replaced under the pointer while the
-/// progress ticks. What each state offers is <see cref="QueueRows"/>.
-/// Use from the UI thread.
+/// progress ticks. What each state offers is <see cref="QueueRows"/>: with
+/// "When I start them" (PLAN.md 4.11) Transcribe on a held row and Hold on a
+/// released one. Use from the UI thread.
 /// </summary>
 internal sealed class QueueRowView : UserControl
 {
@@ -23,6 +24,8 @@ internal sealed class QueueRowView : UserControl
     private readonly TextBlock state;
     private readonly Button revealButton;
     private readonly Button dismissButton;
+    private readonly Button transcribe = new() { Content = Strings.TranscribeButton, Padding = new Thickness(10, 3, 10, 4) };
+    private readonly Button hold = new() { Content = Strings.Hold, Padding = new Thickness(10, 3, 10, 4) };
     private readonly Button useLivePreview = new() { Content = Strings.UseLivePreviewInstead, Padding = new Thickness(10, 3, 10, 4) };
     private readonly TextBlock savingLivePreview;
     private readonly Button open = new() { Content = Strings.OpenTranscript, Padding = new Thickness(10, 3, 10, 4) };
@@ -76,6 +79,10 @@ internal sealed class QueueRowView : UserControl
         };
         notice = new LanguageNoticeView(language => queue.TranscribeAgain(job, language), () => queue.DismissLanguageNotice(job));
 
+        if (Application.Current.Resources.TryGetValue("AccentButtonStyle", out var accent) && accent is Style accentStyle) transcribe.Style = accentStyle;
+        ToolTipService.SetToolTip(hold, Strings.HoldTooltip);
+        transcribe.Click += (_, _) => queue.Release(job);
+        hold.Click += (_, _) => queue.Hold(job);
         ToolTipService.SetToolTip(useLivePreview, Strings.UseLivePreviewTooltip);
         useLivePreview.Click += (_, _) => queue.UseLivePreviewInstead(job);
         open.Click += (_, _) => openTranscript(job);
@@ -96,6 +103,8 @@ internal sealed class QueueRowView : UserControl
         header.Children.Add(icons);
 
         actions = new WrapRow { HorizontalSpacing = 8, VerticalSpacing = 6 };
+        actions.Children.Add(transcribe);
+        actions.Children.Add(hold);
         actions.Children.Add(useLivePreview);
         actions.Children.Add(savingLivePreview);
         actions.Children.Add(open);
@@ -131,15 +140,20 @@ internal sealed class QueueRowView : UserControl
         }
     }
 
-    /// <summary>Applies the job's current state. <paramref name="canGenerateNotes"/>: a notes flow is connected and none runs.</summary>
-    public void Update(bool pausedForSession, bool canGenerateNotes)
+    /// <summary>
+    /// Applies the job's current state. <paramref name="canGenerateNotes"/>: a notes flow is
+    /// connected and none runs. <paramref name="timing"/>: the final-pass timing (held rows, Hold).
+    /// </summary>
+    public void Update(bool pausedForSession, bool canGenerateNotes, FinalPassTiming timing)
     {
         var job = Job;
         title.Text = job.Title;
         ToolTipService.SetToolTip(title, job.Title);
-        state.Text = QueueRows.StateText(job, pausedForSession);
+        state.Text = QueueRows.StateText(job, pausedForSession, QueueRows.IsHeld(job, timing));
         state.Foreground = job.State == TranscriptionJobState.Failed ? Critical() : Secondary();
-        var shown = QueueRows.Actions(job);
+        var shown = QueueRows.Actions(job, timing);
+        SetVisible(transcribe, shown.Transcribe);
+        SetVisible(hold, shown.Hold);
         SetVisible(useLivePreview, shown.UseLivePreview);
         SetVisible(savingLivePreview, shown.SavingLivePreview);
         SetVisible(open, shown.OpenTranscript);
@@ -148,7 +162,7 @@ internal sealed class QueueRowView : UserControl
         SetVisible(tryAgain, shown.TryAgain);
         SetVisible(revealButton, shown.Reveal);
         SetVisible(dismissButton, shown.Dismiss);
-        SetVisible(actions, shown.UseLivePreview || shown.SavingLivePreview || shown.OpenTranscript || shown.GenerateNotes || shown.TryAgain);
+        SetVisible(actions, shown.Transcribe || shown.Hold || shown.UseLivePreview || shown.SavingLivePreview || shown.OpenTranscript || shown.GenerateNotes || shown.TryAgain);
 
         if (QueueRows.ShowsProgress(job, pausedForSession) && job.DisplayProgress is { } fraction)
         {
@@ -201,7 +215,7 @@ internal sealed class QueueRowView : UserControl
     }
 
     /// <summary>A left-to-right panel that continues on the next line when the row is full (WinUI has no wrap panel).</summary>
-    private sealed class WrapRow : Panel
+    internal sealed class WrapRow : Panel
     {
         public double HorizontalSpacing { get; init; }
 

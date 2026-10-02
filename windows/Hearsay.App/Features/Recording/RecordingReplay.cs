@@ -37,8 +37,16 @@ namespace Hearsay.App.Features.Recording;
 /// alias for zh-TW; default en) is optional and applies to every session.
 /// Every language detection and each job's final language decision are
 /// printed to stdout, and so is each final SRT (Windows only: it lives in the
-/// throwaway folder, removed at exit). <c>HEARSAY_REPLAY_TIMING=immediate|whenIdle</c>
-/// picks the final-pass timing (default immediate, as on the Mac).
+/// throwaway folder, removed at exit). <c>HEARSAY_REPLAY_TIMING=immediate|whenIdle|manual</c>
+/// picks the final-pass timing (default immediate, as on the Mac; <c>manual</c>
+/// is Windows only, PLAN.md 4.11 and 18.12).
+/// With <c>manual</c> every job is held (queue events <c>held</c> and
+/// <c>released</c> are printed next to the others), nothing is transcribed,
+/// and the run ends once the live tails are done, listing the held jobs and
+/// exiting with its normal status (a held job is not a failure);
+/// <c>HEARSAY_REPLAY_RELEASE=&lt;seconds&gt;</c> instead waits that long after
+/// the last session stops and calls <c>ReleaseAll</c> ("Transcribe All"), then
+/// runs the final passes as usual.
 /// <c>HEARSAY_REPLAY_SYSTEM=silence</c> adds a second, silent source in place
 /// of system audio; <c>HEARSAY_REPLAY_UI=1</c> also shows the Record tab for
 /// the session. Settings, spool and output are in the throwaway settings
@@ -142,6 +150,16 @@ internal static class RecordingReplay
         var timing = environment.TryGetValue("HEARSAY_REPLAY_TIMING", out var timingValue)
             ? FinalPassTimings.FromStorageValue(timingValue) ?? FinalPassTiming.Immediate
             : FinalPassTiming.Immediate;
+        double? releaseAfter = null;
+        if (environment.TryGetValue("HEARSAY_REPLAY_RELEASE", out var releaseValue) && releaseValue.Length > 0)
+        {
+            if (!double.TryParse(releaseValue, NumberStyles.Float, CultureInfo.InvariantCulture, out var seconds) || seconds < 0 || double.IsInfinity(seconds))
+            {
+                Say($"HEARSAY_REPLAY_RELEASE must be a number of seconds, not {releaseValue}");
+                return 1;
+            }
+            releaseAfter = seconds;
+        }
         var silentSystem = environment.TryGetValue("HEARSAY_REPLAY_SYSTEM", out var system) && system == "silence";
 
         var root = Path.Combine(shell.SettingsFile.Folder, "replay");
@@ -230,6 +248,12 @@ internal static class RecordingReplay
                 case QueueEvent.Resumed resumed:
                     Say(Format($"{now,7:F2}  {Label(resumed.Id)} resumed"));
                     break;
+                case QueueEvent.Held held:
+                    Say(Format($"{now,7:F2}  {Label(held.Id)} held"));
+                    break;
+                case QueueEvent.Released released:
+                    Say(Format($"{now,7:F2}  {Label(released.Id)} released"));
+                    break;
                 case QueueEvent.Language languageEvent:
                     var line = Format($"{now,7:F2}  {Label(languageEvent.Id)} language: {languageEvent.Decision.DebugSummary()}");
                     Say(line);
@@ -269,7 +293,7 @@ internal static class RecordingReplay
             Say("showing the Record tab");
         }
         var names = string.Join(", ", files.Select((file, i) => Format($"{Path.GetFileName(file)} ({loaded[i].Length / 16_000.0:F2} s)")));
-        Say(Format($"replaying {names}, language {language.StorageValue}, preferred {settings.PreferredLanguage.Code()}, timing {timing.StorageValue()}, system audio {(silentSystem ? "silence" : "off")}, model {Path.GetFileName(modelPath)}"));
+        Say(Format($"replaying {names}, language {language.StorageValue}, preferred {settings.PreferredLanguage.Code()}, timing {timing.StorageValue()}{(releaseAfter is { } r ? Format($", release {r:F1} s after the last Stop") : "")}, system audio {(silentSystem ? "silence" : "off")}, model {Path.GetFileName(modelPath)}"));
         clock.Restart();
         controller.Start();
         using var statusTimer = new CancellationTokenSource();
@@ -293,7 +317,14 @@ internal static class RecordingReplay
                 break;
             }
         }
-        while (controller.IsSessionActive || queue.PendingCount > 0 || queue.HasWorkInFlight || queue.Jobs.Any(job => job.HasLiveTail))
+        if (releaseAfter is { } delay)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(delay)).ConfigureAwait(true);
+            Say(Format($"{Now(),7:F2}  Transcribe All: releasing {queue.HeldCount} held job(s) of {queue.PendingCount} pending"));
+            queue.ReleaseAll();
+        }
+        // Held jobs (manual) wait for the user: they do not keep the run open.
+        while (controller.IsSessionActive || queue.PendingCount > queue.HeldCount || queue.HasWorkInFlight || queue.Jobs.Any(job => job.HasLiveTail))
         {
             await Task.Delay(100).ConfigureAwait(true);
         }
@@ -332,6 +363,11 @@ internal static class RecordingReplay
                     failed = true;
                     break;
                 default:
+                    if (queue.IsHeld(job))
+                    {
+                        Say($"queue job {number} held, not transcribed yet ({job.State.StorageValue()}); {job.Recording.Path}");
+                        break;
+                    }
                     Say($"queue job {number} ended in {job.State.StorageValue()}");
                     failed = true;
                     break;

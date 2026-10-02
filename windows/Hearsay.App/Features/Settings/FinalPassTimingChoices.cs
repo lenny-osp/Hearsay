@@ -11,13 +11,17 @@ namespace Hearsay.App.Features.Settings;
 /// </summary>
 internal static class FinalPassTimingChoices
 {
-    /// <summary>The picker rows, in order.</summary>
-    public static IReadOnlyList<FinalPassTiming> All => FinalPassTimings.All;
+    /// <summary>
+    /// The picker rows, in order: right away, when no recording is running, and
+    /// "When I start them" (<see cref="FinalPassTiming.Manual"/>, PLAN.md 4.11).
+    /// </summary>
+    public static IReadOnlyList<FinalPassTiming> All { get; } = [FinalPassTiming.Immediate, FinalPassTiming.WhenIdle, FinalPassTiming.Manual];
 
     /// <summary>The label of <paramref name="timing"/> in the interface language.</summary>
     public static string Label(FinalPassTiming timing) => timing switch
     {
         FinalPassTiming.Immediate => Strings.TimingImmediate,
+        FinalPassTiming.Manual => Strings.TimingManual,
         _ => Strings.TimingWhenIdle,
     };
 

@@ -30,7 +30,11 @@ namespace Hearsay.App.Features.Debug;
 /// sheets, History's Rename sheet, its inline rejection and its error alert,
 /// History after a rename, and the help page (top, the Meeting notes
 /// section and the Windows-only notification area section; a page that
-/// still shows Mac passages fails). Then it quits with status 0 (1 when a
+/// still shows Mac passages fails). The Record tab's queue states (64 to 67)
+/// and "When I start them" (71 to 76: held rows with Transcribe All, mixed
+/// with a released job, the single held meeting, Settings > General with the
+/// third row, the held queue and the single held meeting narrow) are stubbed
+/// in <see cref="RecordingSnapshots"/>. Then it quits with status 0 (1 when a
 /// file could not be written or a check failed).
 /// Port of mac/Hearsay/Features/Debug/UISnapshots.swift; the Mac's
 /// permission sheets and menu bar panel do not exist on Windows. The update
@@ -452,10 +456,16 @@ internal static class UISnapshots
         var lineOk = recording.QueueLine == Strings.QueueLineTranscribing(45, 2) && recording.CanStopAndStartNext;
         ok &= lineOk;
         Say($"tray recording with a queue: \"{recording.QueueLine}\", Stop & Start Next {(recording.CanStopAndStartNext ? "enabled" : "disabled")}{(lineOk ? "" : " (unexpected)")}");
+        // "When I start them": every job held reads "Not transcribed yet", and Transcribe All is enabled.
+        recording.SetQueue(2, null, false, allHeld: true, heldCount: 2);
+        await Task.Delay(300).ConfigureAwait(true);
+        var heldOk = recording.QueueLine == Strings.QueueLineHeld(2) && recording.CanTranscribeAll;
+        ok &= heldOk;
+        Say($"tray with held jobs: \"{recording.QueueLine}\", Transcribe All {(recording.CanTranscribeAll ? "enabled" : "disabled")}{(heldOk ? "" : " (unexpected)")}");
         recording.Update(RecordingPhase.Idle, TimeSpan.Zero, null);
         recording.SetQueue(0, null, false);
         await Task.Delay(300).ConfigureAwait(true);
-        ok &= !recording.CanStopAndStartNext && recording.QueueLine is null;
+        ok &= !recording.CanStopAndStartNext && recording.QueueLine is null && !recording.CanTranscribeAll;
         tray.SetVisible(false);
         ok &= !tray.IsVisible;
 

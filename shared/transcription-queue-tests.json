@@ -1,5 +1,5 @@
 {
-  "about": "Background transcription queue vectors (PLAN.md section 4.9 'Queue rules', Windows 18.10), shared by the macOS and Windows apps. timing: 'immediate' | 'whenIdle' (the finalPassTiming setting). state: 'waiting' | 'running' | 'suspended' | 'done' | 'failed'. jobs are listed in queue order (first in first); ids are plain strings. sessionActive: a session is Starting, Recording, Paused, or Stopping. foregroundWaiting: number of foreground engine calls waiting (live chunks, language detection, File mode, History re-runs). A queued job may run when foregroundWaiting <= 0 and, for whenIdle, sessionActive is false. next: if a job is running, 'suspend' the first running job (queue order) when running is not allowed, else 'none'; with nothing running and running allowed, 'resume' the first suspended job, else 'start' the first waiting job, else 'none'; done and failed jobs are skipped. expect.action is start | resume | suspend | none and expect.job the job id (null for none). Invalid inputs (notes starting with 'invalid') are tolerated, never asserted: two running jobs consider only the first; a running job behind a waiting or suspended one is not preempted; a suspended job is resumed before an earlier waiting one; a negative foregroundWaiting counts as 0. shouldYield is true exactly when next would suspend a running job. presentsNotes: a finished job opens its notes flow only when no session is active and no notes flow is on screen. quitNeedsConfirmation is the count of waiting, running, and suspended jobs; blocksUpdateInstall is true when that count is above 0. Mirrors TranscriptionQueuePolicyTests.swift.",
+  "about": "Background transcription queue vectors (PLAN.md section 4.9 'Queue rules', Windows 18.10), shared by the macOS and Windows apps. timing: 'immediate' | 'whenIdle' (the finalPassTiming setting). state: 'waiting' | 'running' | 'suspended' | 'done' | 'failed'. jobs are listed in queue order (first in first); ids are plain strings. sessionActive: a session is Starting, Recording, Paused, or Stopping. foregroundWaiting: number of foreground engine calls waiting (live chunks, language detection, File mode, History re-runs). A queued job may run when foregroundWaiting <= 0 and, for whenIdle, sessionActive is false. next: if a job is running, 'suspend' the first running job (queue order) when running is not allowed, else 'none'; with nothing running and running allowed, 'resume' the first suspended job, else 'start' the first waiting job, else 'none'; done and failed jobs are skipped. expect.action is start | resume | suspend | none and expect.job the job id (null for none). Invalid inputs (notes starting with 'invalid') are tolerated, never asserted: two running jobs consider only the first; a running job behind a waiting or suspended one is not preempted; a suspended job is resumed before an earlier waiting one; a negative foregroundWaiting counts as 0. shouldYield is true exactly when next would suspend a running job. presentsNotes: a finished job opens its notes flow only when no session is active and no notes flow is on screen. quitNeedsConfirmation is the count of waiting, running, and suspended jobs; blocksUpdateInstall is true when that count is above 0. Mirrors TranscriptionQueuePolicyTests.swift. The 'manual' section at the end (PLAN.md 4.11, 18.12) adds a third timing and is read by the Windows app only until the Mac port; the sections above never use it and are unchanged.",
   "next": [
     {
       "note": "empty queue, immediate, idle",
@@ -1100,5 +1100,1044 @@
       ],
       "expect": true
     }
-  ]
+  ],
+  "manual": {
+    "about": "Manual final pass vectors (PLAN.md 4.11 'Manual final passes', Windows 18.12): timing 'manual' (\"When I start them\") adds a per-job in-memory released flag; jobs carry released: true|false (an absent flag means false). A pending job (waiting, running, suspended) is held when the timing is manual and it is not released; the flag is ignored under immediate and whenIdle, which the cases with those timings show. Running is allowed under manual exactly as under whenIdle: foregroundWaiting <= 0 (a negative count is 0) and sessionActive false. next under manual: if a job is running, 'suspend' the first running job (queue order) when it is not released or when running is not allowed, else 'none'; with nothing running and running allowed, 'resume' the first released suspended job, else 'start' the first released waiting job, else 'none'. Held jobs are never started or resumed, so a released job may run past an earlier held one; among released jobs queue order decides (releasing job 2 before job 1 does not let job 2 jump), and a released suspended job is resumed before an earlier released waiting one. done and failed jobs are skipped. Notes starting with 'invalid' are tolerated inputs. shouldYield takes the running job's released flag: true when the timing is manual and it is not released, or when running is not allowed; it is true exactly when next would suspend a running job. blocksUpdateInstall under manual is true when a pending job is released or running (held waiting and held suspended jobs are in queue.json and come back held after the relaunch); under the other timings it is true when any job is pending. allPendingHeld is true under manual when at least one job is pending and every pending job is not released (a running job that is not released counts as held); it picks the quit alert's second line. quitNeedsConfirmation still counts every pending job (the section above).",
+    "next": [
+      {
+        "note": "manual, empty queue, idle",
+        "timing": "manual",
+        "sessionActive": false,
+        "foregroundWaiting": 0,
+        "jobs": [],
+        "expect": {
+          "action": "none",
+          "job": null
+        }
+      },
+      {
+        "note": "manual, held waiting job, idle: not started",
+        "timing": "manual",
+        "sessionActive": false,
+        "foregroundWaiting": 0,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "waiting",
+            "released": false
+          }
+        ],
+        "expect": {
+          "action": "none",
+          "job": null
+        }
+      },
+      {
+        "note": "manual, held suspended job, idle: not resumed",
+        "timing": "manual",
+        "sessionActive": false,
+        "foregroundWaiting": 0,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "suspended",
+            "released": false
+          }
+        ],
+        "expect": {
+          "action": "none",
+          "job": null
+        }
+      },
+      {
+        "note": "manual, held waiting and held suspended jobs, idle: nothing",
+        "timing": "manual",
+        "sessionActive": false,
+        "foregroundWaiting": 0,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "waiting",
+            "released": false
+          },
+          {
+            "id": "b",
+            "state": "suspended",
+            "released": false
+          }
+        ],
+        "expect": {
+          "action": "none",
+          "job": null
+        }
+      },
+      {
+        "note": "manual, released waiting job, idle: start",
+        "timing": "manual",
+        "sessionActive": false,
+        "foregroundWaiting": 0,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "waiting",
+            "released": true
+          }
+        ],
+        "expect": {
+          "action": "start",
+          "job": "a"
+        }
+      },
+      {
+        "note": "manual, released waiting job, session active: wait (whenIdle semantics)",
+        "timing": "manual",
+        "sessionActive": true,
+        "foregroundWaiting": 0,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "waiting",
+            "released": true
+          }
+        ],
+        "expect": {
+          "action": "none",
+          "job": null
+        }
+      },
+      {
+        "note": "manual, released waiting job, foreground work waits: wait",
+        "timing": "manual",
+        "sessionActive": false,
+        "foregroundWaiting": 1,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "waiting",
+            "released": true
+          }
+        ],
+        "expect": {
+          "action": "none",
+          "job": null
+        }
+      },
+      {
+        "note": "manual, released waiting job, negative foregroundWaiting counts as 0: start",
+        "timing": "manual",
+        "sessionActive": false,
+        "foregroundWaiting": -1,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "waiting",
+            "released": true
+          }
+        ],
+        "expect": {
+          "action": "start",
+          "job": "a"
+        }
+      },
+      {
+        "note": "manual, released suspended job, idle: resume",
+        "timing": "manual",
+        "sessionActive": false,
+        "foregroundWaiting": 0,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "suspended",
+            "released": true
+          }
+        ],
+        "expect": {
+          "action": "resume",
+          "job": "a"
+        }
+      },
+      {
+        "note": "manual, released suspended job, session active: wait",
+        "timing": "manual",
+        "sessionActive": true,
+        "foregroundWaiting": 0,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "suspended",
+            "released": true
+          }
+        ],
+        "expect": {
+          "action": "none",
+          "job": null
+        }
+      },
+      {
+        "note": "manual, held job first, released job behind it: the released job starts",
+        "timing": "manual",
+        "sessionActive": false,
+        "foregroundWaiting": 0,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "waiting",
+            "released": false
+          },
+          {
+            "id": "b",
+            "state": "waiting",
+            "released": true
+          }
+        ],
+        "expect": {
+          "action": "start",
+          "job": "b"
+        }
+      },
+      {
+        "note": "manual, two released waiting jobs: the first in queue order starts (releasing b before a does not let b jump)",
+        "timing": "manual",
+        "sessionActive": false,
+        "foregroundWaiting": 0,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "waiting",
+            "released": true
+          },
+          {
+            "id": "b",
+            "state": "waiting",
+            "released": true
+          }
+        ],
+        "expect": {
+          "action": "start",
+          "job": "a"
+        }
+      },
+      {
+        "note": "manual, two released suspended jobs: the first in queue order resumes",
+        "timing": "manual",
+        "sessionActive": false,
+        "foregroundWaiting": 0,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "suspended",
+            "released": true
+          },
+          {
+            "id": "b",
+            "state": "suspended",
+            "released": true
+          }
+        ],
+        "expect": {
+          "action": "resume",
+          "job": "a"
+        }
+      },
+      {
+        "note": "manual, held suspended job first, released suspended job behind it: the released one resumes",
+        "timing": "manual",
+        "sessionActive": false,
+        "foregroundWaiting": 0,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "suspended",
+            "released": false
+          },
+          {
+            "id": "b",
+            "state": "suspended",
+            "released": true
+          }
+        ],
+        "expect": {
+          "action": "resume",
+          "job": "b"
+        }
+      },
+      {
+        "note": "manual, released suspended job behind a released waiting job: the suspended job resumes first",
+        "timing": "manual",
+        "sessionActive": false,
+        "foregroundWaiting": 0,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "waiting",
+            "released": true
+          },
+          {
+            "id": "b",
+            "state": "suspended",
+            "released": true
+          }
+        ],
+        "expect": {
+          "action": "resume",
+          "job": "b"
+        }
+      },
+      {
+        "note": "manual, held suspended job and released waiting job: the waiting job starts",
+        "timing": "manual",
+        "sessionActive": false,
+        "foregroundWaiting": 0,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "suspended",
+            "released": false
+          },
+          {
+            "id": "b",
+            "state": "waiting",
+            "released": true
+          }
+        ],
+        "expect": {
+          "action": "start",
+          "job": "b"
+        }
+      },
+      {
+        "note": "manual, held waiting, held suspended and released waiting jobs: the released one starts",
+        "timing": "manual",
+        "sessionActive": false,
+        "foregroundWaiting": 0,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "waiting",
+            "released": false
+          },
+          {
+            "id": "b",
+            "state": "suspended",
+            "released": false
+          },
+          {
+            "id": "c",
+            "state": "waiting",
+            "released": true
+          }
+        ],
+        "expect": {
+          "action": "start",
+          "job": "c"
+        }
+      },
+      {
+        "note": "manual, released running job, idle: keep running",
+        "timing": "manual",
+        "sessionActive": false,
+        "foregroundWaiting": 0,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "running",
+            "released": true
+          }
+        ],
+        "expect": {
+          "action": "none",
+          "job": null
+        }
+      },
+      {
+        "note": "manual, released running job and released waiting job behind it: keep running",
+        "timing": "manual",
+        "sessionActive": false,
+        "foregroundWaiting": 0,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "running",
+            "released": true
+          },
+          {
+            "id": "b",
+            "state": "waiting",
+            "released": true
+          }
+        ],
+        "expect": {
+          "action": "none",
+          "job": null
+        }
+      },
+      {
+        "note": "manual, running job that is not released (Hold), idle: suspend",
+        "timing": "manual",
+        "sessionActive": false,
+        "foregroundWaiting": 0,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "running",
+            "released": false
+          }
+        ],
+        "expect": {
+          "action": "suspend",
+          "job": "a"
+        }
+      },
+      {
+        "note": "manual, running job that is not released, session active: suspend",
+        "timing": "manual",
+        "sessionActive": true,
+        "foregroundWaiting": 0,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "running",
+            "released": false
+          }
+        ],
+        "expect": {
+          "action": "suspend",
+          "job": "a"
+        }
+      },
+      {
+        "note": "manual, running job that is not released, released job behind it: suspend, the other waits for the suspension",
+        "timing": "manual",
+        "sessionActive": false,
+        "foregroundWaiting": 0,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "running",
+            "released": false
+          },
+          {
+            "id": "b",
+            "state": "waiting",
+            "released": true
+          }
+        ],
+        "expect": {
+          "action": "suspend",
+          "job": "a"
+        }
+      },
+      {
+        "note": "manual, released running job, session active: suspend",
+        "timing": "manual",
+        "sessionActive": true,
+        "foregroundWaiting": 0,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "running",
+            "released": true
+          }
+        ],
+        "expect": {
+          "action": "suspend",
+          "job": "a"
+        }
+      },
+      {
+        "note": "manual, released running job, foreground work waits: suspend",
+        "timing": "manual",
+        "sessionActive": false,
+        "foregroundWaiting": 2,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "running",
+            "released": true
+          }
+        ],
+        "expect": {
+          "action": "suspend",
+          "job": "a"
+        }
+      },
+      {
+        "note": "manual, done and failed jobs are skipped even when released",
+        "timing": "manual",
+        "sessionActive": false,
+        "foregroundWaiting": 0,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "done",
+            "released": true
+          },
+          {
+            "id": "b",
+            "state": "failed",
+            "released": true
+          },
+          {
+            "id": "c",
+            "state": "waiting",
+            "released": true
+          }
+        ],
+        "expect": {
+          "action": "start",
+          "job": "c"
+        }
+      },
+      {
+        "note": "manual, only done and failed jobs: nothing to run",
+        "timing": "manual",
+        "sessionActive": false,
+        "foregroundWaiting": 0,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "done",
+            "released": true
+          },
+          {
+            "id": "b",
+            "state": "failed",
+            "released": false
+          }
+        ],
+        "expect": {
+          "action": "none",
+          "job": null
+        }
+      },
+      {
+        "note": "manual, released running job behind a held waiting job: keep running",
+        "timing": "manual",
+        "sessionActive": false,
+        "foregroundWaiting": 0,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "waiting",
+            "released": false
+          },
+          {
+            "id": "b",
+            "state": "running",
+            "released": true
+          }
+        ],
+        "expect": {
+          "action": "none",
+          "job": null
+        }
+      },
+      {
+        "note": "invalid: manual, two running jobs consider only the first (not released): suspend it",
+        "timing": "manual",
+        "sessionActive": false,
+        "foregroundWaiting": 0,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "running",
+            "released": false
+          },
+          {
+            "id": "b",
+            "state": "running",
+            "released": true
+          }
+        ],
+        "expect": {
+          "action": "suspend",
+          "job": "a"
+        }
+      },
+      {
+        "note": "whenIdle ignores released: unreleased waiting job, idle: start",
+        "timing": "whenIdle",
+        "sessionActive": false,
+        "foregroundWaiting": 0,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "waiting",
+            "released": false
+          }
+        ],
+        "expect": {
+          "action": "start",
+          "job": "a"
+        }
+      },
+      {
+        "note": "immediate ignores released: unreleased waiting job, session active: start",
+        "timing": "immediate",
+        "sessionActive": true,
+        "foregroundWaiting": 0,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "waiting",
+            "released": false
+          }
+        ],
+        "expect": {
+          "action": "start",
+          "job": "a"
+        }
+      },
+      {
+        "note": "whenIdle ignores released: unreleased running job, idle: keep running",
+        "timing": "whenIdle",
+        "sessionActive": false,
+        "foregroundWaiting": 0,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "running",
+            "released": false
+          }
+        ],
+        "expect": {
+          "action": "none",
+          "job": null
+        }
+      },
+      {
+        "note": "immediate ignores released: unreleased running job, session active: keep running",
+        "timing": "immediate",
+        "sessionActive": true,
+        "foregroundWaiting": 0,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "running",
+            "released": false
+          }
+        ],
+        "expect": {
+          "action": "none",
+          "job": null
+        }
+      },
+      {
+        "note": "whenIdle ignores released: unreleased suspended job, idle: resume",
+        "timing": "whenIdle",
+        "sessionActive": false,
+        "foregroundWaiting": 0,
+        "jobs": [
+          {
+            "id": "a",
+            "state": "suspended",
+            "released": false
+          }
+        ],
+        "expect": {
+          "action": "resume",
+          "job": "a"
+        }
+      }
+    ],
+    "shouldYield": [
+      {
+        "timing": "manual",
+        "sessionActive": false,
+        "foregroundWaiting": 0,
+        "released": true,
+        "expect": false
+      },
+      {
+        "timing": "manual",
+        "sessionActive": false,
+        "foregroundWaiting": 0,
+        "released": false,
+        "expect": true
+      },
+      {
+        "timing": "manual",
+        "sessionActive": true,
+        "foregroundWaiting": 0,
+        "released": true,
+        "expect": true
+      },
+      {
+        "timing": "manual",
+        "sessionActive": true,
+        "foregroundWaiting": 0,
+        "released": false,
+        "expect": true
+      },
+      {
+        "timing": "manual",
+        "sessionActive": false,
+        "foregroundWaiting": 1,
+        "released": true,
+        "expect": true
+      },
+      {
+        "timing": "manual",
+        "sessionActive": false,
+        "foregroundWaiting": 1,
+        "released": false,
+        "expect": true
+      },
+      {
+        "timing": "manual",
+        "sessionActive": false,
+        "foregroundWaiting": -1,
+        "released": true,
+        "expect": false
+      },
+      {
+        "timing": "whenIdle",
+        "sessionActive": false,
+        "foregroundWaiting": 0,
+        "released": false,
+        "expect": false
+      },
+      {
+        "timing": "whenIdle",
+        "sessionActive": true,
+        "foregroundWaiting": 0,
+        "released": false,
+        "expect": true
+      },
+      {
+        "timing": "immediate",
+        "sessionActive": false,
+        "foregroundWaiting": 0,
+        "released": false,
+        "expect": false
+      },
+      {
+        "timing": "immediate",
+        "sessionActive": true,
+        "foregroundWaiting": 0,
+        "released": false,
+        "expect": false
+      },
+      {
+        "timing": "immediate",
+        "sessionActive": false,
+        "foregroundWaiting": 1,
+        "released": false,
+        "expect": true
+      }
+    ],
+    "blocksUpdateInstall": [
+      {
+        "note": "manual, empty queue",
+        "timing": "manual",
+        "jobs": [],
+        "expect": false
+      },
+      {
+        "note": "manual, only done and failed",
+        "timing": "manual",
+        "jobs": [
+          {
+            "id": "a",
+            "state": "done",
+            "released": true
+          },
+          {
+            "id": "b",
+            "state": "failed",
+            "released": false
+          }
+        ],
+        "expect": false
+      },
+      {
+        "note": "manual, held waiting job does not block",
+        "timing": "manual",
+        "jobs": [
+          {
+            "id": "a",
+            "state": "waiting",
+            "released": false
+          }
+        ],
+        "expect": false
+      },
+      {
+        "note": "manual, held suspended job does not block",
+        "timing": "manual",
+        "jobs": [
+          {
+            "id": "a",
+            "state": "suspended",
+            "released": false
+          }
+        ],
+        "expect": false
+      },
+      {
+        "note": "manual, held waiting and held suspended jobs do not block",
+        "timing": "manual",
+        "jobs": [
+          {
+            "id": "a",
+            "state": "waiting",
+            "released": false
+          },
+          {
+            "id": "b",
+            "state": "suspended",
+            "released": false
+          }
+        ],
+        "expect": false
+      },
+      {
+        "note": "manual, released waiting job blocks",
+        "timing": "manual",
+        "jobs": [
+          {
+            "id": "a",
+            "state": "waiting",
+            "released": true
+          }
+        ],
+        "expect": true
+      },
+      {
+        "note": "manual, released suspended job blocks",
+        "timing": "manual",
+        "jobs": [
+          {
+            "id": "a",
+            "state": "suspended",
+            "released": true
+          }
+        ],
+        "expect": true
+      },
+      {
+        "note": "manual, released running job blocks",
+        "timing": "manual",
+        "jobs": [
+          {
+            "id": "a",
+            "state": "running",
+            "released": true
+          }
+        ],
+        "expect": true
+      },
+      {
+        "note": "manual, a running job blocks even when it is not released yet (its Hold takes effect at the next window)",
+        "timing": "manual",
+        "jobs": [
+          {
+            "id": "a",
+            "state": "running",
+            "released": false
+          }
+        ],
+        "expect": true
+      },
+      {
+        "note": "manual, one released job among held jobs blocks",
+        "timing": "manual",
+        "jobs": [
+          {
+            "id": "a",
+            "state": "waiting",
+            "released": false
+          },
+          {
+            "id": "b",
+            "state": "waiting",
+            "released": true
+          },
+          {
+            "id": "c",
+            "state": "suspended",
+            "released": false
+          }
+        ],
+        "expect": true
+      },
+      {
+        "note": "whenIdle ignores released: unreleased waiting job blocks",
+        "timing": "whenIdle",
+        "jobs": [
+          {
+            "id": "a",
+            "state": "waiting",
+            "released": false
+          }
+        ],
+        "expect": true
+      },
+      {
+        "note": "immediate ignores released: unreleased suspended job blocks",
+        "timing": "immediate",
+        "jobs": [
+          {
+            "id": "a",
+            "state": "suspended",
+            "released": false
+          }
+        ],
+        "expect": true
+      }
+    ],
+    "allPendingHeld": [
+      {
+        "note": "manual, empty queue: nothing is held",
+        "timing": "manual",
+        "jobs": [],
+        "expect": false
+      },
+      {
+        "note": "manual, only done and failed jobs: nothing is pending",
+        "timing": "manual",
+        "jobs": [
+          {
+            "id": "a",
+            "state": "done",
+            "released": false
+          },
+          {
+            "id": "b",
+            "state": "failed",
+            "released": false
+          }
+        ],
+        "expect": false
+      },
+      {
+        "note": "manual, one held waiting job",
+        "timing": "manual",
+        "jobs": [
+          {
+            "id": "a",
+            "state": "waiting",
+            "released": false
+          }
+        ],
+        "expect": true
+      },
+      {
+        "note": "manual, held waiting and held suspended jobs",
+        "timing": "manual",
+        "jobs": [
+          {
+            "id": "a",
+            "state": "waiting",
+            "released": false
+          },
+          {
+            "id": "b",
+            "state": "suspended",
+            "released": false
+          }
+        ],
+        "expect": true
+      },
+      {
+        "note": "manual, held waiting job and a done job",
+        "timing": "manual",
+        "jobs": [
+          {
+            "id": "a",
+            "state": "done",
+            "released": true
+          },
+          {
+            "id": "b",
+            "state": "waiting",
+            "released": false
+          }
+        ],
+        "expect": true
+      },
+      {
+        "note": "manual, one released job among held jobs",
+        "timing": "manual",
+        "jobs": [
+          {
+            "id": "a",
+            "state": "waiting",
+            "released": false
+          },
+          {
+            "id": "b",
+            "state": "waiting",
+            "released": true
+          }
+        ],
+        "expect": false
+      },
+      {
+        "note": "manual, released suspended job",
+        "timing": "manual",
+        "jobs": [
+          {
+            "id": "a",
+            "state": "suspended",
+            "released": true
+          }
+        ],
+        "expect": false
+      },
+      {
+        "note": "manual, released running job",
+        "timing": "manual",
+        "jobs": [
+          {
+            "id": "a",
+            "state": "running",
+            "released": true
+          }
+        ],
+        "expect": false
+      },
+      {
+        "note": "manual, running job that is not released counts as held",
+        "timing": "manual",
+        "jobs": [
+          {
+            "id": "a",
+            "state": "running",
+            "released": false
+          },
+          {
+            "id": "b",
+            "state": "waiting",
+            "released": false
+          }
+        ],
+        "expect": true
+      },
+      {
+        "note": "whenIdle: nothing is held, whatever released says",
+        "timing": "whenIdle",
+        "jobs": [
+          {
+            "id": "a",
+            "state": "waiting",
+            "released": false
+          }
+        ],
+        "expect": false
+      },
+      {
+        "note": "immediate: nothing is held, whatever released says",
+        "timing": "immediate",
+        "jobs": [
+          {
+            "id": "a",
+            "state": "waiting",
+            "released": false
+          }
+        ],
+        "expect": false
+      }
+    ]
+  }
 }

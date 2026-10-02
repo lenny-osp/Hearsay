@@ -596,6 +596,11 @@ internal static partial class Strings
     // Background transcription queue (PLAN.md 4.9, 18.10; mac/Hearsay/AppDelegate.swift, RecordView.swift).
     public static string RecordingsNotTranscribedYet(int count) => App("Recordings not transcribed yet: %lld", count);
     public static string HearsayContinuesNextTime => App("Hearsay continues with them the next time it opens.");
+    /// <summary>Windows only (PLAN.md 4.11): the quit alert's second line when every pending recording is held.</summary>
+    public static string TheyStayInQueue => Win("They stay in the queue until you transcribe them.");
+
+    /// <summary>The quit alert's second line: the Mac's, or with "When I start them" and every pending job held, the Windows-only one.</summary>
+    public static string QuitQueueMessage(bool allPendingHeld) => allPendingHeld ? TheyStayInQueue : HearsayContinuesNextTime;
     public static string QuitButton => App("Quit");
     public static string WaitUntilTranscriptionsFinished => App("Wait until the transcriptions are finished.");
     public static string StopAndStartNext => App("Stop & Start Next");
@@ -609,18 +614,31 @@ internal static partial class Strings
     public static string QueueTranscribing(int percent) => App("Transcribing %lld%%", percent);
     public static string QueueDone => App("queue.state.done");
     public static string QueueFailed => App("Failed");
+    // "When I start them" (PLAN.md 4.11, 18.12), Windows only until the Mac port.
+    public static string QueueNotTranscribedYet => Win("Not transcribed yet");
+    public static string QueueOnHold(int percent) => Win("On hold · %lld%%", percent);
+    public static string TranscribeAll => Win("Transcribe All");
+    public static string Hold => Win("Hold");
+    public static string HoldTooltip => Win("Stops transcribing for now. Transcribe continues where it stopped.");
 
     // Tray menu queue line (mac/Hearsay/Features/MenuBar/MenuBarView.swift, queueLine).
     public static string QueueLineCount(int pending) => App("Recordings in queue: %lld", pending);
     public static string QueueLinePaused(int pending) => App("Transcription paused while recording · in queue: %lld", pending);
     public static string QueueLineTranscribing(int percent, int pending) => App("Transcribing… %lld%% · in queue: %lld", percent, pending);
     public static string QueueLineWaiting(int pending) => App("Waiting to transcribe · in queue: %lld", pending);
+    public static string QueueLineHeld(int pending) => Win("Not transcribed yet · in queue: %lld", pending);
 
     // Settings > General > Transcription (mac/Hearsay/Features/Settings/SettingsView.swift, FinalPassTimingPicker).
     public static string FinalPassTimingLabel => App("Transcribe finished recordings");
-    public static string FinalPassTimingCaption => App("Either way, the next recording can start at once.");
+    /// <summary>
+    /// Windows only: the Mac's "Either way, the next recording can start at once."
+    /// reads wrong with three rows (PLAN.md 4.11); that key stays for the Mac.
+    /// </summary>
+    public static string FinalPassTimingCaption =>
+        Win("The next recording can start at once, whichever you choose. With “When I start them”, recordings wait on the Record tab until you click Transcribe or Transcribe All.");
     public static string TimingImmediate => Core("Right away (in the background)");
     public static string TimingWhenIdle => Core("When no recording is running");
+    public static string TimingManual => Win("When I start them");
 
     // File tab (mac/Hearsay/Features/FileTranscription/FileView.swift, FileViewModel.swift).
     public static string DropFileHere => App("Drop an audio or video file here");

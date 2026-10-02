@@ -299,7 +299,8 @@ public sealed class AppSettings : INotifyPropertyChanged
     /// Transcription, PLAN.md 4.9 item 3). Default
     /// <see cref="FinalPassTiming.WhenIdle"/> on Windows (PLAN.md 18.10; the
     /// Mac's is <see cref="FinalPassTiming.Immediate"/>); stored as the
-    /// shared value, and an unknown stored value reads as the default.
+    /// shared value ("immediate", "whenIdle" or "manual", PLAN.md 4.11), and an
+    /// unknown stored value reads as the default.
     /// </summary>
     public FinalPassTiming FinalPassTiming
     {

@@ -156,6 +156,52 @@ public sealed class RecordingControllerTests
     });
 
     [Fact]
+    public Task StopUnderManualTimingHoldsTheJobAndAStopAndStartNextHoldsBoth() => RunAsync(FinalPassTiming.Manual, async rig =>
+    {
+        var controller = rig.Controller;
+        controller.Start();
+        await WaitUntil(() => controller.Phase is ControllerPhase.Recording, "recording");
+        await rig.FeedAsync(rig.Mics[0]);
+        controller.StopAndStartNext();
+        await WaitUntil(() => rig.Queue.Jobs.Count == 1 && controller.Phase is ControllerPhase.Recording && rig.Mics.Count == 2, "the next session");
+        await rig.FeedAsync(rig.Mics[1]);
+        await controller.StopAsync();
+
+        Assert.Equal(2, rig.Queue.Jobs.Count);
+        Assert.All(rig.Queue.Jobs, job =>
+        {
+            Assert.False(job.IsReleased);
+            Assert.True(job.IsHeld);
+            Assert.Equal(TranscriptionJobState.Waiting, job.State);
+        });
+        Assert.True(rig.Queue.AllPendingHeld);
+        Assert.False(rig.Queue.BlocksUpdateInstall);
+        await Stays(() => rig.Queue.Jobs.All(job => job.State == TranscriptionJobState.Waiting), "nothing is transcribed by itself");
+
+        rig.Queue.ReleaseAll();
+        await WaitUntil(() => rig.Queue.Jobs.All(job => job.State == TranscriptionJobState.Done), "both jobs after Transcribe All");
+    });
+
+    [Fact]
+    public Task TryAgainAfterACaptureFailureIsReleasedUnderManualTiming() => RunAsync(FinalPassTiming.Manual, async rig =>
+    {
+        var controller = rig.Controller;
+        controller.Start();
+        await WaitUntil(() => controller.Phase is ControllerPhase.Recording, "recording");
+        var mic = rig.Mics[0];
+        await rig.FeedAsync(mic);
+        mic.FailWith = new MicrophoneRecorderException(MicrophoneRecorderErrorKind.NoAudio, "the test microphone");
+        await controller.StopAsync();
+        Assert.True(controller.CanRetryTranscription);
+
+        controller.RetryTranscription();
+        var job = Assert.Single(rig.Queue.Jobs);
+        Assert.True(job.IsReleased);
+        Assert.False(job.IsHeld);
+        await WaitUntil(() => job.State == TranscriptionJobState.Done, "the retry to be transcribed");
+    });
+
+    [Fact]
     public Task StopAndStartNextKeepsTheDeviceTheSystemAudioAndTheLanguageChoice() => RunAsync(FinalPassTiming.WhenIdle, async rig =>
     {
         var controller = rig.Controller;
