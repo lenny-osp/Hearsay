@@ -46,6 +46,13 @@ public final class Transcriber {
         return try Transcriber(model: model)
     }
 
+    /// Returns MLX's buffer cache to the system. Freed arrays go into that
+    /// cache, not back to the system, so call this after the last reference
+    /// to a `Transcriber` is dropped; otherwise its weights stay resident.
+    public static func releaseCachedMemory() {
+        Memory.clearCache()
+    }
+
     /// Transcribe 16 kHz mono float samples in [-1, 1].
     /// `progress` receives the fraction of content frames done, 0...1.
     /// `shouldCancel` (and `Task.isCancelled`, when called from a task) is

@@ -12,7 +12,9 @@ namespace Hearsay.Whisper;
 /// whisper.cpp context for it, used for both language detection and
 /// transcription. Every job takes the engine's lock, so jobs are serialized;
 /// the model stays loaded between jobs and is released after
-/// <see cref="IdleUnloadSeconds"/> without work (PLAN.md section 12, memory).
+/// <see cref="IdleUnloadSeconds"/> without work (60, as on the Mac; PLAN.md
+/// section 12, memory) and <see cref="ModelReleased"/> then tells the app so
+/// it can give the managed heap back as well.
 /// Port of mac/Hearsay/Features/Transcription/WhisperEngine.swift, with the
 /// public surface of <c>Transcriber</c> it consumes
 /// (mac/HearsayWhisper/Sources/HearsayWhisper/Decoder/Transcriber.swift and
@@ -47,8 +49,13 @@ namespace Hearsay.Whisper;
 /// </remarks>
 public sealed unsafe class WhisperEngine : IDisposable
 {
-    /// <summary>Seconds without a job before the model is released (the Mac's 600).</summary>
-    public const double IdleUnloadSeconds = 600;
+    /// <summary>
+    /// Seconds without a job before the model is released (the Mac's 60; owner
+    /// decision 2026-10-03). The loaded turbo q5_0 context holds about 1.5 GB
+    /// of private memory and a reload takes about one second, so a short wait
+    /// costs little.
+    /// </summary>
+    public const double IdleUnloadSeconds = 60;
 
     /// <summary>A warm 30 s window slower than this turns live preview off (PLAN.md 18.4, "Speed").</summary>
     public const double LivePreviewMaxWindowSeconds = 15;
@@ -84,6 +91,17 @@ public sealed unsafe class WhisperEngine : IDisposable
         this.idleUnload = idleUnload ?? TimeSpan.FromSeconds(IdleUnloadSeconds);
         idleTimer = new Timer(_ => UnloadIfIdle(), null, Timeout.Infinite, Timeout.Infinite);
     }
+
+    /// <summary>
+    /// Raised after a loaded model was freed: by the idle timer, or by an
+    /// explicit <see cref="Unload"/> that found a model loaded. Not raised by
+    /// <see cref="Dispose"/>, by a switch to another model inside a load, or
+    /// when there was nothing to free or a job was active. It runs on the
+    /// timer's or the caller's thread, after the engine's lock is released, so
+    /// a handler may call back into the engine; an exception it throws is
+    /// logged and swallowed (the app uses it to compact the managed heap).
+    /// </summary>
+    public event EventHandler? ModelReleased;
 
     /// <summary>A model is loaded.</summary>
     public bool IsLoaded
@@ -137,14 +155,17 @@ public sealed unsafe class WhisperEngine : IDisposable
         }
     }
 
-    /// <summary>Releases the model now.</summary>
+    /// <summary>Releases the model now; raises <see cref="ModelReleased"/> when one was loaded.</summary>
     public void Unload()
     {
+        bool freed;
         lock (gate)
         {
             idleTimer.Change(Timeout.Infinite, Timeout.Infinite);
+            freed = context != IntPtr.Zero;
             FreeLocked();
         }
+        if (freed) OnModelReleased();
     }
 
     /// <summary>
@@ -880,6 +901,20 @@ public sealed unsafe class WhisperEngine : IDisposable
             if (Volatile.Read(ref activeJobs) != 0 || context == IntPtr.Zero) return;
             FreeLocked();
             Log("whisper: model released after idle time");
+        }
+        OnModelReleased();
+    }
+
+    /// <summary>Raises <see cref="ModelReleased"/>; a handler's exception must not reach the timer thread, where it would end the process.</summary>
+    internal void OnModelReleased()
+    {
+        try
+        {
+            ModelReleased?.Invoke(this, EventArgs.Empty);
+        }
+        catch (Exception error) when (error is not OutOfMemoryException)
+        {
+            Log($"whisper: a ModelReleased handler failed: {error.GetType().Name}: {error.Message}");
         }
     }
 

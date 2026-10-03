@@ -176,7 +176,12 @@ and a downloaded model.
 Concurrency: every engine is an `actor` or runs on a dedicated `Task`.
 `WhisperEngine` holds the loaded model and serializes `transcribe` calls.
 Model loading happens once per selected model and is cached until the user
-switches models or memory pressure triggers unload.
+switches models or no job has run for 60 s (600 s until 2026-10-03: the
+owner saw 2.3 GB stay after a transcription; a reload takes about a
+second). On release the Mac also clears MLX's buffer cache
+(`Transcriber.releaseCachedMemory()`), since freed MLX arrays otherwise
+stay in that cache and the memory never leaves the process; Windows
+compacts the managed heap (18.4, "Memory after a job").
 
 ### 4.1 Recording flow (Streaming mode, plus system audio and live preview)
 
@@ -1489,7 +1494,7 @@ Total: about 8 to 9 weeks of calendar time.
 |---|---|---|
 | Vendored Whisper module drifts from upstream | Miss upstream fixes | Record the source commit in the file headers; diff against upstream every few months. |
 | Timestamped decoder port has subtle bugs | Cues drift or overlap | Compare against the Python SRT for every fixture in tests; keep the Python CLI installed as the oracle. |
-| Memory: large-v3 fp16 needs ~4 GB unified memory while loaded | 8 GB Macs struggle | Recommend turbo; unload model after 10 min idle. |
+| Memory: large-v3 fp16 needs ~4 GB unified memory while loaded | 8 GB Macs struggle | Recommend turbo; unload model after 60 s idle (10 min until 2026-10-03) and clear MLX's buffer cache then. |
 | Full Xcode needed | Blocks day one | Section 2, step 1. |
 | Copilot CLI needs the sandbox off | No Mac App Store | Accepted 2026-09-28. GitHub Models is gone too (shut down 2026-07-30), so Copilot CLI is the zero-key path; the others need an API key or a local Ollama. |
 | npz-only repos | Catalog entry silently unusable | Catalog lists safetensors repos only; spike verifies each. |
@@ -1865,6 +1870,26 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
     the recording ends and the WAV is kept in the output folder. Start a
     Teams meeting with the row picked: the automatic recording is
     system-only too.
+
+36. Windows, memory after a job (section 18.4 "Memory after a job",
+    added 2026-10-03): open Task Manager > Details and add the "Commit
+    size" column if needed. Transcribe a file in the File tab: Hearsay
+    grows to about 2 GB. About a minute after it finishes, Hearsay is
+    back near its idle size (100 to 200 MB), and the log (a console
+    launch) shows "whisper: model released after idle time" and "memory:
+    heap compacted after the model release, private ... MB -> ... MB".
+    Transcribe another file: it starts after about a second's reload.
+    Record a few minutes with live preview on: the memory stays up during
+    the recording and drops a minute after the final pass.
+
+37. Mac, memory after a job (section 4, added 2026-10-03; built on
+    Windows, compiled only by CI): in Activity Monitor watch Hearsay's
+    Memory column. Transcribe a file: it grows by the model's size (about
+    1.6 GB for turbo). About a minute after it finishes it drops back to
+    the idle size. If it does not drop, MLX's cache was not cleared
+    (`Transcriber.releaseCachedMemory()` in `WhisperEngine.dropTranscriber`).
+    Transcribe again: it reloads within a few seconds and gives the same
+    transcript.
 
 ## 17. Polish list (found during review, not yet scheduled)
 
@@ -2447,7 +2472,25 @@ with the CPU and Vulkan runtimes). Where Windows differs from the Mac:
   its path and whisper.cpp's system info. The two by-value structs are
   checked against Whisper.net's own declarations by a test. Context: GPU
   on, flash attention off (Whisper.net's default, the configuration W1
-  measured). Idle unload after 600 s as on the Mac.
+  measured). Idle unload after 60 s as on the Mac (600 s until
+  2026-10-03; see "Memory after a job" below).
+- **Memory after a job** (2026-10-03; owner: the app went from about
+  100 MB to 2.3 GB while transcribing and stayed there). Measured with
+  turbo q5_0 on Vulkan: the loaded context is about 1.55 GB private, and
+  freeing it gives that back (a reload takes 0.9 s; the first load of the
+  process 4.9 s). The rest was managed garbage: a simulated one-hour
+  recording (the recorder's growing `List<float>`, the live chunks, the
+  final pass's array) kept about 1.1 GB private after every reference was
+  dropped; a plain `GC.Collect()` freed about 130 MB, an aggressive one
+  all but 10 MB. So `WhisperEngine.ModelReleased` (raised after the idle
+  timer or an explicit `Unload()` freed a loaded model, outside the lock;
+  a handler's exception is logged) makes `TranscriptionEngine` run one
+  `GCCollectionMode.Aggressive` compacting collection with the LOH
+  compacted once, logged as `memory: heap compacted after the model
+  release, private <before> MB -> <after> MB`. End to end (model plus
+  one hour's buffers): 2499 MB -> 106 MB, released 60 s after the last
+  job. Tests: `IdleReleaseIntegrationTests` (model-gated) and three
+  model-free ones in `WhisperEngineUnitTests`.
 - **Options** (`TranscriptionOptions`, Mac defaults): temperatures become
   whisper.cpp's start plus increment (the default `[0]` is no fallback);
   `compressionRatioThreshold` 2.4 maps to `entropy_thold` (token entropy,
@@ -2930,6 +2973,14 @@ findings only in a chat report.
   either; the single-meeting card has both); the tray menu's queue line and
   Stop & Start Next were never seen in the real popup (item 27 of section 16).
 
+- **Done 2026-10-03: memory after a job** (owner, 2026-10-03: 2.3 GB
+  stayed after a transcription): released after 60 s idle plus a heap
+  compaction, 18.4 "Memory after a job"; hands-on: section 16 item 36.
+  Open: the compaction runs only when a model was released, so a session
+  that never loaded one (live preview off, the final pass held) keeps its
+  recording buffers until the next release; and during a long recording
+  the recorder's `List<float>` doubles its capacity (about 256 MB plus the
+  copy at one hour), which a chunked buffer would avoid.
 - **Done 2026-10-03: system audio only** (owner, 2026-10-02; shared design
   4.13, built on the Mac first): the Windows Microphone picker's last row
   "No microphone (system audio only)" replaces "No input device". Built as

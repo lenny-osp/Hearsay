@@ -67,7 +67,7 @@ final class ForegroundWork: Sendable {
 /// or throw. `transcribeStep` is background work: it suspends at the next
 /// 30 s window while any foreground call is counted (PLAN.md 4.9).
 actor WhisperEngine {
-    static let idleUnloadSeconds: TimeInterval = 600
+    static let idleUnloadSeconds: TimeInterval = 60
 
     private var transcriber: Transcriber?
     private var loaded: WhisperModelLocation?
@@ -93,7 +93,7 @@ actor WhisperEngine {
     func load(modelDirectory: URL, tokenizerDirectory: URL) async throws {
         let location = WhisperModelLocation(modelDirectory: modelDirectory, tokenizerDirectory: tokenizerDirectory)
         if loaded == location, transcriber != nil { return }
-        transcriber = nil
+        dropTranscriber()
         loaded = nil
         let model = try await Self.loadTranscriber(location)
         transcriber = model.transcriber
@@ -244,7 +244,7 @@ actor WhisperEngine {
     func unload() {
         idleTimer?.cancel()
         idleTimer = nil
-        transcriber = nil
+        dropTranscriber()
         loaded = nil
     }
 
@@ -252,9 +252,20 @@ actor WhisperEngine {
 
     private func unloadNowIfIdle() {
         guard activeJobs == 0 else { return }
-        transcriber = nil
+        dropTranscriber()
         loaded = nil
         idleTimer = nil
+    }
+
+    /// Releases the model's memory to the system. The actor holds the only
+    /// reference to the transcriber (`Loaded` is a local in `load`, jobs
+    /// only borrow it and none outlives `activeJobs`), so ARC frees its
+    /// arrays at the `nil`; MLX then parks them in its buffer cache, which
+    /// is cleared here. Does nothing when no model is loaded.
+    private func dropTranscriber() {
+        guard transcriber != nil else { return }
+        transcriber = nil
+        Transcriber.releaseCachedMemory()
     }
 
     private func beginJob() {

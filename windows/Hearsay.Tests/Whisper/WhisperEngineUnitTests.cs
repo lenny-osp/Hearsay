@@ -283,4 +283,39 @@ public sealed class WhisperEngineUnitTests
         Assert.Equal(21, WhisperNative.ExportNames.Count);
         Assert.Equal(WhisperNative.ExportNames.Count, WhisperNative.ExportNames.Distinct().Count());
     }
+
+    // Idle release
+
+    [Fact]
+    public void TheIdleUnloadIsSixtySeconds() =>
+        Assert.Equal(60, WhisperEngine.IdleUnloadSeconds);
+
+    [Fact]
+    public void AModelReleasedHandlerThatThrowsIsLoggedNotRaised()
+    {
+        var log = new List<string>();
+        using var engine = new WhisperEngine(log.Add);
+        int calls = 0;
+        engine.ModelReleased += (_, _) =>
+        {
+            calls++;
+            throw new InvalidOperationException("handler failed");
+        };
+        engine.ModelReleased += (_, _) => calls++;
+        engine.OnModelReleased();  // what the timer thread calls; must not throw
+        Assert.Equal(1, calls);    // the throwing handler stops the invocation list
+        Assert.Contains(log, line => line.Contains("ModelReleased handler failed", StringComparison.Ordinal)
+                                     && line.Contains("handler failed", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void UnloadAndDisposeWithoutAModelRaiseNothing()
+    {
+        var engine = new WhisperEngine();
+        int released = 0;
+        engine.ModelReleased += (_, _) => released++;
+        engine.Unload();
+        engine.Dispose();
+        Assert.Equal(0, released);
+    }
 }

@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.Globalization;
+using System.Runtime;
 using Hearsay.Core.Transcription;
 using Hearsay.Whisper;
 
@@ -12,7 +14,9 @@ namespace Hearsay.App.Features.Transcription;
 /// pool, so the UI thread never waits for whisper.cpp, and it remembers the
 /// speed probe per model (PLAN.md 18.4, "Speed"). The model path is always
 /// passed in, so a job loads the model first when needed, as the Mac's
-/// <c>transcribe(samples:location:...)</c> does.
+/// <c>transcribe(samples:location:...)</c> does. When the engine releases the
+/// model after its idle time, this wrapper also compacts the managed heap
+/// (<see cref="TrimMemory"/>), so the process returns to its idle size.
 /// </summary>
 /// <summary>
 /// What the background queue needs from the engine (the Mac's
@@ -56,12 +60,44 @@ internal sealed class TranscriptionEngine : IDisposable, IQueueEngine
     private readonly Dictionary<string, Probe> probes = new(StringComparer.OrdinalIgnoreCase);
     private readonly Lock gate = new();
     private readonly TimeProvider time;
+    private readonly Action trimMemory;
     private Task<bool>? cpuCheck;
 
-    public TranscriptionEngine(TimeProvider? time = null)
+    /// <param name="time">The clock for the speed probe's memory.</param>
+    /// <param name="trimMemory">What runs after the model release; default <see cref="TrimMemory"/>. A test passes its own.</param>
+    public TranscriptionEngine(TimeProvider? time = null, Action? trimMemory = null)
     {
         this.time = time ?? TimeProvider.System;
+        this.trimMemory = trimMemory ?? TrimMemory;
         Engine = new WhisperEngine(line => AppLog.Write(line));
+        Engine.ModelReleased += OnModelReleased;
+    }
+
+    private void OnModelReleased(object? sender, EventArgs e) => trimMemory();
+
+    /// <summary>
+    /// One aggressive, compacting full collection, with the private bytes
+    /// before and after in the log. An explicit GC is justified here: an idle
+    /// desktop app rarely triggers a gen-2 collection, and a plain
+    /// <c>GC.Collect()</c> leaves the freed regions committed (a simulated
+    /// one-hour recording kept about 1.1 GB private after every reference was
+    /// dropped; a plain collect freed about 130 MB, this one brought it to
+    /// about 10 MB).
+    /// </summary>
+    internal static void TrimMemory()
+    {
+        long before = PrivateMegabytes();
+        GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+        GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, blocking: true, compacting: true);
+        AppLog.Write(string.Create(CultureInfo.InvariantCulture,
+            $"memory: heap compacted after the model release, private {before} MB -> {PrivateMegabytes()} MB"));
+    }
+
+    private static long PrivateMegabytes()
+    {
+        using var process = Process.GetCurrentProcess();
+        process.Refresh();
+        return process.PrivateMemorySize64 / (1024 * 1024);
     }
 
     public WhisperEngine Engine { get; }
@@ -198,7 +234,11 @@ internal sealed class TranscriptionEngine : IDisposable, IQueueEngine
         }
     }
 
-    public void Dispose() => Engine.Dispose();
+    public void Dispose()
+    {
+        Engine.ModelReleased -= OnModelReleased;
+        Engine.Dispose();
+    }
 
     /// <summary>The engine stopped because the job was cancelled (the Mac's <c>isTranscriptionCancelled</c>).</summary>
     public static bool IsCancellation(Exception error) => error is OperationCanceledException;
