@@ -85,20 +85,30 @@ internal sealed class LiveSystemAudio : ISystemAudioCapture
 }
 
 /// <summary>
+/// The input devices and the system default one, as the Microphone picker
+/// lists them (<see cref="CaptureSources.ListInputDevices"/>).
+/// </summary>
+internal sealed record InputDeviceList(IReadOnlyList<AudioInputDevice> Devices, string? DefaultId);
+
+/// <summary>
 /// Where a recording's audio and model come from. <see cref="Live"/> is the
-/// app; only the debug replay (<see cref="RecordingReplay"/>) passes anything
-/// else. Port of <c>CaptureSources</c> in RecordingController.swift. There is
-/// no permission request: Windows cannot ask for microphone access in
-/// advance, and a denied start fails with
-/// <see cref="MicrophoneRecorderErrorKind.PermissionDenied"/> (PLAN.md 18.4, W3).
+/// app; only the debug replay (<see cref="RecordingReplay"/>) and the tests
+/// pass anything else. Port of <c>CaptureSources</c> in
+/// RecordingController.swift. There is no permission request: Windows cannot
+/// ask for microphone access in advance, and a denied start fails with
+/// <see cref="MicrophoneRecorderErrorKind.PermissionDenied"/> (PLAN.md 18.4,
+/// W3). <c>MakeSystemAudio</c> gets true when system audio is the only
+/// source (no microphone, PLAN.md 4.13), which is how the replay knows to
+/// feed its WAV there. <c>ListInputDevices</c> null reads the real devices.
 /// </summary>
 internal sealed record CaptureSources(
     Func<IMicrophoneCapture> MakeMicrophone,
-    Func<ISystemAudioCapture> MakeSystemAudio,
-    Func<ModelStore, string> ModelPath)
+    Func<bool, ISystemAudioCapture> MakeSystemAudio,
+    Func<ModelStore, string> ModelPath,
+    Func<InputDeviceList>? ListInputDevices = null)
 {
     public static CaptureSources Live { get; } = new(
         () => new LiveMicrophone(),
-        () => new LiveSystemAudio(),
+        _ => new LiveSystemAudio(),
         WhisperModelLocation.Active);
 }

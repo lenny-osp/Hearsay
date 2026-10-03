@@ -42,13 +42,16 @@ public sealed class RecordingControllerTests
                     Mics.Add(mic);
                     return mic;
                 },
-                () =>
+                withoutMicrophone =>
                 {
+                    SystemRequests.Add(withoutMicrophone);
+                    if (SystemStartFailure is { } failure) throw failure;
                     var system = new FakeSystem();
                     Systems.Add(system);
                     return system;
                 },
-                _ => throw new WhisperEngineException(WhisperEngineError.NoActiveModel, null));
+                _ => throw new WhisperEngineException(WhisperEngineError.NoActiveModel, null),
+                () => new InputDeviceList([.. InputDevices], InputDevices.FirstOrDefault()?.Uid));
             Controller = new RecordingController(queueRig.Settings, models, engine, queueRig.Queue, queueRig.Spool, Sources);
             Queue.PropertyChanged += OnQueueChanged;
         }
@@ -66,6 +69,28 @@ public sealed class RecordingControllerTests
         public List<FakeMic> Mics { get; } = [];
 
         public List<FakeSystem> Systems { get; } = [];
+
+        /// <summary>The "without microphone" argument of each system-audio request.</summary>
+        public List<bool> SystemRequests { get; } = [];
+
+        /// <summary>The input devices the picker sees; the first one is the default.</summary>
+        public List<AudioInputDevice> InputDevices { get; } = [new AudioInputDevice("{0.0.1.00000000}.{test}", "Test microphone")];
+
+        /// <summary>Starting system audio throws this (the loopback cannot start).</summary>
+        public SystemAudioRecorderException? SystemStartFailure { get; set; }
+
+        /// <summary>One second of quiet audio through the system audio only.</summary>
+        public async Task FeedSystemAsync(FakeSystem system)
+        {
+            var start = HostClock.NowSeconds();
+            for (var i = 0; i < 10; i++)
+            {
+                var samples = new float[1600];
+                for (var n = 0; n < samples.Length; n++) samples[n] = (float)(random.NextDouble() - 0.5) * 0.1f;
+                system.Feed(samples, start + i / 10.0);
+            }
+            await WaitUntil(() => Controller.Elapsed >= 0.5, "the recording to catch up");
+        }
 
         /// <summary>The session-active flag of the queue went false at some point.</summary>
         public bool SessionFlagDropped { get; private set; }
@@ -357,6 +382,230 @@ public sealed class RecordingControllerTests
         Assert.Empty(rig.Queue.Jobs);
     });
 
+    // PLAN.md 4.13: "No microphone (system audio only)".
+
+    [Fact]
+    public Task SystemOnlyStartMakesNoMicrophoneAndRecordsTheSystemAudio() => RunAsync(FinalPassTiming.WhenIdle, async rig =>
+    {
+        var controller = rig.Controller;
+        rig.Settings.CaptureSystemAudio = false;
+        controller.MicrophoneChoice = MicrophoneChoice.NoMicrophone;
+        controller.Start();
+        await WaitUntil(() => controller.Phase is ControllerPhase.Recording, "recording");
+        Assert.Empty(rig.Mics);
+        Assert.Equal([true], rig.SystemRequests);
+        Assert.False(controller.SessionRecordsMicrophone);
+        Assert.True(controller.CapturesSystemAudio);
+        Assert.False(rig.Settings.CaptureSystemAudio, "the stored setting is not changed");
+        Assert.NotNull(controller.SystemLevelFraction);
+
+        await rig.FeedSystemAsync(rig.Systems[0]);
+        Assert.True(controller.Elapsed >= 0.5);
+        await controller.StopAsync();
+        Assert.IsType<ControllerPhase.Idle>(controller.Phase);
+        var job = Assert.Single(rig.Queue.Jobs);
+        Assert.True(File.Exists(job.Recording.Path));
+        Assert.False(controller.SessionRecordsMicrophone, "the session's flag stays until the next Start");
+        await rig.Queue.PrepareForQuitAsync();
+    });
+
+    [Fact]
+    public Task SystemOnlyStartFailsWithTheLoopbackErrorAndLeavesNothingInTheSpool() => RunAsync(FinalPassTiming.WhenIdle, async rig =>
+    {
+        var controller = rig.Controller;
+        var failure = new SystemAudioRecorderException(SystemAudioRecorderErrorKind.NoOutputDevice);
+        rig.SystemStartFailure = failure;
+        controller.MicrophoneChoice = MicrophoneChoice.NoMicrophone;
+        controller.Start();
+        await WaitUntil(() => controller.Phase is ControllerPhase.Failed, "the failed start");
+        Assert.Equal(Strings.NothingToRecordSystemAudioOnly(Strings.Describe(failure)), controller.ErrorMessage);
+        Assert.Contains(Strings.Describe(failure), controller.ErrorMessage);
+        Assert.Empty(rig.Mics);
+        Assert.Empty(Directory.GetFileSystemEntries(rig.Scratch.SpoolPath));
+        Assert.Null(controller.FinishedRecording);
+        Assert.False(controller.IsSessionActive);
+        Assert.Null(controller.SystemAudioNotice);
+    });
+
+    [Fact]
+    public Task AFailedLoopbackWithAMicrophoneStillGoesOnMicOnlyWithANotice() => RunAsync(FinalPassTiming.WhenIdle, async rig =>
+    {
+        var controller = rig.Controller;
+        var failure = new SystemAudioRecorderException(SystemAudioRecorderErrorKind.NoOutputDevice);
+        rig.SystemStartFailure = failure;
+        rig.Settings.CaptureSystemAudio = true;
+        controller.Start();
+        await WaitUntil(() => controller.Phase is ControllerPhase.Recording, "recording");
+        Assert.Equal([false], rig.SystemRequests);
+        Assert.Single(rig.Mics);
+        Assert.Equal(Strings.SystemAudioOff(Strings.Describe(failure)), controller.SystemAudioNotice);
+        await rig.FeedAsync(rig.Mics[0]);
+        await controller.StopForQuitAsync();
+        await rig.Queue.PrepareForQuitAsync();
+    });
+
+    [Fact]
+    public Task SystemOnlyRecordingWithNoSamplesFailsAndKeepsNoFile() => RunAsync(FinalPassTiming.WhenIdle, async rig =>
+    {
+        var controller = rig.Controller;
+        controller.MicrophoneChoice = MicrophoneChoice.NoMicrophone;
+        controller.Start();
+        await WaitUntil(() => controller.Phase is ControllerPhase.Recording, "recording");
+        await controller.StopAsync();
+        Assert.IsType<ControllerPhase.Failed>(controller.Phase);
+        Assert.Contains(Strings.NoAudioFromSystemAudio, controller.ErrorMessage);
+        Assert.Contains(Strings.NothingRecorded, controller.ErrorMessage);
+        Assert.Empty(rig.Queue.Jobs);
+        Assert.Empty(Directory.GetFileSystemEntries(rig.Scratch.SpoolPath));
+    });
+
+    [Fact]
+    public Task SystemOnlyPauseAndResumeActOnTheLoopbackAndNoMicrophoneWatchdogRuns() => RunAsync(FinalPassTiming.WhenIdle, async rig =>
+    {
+        var controller = rig.Controller;
+        controller.MicrophoneChoice = MicrophoneChoice.NoMicrophone;
+        controller.Start();
+        await WaitUntil(() => controller.Phase is ControllerPhase.Recording, "recording");
+        var system = rig.Systems[0];
+        controller.Pause();
+        Assert.IsType<ControllerPhase.Paused>(controller.Phase);
+        Assert.Equal(1, system.Pauses);
+        controller.Resume();
+        Assert.IsType<ControllerPhase.Recording>(controller.Phase);
+        Assert.Equal(1, system.Resumes);
+
+        // The no-audio watchdog is a microphone check: nothing fails after its timeout.
+        await Task.Delay(TimeSpan.FromSeconds(NoAudioWatchdog.Timeout + 0.7));
+        Assert.IsType<ControllerPhase.Recording>(controller.Phase);
+        await rig.FeedSystemAsync(system);
+        await controller.StopAsync();
+        Assert.IsType<ControllerPhase.Idle>(controller.Phase);
+        await rig.Queue.PrepareForQuitAsync();
+    });
+
+    [Fact]
+    public Task SystemOnlySilenceReadsCheckThatSomethingIsPlaying() => RunAsync(FinalPassTiming.WhenIdle, async rig =>
+    {
+        var controller = rig.Controller;
+        controller.MicrophoneChoice = MicrophoneChoice.NoMicrophone;
+        controller.Start();
+        await WaitUntil(() => controller.Phase is ControllerPhase.Recording, "recording");
+        var system = rig.Systems[0];
+        var start = HostClock.NowSeconds();
+        // 6 s of digital silence, as the 0.1 s filler delivers while nothing plays.
+        for (var i = 0; i < 60; i++) system.Feed(new float[1600], start + i / 10.0);
+        await WaitUntil(() => controller.SilenceWarning is not null, "the silence warning");
+        Assert.StartsWith("Silent for ", controller.SilenceWarning);
+        Assert.Contains("something is playing", controller.SilenceWarning);
+        await controller.StopAsync();
+        await rig.Queue.PrepareForQuitAsync();
+    });
+
+    [Fact]
+    public Task TheLoopbackEndingOnItsOwnEndsASystemOnlyRecordingAndKeepsTheWav() => RunAsync(FinalPassTiming.WhenIdle, async rig =>
+    {
+        var controller = rig.Controller;
+        controller.MicrophoneChoice = MicrophoneChoice.NoMicrophone;
+        controller.Start();
+        await WaitUntil(() => controller.Phase is ControllerPhase.Recording, "recording");
+        var system = rig.Systems[0];
+        await rig.FeedSystemAsync(system);
+        var failure = new SystemAudioRecorderException(SystemAudioRecorderErrorKind.NoOutputDevice);
+        system.FailWith = failure;
+        system.End();
+        await WaitUntil(() => controller.Phase is ControllerPhase.Failed, "the recording to end");
+        Assert.Contains(Strings.Describe(failure), controller.ErrorMessage);
+        Assert.NotNull(controller.FinishedRecording);
+        Assert.True(File.Exists(controller.FinishedRecording), "the WAV is kept");
+        Assert.Equal(rig.Scratch.OutputPath, Path.GetDirectoryName(controller.FinishedRecording));
+        Assert.True(controller.CanRetryTranscription);
+        Assert.Empty(rig.Mics);
+    });
+
+    [Fact]
+    public Task StopAndStartNextKeepsNoMicrophoneEvenAnAutomaticOne() => RunAsync(FinalPassTiming.WhenIdle, async rig =>
+    {
+        var controller = rig.Controller;
+        // No input device at all: the picker chooses "no microphone" by itself.
+        var device = rig.InputDevices[0];
+        rig.InputDevices.Clear();
+        controller.RefreshDevices();
+        Assert.Equal(MicrophoneChoice.NoMicrophone, controller.MicrophoneChoice);
+        controller.Start();
+        await WaitUntil(() => controller.Phase is ControllerPhase.Recording, "recording");
+        await rig.FeedSystemAsync(rig.Systems[0]);
+
+        // A device appears during the session; neither the picker nor Stop & Start Next follows it.
+        rig.InputDevices.Add(device);
+        controller.RefreshDevices();
+        Assert.Equal(MicrophoneChoice.NoMicrophone, controller.MicrophoneChoice);
+        controller.StopAndStartNext();
+        await WaitUntil(() => rig.Systems.Count == 2 && controller.Phase is ControllerPhase.Recording, "the next session");
+        Assert.Empty(rig.Mics);
+        Assert.Equal([true, true], rig.SystemRequests);
+        Assert.Equal(MicrophoneChoice.NoMicrophone, controller.MicrophoneChoice);
+        Assert.False(controller.SessionRecordsMicrophone);
+        Assert.False(rig.SessionFlagDropped);
+
+        await rig.FeedSystemAsync(rig.Systems[1]);
+        await controller.StopAsync();
+        // Once the session ended the automatic choice gives way to the default device.
+        Assert.Equal(MicrophoneChoice.ForDevice(device.Uid), controller.MicrophoneChoice);
+        Assert.Equal(2, rig.Queue.Jobs.Count);
+        await rig.Queue.PrepareForQuitAsync();
+    });
+
+    [Fact]
+    public Task APickedNoMicrophoneStaysWhenADeviceAppearsAndIsNotPersisted() => RunAsync(FinalPassTiming.WhenIdle, rig =>
+    {
+        var controller = rig.Controller;
+        controller.RefreshDevices();
+        Assert.Equal(MicrophoneChoice.ForDevice(rig.InputDevices[0].Uid), controller.MicrophoneChoice);
+        controller.MicrophoneChoice = MicrophoneChoice.NoMicrophone;
+        rig.InputDevices.Add(new AudioInputDevice("{0.0.1.00000000}.{usb}", "USB microphone"));
+        controller.RefreshDevices();
+        Assert.Equal(MicrophoneChoice.NoMicrophone, controller.MicrophoneChoice);
+        Assert.Empty(rig.Mics);
+        Assert.False(rig.Settings.CaptureSystemAudio, "picking it never writes the setting");
+        return Task.CompletedTask;
+    });
+
+    [Fact]
+    public Task TheSystemAudioSwitchShowsOnWithoutAMicrophoneAndTheStoredValueWithOne() => RunAsync(FinalPassTiming.WhenIdle, rig =>
+    {
+        var controller = rig.Controller;
+        controller.RefreshDevices();
+        rig.Settings.CaptureSystemAudio = false;
+        Assert.False(controller.CapturesSystemAudio);
+        controller.MicrophoneChoice = MicrophoneChoice.NoMicrophone;
+        Assert.True(controller.CapturesSystemAudio);
+        Assert.False(rig.Settings.CaptureSystemAudio);
+        controller.MicrophoneChoice = MicrophoneChoice.ForDevice(rig.InputDevices[0].Uid);
+        Assert.False(controller.CapturesSystemAudio);
+        rig.Settings.CaptureSystemAudio = true;
+        Assert.True(controller.CapturesSystemAudio);
+        return Task.CompletedTask;
+    });
+
+    [Fact]
+    public Task TheMicrophoneChoiceCannotChangeDuringASession() => RunAsync(FinalPassTiming.WhenIdle, async rig =>
+    {
+        var controller = rig.Controller;
+        controller.Start();
+        await WaitUntil(() => controller.Phase is ControllerPhase.Recording, "recording");
+        var chosen = controller.MicrophoneChoice;
+        controller.MicrophoneChoice = MicrophoneChoice.NoMicrophone;
+        Assert.Equal(chosen, controller.MicrophoneChoice);
+        // The device leaves during the session: the choice is left alone until it ends.
+        rig.InputDevices.Clear();
+        controller.RefreshDevices();
+        Assert.Equal(chosen, controller.MicrophoneChoice);
+        await rig.FeedAsync(rig.Mics[0]);
+        await controller.StopAsync();
+        Assert.Equal(MicrophoneChoice.NoMicrophone, controller.MicrophoneChoice);
+        await rig.Queue.PrepareForQuitAsync();
+    });
+
     /// <summary>A microphone the test feeds by hand.</summary>
     internal sealed class FakeMic : IMicrophoneCapture
     {
@@ -399,17 +648,22 @@ public sealed class RecordingControllerTests
 
         public ChannelReader<TimedChunk> TimedSamples => channel.Reader;
 
-        public SystemAudioRecorderException? Failure => null;
+        public SystemAudioRecorderException? FailWith { get; set; }
+
+        public SystemAudioRecorderException? Failure => FailWith;
+
+        public int Pauses { get; private set; }
+
+        public int Resumes { get; private set; }
 
         public void Feed(float[] samples, double hostTime) => channel.Writer.TryWrite(new TimedChunk(samples, hostTime));
 
-        public void Pause()
-        {
-        }
+        /// <summary>The stream ends on its own, as when the output device is gone.</summary>
+        public void End() => channel.Writer.TryComplete();
 
-        public void Resume()
-        {
-        }
+        public void Pause() => Pauses += 1;
+
+        public void Resume() => Resumes += 1;
 
         public void Stop() => channel.Writer.TryComplete();
     }

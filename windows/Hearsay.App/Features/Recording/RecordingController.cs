@@ -88,6 +88,8 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
     private CaptureSources sources;
 
     private ControllerPhase phase = ControllerPhase.IdleState;
+    private readonly MicrophoneSelection microphone = new();
+    private bool sessionRecordsMicrophone = true;
     private IMicrophoneCapture? recorder;
     private ISystemAudioCapture? systemRecorder;
     private WavWriter? writer;
@@ -160,8 +162,11 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
         private set
         {
             if (phase == value) return;
+            var wasActive = IsSessionActive;
             phase = value;
             queue.SetSessionActive(IsSessionActive);
+            // Device changes during a session left the choice alone (PLAN.md 4.13).
+            if (wasActive && !IsSessionActive) RefreshDevices();
             // The automatic-start notice belongs to the session (Stop & Start
             // Next keeps it: the flag never drops in between).
             if (!IsSessionActive && automaticStartNotice is not null)
@@ -175,8 +180,25 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
 
     public IReadOnlyList<AudioInputDevice> Devices { get; private set; } = [];
 
-    /// <summary>The Record tab's microphone; the default input when nothing else is chosen.</summary>
-    public string? SelectedDeviceUid { get; set; }
+    /// <summary>
+    /// The Record tab's Microphone picker: an input device or no microphone
+    /// (PLAN.md 4.13). Not persisted; it follows the device list only while
+    /// no session is set up or runs. Setting it during a session does nothing.
+    /// </summary>
+    public MicrophoneChoice MicrophoneChoice
+    {
+        get => microphone.Choice;
+        set
+        {
+            if (IsSessionActive) return;
+            microphone.Select(value);
+            Notify(nameof(MicrophoneChoice));
+            Notify(nameof(CapturesSystemAudio));
+        }
+    }
+
+    /// <summary>The current session records a microphone; false for system audio only (PLAN.md 4.13).</summary>
+    public bool SessionRecordsMicrophone => sessionRecordsMicrophone;
 
     public double Elapsed { get; private set; }
 
@@ -274,6 +296,12 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
         set => settings.CaptureSystemAudio = value;
     }
 
+    /// <summary>
+    /// What the system-audio switch shows: always on without a microphone,
+    /// which never changes the stored setting (PLAN.md 4.13).
+    /// </summary>
+    public bool CapturesSystemAudio => microphone.CapturesSystemAudio(settings.CaptureSystemAudio);
+
     /// <summary>The language of the current session; null while Auto is still undecided.</summary>
     public TranscriptLanguage? SessionLanguage => LanguageTracker.Language;
 
@@ -341,19 +369,46 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
         Notify(nameof(CpuSpeedNotice));
     }
 
+    /// <summary>
+    /// Reloads the device list. The microphone choice follows it only while
+    /// no session is set up or runs (PLAN.md 4.13); the start settles it
+    /// itself.
+    /// </summary>
     public void RefreshDevices()
+    {
+        if (ReadDevices() is not { } list)
+        {
+            Devices = [];
+            Notify(nameof(Devices));
+            return;
+        }
+        Devices = list.Devices;
+        if (!IsSessionActive) UpdateMicrophone(list, keepingNoMicrophone: false);
+        Notify(nameof(Devices));
+    }
+
+    /// <summary>The input devices and the default one; null (logged) when they cannot be listed.</summary>
+    private InputDeviceList? ReadDevices()
     {
         try
         {
-            Devices = AudioDeviceList.InputDevices();
-            SelectedDeviceUid = AudioDeviceList.ResolveSelection(SelectedDeviceUid, Devices, AudioDeviceList.DefaultInputDevice()?.Uid);
+            if (sources.ListInputDevices is { } list) return list();
+            return new InputDeviceList(AudioDeviceList.InputDevices(), AudioDeviceList.DefaultInputDevice()?.Uid);
         }
         catch (COMException error)
         {
             AppLog.Write($"recording: cannot list audio devices: {error.Message}");
-            Devices = [];
+            return null;
         }
-        Notify(nameof(Devices));
+    }
+
+    private void UpdateMicrophone(InputDeviceList list, bool keepingNoMicrophone)
+    {
+        var before = microphone.Choice;
+        microphone.Update([.. list.Devices.Select(d => d.Uid)], list.DefaultId, keepingNoMicrophone);
+        if (before == microphone.Choice) return;
+        Notify(nameof(MicrophoneChoice));
+        Notify(nameof(CapturesSystemAudio));
     }
 
     // MARK: - Controls
@@ -391,15 +446,16 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
         session += 1;
         ResetLivePreview();
         stopRequestedWhileStarting = false;
-        startTask = RunStartAsync();
+        // Stop & Start Next keeps the sources of the session it follows.
+        startTask = RunStartAsync(continuing: !clearingFinished);
         Notify();
     }
 
-    private async Task RunStartAsync()
+    private async Task RunStartAsync(bool continuing)
     {
         try
         {
-            await PerformStartAsync().ConfigureAwait(true);
+            await PerformStartAsync(continuing).ConfigureAwait(true);
         }
         catch (Exception error) when (error is not OutOfMemoryException)
         {
@@ -411,8 +467,8 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
 
     /// <summary>
     /// Stop &amp; Start Next (PLAN.md 4.9 item 2): the session becomes a queue
-    /// job and a new one starts with the same input device, system-audio
-    /// choice, and language choice (Auto detects again). The device and the
+    /// job and a new one starts with the same input device (or none, PLAN.md
+    /// 4.13), system-audio choice, and language choice (Auto detects again). The device and the
     /// two choices cannot change while a session is active, so the new session
     /// reads the same values. The new session starts right at the handover, so
     /// the session-active flag never drops in between (a whenIdle job does not
@@ -428,8 +484,8 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
 
     public void Pause()
     {
-        if (phase is not ControllerPhase.Recording || recorder is null) return;
-        recorder.Pause();
+        if (phase is not ControllerPhase.Recording || (recorder is null && systemRecorder is null)) return;
+        recorder?.Pause();
         systemRecorder?.Pause();
         LevelFraction = 0;
         MicLevelFraction = 0;
@@ -439,10 +495,10 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
 
     public void Resume()
     {
-        if (phase is not ControllerPhase.Paused || recorder is null) return;
+        if (phase is not ControllerPhase.Paused || (recorder is null && systemRecorder is null)) return;
         // A failed resume goes through the recorder's own recovery, and
         // RecordingEnded saves what exists (PLAN.md 18.4, W3).
-        recorder.Resume();
+        recorder?.Resume();
         systemRecorder?.Resume();
         Phase = new ControllerPhase.Recording();
     }
@@ -568,19 +624,34 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
 
     // MARK: - Start
 
-    private async Task PerformStartAsync()
+    private async Task PerformStartAsync(bool continuing)
     {
+        // The choice is settled before anything starts: Stop & Start Next
+        // keeps "no microphone" (PLAN.md 4.13).
+        if (ReadDevices() is { } list)
+        {
+            Devices = list.Devices;
+            UpdateMicrophone(list, keepingNoMicrophone: continuing);
+            Notify(nameof(Devices));
+        }
+        var recordsMicrophone = microphone.RecordsMicrophone;
         SystemAudioNotice = null;
         ISystemAudioCapture? system = null;
-        if (settings.CaptureSystemAudio)
+        if (microphone.CapturesSystemAudio(settings.CaptureSystemAudio))
         {
             try
             {
-                system = await Task.Run(sources.MakeSystemAudio).ConfigureAwait(true);
+                system = await Task.Run(() => sources.MakeSystemAudio(!recordsMicrophone)).ConfigureAwait(true);
             }
             catch (Exception error) when (error is not OutOfMemoryException)
             {
-                SystemAudioNotice = Strings.SystemAudioOff(Strings.Describe(error));
+                var reason = Strings.Describe(error);
+                if (!recordsMicrophone)
+                {
+                    FailNothingToRecord(reason);
+                    return;
+                }
+                SystemAudioNotice = Strings.SystemAudioOff(reason);
             }
         }
         if (stopRequestedWhileStarting)
@@ -590,8 +661,7 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
             return;
         }
 
-        RefreshDevices();
-        var device = Devices.FirstOrDefault(d => d.Uid == SelectedDeviceUid);
+        var device = Devices.FirstOrDefault(d => d.Uid == microphone.DeviceId);
         var path = spool.NewRecordingPath(Timestamps.Now());
         WavWriter newWriter;
         try
@@ -604,24 +674,31 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
             Phase = new ControllerPhase.Failed(Strings.CouldNotCreateRecording(error.Message));
             return;
         }
-        var mic = sources.MakeMicrophone();
-        try
+        IMicrophoneCapture? mic = null;
+        if (recordsMicrophone)
         {
-            await Task.Run(() => mic.Start(device)).ConfigureAwait(true);
-        }
-        catch (Exception error) when (error is not OutOfMemoryException)
-        {
-            system?.Stop();
-            newWriter.Dispose();
-            TryDelete(path);
-            Phase = new ControllerPhase.Failed(Strings.Describe(error));
-            return;
+            var made = sources.MakeMicrophone();
+            try
+            {
+                await Task.Run(() => made.Start(device)).ConfigureAwait(true);
+            }
+            catch (Exception error) when (error is not OutOfMemoryException)
+            {
+                system?.Stop();
+                newWriter.Dispose();
+                TryDelete(path);
+                Phase = new ControllerPhase.Failed(Strings.Describe(error));
+                return;
+            }
+            mic = made;
         }
 
         writer = newWriter;
         recorder = mic;
         systemRecorder = system;
-        recordingDeviceName = mic.Diagnostics.DeviceName ?? device?.Name ?? Strings.TheInputDevice;
+        sessionRecordsMicrophone = recordsMicrophone;
+        Notify(nameof(SessionRecordsMicrophone));
+        recordingDeviceName = mic?.Diagnostics.DeviceName ?? device?.Name ?? Strings.TheInputDevice;
         noAudioFailure = null;
         writeError = null;
         meter = new LevelMeter();
@@ -640,11 +717,23 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
         SessionStartObserver?.Invoke(path);
 
         var mixed = AudioMixer.Mix(
-            mic.TimedSamples.ReadAllAsync(),
+            mic?.TimedSamples.ReadAllAsync(),
             system?.TimedSamples.ReadAllAsync(),
             source => Post(() => SourceEnded(source)));
         consumer = ConsumeAsync(mixed);
-        StartNoAudioWatchdog(mic);
+        // A microphone check: system audio has no such watchdog (PLAN.md 4.13).
+        if (mic is not null) StartNoAudioWatchdog(mic);
+    }
+
+    /// <summary>
+    /// No microphone and no system audio: the start fails before any file
+    /// exists (PLAN.md 4.13). Windows has no permission case, so the reason
+    /// is the loopback error and there is no "Open System Settings" button.
+    /// </summary>
+    private void FailNothingToRecord(string reason)
+    {
+        SystemAudioNotice = null;
+        Phase = new ControllerPhase.Failed(Strings.NothingToRecordSystemAudioOnly(reason));
     }
 
     private async Task ConsumeAsync(IAsyncEnumerable<MixedChunk> mixed)
@@ -747,14 +836,17 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
         LevelFraction = LevelMeter.LevelFraction(level);
         MicLevelFraction = LevelMeter.LevelFraction(chunk.MicRmsDB);
         if (SystemLevelFraction is not null) SystemLevelFraction = LevelMeter.LevelFraction(chunk.SystemRmsDB);
-        SilenceWarning = meter.IsSilenceWarning ? Strings.SilenceWarning((int)meter.SilenceSeconds) : null;
+        SilenceWarning = !meter.IsSilenceWarning ? null
+            : sessionRecordsMicrophone ? Strings.SilenceWarning((int)meter.SilenceSeconds)
+            : Strings.SilenceWarningSystemOnly((int)meter.SilenceSeconds);
         Notify();
     }
 
     /// <summary>
     /// A source's stream finished. The microphone ending on its own (device
     /// unplugged) ends the recording; system audio ending on its own leaves
-    /// the recording going mic-only with a notice.
+    /// the recording going mic-only with a notice, or ends it when it was the
+    /// only source (PLAN.md 4.13).
     /// </summary>
     private void SourceEnded(AudioSource source)
     {
@@ -769,7 +861,12 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
                 }
                 break;
             case AudioSource.System:
-                if (systemRecorder?.Failure is { } failure)
+                if (recorder is null && systemRecorder?.Failure is not null)
+                {
+                    // RecordingEnded reports the failure and keeps the WAV.
+                    Phase = new ControllerPhase.Stopping();
+                }
+                else if (systemRecorder?.Failure is { } failure)
                 {
                     SystemAudioNotice = Strings.SystemAudioOff(Strings.Describe(failure));
                     SystemLevelFraction = null;
@@ -792,6 +889,18 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
         if (noAudioFailure is { } noAudio)
         {
             problems.Add(NoAudioMessage(noAudio));
+        }
+        else if (!sessionRecordsMicrophone)
+        {
+            // System audio only (PLAN.md 4.13): its failure ends the recording.
+            if (systemRecorder?.Failure is { } systemFailure)
+            {
+                problems.Add(Strings.Describe(systemFailure));
+            }
+            else if (sampleCount == 0)
+            {
+                problems.Add(Strings.NoAudioFromSystemAudio);
+            }
         }
         else if (sampleCount == 0 && micDelivered == 0 && recorder?.Failure is null)
         {
@@ -1162,6 +1271,7 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
         LevelFraction = sample.Level;
         MicLevelFraction = sample.MicLevel;
         SystemLevelFraction = sample.SystemLevel;
+        sessionRecordsMicrophone = sample.RecordsMicrophone;
         SilenceWarning = sample.SilenceWarning;
         SystemAudioNotice = sample.SystemAudioNotice;
         liveSegments = [.. sample.LiveSegments];
@@ -1260,6 +1370,9 @@ internal sealed record RecordingSample(ControllerPhase Phase, SessionLanguageTra
     public double MicLevel { get; init; }
 
     public double? SystemLevel { get; init; }
+
+    /// <summary>False renders a system-audio-only session: no Mic meter (PLAN.md 4.13).</summary>
+    public bool RecordsMicrophone { get; init; } = true;
 
     public string? SilenceWarning { get; init; }
 

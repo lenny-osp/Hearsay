@@ -52,6 +52,8 @@ internal sealed partial class RecordView : UserControl
     private readonly ProgressBar micMeter = new() { Minimum = 0, Maximum = 1, Width = 120, VerticalAlignment = VerticalAlignment.Center };
     private readonly ProgressBar systemMeter = new() { Minimum = 0, Maximum = 1, Width = 120, VerticalAlignment = VerticalAlignment.Center };
     private readonly StackPanel systemMeterRow;
+    private readonly StackPanel micMeterRow;
+    private readonly StackPanel metersPanel;
     private readonly StackPanel noticeArea = new() { Spacing = 6 };
     private readonly StackPanel controls = new() { Orientation = Orientation.Horizontal, Spacing = 8 };
 
@@ -111,7 +113,7 @@ internal sealed partial class RecordView : UserControl
         microphone.SelectionChanged += (_, _) =>
         {
             if (updating) return;
-            if (microphone.SelectedItem is ComboBoxItem { Tag: string uid }) model.SelectedDeviceUid = uid;
+            if (microphone.SelectedItem is ComboBoxItem { Tag: MicrophoneChoice choice }) model.MicrophoneChoice = choice;
         };
         var (systemRow, systemSwitch) = Toggle(Strings.AlsoCaptureSystemAudio);
         systemAudio = systemSwitch;
@@ -131,11 +133,12 @@ internal sealed partial class RecordView : UserControl
         Grid.SetColumn(status, 1);
         top.Children.Add(status);
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(level, Strings.InputLevel);
-        var meters = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 16 };
-        meters.Children.Add(SourceMeter("\uE720", Strings.MicMeter, micMeter));
+        metersPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 16 };
+        micMeterRow = SourceMeter("\uE720", Strings.MicMeter, micMeter);
+        metersPanel.Children.Add(micMeterRow);
         systemMeterRow = SourceMeter("\uE767", Strings.SystemMeter, systemMeter);
-        meters.Children.Add(systemMeterRow);
-        page.Children.Add(Card(top, level, meters, noticeArea, controls));
+        metersPanel.Children.Add(systemMeterRow);
+        page.Children.Add(Card(top, level, metersPanel, noticeArea, controls));
 
         // Live preview.
         var liveHeader = new Grid();
@@ -246,9 +249,10 @@ internal sealed partial class RecordView : UserControl
         try
         {
             RenderDevices();
-            systemAudio.IsOn = model.CaptureSystemAudio;
-            systemAudio.IsEnabled = !model.IsSessionActive;
-            microphone.IsEnabled = !model.IsSessionActive && model.Devices.Count > 0;
+            // Without a microphone the switch shows on and locked; the stored setting is untouched (PLAN.md 4.13).
+            systemAudio.IsOn = model.CapturesSystemAudio;
+            systemAudio.IsEnabled = !model.IsSessionActive && model.MicrophoneChoice is not MicrophoneChoice.NoMicrophoneChoice;
+            microphone.IsEnabled = !model.IsSessionActive;
             picker.IsDisabled = model.IsSessionActive;
         }
         finally
@@ -262,9 +266,15 @@ internal sealed partial class RecordView : UserControl
         level.Foreground = model.SilenceWarning is null ? Green() : FileView.Caution();
         micMeter.Value = model.MicLevelFraction;
         micMeter.Foreground = Green();
+        // The Mic meter is hidden in a system-audio-only session, and before one (PLAN.md 4.13).
+        var showsMicMeter = model.IsSessionActive
+            ? model.SessionRecordsMicrophone
+            : model.MicrophoneChoice is not MicrophoneChoice.NoMicrophoneChoice;
+        micMeterRow.Visibility = showsMicMeter ? Visibility.Visible : Visibility.Collapsed;
         systemMeterRow.Visibility = model.SystemLevelFraction is null ? Visibility.Collapsed : Visibility.Visible;
         systemMeter.Value = model.SystemLevelFraction ?? 0;
         systemMeter.Foreground = Green();
+        metersPanel.Visibility = showsMicMeter || model.SystemLevelFraction is not null ? Visibility.Visible : Visibility.Collapsed;
         var notices = $"{model.AutomaticStartNotice}|{model.SystemAudioNotice}|{model.SilenceWarning}|{model.CpuSpeedNotice}";
         if (notices != shownNotices)
         {
@@ -400,18 +410,19 @@ internal sealed partial class RecordView : UserControl
 
     private void RenderDevices()
     {
-        List<string> wanted = model.Devices.Count == 0 ? [Strings.NoInputDevice] : [.. model.Devices.Select(d => d.Uid)];
-        var shown = microphone.Items.OfType<ComboBoxItem>().Select(item => item.Tag as string ?? Strings.NoInputDevice).ToList();
+        // The devices, then "No microphone (system audio only)" last (PLAN.md 4.13).
+        List<MicrophoneChoice> wanted = [.. model.Devices.Select(d => MicrophoneChoice.ForDevice(d.Uid)), MicrophoneChoice.NoMicrophone];
+        var shown = microphone.Items.OfType<ComboBoxItem>().Select(item => item.Tag as MicrophoneChoice).ToList();
         if (!wanted.SequenceEqual(shown))
         {
             microphone.Items.Clear();
-            if (model.Devices.Count == 0)
+            foreach (var device in model.Devices)
             {
-                microphone.Items.Add(new ComboBoxItem { Content = Strings.NoInputDevice, Tag = null });
+                microphone.Items.Add(new ComboBoxItem { Content = device.Name, Tag = MicrophoneChoice.ForDevice(device.Uid) });
             }
-            foreach (var device in model.Devices) microphone.Items.Add(new ComboBoxItem { Content = device.Name, Tag = device.Uid });
+            microphone.Items.Add(new ComboBoxItem { Content = Strings.NoMicrophoneSystemAudioOnly, Tag = MicrophoneChoice.NoMicrophone });
         }
-        var selected = microphone.Items.OfType<ComboBoxItem>().FirstOrDefault(item => item.Tag as string == model.SelectedDeviceUid)
+        var selected = microphone.Items.OfType<ComboBoxItem>().FirstOrDefault(item => Equals(item.Tag, model.MicrophoneChoice))
             ?? microphone.Items.OfType<ComboBoxItem>().FirstOrDefault();
         if (!ReferenceEquals(microphone.SelectedItem, selected)) microphone.SelectedItem = selected;
     }

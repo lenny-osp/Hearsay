@@ -17,21 +17,6 @@ namespace Hearsay.Tests.Audio;
 [SupportedOSPlatform("windows")]
 public class AudioDeviceListTests(ITestOutputHelper output)
 {
-    private static readonly AudioInputDevice Headset = new("{0.0.1.00000000}.{a}", "Headset Microphone");
-    private static readonly AudioInputDevice BuiltIn = new("{0.0.1.00000000}.{b}", "Microphone Array");
-
-    [Fact]
-    public void SelectionKeepsTheChosenDeviceWhileItIsConnected() =>
-        Assert.Equal(Headset.Uid, AudioDeviceList.ResolveSelection(Headset.Uid, [BuiltIn, Headset], BuiltIn.Uid));
-
-    [Fact]
-    public void SelectionFallsBackToTheDefaultThenTheFirstDevice()
-    {
-        Assert.Equal(BuiltIn.Uid, AudioDeviceList.ResolveSelection("{gone}", [Headset, BuiltIn], BuiltIn.Uid));
-        Assert.Equal(Headset.Uid, AudioDeviceList.ResolveSelection(null, [Headset, BuiltIn], null));
-        Assert.Null(AudioDeviceList.ResolveSelection("{gone}", [], null));
-    }
-
     [EnvironmentFact("HEARSAY_TEST_AUDIO_DEVICES", "1")]
     public void EnumerationListsActiveCaptureEndpoints()
     {

@@ -121,6 +121,10 @@
     <value>Wird verwendet, wenn „Automatisch“ die Sprache nicht erkennt. Erkennt „Automatisch“ Chinesisch, wird 简体中文 geschrieben, wenn es hier ausgewählt ist, sonst 繁體中文.</value>
     <comment>app: Used when Auto can't tell the language. When Auto hears Chinese, it writes 简体中文 if that is chosen here, otherwise 繁體中文.</comment>
   </data>
+  <data name="app_15efdd9d406bc7b7" xml:space="preserve">
+    <value>Vom Systemaudio kam kein Ton.</value>
+    <comment>app: No audio arrived from system audio.</comment>
+  </data>
   <data name="app_17b694d7ad633a57" xml:space="preserve">
     <value>Eingangspegel</value>
     <comment>app: Input level</comment>
@@ -284,6 +288,10 @@
   <data name="app_35db9e8df3274ed3" xml:space="preserve">
     <value>Alle transkribieren</value>
     <comment>app: Transcribe All</comment>
+  </data>
+  <data name="app_362ba1383f8c67e1" xml:space="preserve">
+    <value>Seit {0} s still – prüfen, ob etwas abgespielt wird</value>
+    <comment>app: Silent for %llds — check that something is playing</comment>
   </data>
   <data name="app_3769bbd12cefb7ed" xml:space="preserve">
     <value>Vollständigen Durchlauf überspringen und Live-Vorschau als Transkript sichern</value>
@@ -857,6 +865,10 @@
     <value>Der Ausgabeordner konnte nicht erstellt werden: {0}</value>
     <comment>app: Could not create the output folder: %@</comment>
   </data>
+  <data name="app_a1dbdd4fa1556bb5" xml:space="preserve">
+    <value>Nichts aufzunehmen: Das Mikrofon ist aus und Systemaudio konnte nicht starten: {0}</value>
+    <comment>app: Nothing to record: the microphone is off and system audio could not start: %@</comment>
+  </data>
   <data name="app_a4fe65264ef7dbb3" xml:space="preserve">
     <value>Sprache</value>
     <comment>app: Language</comment>
@@ -1188,6 +1200,10 @@
   <data name="app_deb6171123f6b84f" xml:space="preserve">
     <value>KI-Verarbeitung übersprungen; Zeitstempel-Dateinamen behalten.</value>
     <comment>app: Skipped AI processing; kept the timestamp file names.</comment>
+  </data>
+  <data name="app_df08a6fa6fe0ac01" xml:space="preserve">
+    <value>Kein Mikrofon (nur Systemaudio)</value>
+    <comment>app: No microphone (system audio only)</comment>
   </data>
   <data name="app_df0fe9e00d354b01" xml:space="preserve">
     <value>Erneut versuchen</value>
@@ -1924,10 +1940,6 @@
   <data name="windows_b980a145c5e8c9e2" xml:space="preserve">
     <value>Win</value>
     <comment>windows: Win</comment>
-  </data>
-  <data name="windows_bc9d3f9c177edaea" xml:space="preserve">
-    <value>Kein Eingabegerät</value>
-    <comment>windows: No input device</comment>
   </data>
   <data name="windows_bcc0753c970f15ca" xml:space="preserve">
     <value>{0} kann unter Windows kein so langes Transkript verarbeiten: Die Befehlszeile hätte {1} Zeichen, Windows erlaubt {2}. Für lange Besprechungen Claude Code, Codex oder einen HTTP-Anbieter verwenden.</value>

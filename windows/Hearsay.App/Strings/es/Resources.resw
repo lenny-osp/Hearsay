@@ -121,6 +121,10 @@
     <value>Se usa cuando Automático no reconoce el idioma. Si Automático detecta chino, escribe 简体中文 si está elegido aquí y, si no, 繁體中文.</value>
     <comment>app: Used when Auto can't tell the language. When Auto hears Chinese, it writes 简体中文 if that is chosen here, otherwise 繁體中文.</comment>
   </data>
+  <data name="app_15efdd9d406bc7b7" xml:space="preserve">
+    <value>No ha llegado sonido del audio del sistema.</value>
+    <comment>app: No audio arrived from system audio.</comment>
+  </data>
   <data name="app_17b694d7ad633a57" xml:space="preserve">
     <value>Nivel de entrada</value>
     <comment>app: Input level</comment>
@@ -284,6 +288,10 @@
   <data name="app_35db9e8df3274ed3" xml:space="preserve">
     <value>Transcribir todo</value>
     <comment>app: Transcribe All</comment>
+  </data>
+  <data name="app_362ba1383f8c67e1" xml:space="preserve">
+    <value>Sin sonido durante {0} s — comprueba que se esté reproduciendo algo</value>
+    <comment>app: Silent for %llds — check that something is playing</comment>
   </data>
   <data name="app_3769bbd12cefb7ed" xml:space="preserve">
     <value>Omitir la pasada completa y guardar la vista previa como transcripción</value>
@@ -857,6 +865,10 @@
     <value>No se ha podido crear la carpeta de salida: {0}</value>
     <comment>app: Could not create the output folder: %@</comment>
   </data>
+  <data name="app_a1dbdd4fa1556bb5" xml:space="preserve">
+    <value>No hay nada que grabar: el micrófono está desactivado y el audio del sistema no se ha podido iniciar: {0}</value>
+    <comment>app: Nothing to record: the microphone is off and system audio could not start: %@</comment>
+  </data>
   <data name="app_a4fe65264ef7dbb3" xml:space="preserve">
     <value>Idioma</value>
     <comment>app: Language</comment>
@@ -1188,6 +1200,10 @@
   <data name="app_deb6171123f6b84f" xml:space="preserve">
     <value>Se ha omitido el procesamiento con IA; se han mantenido los nombres de archivo con fecha y hora.</value>
     <comment>app: Skipped AI processing; kept the timestamp file names.</comment>
+  </data>
+  <data name="app_df08a6fa6fe0ac01" xml:space="preserve">
+    <value>Sin micrófono (solo audio del sistema)</value>
+    <comment>app: No microphone (system audio only)</comment>
   </data>
   <data name="app_df0fe9e00d354b01" xml:space="preserve">
     <value>Reintentar</value>
@@ -1924,10 +1940,6 @@
   <data name="windows_b980a145c5e8c9e2" xml:space="preserve">
     <value>Win</value>
     <comment>windows: Win</comment>
-  </data>
-  <data name="windows_bc9d3f9c177edaea" xml:space="preserve">
-    <value>Ningún dispositivo de entrada</value>
-    <comment>windows: No input device</comment>
   </data>
   <data name="windows_bcc0753c970f15ca" xml:space="preserve">
     <value>{0} no admite una transcripción tan larga en Windows: la línea de comandos tendría {1} caracteres y Windows permite {2}. Para reuniones largas, usa Claude Code, Codex o un proveedor HTTP.</value>

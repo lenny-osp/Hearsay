@@ -58,6 +58,11 @@ namespace Hearsay.App.Features.Recording;
 /// settings (PLAN.md 4.12): no live job runs, and an Auto session's language
 /// is settled by the queue at Stop; <c>on</c> is Always on (no speed probe),
 /// <c>automatic</c> (the default) follows the probe.
+/// <c>HEARSAY_REPLAY_MIC=off</c> picks "No microphone (system audio only)"
+/// (PLAN.md 4.13): each file is fed as the system audio source and no
+/// microphone is made (the controller asks for the system source with
+/// <c>withoutMicrophone</c>, which is how the replay knows where the file
+/// goes).
 /// <c>HEARSAY_REPLAY_SYSTEM=silence</c> adds a second, silent source in place
 /// of system audio; <c>HEARSAY_REPLAY_UI=1</c> also shows the Record tab for
 /// the session. Settings, spool and output are in the throwaway settings
@@ -178,6 +183,7 @@ internal static class RecordingReplay
             return 1;
         }
         var silentSystem = environment.TryGetValue("HEARSAY_REPLAY_SYSTEM", out var system) && system == "silence";
+        var microphoneOff = environment.TryGetValue("HEARSAY_REPLAY_MIC", out var micValue) && micValue == "off";
         // PLAN.md 4.12 and 18.9: off = no live preview; on = always on (no speed probe).
         var livePreview = LivePreviewMode.Automatic;
         if (environment.TryGetValue("HEARSAY_REPLAY_LIVE", out var liveValue) && liveValue.Length > 0)
@@ -205,19 +211,25 @@ internal static class RecordingReplay
         double Now() => clock.Elapsed.TotalSeconds;
         var exhausted = Channel.CreateUnbounded<int>();
         var nextSession = 0;
+        // The session's file: the microphone's, or the system audio's when there is no microphone.
+        ReplayFeed NextFeed()
+        {
+            var index = nextSession++;
+            var samples = index < loaded.Count ? loaded[index] : [];
+            return new ReplayFeed(samples, () => exhausted.Writer.TryWrite(index));
+        }
+        // One fake input device, so the run never depends on this PC's hardware.
+        var replayDevice = new AudioInputDevice("replay", "replay");
         var sources = new CaptureSources(
-            () =>
-            {
-                var index = nextSession++;
-                var samples = index < loaded.Count ? loaded[index] : [];
-                return new ReplayMicrophone(new ReplayFeed(samples, () => exhausted.Writer.TryWrite(index)));
-            },
-            () => new ReplaySystemAudio(new ReplayFeed(null, () => { })),
-            _ => modelPath);
+            () => new ReplayMicrophone(NextFeed()),
+            withoutMicrophone => new ReplaySystemAudio(withoutMicrophone ? NextFeed() : new ReplayFeed(null, () => { })),
+            _ => modelPath,
+            () => new InputDeviceList([replayDevice], replayDevice.Uid));
         var controller = shell.RecordingController;
         var queue = shell.Queue;
         var spool = new RecordingSpool(Path.Combine(root, "spool"));
         controller.UseForDebug(sources, spool);
+        if (microphoneOff) controller.MicrophoneChoice = MicrophoneChoice.NoMicrophone;
         queue.UseForDebug(spool, () => modelPath);
         // No notes flow in a replay: no transcript reaches an AI provider.
         queue.NotesOnScreen = () => true;
@@ -325,7 +337,7 @@ internal static class RecordingReplay
             Say("showing the Record tab");
         }
         var names = string.Join(", ", files.Select((file, i) => Format($"{Path.GetFileName(file)} ({loaded[i].Length / 16_000.0:F2} s)")));
-        Say(Format($"replaying {names}, language {language.StorageValue}, preferred {settings.PreferredLanguage.Code()}, timing {timing.StorageValue()}{(releaseAfter is { } r ? Format($", release {r:F1} s after the last Stop") : "")}, system audio {(silentSystem ? "silence" : "off")}, live preview {livePreview.StorageValue()}, model {Path.GetFileName(modelPath)}"));
+        Say(Format($"replaying {names}, language {language.StorageValue}, preferred {settings.PreferredLanguage.Code()}, timing {timing.StorageValue()}{(releaseAfter is { } r ? Format($", release {r:F1} s after the last Stop") : "")}, system audio {(microphoneOff ? "the file" : silentSystem ? "silence" : "off")}, live preview {livePreview.StorageValue()}, microphone {(microphoneOff ? "off" : "the file")}, model {Path.GetFileName(modelPath)}"));
         clock.Restart();
         controller.Start();
         using var statusTimer = new CancellationTokenSource();
@@ -630,7 +642,11 @@ internal static class RecordingReplay
         public void Stop() => feed.Finish();
     }
 
-    /// <summary>Silent system audio for the replay; starts on creation like the live recorder.</summary>
+    /// <summary>
+    /// System audio for the replay: silence, or the file when there is no
+    /// microphone (<c>HEARSAY_REPLAY_MIC=off</c>). Starts on creation like the
+    /// live recorder; pause and resume are not simulated.
+    /// </summary>
     private sealed class ReplaySystemAudio : ISystemAudioCapture
     {
         private readonly ReplayFeed feed;

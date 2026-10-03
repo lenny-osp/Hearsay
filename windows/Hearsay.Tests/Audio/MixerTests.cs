@@ -344,6 +344,41 @@ public class MixerTests
         Assert.Equal(mic, flat);
     }
 
+    /// <summary>
+    /// PLAN.md 4.13 (mixStreamsWithSystemOnly in the Swift suite): system
+    /// audio only passes through unchanged, has no microphone level, and a
+    /// gap in its stream is filled with silence.
+    /// </summary>
+    [Fact]
+    public async Task MixStreamsWithSystemOnly()
+    {
+        var systemChannel = Channel.CreateUnbounded<TimedChunk>();
+        var ended = new ConcurrentBag<AudioSource>();
+        var mixed = AudioMixer.Mix(null, systemChannel.Reader.ReadAllAsync(), ended.Add);
+        var first = Sine(0.5f, 3200);
+        foreach (var chunk in Chunks(first, 800))
+        {
+            systemChannel.Writer.TryWrite(chunk);
+        }
+        // One second with no buffers, then more sound.
+        var second = Sine(0.5f, 1600);
+        systemChannel.Writer.TryWrite(new TimedChunk(second, 100 + 3200 / Rate + 1));
+        systemChannel.Writer.Complete();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var blocks = new List<MixedChunk>();
+        await foreach (var block in mixed.WithCancellation(timeout.Token))
+        {
+            blocks.Add(block);
+        }
+        var flat = Flat(blocks);
+        Assert.Equal(3200 + 16_000 + 1600, flat.Length);
+        Assert.Equal(first, flat[..3200]);
+        Assert.All(flat[3200..19_200], value => Assert.Equal(0f, value));
+        Assert.Equal(second, flat[19_200..]);
+        Assert.All(blocks, block => Assert.Null(block.MicRmsDB));
+        Assert.Equal([AudioSource.System], ended.ToArray());
+    }
+
     [Fact]
     public async Task NoSourcesFinishesImmediately()
     {

@@ -1133,7 +1133,8 @@ the Windows extras that 18.9 asked for (owner decisions 2026-10-03).
 Owner request 2026-10-02: record only the sound the computer plays (a
 video, a webinar, a call heard through the speakers) without the user's
 microphone. A shared design; **the Mac was built first (2026-10-02)**,
-Windows follows (18.9 "System audio only").
+**Windows followed (2026-10-03)**, see "As built (Windows, 2026-10-03)"
+below.
 
 **Rules.**
 1. The Microphone picker gets a last row, after a divider, "No microphone
@@ -1212,6 +1213,85 @@ Windows follows (18.9 "System audio only").
 - Not verified: a real system-only recording through ScreenCaptureKit, the
   denied-permission start error, and the device auto-switch with real
   hardware (section 16 item 33).
+
+**As built (Windows, 2026-10-03).** The Windows port of rules 1 to 7
+(owner decisions 2026-10-02; the Windows rules are the 18.9 bullet's, now
+pointing here). Differences to the Mac are the ones 18.4 already records:
+loopback needs no permission, so there is no `denied` case and no "Open
+System Settings" button, and the start error's reason is the loopback error.
+- Core: `MicrophoneSelection` and `MicrophoneChoice`
+  (`Hearsay.Core/Audio/MicrophoneSelection.cs`): the choice
+  (`MicrophoneChoice.ForDevice(id)` or `MicrophoneChoice.NoMicrophone`), the
+  automatic flag, `Update(deviceIds, defaultId, keepingNoMicrophone)` (rules
+  1, 3, 6) and `CapturesSystemAudio(stored)` (rule 2); the Mac's 11 tests
+  mirrored one for one in `MicrophoneSelectionTests`. `MixerTests.
+  MixStreamsWithSystemOnly` is the port of `mixStreamsWithSystemOnly`;
+  `AudioMixer.Mix(null, system)` already passed it unchanged.
+- `RecordingController`: `MicrophoneChoice` replaces `SelectedDeviceUid`;
+  `RefreshDevices()` updates the choice only while no session is active,
+  and once more when a session ends (the `Phase` setter); `PerformStartAsync
+  (continuing)` settles the choice first (Stop & Start Next keeps "no
+  microphone", also an automatic one). Without a microphone no
+  `IMicrophoneCapture` is made and the mixer gets the loopback stream
+  alone. If the loopback cannot start, `FailNothingToRecord` fails the start
+  with "Nothing to record: the microphone is off and system audio could not
+  start: <loopback error>" (for example `NoOutputDevice`); the WAV is not
+  created yet, so the spool stays empty. Pause and Resume act on the
+  loopback alone; the no-audio watchdog is not started; the loopback ending
+  on its own (`SourceEnded`) ends the recording and `RecordingEnded` keeps
+  the WAV under the 4.1 failure rules; zero samples at Stop fails with "No
+  audio arrived from system audio." (and "Nothing was recorded", no file
+  kept). `SessionRecordsMicrophone` drives the Mic meter and the silence
+  warning ("Silent for Ns — check that something is playing"); the 0.1 s
+  silence filler (18.4) keeps the recording running while nothing plays.
+  `CaptureSources.MakeSystemAudio` takes `withoutMicrophone` (the replay
+  uses it) and `CaptureSources.ListInputDevices` (null reads the real
+  devices) lets the tests and the replay fix the device list, so they do
+  not depend on this PC's hardware. Teams auto-recording, the hotkeys and
+  the tray's Start all go through `Start()`, so they use the same choice.
+- `RecordView`: the Microphone picker's last row "No microphone (system
+  audio only)" replaces "No input device" (just last, no divider: a
+  `ComboBox` has no selection-free separator row); the switch shows on and
+  disabled while it is chosen and shows the stored value again with a
+  microphone; the Mic meter and the whole meter row are hidden in a
+  system-only session and before one. The choice is not persisted.
+- Strings: no new key. The four shared app keys ("No microphone (system
+  audio only)", the start error, the zero-sample error, the silence
+  warning) were already translated; the `windows` key "No input device" is
+  gone from the five JSON files and `Strings.cs` (the different key "No
+  input device is available." stays, it is the core one).
+- Replay: `HEARSAY_REPLAY_MIC=off` feeds each WAV as the system source and
+  makes no microphone; the replay now also fixes a one-device list so a run
+  never depends on the PC's microphones.
+- Help and README: the system-audio-only sentence of the Recording step 1
+  was Mac-only; it has a Windows twin ("PC") in all five languages, and the
+  README's Windows section has a short paragraph.
+- Snapshots: `85-record-no-microphone` and `86-record-system-audio-only`
+  (English and German looked at; the checks assert the switch, and the
+  meters by their accessibility names).
+- Verified: `dotnet build` (0 warnings), `dotnet test` of `Hearsay.Tests`
+  (1115 passed, 26 skipped) and `Hearsay.App.Tests` (346 passed; the new
+  controller tests cover the system-only start with no microphone made, the
+  loopback start failure and its message and the empty spool, the
+  mic-only notice when the loopback fails with a microphone, zero samples
+  at Stop, pause and resume on the loopback with no watchdog, the silence
+  warning text, the loopback ending on its own with the WAV kept, Stop &
+  Start Next keeping an automatic "no microphone", the picker rules, the
+  switch's effective value and the choice being locked during a session),
+  `import-strings.py --check`, and replays of `en-30s.wav` then
+  `de-30s.wav` in Auto with the `ggml-large-v3-turbo-q5_0` model on Vulkan,
+  with and without `HEARSAY_REPLAY_MIC=off`: identical results (2 live
+  jobs, job 1 `en` 0.9999 and job 2 `de` 0.9996 detected, 4 and 5 final-pass
+  cues with the same first lines, 4 and 5 live cues, session gap 0.070 s;
+  live latency 13.9 and 13.7 s with the microphone, 14.2 and 14.1 s
+  without, the same within noise).
+- Not verified: a real loopback-only recording with real playback (the
+  transcript has the played speech and none of the room, Pause and Resume,
+  Stop & Start Next), the start error with no output device (the message
+  is tested with a fake loopback that throws `NoOutputDevice`), and the
+  picker's automatic switch with real hardware (all input devices disabled
+  in Sound settings; a headset plugged in later) (section 16 item 35).
+  No CUDA path is involved.
 
 ## 5. Model catalog and download
 
@@ -1763,6 +1843,29 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
     another recording more than 10 minutes later and look for "measuring
     again" in the log.
 
+35. Windows, system audio only (section 4.13 "As built (Windows,
+    2026-10-03)", the Windows twin of item 33, added 2026-10-03): on the
+    Record tab pick "No microphone (system audio only)" (the last row):
+    "Also capture system audio" shows on and greyed out. Play a video and
+    record a minute: only the System meter shows (no Mic meter) and moves,
+    the transcript has the video's speech and none of the room, and the
+    microphone-in-use indicator of Windows stays off. Pause and Resume once
+    (the paused time is left out), then Stop & Start Next: the next session
+    is system-only too. Let nothing play for 6 seconds: "Silent for 6s —
+    check that something is playing", and the recording keeps running (the
+    elapsed time keeps counting). Pick the microphone again: the switch
+    shows its old value. Quit and reopen: the default microphone is
+    selected again. Disable every input device in Settings > System >
+    Sound > Input: the picker shows the no-microphone row by itself, Start
+    records system audio, and enabling a microphone selects it again after
+    the session. Disable or unplug every output device and press Start with
+    the row picked: "Nothing to record: the microphone is off and system
+    audio could not start: No output device is available …", and nothing
+    new in the spool. Unplug the speakers during a system-only recording:
+    the recording ends and the WAV is kept in the output folder. Start a
+    Teams meeting with the row picked: the automatic recording is
+    system-only too.
+
 ## 17. Polish list (found during review, not yet scheduled)
 
 - **Open (owner report 2026-10-02): a held job's WAV left the spool.**
@@ -1861,8 +1964,8 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
   when no input device exists and is never persisted. Built as in 4.13 "As
   built (Mac, 2026-10-02)"; verified with `swift test`, the Release build,
   replays with and without `HEARSAY_REPLAY_MIC=off`, and the UI snapshots
-  in English and Traditional Chinese. Windows: 18.9 "System audio only".
-  Hands-on: section 16 item 33.
+  in English and Traditional Chinese. Windows: 4.13 "As built (Windows,
+  2026-10-03)". Hands-on: section 16 item 33.
 
 - **To do (owner request 2026-09-28): "Reduce background noise" switch** on
   the Record tab. Routes only the mic through Apple voice processing so
@@ -2199,8 +2302,9 @@ Windows differs from the Mac:
 - **Permission** cannot be checked in advance; `E_ACCESSDENIED` at start
   becomes `PermissionDenied` with Windows wording pointing to Settings >
   Privacy & security > Microphone (new localization key, W7).
-- **Device identity** is the endpoint id string; `ResolveSelection` ports
-  `RecordingController.refreshDevices()` (chosen, else default, else first).
+- **Device identity** is the endpoint id string; `MicrophoneSelection`
+  (since 2026-10-03, 4.13; it replaced `ResolveSelection`) keeps the chosen
+  device, else the default, else the first, else "No microphone".
 - **Untested on hardware**: the dev machine runs in an RDP session with no
   capture endpoint ("Remote Audio" output only), so the live microphone
   path, real int16/24-bit mix formats and QPC stamps on real packets have
@@ -2826,25 +2930,10 @@ findings only in a chat report.
   either; the single-meeting card has both); the tray menu's queue line and
   Stop & Start Next were never seen in the real popup (item 27 of section 16).
 
-- **System audio only** (owner, 2026-10-02; shared design 4.13, built on
-  the Mac first): the Windows Microphone picker gets the same last row,
-  "No microphone (system audio only)" (reuse the shared key and its
-  translations), replacing "No input device" (then drop that `windows`
-  key). With it the session runs WASAPI loopback only (no microphone
-  client, no microphone permission check), the system-audio switch shows
-  on and disabled without changing the stored setting, the choice is not
-  persisted, and the no-device rule is the same (chosen by itself, back to
-  the default device when one appears unless the user picked it). Failure
-  rules as on the Mac: a loopback that cannot start fails the start with
-  "Nothing to record: the microphone is off and system audio could not
-  start: <reason>"; Windows has no screen-recording permission, so there
-  is no "Open System Settings" button and the reason is the loopback
-  error (for example no output device, `NoOutputDevice`). Loopback ending
-  on its own ends the recording with the WAV kept; zero samples at Stop
-  reads "No audio arrived from system audio." The 0.1 s silence filler
-  (18.4) keeps a system-only recording running while nothing plays. Same
-  replay variable `HEARSAY_REPLAY_MIC=off`, same Stop & Start Next and
-  Teams behavior, Mic meter hidden.
+- **Done 2026-10-03: system audio only** (owner, 2026-10-02; shared design
+  4.13, built on the Mac first): the Windows Microphone picker's last row
+  "No microphone (system audio only)" replaces "No input device". Built as
+  in 4.13 "As built (Windows, 2026-10-03)"; hands-on: section 16 item 35.
 
 ### 18.10 Back-to-back recordings (port of section 4.9, added 2026-09-30)
 

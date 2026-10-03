@@ -527,7 +527,8 @@ internal static partial class Strings
 
     // Record tab (mac/Hearsay/Features/Recording/RecordView.swift).
     public static string Microphone => App("Microphone");
-    public static string NoInputDevice => Win("No input device");
+    /// <summary>The Microphone picker's last row (PLAN.md 4.13); the shared app key.</summary>
+    public static string NoMicrophoneSystemAudioOnly => App("No microphone (system audio only)");
     public static string AlsoCaptureSystemAudio => App("Also capture system audio");
     public static string InputLevel => App("Input level");
     public static string MicMeter => App("Mic");
@@ -561,6 +562,13 @@ internal static partial class Strings
     /// <summary>Windows only: title of the alert when Explorer or the default app cannot be opened.</summary>
     public static string CouldNotOpen => Win("Could not open the file");
     public static string SilenceWarning(int seconds) => App("Silent for %llds — check the input device", seconds);
+    /// <summary>PLAN.md 4.13: the silence warning of a recording with no microphone.</summary>
+    public static string SilenceWarningSystemOnly(int seconds) => App("Silent for %llds — check that something is playing", seconds);
+    /// <summary>PLAN.md 4.13: the start failed because the microphone is off and system audio could not start.</summary>
+    public static string NothingToRecordSystemAudioOnly(string reason) =>
+        App("Nothing to record: the microphone is off and system audio could not start: %@", reason);
+    /// <summary>PLAN.md 4.13: a recording with no microphone ended with no samples.</summary>
+    public static string NoAudioFromSystemAudio => App("No audio arrived from system audio.");
     public static string SystemAudioOff(string reason) => App("System audio off: %@", reason);
     public static string LivePreviewOff(string reason) => App("Live preview off: %@", reason);
     /// <summary>PLAN.md 18.4, "Speed" (Windows only).</summary>

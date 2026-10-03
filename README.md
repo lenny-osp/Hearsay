@@ -274,6 +274,11 @@ in PowerShell with the zip's line in the release's `SHA256SUMS.txt`.
    refuse transcripts longer than roughly a 20-minute meeting. Use Claude
    Code, Codex, Ollama, or Custom for longer ones.
 
+**System audio only**: pick "No microphone (system audio only)" at the end
+of the microphone list to record just the sound the PC plays; with no
+microphone connected, Hearsay picks it by itself. The choice is not
+remembered between launches.
+
 **Back to back** works as in "Recording" above, with Ctrl+Alt+Win in place
 of ⌃⌥⌘: Ctrl+Alt+Win+N is "Stop & Start Next" (with R and P for
 Start / Stop and Pause / Resume). Unlike the Mac, finished recordings wait

@@ -443,6 +443,36 @@ internal static class RecordingSnapshots
         await tools.Render("84-record-live-preview-too-slow", window.RenderRoot).ConfigureAwait(true);
         controller.ShowSample(idle);
         await tools.Settle().ConfigureAwait(true);
+
+        // PLAN.md 4.13: "No microphone (system audio only)" chosen. The switch shows on and
+        // locked although the stored setting is off, and there is no Mic meter.
+        var chosenBefore = controller.MicrophoneChoice;
+        var storedBefore = shell.Settings.CaptureSystemAudio;
+        shell.Settings.CaptureSystemAudio = false;
+        controller.MicrophoneChoice = MicrophoneChoice.NoMicrophone;
+        await tools.Settle().ConfigureAwait(true);
+        tools.Check(controller.CapturesSystemAudio && !shell.Settings.CaptureSystemAudio,
+            "no microphone: the switch shows on and the stored setting stays off");
+        tools.Check(!ShowsMeter(window.RenderRoot, Strings.MicMeter) && !ShowsMeter(window.RenderRoot, Strings.SystemMeter), "no microphone: no meter row before the session");
+        await tools.Render("85-record-no-microphone", window.RenderRoot).ConfigureAwait(true);
+
+        controller.ShowSample(new RecordingSample(new ControllerPhase.Recording(), new SessionLanguageTracker(LanguageChoice.Auto, TranscriptLanguage.English))
+        {
+            Elapsed = 754.2,
+            Level = 0.45,
+            SystemLevel = 0.45,
+            RecordsMicrophone = false,
+            SilenceWarning = Strings.SilenceWarningSystemOnly(6),
+            LiveNotice = Strings.LivePreviewIsOff,
+            LivePreviewTurnedOff = true,
+        });
+        await tools.Settle().ConfigureAwait(true);
+        tools.Check(ShowsMeter(window.RenderRoot, Strings.SystemMeter) && !ShowsMeter(window.RenderRoot, Strings.MicMeter), "system audio only: the System meter shows, the Mic meter does not");
+        await tools.Render("86-record-system-audio-only", window.RenderRoot).ConfigureAwait(true);
+        controller.ShowSample(idle);
+        controller.MicrophoneChoice = chosenBefore;
+        shell.Settings.CaptureSystemAudio = storedBefore;
+        await tools.Settle().ConfigureAwait(true);
     }
 
     /// <summary>The first scroll viewer of the shown page that can scroll vertically.</summary>
@@ -468,6 +498,20 @@ internal static class RecordingSnapshots
             if (child is TextBlock block && block.Text == text) return true;
             if (child is ContentControl { Content: string content } && content == text) return true;
             if (ShowsText(child, text)) return true;
+        }
+        return false;
+    }
+
+    /// <summary>A visible level meter named <paramref name="source"/> ("Mic", "System") is in <paramref name="root"/> (collapsed subtrees are skipped).</summary>
+    private static bool ShowsMeter(DependencyObject root, string source)
+    {
+        var name = Strings.SourceLevel(source);
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is UIElement { Visibility: Visibility.Collapsed }) continue;
+            if (child is ProgressBar bar && Microsoft.UI.Xaml.Automation.AutomationProperties.GetName(bar) == name) return true;
+            if (ShowsMeter(child, source)) return true;
         }
         return false;
     }

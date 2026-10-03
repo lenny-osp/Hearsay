@@ -69,28 +69,6 @@ public static class AudioDeviceList
         InputDevices().FirstOrDefault(device => device.Uid == uid);
 
     /// <summary>
-    /// Which device the picker shows: the chosen one while it is connected,
-    /// else the system default, else the first device, else none. Port of
-    /// <c>RecordingController.refreshDevices()</c> in
-    /// mac/Hearsay/Features/Recording/RecordingController.swift.
-    /// </summary>
-    public static string? ResolveSelection(string? selectedUid, IReadOnlyList<AudioInputDevice> devices, string? defaultUid)
-    {
-        ArgumentNullException.ThrowIfNull(devices);
-        if (selectedUid is not null)
-        {
-            foreach (var device in devices)
-            {
-                if (device.Uid == selectedUid)
-                {
-                    return selectedUid;
-                }
-            }
-        }
-        return defaultUid ?? (devices.Count > 0 ? devices[0].Uid : null);
-    }
-
-    /// <summary>
     /// Calls <paramref name="handler"/> whenever capture endpoints are added,
     /// removed, enabled, disabled, unplugged, or the default input changes.
     /// It runs on the <see cref="SynchronizationContext"/> current when this is

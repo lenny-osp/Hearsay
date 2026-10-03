@@ -46,8 +46,9 @@ public sealed class MeetingAutoRecordTests
                     Mics.Add(mic);
                     return mic;
                 },
-                () => new RecordingControllerTests.FakeSystem(),
-                _ => throw new WhisperEngineException(WhisperEngineError.NoActiveModel, null));
+                _ => new RecordingControllerTests.FakeSystem(),
+                _ => throw new WhisperEngineException(WhisperEngineError.NoActiveModel, null),
+                () => new InputDeviceList([new AudioInputDevice("{0.0.1.00000000}.{test}", "Test microphone")], "{0.0.1.00000000}.{test}"));
             Controller = new RecordingController(queueRig.Settings, models, engine, queueRig.Queue, queueRig.Spool, sources);
             Auto = new MeetingAutoRecord(
                 Settings, Controller,

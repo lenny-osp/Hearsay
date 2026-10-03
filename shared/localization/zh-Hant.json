@@ -4470,14 +4470,6 @@
   },
   {
     "catalog": "windows",
-    "key": "No input device",
-    "english": "No input device",
-    "comment": "Windows: Record tab Microphone picker row when no input device exists. Windows only until 18.9 \"No microphone (system audio only)\" replaces it (the Mac replaced it on 2026-10-02, PLAN.md 4.13).",
-    "placeholders": [],
-    "translation": "沒有輸入裝置"
-  },
-  {
-    "catalog": "windows",
     "key": "%@ byte",
     "english": "%@ byte",
     "comment": "Models tab: a size under 1 KB, exactly one byte. %@ is the number. Windows only (the Mac uses the system's ByteCountFormatter).",

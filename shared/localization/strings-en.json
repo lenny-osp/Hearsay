@@ -4517,12 +4517,5 @@
     "english": "Record",
     "comment": "Button (a verb) of the \"Microsoft Teams meeting started\" dialog: start recording in the chosen language. Not the Record tab's name. Windows only.",
     "placeholders": []
-  },
-  {
-    "catalog": "windows",
-    "key": "No input device",
-    "english": "No input device",
-    "comment": "Windows: Record tab Microphone picker row when no input device exists. Windows only until 18.9 \"No microphone (system audio only)\" replaces it (the Mac replaced it on 2026-10-02, PLAN.md 4.13).",
-    "placeholders": []
   }
 ]
