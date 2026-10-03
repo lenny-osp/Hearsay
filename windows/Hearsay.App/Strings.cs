@@ -564,7 +564,14 @@ internal static partial class Strings
     public static string SystemAudioOff(string reason) => App("System audio off: %@", reason);
     public static string LivePreviewOff(string reason) => App("Live preview off: %@", reason);
     /// <summary>PLAN.md 18.4, "Speed" (Windows only).</summary>
-    public static string LivePreviewTooSlow => Win("Live preview off: this computer is too slow for it");
+    public static string LivePreviewTooSlow => Win("Live preview off: this computer is too slow for it. To show it anyway, choose Always on in Settings > General.");
+    /// <summary>PLAN.md 4.12: the Mac's notice while Settings has the live preview off.</summary>
+    public static string LivePreviewIsOff => App("Live preview is off. Turn it on in Settings > General.");
+    /// <summary>Settings > General > Transcription "Live preview" picker rows (PLAN.md 18.9, Windows only).</summary>
+    public static string LivePreviewAutomatic => Win("Automatic");
+    public static string LivePreviewAlwaysOn => Win("Always on");
+    public static string LivePreviewOffRow => Win("Off");
+    public static string LivePreviewCaption => Win("Automatic turns the live preview off when this computer is too slow for it. When off, the transcript is made only after you stop, and Auto detects the language then. Applies from the next recording.");
     public static string LivePreviewMissedChunk(string reason) => App("Live preview missed a chunk: %@", reason);
 
     // Recording and transcription errors (mac/Hearsay/Features/Recording/RecordingController.swift).

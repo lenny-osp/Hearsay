@@ -71,9 +71,9 @@ internal abstract record ControllerPhase
 /// <c>starting</c> can also end in idle (stop while starting) or failed.</para>
 /// <para>Windows differences (PLAN.md 18.4): the live preview runs only when
 /// the model's speed probe (<see cref="TranscriptionEngine.MeasureSpeedAsync"/>)
-/// finished a warm 30 s window in under 15 s; otherwise the Record tab says
-/// "Live preview off: this computer is too slow for it" and the language is
-/// detected at Stop. There is no microphone or screen-capture permission to
+/// finished a warm 30 s window in under 15 s, unless Settings has the live
+/// preview on always (no probe) or off (PLAN.md 4.12, 18.9); otherwise the
+/// Record tab says why and the language is detected at Stop. There is no microphone or screen-capture permission to
 /// request; the capture devices are opened on the thread pool. Use from the
 /// UI thread.</para>
 /// </remarks>
@@ -238,6 +238,12 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
 
     /// <summary>The current session transcribes live chunks.</summary>
     public bool IsLivePreviewEnabled { get; private set; }
+
+    /// <summary>
+    /// The current session has no live preview because Settings turned it
+    /// off (PLAN.md 4.12); read once at each Start.
+    /// </summary>
+    public bool IsLivePreviewTurnedOff { get; private set; }
 
     /// <summary>The last failure was the missing model; the view links to Models.</summary>
     public bool NeedsModel { get; private set; }
@@ -872,7 +878,8 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
         session += 1;
         var handover = new RecordingHandover(
             recording, DateTimeOffset.Now, LanguageTracker, sessionChineseScript, settings.KeepRecording,
-            liveSegments.ToList(), IsLivePreviewEnabled, liveSink, LanguageNotice, LiveNotice);
+            // "Live preview is off" is about recording; the job has nothing to show under it.
+            liveSegments.ToList(), IsLivePreviewEnabled, liveSink, LanguageNotice, IsLivePreviewTurnedOff ? null : LiveNotice);
         DetachLiveSink();
         recordedSamples = [];
         liveSegments = [];
@@ -880,6 +887,7 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
         LiveNotice = null;
         LanguageNotice = null;
         IsLivePreviewEnabled = false;
+        IsLivePreviewTurnedOff = false;
         // The job owns the tracker now; the next session makes its own.
         LanguageTracker = new SessionLanguageTracker(settings.LanguageChoice, settings.PreferredLanguage);
         sessionChineseScript = null;
@@ -924,6 +932,7 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
         LatestLiveLine = null;
         LiveNotice = null;
         IsLivePreviewEnabled = false;
+        IsLivePreviewTurnedOff = false;
         chunker = new LiveChunker();
         chunkedSamples = 0;
         liveJobCount = 0;
@@ -942,12 +951,24 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
     }
 
     /// <summary>
-    /// Opens the live queue when a model is ready and fast enough (PLAN.md
-    /// 18.4, "Speed"); otherwise the recording goes on without a preview.
+    /// Opens the live queue when Settings has the preview on and a model is
+    /// ready (and, under Automatic, fast enough: PLAN.md 18.4, "Speed");
+    /// otherwise the recording goes on without a preview. Off has no live
+    /// model location either, so Auto detects nothing during the session: the
+    /// queue detects over the whole recording at Stop (PLAN.md 4.12). Always
+    /// on never consults the speed probe.
     /// </summary>
     private void StartLivePreview()
     {
         ResetLivePreview();
+        var mode = settings.LivePreviewMode;
+        AppLog.Write($"recording: live preview mode {mode.StorageValue()}");
+        if (!mode.ShowsPreview())
+        {
+            IsLivePreviewTurnedOff = true;
+            LiveNotice = Strings.LivePreviewIsOff;
+            return;
+        }
         string location;
         try
         {
@@ -958,7 +979,8 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
             LiveNotice = Strings.LivePreviewOff(error.Message);
             return;
         }
-        if (engine.KnownSpeed(location) is { LivePreviewFeasible: false })
+        var checksSpeed = mode == LivePreviewMode.Automatic;
+        if (checksSpeed && engine.KnownSpeed(location) is { LivePreviewFeasible: false })
         {
             LiveNotice = Strings.LivePreviewTooSlow;
             return;
@@ -976,16 +998,17 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
         // One consumer, so chunks are transcribed strictly in order. In Auto,
         // chunks that close before the language is decided wait in the sink.
         // After Stop the sink (and this task) belong to the queue job.
-        sink.Task = RunLiveQueueAsync(sink, channel.Reader, location, engine.MeasureSpeedAsync(location), id);
+        sink.Task = RunLiveQueueAsync(sink, channel.Reader, location, checksSpeed ? engine.MeasureSpeedAsync(location) : null, id);
     }
 
     private async Task RunLiveQueueAsync(
-        LiveSink sink, ChannelReader<LiveJob> reader, string location, Task<SpeedProbeResult> speed, int id)
+        LiveSink sink, ChannelReader<LiveJob> reader, string location, Task<SpeedProbeResult>? speed, int id)
     {
         var feasible = true;
         try
         {
-            feasible = (await speed.ConfigureAwait(true)).LivePreviewFeasible;
+            // Always on has no probe to wait for (PLAN.md 18.9).
+            if (speed is not null) feasible = (await speed.ConfigureAwait(true)).LivePreviewFeasible;
         }
         catch (Exception error) when (error is not OutOfMemoryException)
         {
@@ -1150,6 +1173,7 @@ internal sealed class RecordingController : INotifyPropertyChanged, IDisposable
         }
         LiveNotice = sample.LiveNotice;
         IsLivePreviewEnabled = sample.LivePreviewEnabled;
+        IsLivePreviewTurnedOff = sample.LivePreviewTurnedOff;
         LanguageTracker = sample.Tracker;
         LanguageNotice = sample.Notice;
         FinishedTranscript = sample.FinishedTranscript;
@@ -1248,6 +1272,9 @@ internal sealed record RecordingSample(ControllerPhase Phase, SessionLanguageTra
     public string? LiveNotice { get; init; }
 
     public bool LivePreviewEnabled { get; init; }
+
+    /// <summary>Settings has the live preview off: the Record tab shows only the notice.</summary>
+    public bool LivePreviewTurnedOff { get; init; }
 
     public LanguageNotice? Notice { get; init; }
 

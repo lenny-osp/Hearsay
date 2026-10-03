@@ -1253,6 +1253,10 @@
     <value>Funktionieren in jeder App, auch bei geschlossenem Fenster.</value>
     <comment>app: Work in any app, even with the window closed.</comment>
   </data>
+  <data name="app_f30f7aa7e7208c98" xml:space="preserve">
+    <value>Die Live-Vorschau ist aus. Einschalten unter Einstellungen &gt; Allgemein.</value>
+    <comment>app: Live preview is off. Turn it on in Settings &gt; General.</comment>
+  </data>
   <data name="app_f359d00e6bddcc4f" xml:space="preserve">
     <value>Name: Wert, einer pro Zeile</value>
     <comment>app: Name: value, one per line</comment>
@@ -1729,6 +1733,10 @@
     <value>Hearsay kann nicht in den Ordner {0} schreiben. Den Hearsay-Ordner in einen beschreibbaren Ordner bewegen, Hearsay dort öffnen und dann erneut nach Updates suchen.</value>
     <comment>windows: Hearsay cannot write to the folder %@. Move the Hearsay folder to a folder you can write to, open it from there, then check for updates again.</comment>
   </data>
+  <data name="windows_044ba8a9ae43b296" xml:space="preserve">
+    <value>Immer ein</value>
+    <comment>windows: Always on</comment>
+  </data>
   <data name="windows_090a0c74f4e57815" xml:space="preserve">
     <value>Verwendet das auf diesem PC installierte Codex und die ChatGPT-Anmeldung; Anfragen zählen zu den Nutzungslimits des Tarifs. Zum Anmelden einmal `codex login` im Terminal ausführen. Aufwand: none, minimal, low, medium, high, xhigh oder max. Ohne Modell wird der Standard von Codex verwendet.</value>
     <comment>windows: Uses Codex installed on this PC and your ChatGPT login; requests count against your plan's usage limits. Run `codex login` once in Terminal to log in. Effort: none, minimal, low, medium, high, xhigh, or max. An empty model uses Codex's default.</comment>
@@ -1853,6 +1861,10 @@
     <value>Die neue Version ist von {0} signiert, nicht wie diese Kopie von Hearsay von {1}.</value>
     <comment>windows: The new version is signed by %@, not by %@ like this copy of Hearsay.</comment>
   </data>
+  <data name="windows_89e46be45212cd6e" xml:space="preserve">
+    <value>Automatisch schaltet die Live-Vorschau aus, wenn dieser Computer dafür zu langsam ist. Wenn aus, entsteht das Transkript erst nach dem Stoppen, und „Automatisch“ erkennt die Sprache dann. Gilt ab der nächsten Aufnahme.</value>
+    <comment>windows: Automatic turns the live preview off when this computer is too slow for it. When off, the transcript is made only after you stop, and Auto detects the language then. Applies from the next recording.</comment>
+  </data>
   <data name="windows_8f8367e088351c7b" xml:space="preserve">
     <value>Die Dateien konnten nicht im Explorer angezeigt werden: {0}</value>
     <comment>windows: Could not show the files in File Explorer: %@</comment>
@@ -1933,13 +1945,13 @@
     <value>Verwendet die auf diesem PC installierte Antigravity CLI und das Google-Konto, mit dem sie angemeldet ist; Anfragen zählen zu den Limits dieses Kontos. Zum Anmelden einmal `agy` im Terminal ausführen; `agy models` listet die Modell-IDs auf. Aufwand: low, medium, high oder max, nur für eine Modell-ID ohne eigene Stufe (ein Modell, das auf -high, -medium oder -low endet, ignoriert ihn). Läufe verwenden das agy-Projekt hearsay-notes, dessen Deny-Regeln dem Modell außer der Websuche keine Werkzeuge lassen, und die Konversation jedes Laufs wird danach aus dem agy-Verlauf gelöscht.</value>
     <comment>windows: Uses the Antigravity CLI installed on this PC and the Google account it is logged in with; requests count against that account's limits. Run `agy` once in Terminal to log in; `agy models` lists the model ids. Effort: low, medium, high, or max, only for a model id without its own level (a model ending in -high, -medium, or -low ignores it). Runs use agy's hearsay-notes project, whose deny rules leave the model no tools except web search, and each run's conversation is deleted from agy's history afterwards.</comment>
   </data>
+  <data name="windows_ca7981b46ecf2c17" xml:space="preserve">
+    <value>Aus</value>
+    <comment>windows: Off</comment>
+  </data>
   <data name="windows_cc998ac38d55e048" xml:space="preserve">
     <value>Strg, Alt oder Win verwenden.</value>
     <comment>windows: Include Ctrl, Alt, or Win.</comment>
-  </data>
-  <data name="windows_cc9e108f2c7b21c1" xml:space="preserve">
-    <value>Live-Vorschau aus: Dieser Computer ist dafür zu langsam</value>
-    <comment>windows: Live preview off: this computer is too slow for it</comment>
   </data>
   <data name="windows_d06dc9e77902afe4" xml:space="preserve">
     <value>Das gesamte Transkript wird an {0} gesendet. Ansonsten verlässt nichts diesen PC.</value>
@@ -1957,6 +1969,10 @@
     <value>Bereits für „Stoppen &amp; nächste starten“ verwendet.</value>
     <comment>windows: Already used for Stop &amp; Start Next.</comment>
   </data>
+  <data name="windows_d461a493a3753877" xml:space="preserve">
+    <value>Automatisch</value>
+    <comment>windows: Automatic</comment>
+  </data>
   <data name="windows_d813f1147af1497b" xml:space="preserve">
     <value>In den Papierkorb verschieben …</value>
     <comment>windows: Move to Recycle Bin…</comment>
@@ -1964,6 +1980,10 @@
   <data name="windows_db1423267c535dfc" xml:space="preserve">
     <value>Das letzte Update konnte nicht installiert werden. Hearsay ist noch die vorherige Version.</value>
     <comment>windows: The last update could not be installed. Hearsay is still the previous version.</comment>
+  </data>
+  <data name="windows_e0d3ca1bf62a3f37" xml:space="preserve">
+    <value>Live-Vorschau aus: Dieser Computer ist dafür zu langsam. Um sie trotzdem anzuzeigen, unter Einstellungen &gt; Allgemein „Immer ein“ wählen.</value>
+    <comment>windows: Live preview off: this computer is too slow for it. To show it anyway, choose Always on in Settings &gt; General.</comment>
   </data>
   <data name="windows_e23325c173e9de96" xml:space="preserve">
     <value>Bereits für „Aufnahme starten / stoppen“ verwendet.</value>

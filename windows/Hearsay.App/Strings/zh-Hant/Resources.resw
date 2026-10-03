@@ -1253,6 +1253,10 @@
     <value>可在任何 App 中使用，即使視窗已關閉。</value>
     <comment>app: Work in any app, even with the window closed.</comment>
   </data>
+  <data name="app_f30f7aa7e7208c98" xml:space="preserve">
+    <value>即時預覽已關閉。可在「設定 &gt; 一般」中開啟。</value>
+    <comment>app: Live preview is off. Turn it on in Settings &gt; General.</comment>
+  </data>
   <data name="app_f359d00e6bddcc4f" xml:space="preserve">
     <value>名稱: 值，每行一個</value>
     <comment>app: Name: value, one per line</comment>
@@ -1729,6 +1733,10 @@
     <value>Hearsay 無法寫入資料夾 {0}。請將 Hearsay 資料夾移到可寫入的資料夾，從那裡打開後再檢查更新。</value>
     <comment>windows: Hearsay cannot write to the folder %@. Move the Hearsay folder to a folder you can write to, open it from there, then check for updates again.</comment>
   </data>
+  <data name="windows_044ba8a9ae43b296" xml:space="preserve">
+    <value>一律開啟</value>
+    <comment>windows: Always on</comment>
+  </data>
   <data name="windows_090a0c74f4e57815" xml:space="preserve">
     <value>使用這台電腦上安裝的 Codex 與你的 ChatGPT 登入；請求會計入你方案的用量限制。請在「終端機」中執行一次 `codex login` 以登入。推理強度：none、minimal、low、medium、high、xhigh 或 max。模型留空時使用 Codex 的預設值。</value>
     <comment>windows: Uses Codex installed on this PC and your ChatGPT login; requests count against your plan's usage limits. Run `codex login` once in Terminal to log in. Effort: none, minimal, low, medium, high, xhigh, or max. An empty model uses Codex's default.</comment>
@@ -1853,6 +1861,10 @@
     <value>新版本由 {0} 簽署，而不是像這份 Hearsay 一樣由 {1} 簽署。</value>
     <comment>windows: The new version is signed by %@, not by %@ like this copy of Hearsay.</comment>
   </data>
+  <data name="windows_89e46be45212cd6e" xml:space="preserve">
+    <value>「自動」會在這台電腦速度不足時關閉即時預覽。關閉時，逐字稿要在停止後才產生，「自動」也在那時偵測語言。從下一次錄音開始生效。</value>
+    <comment>windows: Automatic turns the live preview off when this computer is too slow for it. When off, the transcript is made only after you stop, and Auto detects the language then. Applies from the next recording.</comment>
+  </data>
   <data name="windows_8f8367e088351c7b" xml:space="preserve">
     <value>無法在檔案總管中顯示檔案：{0}</value>
     <comment>windows: Could not show the files in File Explorer: %@</comment>
@@ -1933,13 +1945,13 @@
     <value>使用這台電腦上安裝的 Antigravity CLI 及其登入的 Google 帳號；請求會計入該帳號的限制。請在「終端機」中執行一次 `agy` 以登入；`agy models` 會列出模型 ID。推理強度：low、medium、high 或 max，僅適用於本身未帶等級的模型 ID（以 -high、-medium 或 -low 結尾的模型會忽略此設定）。執行時使用 agy 的 hearsay-notes 專案，其拒絕規則讓模型除了網路搜尋外無法使用任何工具，且每次執行的對話之後都會從 agy 的歷史記錄中刪除。</value>
     <comment>windows: Uses the Antigravity CLI installed on this PC and the Google account it is logged in with; requests count against that account's limits. Run `agy` once in Terminal to log in; `agy models` lists the model ids. Effort: low, medium, high, or max, only for a model id without its own level (a model ending in -high, -medium, or -low ignores it). Runs use agy's hearsay-notes project, whose deny rules leave the model no tools except web search, and each run's conversation is deleted from agy's history afterwards.</comment>
   </data>
+  <data name="windows_ca7981b46ecf2c17" xml:space="preserve">
+    <value>關閉</value>
+    <comment>windows: Off</comment>
+  </data>
   <data name="windows_cc998ac38d55e048" xml:space="preserve">
     <value>須包含 Ctrl、Alt 或 Win。</value>
     <comment>windows: Include Ctrl, Alt, or Win.</comment>
-  </data>
-  <data name="windows_cc9e108f2c7b21c1" xml:space="preserve">
-    <value>即時預覽已關閉：這台電腦的速度不足</value>
-    <comment>windows: Live preview off: this computer is too slow for it</comment>
   </data>
   <data name="windows_d06dc9e77902afe4" xml:space="preserve">
     <value>這會將完整逐字稿傳送至 {0}。除此之外，不會有任何資料離開這台電腦。</value>
@@ -1957,6 +1969,10 @@
     <value>已用於「結束並開始下一場」。</value>
     <comment>windows: Already used for Stop &amp; Start Next.</comment>
   </data>
+  <data name="windows_d461a493a3753877" xml:space="preserve">
+    <value>自動</value>
+    <comment>windows: Automatic</comment>
+  </data>
   <data name="windows_d813f1147af1497b" xml:space="preserve">
     <value>移至資源回收筒…</value>
     <comment>windows: Move to Recycle Bin…</comment>
@@ -1964,6 +1980,10 @@
   <data name="windows_db1423267c535dfc" xml:space="preserve">
     <value>上次的更新無法安裝，Hearsay 仍是先前的版本。</value>
     <comment>windows: The last update could not be installed. Hearsay is still the previous version.</comment>
+  </data>
+  <data name="windows_e0d3ca1bf62a3f37" xml:space="preserve">
+    <value>即時預覽已關閉：這台電腦的速度不足。若仍要顯示，請在「設定 &gt; 一般」中選擇「一律開啟」。</value>
+    <comment>windows: Live preview off: this computer is too slow for it. To show it anyway, choose Always on in Settings &gt; General.</comment>
   </data>
   <data name="windows_e23325c173e9de96" xml:space="preserve">
     <value>已用於「開始／停止錄音」。</value>

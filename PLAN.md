@@ -1009,8 +1009,8 @@ the quit alert count only the jobs left.
 Owner request 2026-10-02: a setting that turns the live preview off, so a
 recording runs no live chunks at all (less load while the user works on
 something else, nothing to read along). A shared design; **the Mac was
-built first (2026-10-02)**, Windows follows (18.9 "Live preview
-override").
+built first (2026-10-02)**, Windows followed (2026-10-03, "As
+built (Windows, 2026-10-03)" at the end of this section).
 
 **Setting.** Key `livePreviewMode`, string values `automatic` (default),
 `on`, `off`; a stored value a build does not know reads as `automatic`.
@@ -1062,6 +1062,71 @@ keeps the WAV and has no live preview to save.
   README: one sentence under "Live preview".
 - Not verified: the live GUI (the owner runs the Release app), section 16
   item 32.
+
+**As built (Windows, 2026-10-03).** The Windows port of the setting, with
+the Windows extras that 18.9 asked for (owner decisions 2026-10-03).
+- `LivePreviewMode` (`Automatic`, `On`, `Off`), `LivePreviewModes`
+  (`StorageValue`, `FromStorageValue`, `ShowsPreview`) and
+  `AppSettings.LivePreviewMode` in `Hearsay.Core/Settings/AppSettings.cs`;
+  key `livePreviewMode`, values `automatic` (default), `on`, `off`, an
+  unknown stored value reads as `automatic`; tests mirror the Swift ones
+  (default, round trip, unknown value, shared raw values).
+- Settings > General > Transcription: a picker "Live preview" with the rows
+  "Automatic", "Always on", "Off", first in the card, with the caption
+  "Automatic turns the live preview off when this computer is too slow for
+  it. When off, the transcript is made only after you stop, and Auto
+  detects the language then. Applies from the next recording." (the second
+  and third sentences are the Mac caption's, in each language). The rows,
+  the caption and the new too-slow notice are Windows-only keys (catalog
+  `windows`); the off notice is the Mac's app-catalog key.
+- `RecordingController.StartLivePreview` reads the mode once per Start
+  (Stop & Start Next reads it again). Off: no live queue, no live chunks, no
+  language detection during the session, `IsLivePreviewTurnedOff`, the live
+  area shows only "Live preview is off. Turn it on in Settings > General."
+  (no empty transcript box, no "Detecting language…", no tray line); the job
+  is handed over with live disabled and no notice, so "Use live preview
+  instead" is not offered and the queue detects an undecided Auto language
+  over the whole recording at Stop, the path the "too slow" result already
+  used. Always on never consults the speed probe (no `KnownSpeed` check, no
+  wait on `MeasureSpeedAsync`); the preview may lag. Automatic is today's
+  behavior.
+- Re-probe: a "too slow" probe result is remembered for 10 minutes
+  (`SpeedProbeMemory.IsRemembered`, a pure function with the clock passed
+  in, in `Hearsay.Core/Transcription`; tests in `SpeedProbeMemoryTests`);
+  a recording that starts later measures again (`TranscriptionEngine`
+  takes a `TimeProvider` and logs "whisper: speed probe result … is older
+  than 10 minutes; measuring again"). A fast result stays for the process.
+  The engine logs `whisper: loaded … runtime …`, the Record tab's runtime
+  check logs `whisper: runtime …`, the probe logs `whisper: speed probe …`,
+  and each session logs `recording: live preview mode <mode>`; all go to
+  stdout and the debugger only, so the owner starts Hearsay.exe with its
+  output redirected to read them.
+- The too-slow notice now says the way out: "Live preview off: this
+  computer is too slow for it. To show it anyway, choose Always on in
+  Settings > General." (the old Windows-only key is gone).
+- Replay: `HEARSAY_REPLAY_LIVE=off|on|automatic` (default automatic;
+  AGENTS.md lists `off`). Snapshots `81-settings-general-live-preview-off`,
+  `82-settings-general-live-preview-narrow` (480 px),
+  `83-record-live-preview-off` (a sample recording through
+  `RecordingController.ShowSample`) and `84-record-live-preview-too-slow`,
+  in English and German; the German caption wraps to three lines at 480 px
+  and nothing is cut.
+- Help: one Windows sentence in the live preview step of each Help.html;
+  README: one sentence in the Windows requirements.
+- Measured on the dev machine (Intel iGPU, Vulkan; turbo q5_0; `en-30s.wav`
+  then `de-30s.wav`, timing immediate, replay): Auto with the preview off
+  ran 0 live jobs; job 1 settled `en` 7.6 s and job 2 `de` 6.2 s after
+  their Stop (job 1 includes the model load), and both SRTs' first lines
+  equal the run with the preview on (2 live jobs, languages settled 6.4 s
+  after Stop). EN with the preview off: 0 live jobs, both jobs `chosen` en,
+  job 2 suggests de as before. Always on (`on`): no `speed probe` line in
+  the log, 2 live jobs, same first lines. Automatic logged `speed probe
+  9.08 s per 30 s window (Vulkan, 4 threads, warm-up 6.68 s); live preview
+  on`.
+- Not verified: the GUI (the owner runs the installed build), any CUDA
+  path, a machine that is really too slow (the too-slow notice was rendered
+  from a sample, and the probe's "too slow" branch is covered by the
+  expiry-rule tests only), section 16 item 34.
 
 ### 4.13 System audio only
 
@@ -1266,7 +1331,8 @@ a one-line prompt.
   Mac hides it before macOS 14.2.
 - Show the live preview while recording (`livePreviewMode`, default
   `automatic`; the Mac's switch stores `automatic` or `off`), section 4.12.
-  Mac 2026-10-02; Windows adds Always on (18.9).
+  Mac 2026-10-02; Windows 2026-10-03 adds Always on (4.12 "As built
+  (Windows, 2026-10-03)").
 
 ## 9. Entitlements and privacy
 
@@ -1676,6 +1742,27 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
     Also check whether the elapsed time keeps counting while nothing
     plays (4.13, "System audio during silence").
 
+34. Windows, live preview setting (section 4.12 "As built (Windows,
+    2026-10-03)", the Windows twin of item 32, added 2026-10-03): start
+    the installed Hearsay.exe from a console with its output redirected
+    to a file (`Hearsay.exe > hearsay.log`), open Record, then read the
+    log: the `whisper: runtime …` and `whisper: loaded …` lines say
+    whether the GUI launch loaded Vulkan or fell back to CPU, and
+    `whisper: speed probe …` gives the 30 s window time that decided the
+    preview. Then in Settings > General > Transcription > "Live preview"
+    pick each row and record a minute in Auto: Automatic shows the preview
+    as before; Always on shows it without a `speed probe` line for that
+    session; Off shows only "Live preview is off. Turn it on in Settings >
+    General.", no "Detecting language…", no tray line, and after Stop the
+    row has no "Use live preview instead" and settles the language before
+    its pass. Change the picker during a recording: the running session
+    does not change; Stop & Start Next applies it. To see the too-slow
+    notice ("… To show it anyway, choose Always on in Settings >
+    General.") you need a slow moment or machine (a CPU-only PC, or heavy
+    work on the GPU during the first recording after launch); then start
+    another recording more than 10 minutes later and look for "measuring
+    again" in the log.
+
 ## 17. Polish list (found during review, not yet scheduled)
 
 - **Open (owner report 2026-10-02): a held job's WAV left the spool.**
@@ -1765,8 +1852,8 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
   and Auto detects at Stop. Built as in 4.12 "As built (Mac, 2026-10-02)";
   verified with `swift test`, the Release build, replays (Auto and EN with
   the preview off, Auto with it on) and the UI snapshots in English and
-  Traditional Chinese. Windows: 18.9 "Live preview override". Hands-on:
-  section 16 item 32.
+  Traditional Chinese. Windows: 4.12 "As built (Windows, 2026-10-03)".
+  Hands-on: section 16 item 32.
 
 - **Done 2026-10-02: Mac system audio only (section 4.13, owner
   request).** The Microphone picker's last row "No microphone (system
@@ -1906,8 +1993,12 @@ once after pulling this.
   about 3x real time on an Intel iGPU through Vulkan and 0.3 to 0.7x on
   CPU. The default model is turbo q5_0 everywhere, because the smaller
   model fails acceptance. Live preview runs only when a warm 30 s window
-  finishes in under 15 s (measured once per model load; the Record tab
-  says "Live preview off: this computer is too slow for it" otherwise).
+  finishes in under 15 s (measured at the first recording; a fast result
+  stays for the process, a "too slow" one for 10 minutes, so a busy
+  moment does not stick; the Record tab says "Live preview off: this
+  computer is too slow for it. To show it anyway, choose Always on in
+  Settings > General." otherwise; Settings > General > Live preview can
+  also force it on or off, 4.12 "As built (Windows, 2026-10-03)").
   On CPU the final pass takes about 1.5 to 3.5x the recording length; the
   app says so before the first recording on such a machine and uses 8 to
   12 threads. Recommend a GPU (Vulkan on Intel and AMD, CUDA on NVIDIA
@@ -2663,26 +2754,14 @@ decision recorded here before the phase named.
 Like section 17, for the Windows app. Add here rather than leaving
 findings only in a chat report.
 
-- **Live preview override** (owner, 2026-09-30, first hands-on run on the
-  dev machine): the Record tab said "Live preview off: this computer is
-  too slow for it" although the same machine measures 8 to 12.6 s per
-  30 s window on Vulkan. The speed probe (18.4 "Speed", 15 s limit) ran
-  once at the first recording, while agents were building and testing on
-  the machine, and its result is cached for the process, so a busy moment
-  sticks until relaunch. Build the shared setting of section 4.12 (key
-  `livePreviewMode`, built on the Mac 2026-10-02): Windows shows a picker
-  in Settings > General > Transcription, "Live preview: Automatic / Always
-  on / Off", where Automatic follows the speed probe, Always on ignores it
-  and lets the preview lag on a slow machine, and Off behaves as on the
-  Mac (no live chunks, Auto detects at Stop). Reuse the Mac's strings for
-  the Off behavior: the notice "Live preview is off. Turn it on in
-  Settings > General." and the caption sentence about Stop (the Mac
-  caption's second sentence). Also re-run the probe when a recording
-  starts more than a few minutes after the cached result, or when it was
-  measured under load. First confirm from the log (`whisper: runtime …`
-  and `whisper: speed probe …` lines, visible when Hearsay.exe is started
-  with stdout redirected) whether the GUI launch loaded Vulkan or fell
-  back to CPU.
+- **Done 2026-10-03: live preview override** (owner, 2026-09-30, first
+  hands-on run on the dev machine: the Record tab said "Live preview off:
+  this computer is too slow for it" although the machine measures 8 to
+  12.6 s per 30 s window on Vulkan; the probe ran once, under load, and
+  was cached for the process). Built as the picker "Live preview:
+  Automatic / Always on / Off" plus a 10-minute memory for a "too slow"
+  result: section 4.12, "As built (Windows, 2026-10-03)". Open: confirm
+  from the log whether the GUI launch loaded Vulkan (section 16 item 34).
 - **Core texts still English** (the Windows-only Core texts got `windows`
   keys on 2026-09-30, 18.3 Localization row): the technical detail inside
   a translated sentence (the whisper.cpp or runtime message after "Could

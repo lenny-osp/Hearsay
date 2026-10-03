@@ -387,6 +387,62 @@ internal static class RecordingSnapshots
         shell.Settings.FinalPassTiming = FinalPassTiming.WhenIdle;
         await tools.Settle().ConfigureAwait(true);
         controller.ShowSample(idle);
+        // The live preview picker set to Off (PLAN.md 4.12, 18.9), at the default width and at 480 px.
+        shell.Settings.FinalPassTiming = FinalPassTiming.WhenIdle;
+        shell.Settings.LivePreviewMode = LivePreviewMode.Off;
+        shell.Tabs.Tab = MainTab.Settings;
+        window.SettingsView.Show(SettingsPane.General);
+        await tools.Settle().ConfigureAwait(true);
+        if (Scroller(window.RenderRoot) is { } offScroller)
+        {
+            offScroller.ChangeView(null, 420, null, disableAnimation: true);
+            await tools.Settle().ConfigureAwait(true);
+        }
+        tools.Check(Shows(Strings.LivePreviewOffRow) && Shows(Strings.LivePreviewCaption),
+            "Settings > General shows the live preview picker on Off and its caption");
+        await tools.Render("81-settings-general-live-preview-off", window.RenderRoot).ConfigureAwait(true);
+        window.ResizeClient(480, 1300);
+        await tools.Settle().ConfigureAwait(true);
+        if (Scroller(window.RenderRoot) is { } narrowScroller)
+        {
+            narrowScroller.ChangeView(null, 420, null, disableAnimation: true);
+            await tools.Settle().ConfigureAwait(true);
+        }
+        await tools.Render("82-settings-general-live-preview-narrow", window.RenderRoot).ConfigureAwait(true);
+        window.ResizeClient(MainWindow.DefaultWidth, 1000);
+
+        // The Record tab during a recording in Auto with the preview off: only the notice, no box, no "Detecting language…".
+        shell.Tabs.Tab = MainTab.Record;
+        await tools.Settle().ConfigureAwait(true);
+        controller.ShowSample(new RecordingSample(new ControllerPhase.Recording(), new SessionLanguageTracker(LanguageChoice.Auto, TranscriptLanguage.English))
+        {
+            Elapsed = 754.2,
+            Level = 0.62,
+            MicLevel = 0.58,
+            SystemLevel = 0.31,
+            LiveNotice = Strings.LivePreviewIsOff,
+            LivePreviewTurnedOff = true,
+        });
+        await tools.Settle().ConfigureAwait(true);
+        tools.Check(Shows(Strings.LivePreviewIsOff) && !Shows(Strings.DetectingLanguage) && !Shows(Strings.FirstLinesAppear) && controller.LatestLiveLine is null,
+            "the Record tab shows only the off notice: no \"Detecting language…\", no placeholder, no live line");
+        await tools.Render("83-record-live-preview-off", window.RenderRoot).ConfigureAwait(true);
+
+        // Under Automatic, the speed probe found the computer too slow: the notice says the way out.
+        shell.Settings.LivePreviewMode = LivePreviewMode.Automatic;
+        controller.ShowSample(new RecordingSample(new ControllerPhase.Recording(), new SessionLanguageTracker(LanguageChoice.Auto, TranscriptLanguage.English))
+        {
+            Elapsed = 754.2,
+            Level = 0.62,
+            MicLevel = 0.58,
+            SystemLevel = 0.31,
+            LiveNotice = Strings.LivePreviewTooSlow,
+        });
+        await tools.Settle().ConfigureAwait(true);
+        tools.Check(Shows(Strings.LivePreviewTooSlow), "the Record tab shows the too-slow notice with the way out");
+        await tools.Render("84-record-live-preview-too-slow", window.RenderRoot).ConfigureAwait(true);
+        controller.ShowSample(idle);
+        await tools.Settle().ConfigureAwait(true);
     }
 
     /// <summary>The first scroll viewer of the shown page that can scroll vertically.</summary>

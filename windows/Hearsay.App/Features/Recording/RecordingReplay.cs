@@ -54,6 +54,10 @@ namespace Hearsay.App.Features.Recording;
 /// from the Recycle Bin again (a file this run wrote; only that item, found by
 /// its handle and the bin's own record of the original path); before it trashes
 /// anything it checks that the spool is inside the temporary folder.
+/// <c>HEARSAY_REPLAY_LIVE=off</c> turns the live preview off in the throwaway
+/// settings (PLAN.md 4.12): no live job runs, and an Auto session's language
+/// is settled by the queue at Stop; <c>on</c> is Always on (no speed probe),
+/// <c>automatic</c> (the default) follows the probe.
 /// <c>HEARSAY_REPLAY_SYSTEM=silence</c> adds a second, silent source in place
 /// of system audio; <c>HEARSAY_REPLAY_UI=1</c> also shows the Record tab for
 /// the session. Settings, spool and output are in the throwaway settings
@@ -174,6 +178,17 @@ internal static class RecordingReplay
             return 1;
         }
         var silentSystem = environment.TryGetValue("HEARSAY_REPLAY_SYSTEM", out var system) && system == "silence";
+        // PLAN.md 4.12 and 18.9: off = no live preview; on = always on (no speed probe).
+        var livePreview = LivePreviewMode.Automatic;
+        if (environment.TryGetValue("HEARSAY_REPLAY_LIVE", out var liveValue) && liveValue.Length > 0)
+        {
+            if (LivePreviewModes.FromStorageValue(liveValue) is not { } liveMode)
+            {
+                Say($"HEARSAY_REPLAY_LIVE must be off, on or automatic, not {liveValue}");
+                return 1;
+            }
+            livePreview = liveMode;
+        }
 
         var root = Path.Combine(shell.SettingsFile.Folder, "replay");
         var output = Path.Combine(root, "out");
@@ -184,6 +199,7 @@ internal static class RecordingReplay
         settings.CaptureSystemAudio = silentSystem;
         settings.KeepRecording = false;
         settings.FinalPassTiming = timing;
+        settings.LivePreviewMode = livePreview;
 
         var clock = Stopwatch.StartNew();
         double Now() => clock.Elapsed.TotalSeconds;
@@ -309,7 +325,7 @@ internal static class RecordingReplay
             Say("showing the Record tab");
         }
         var names = string.Join(", ", files.Select((file, i) => Format($"{Path.GetFileName(file)} ({loaded[i].Length / 16_000.0:F2} s)")));
-        Say(Format($"replaying {names}, language {language.StorageValue}, preferred {settings.PreferredLanguage.Code()}, timing {timing.StorageValue()}{(releaseAfter is { } r ? Format($", release {r:F1} s after the last Stop") : "")}, system audio {(silentSystem ? "silence" : "off")}, model {Path.GetFileName(modelPath)}"));
+        Say(Format($"replaying {names}, language {language.StorageValue}, preferred {settings.PreferredLanguage.Code()}, timing {timing.StorageValue()}{(releaseAfter is { } r ? Format($", release {r:F1} s after the last Stop") : "")}, system audio {(silentSystem ? "silence" : "off")}, live preview {livePreview.StorageValue()}, model {Path.GetFileName(modelPath)}"));
         clock.Restart();
         controller.Start();
         using var statusTimer = new CancellationTokenSource();

@@ -156,6 +156,40 @@ public sealed class RecordingControllerTests
     });
 
     [Fact]
+    public Task LivePreviewOffShowsOnlyTheNoticeAndIsReadOncePerSession() => RunAsync(FinalPassTiming.WhenIdle, async rig =>
+    {
+        // PLAN.md 4.12: off at Start means no live queue, no detection, only the notice;
+        // a change during the session does not apply until the next Start.
+        var controller = rig.Controller;
+        rig.Settings.LivePreviewMode = LivePreviewMode.Off;
+        controller.Start();
+        await WaitUntil(() => controller.Phase is ControllerPhase.Recording, "recording");
+        await rig.FeedAsync(rig.Mics[0]);
+        Assert.True(controller.IsLivePreviewTurnedOff);
+        Assert.False(controller.IsLivePreviewEnabled);
+        Assert.False(controller.IsDetectingLanguage, "nothing says Detecting language during an off session");
+        Assert.Equal(Strings.LivePreviewIsOff, controller.LiveNotice);
+        Assert.Equal(0, controller.LiveChunksWaiting);
+        Assert.Null(controller.LatestLiveLine);
+
+        rig.Settings.LivePreviewMode = LivePreviewMode.Automatic;
+        Assert.True(controller.IsLivePreviewTurnedOff, "a change during the session does not affect it");
+
+        controller.StopAndStartNext();
+        await WaitUntil(() => rig.Queue.Jobs.Count == 1 && controller.Phase is ControllerPhase.Recording && rig.Mics.Count == 2, "the next session");
+        var first = Assert.Single(rig.Queue.Jobs);
+        Assert.False(first.LiveEnabled, "Use live preview instead is not offered");
+        Assert.False(first.CanUseLivePreview);
+        Assert.Null(first.LiveNotice);
+        Assert.False(controller.IsLivePreviewTurnedOff, "Stop & Start Next reads the mode again");
+        Assert.Equal(Strings.LivePreviewOff(new WhisperEngineException(WhisperEngineError.NoActiveModel, null).Message), controller.LiveNotice);
+
+        await rig.FeedAsync(rig.Mics[1]);
+        await controller.StopForQuitAsync();
+        await rig.Queue.PrepareForQuitAsync();
+    });
+
+    [Fact]
     public Task StopUnderManualTimingHoldsTheJobAndAStopAndStartNextHoldsBoth() => RunAsync(FinalPassTiming.Manual, async rig =>
     {
         var controller = rig.Controller;

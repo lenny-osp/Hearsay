@@ -50,6 +50,53 @@ public static class WindowModes
 }
 
 /// <summary>
+/// Whether recordings get a live preview (PLAN.md 4.12, key
+/// <c>livePreviewMode</c>, shared with the Mac). The stored values are the
+/// shared ones (<see cref="LivePreviewModes.StorageValue"/>). Unlike the Mac,
+/// Windows tells <see cref="Automatic"/> and <see cref="On"/> apart (PLAN.md
+/// 18.9: the speed probe).
+/// Port of <c>LivePreviewMode</c> in mac/HearsayCore/Sources/HearsayCore/Settings/AppSettings.swift.
+/// </summary>
+public enum LivePreviewMode
+{
+    /// <summary>The default: the preview runs unless the speed probe finds the computer too slow.</summary>
+    Automatic,
+
+    /// <summary>The preview always runs; the speed probe is not consulted and the preview may lag.</summary>
+    On,
+
+    /// <summary>No live preview: the transcript is made only after Stop.</summary>
+    Off,
+}
+
+public static class LivePreviewModes
+{
+    /// <summary>Every mode in picker order.</summary>
+    public static readonly IReadOnlyList<LivePreviewMode> All = [LivePreviewMode.Automatic, LivePreviewMode.On, LivePreviewMode.Off];
+
+    /// <summary>The stored and shared value: "automatic", "on" or "off".</summary>
+    public static string StorageValue(this LivePreviewMode mode) => mode switch
+    {
+        LivePreviewMode.Automatic => "automatic",
+        LivePreviewMode.On => "on",
+        LivePreviewMode.Off => "off",
+        _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null),
+    };
+
+    /// <summary>Parses <see cref="StorageValue"/>; null for anything else.</summary>
+    public static LivePreviewMode? FromStorageValue(string? value) => value switch
+    {
+        "automatic" => LivePreviewMode.Automatic,
+        "on" => LivePreviewMode.On,
+        "off" => LivePreviewMode.Off,
+        _ => null,
+    };
+
+    /// <summary>The mode shows a preview at all (the Mac's <c>showsPreview</c>): everything but <see cref="LivePreviewMode.Off"/>.</summary>
+    public static bool ShowsPreview(this LivePreviewMode mode) => mode != LivePreviewMode.Off;
+}
+
+/// <summary>
 /// User preferences backed by <see cref="SettingsFile"/> (<c>settings.json</c>
 /// in the folder the app passes, <c>%APPDATA%\Hearsay</c>; tests pass a
 /// scratch folder). Every write is persisted immediately, and every change
@@ -86,6 +133,8 @@ public sealed class AppSettings : INotifyPropertyChanged
         public const string PauseHotkey = "pauseHotkey";
         public const string StopStartNextHotkey = "stopStartNextHotkey";
         public const string FinalPassTiming = "finalPassTiming";
+        /// <summary>The Mac uses the same key and values (PLAN.md 4.12).</summary>
+        public const string LivePreviewMode = "livePreviewMode";
         public const string KeepRecording = "keepRecording";
         /// <summary>The Mac uses the same key (PLAN.md 4.10).</summary>
         public const string AutoRecordTeamsMeetings = "autoRecordTeamsMeetings";
@@ -117,6 +166,7 @@ public sealed class AppSettings : INotifyPropertyChanged
     private HotkeyBinding pauseHotkey;
     private HotkeyBinding stopStartNextHotkey;
     private FinalPassTiming finalPassTiming;
+    private LivePreviewMode livePreviewMode;
     private bool keepRecording;
     private bool autoRecordTeamsMeetings;
     private bool autoRecordAsksLanguage;
@@ -149,6 +199,7 @@ public sealed class AppSettings : INotifyPropertyChanged
         pauseHotkey = HotkeyBinding.FromJson(file.Get(Key.PauseHotkey)) ?? HotkeyBinding.DefaultPause;
         stopStartNextHotkey = HotkeyBinding.FromJson(file.Get(Key.StopStartNextHotkey)) ?? HotkeyBinding.DefaultStopStartNext;
         finalPassTiming = FinalPassTimings.FromStorageValue(file.GetString(Key.FinalPassTiming)) ?? FinalPassTimings.Default;
+        livePreviewMode = LivePreviewModes.FromStorageValue(file.GetString(Key.LivePreviewMode)) ?? LivePreviewMode.Automatic;
         keepRecording = file.GetBool(Key.KeepRecording) ?? true;
         autoRecordTeamsMeetings = file.GetBool(Key.AutoRecordTeamsMeetings) ?? false;
         autoRecordAsksLanguage = file.GetBool(Key.AutoRecordAsksLanguage) ?? false;
@@ -306,6 +357,18 @@ public sealed class AppSettings : INotifyPropertyChanged
     {
         get => finalPassTiming;
         set => Update(ref finalPassTiming, value, () => file.SetString(Key.FinalPassTiming, value.StorageValue()));
+    }
+
+    /// <summary>
+    /// The live preview (Settings > General > Transcription, PLAN.md 4.12 and
+    /// 18.9). Default <see cref="LivePreviewMode.Automatic"/>; stored as the
+    /// shared value, and an unknown stored value reads as the default. Read
+    /// once at each session's Start.
+    /// </summary>
+    public LivePreviewMode LivePreviewMode
+    {
+        get => livePreviewMode;
+        set => Update(ref livePreviewMode, value, () => file.SetString(Key.LivePreviewMode, value.StorageValue()));
     }
 
     /// <summary>

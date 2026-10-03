@@ -56,6 +56,7 @@ internal sealed partial class RecordView : UserControl
     private readonly StackPanel controls = new() { Orientation = Orientation.Horizontal, Spacing = 8 };
 
     private readonly Border liveCard;
+    private readonly Grid liveBox;
     private readonly TextBlock liveIndicator = new() { VerticalAlignment = VerticalAlignment.Center };
     private readonly StackPanel liveLines = new() { Spacing = 6, Padding = new Thickness(0, 4, 12, 4) };
     private readonly ScrollViewer liveScroll;
@@ -144,7 +145,7 @@ internal sealed partial class RecordView : UserControl
         Grid.SetColumn(liveIndicator, 1);
         liveHeader.Children.Add(liveIndicator);
         liveScroll = new ScrollViewer { Content = liveLines, Height = 200, HorizontalScrollMode = ScrollMode.Disabled };
-        var liveBox = new Grid();
+        liveBox = new Grid();
         liveBox.Children.Add(liveScroll);
         liveBox.Children.Add(livePlaceholder);
         livePlaceholder.Foreground = FileView.Secondary();
@@ -527,6 +528,9 @@ internal sealed partial class RecordView : UserControl
         livePlaceholder.Text = detecting
             ? Strings.DetectingLanguage
             : enabled ? Strings.FirstLinesAppear : "";
+        // Settings turned the preview off (PLAN.md 4.12): no empty transcript
+        // box, only the notice.
+        liveBox.Visibility = session && model.IsLivePreviewTurnedOff ? Visibility.Collapsed : Visibility.Visible;
         liveFooter.Text = notice ?? "";
         liveFooter.Visibility = notice is null ? Visibility.Collapsed : Visibility.Visible;
     }

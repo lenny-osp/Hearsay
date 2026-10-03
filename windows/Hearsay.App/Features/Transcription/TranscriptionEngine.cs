@@ -45,12 +45,22 @@ internal interface IQueueEngine
 
 internal sealed class TranscriptionEngine : IDisposable, IQueueEngine
 {
-    private readonly Dictionary<string, Task<SpeedProbeResult>> probes = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>One model's probe; <c>MeasuredAt</c> is set when the measurement finished.</summary>
+    private sealed class Probe(Task<SpeedProbeResult> task)
+    {
+        public Task<SpeedProbeResult> Task { get; } = task;
+
+        public DateTimeOffset? MeasuredAt { get; set; }
+    }
+
+    private readonly Dictionary<string, Probe> probes = new(StringComparer.OrdinalIgnoreCase);
     private readonly Lock gate = new();
+    private readonly TimeProvider time;
     private Task<bool>? cpuCheck;
 
-    public TranscriptionEngine()
+    public TranscriptionEngine(TimeProvider? time = null)
     {
+        this.time = time ?? TimeProvider.System;
         Engine = new WhisperEngine(line => AppLog.Write(line));
     }
 
@@ -106,23 +116,45 @@ internal sealed class TranscriptionEngine : IDisposable, IQueueEngine
     }
 
     /// <summary>
-    /// The speed probe of <paramref name="modelPath"/>, measured once per
-    /// model and process (PLAN.md 18.4: a warm 30 s window over 15 s turns the
-    /// live preview off). A failed probe is not remembered.
+    /// The speed probe of <paramref name="modelPath"/> (PLAN.md 18.4: a warm
+    /// 30 s window over 15 s turns the live preview off under Automatic). A
+    /// fast result is remembered for the process; a "too slow" one for 10
+    /// minutes (<see cref="SpeedProbeMemory"/>), after which the next call
+    /// measures again. A failed probe is not remembered. The result and the
+    /// runtime are logged by the engine (<c>whisper: runtime</c> with the
+    /// model load, <c>whisper: speed probe</c> with the result).
     /// </summary>
     public Task<SpeedProbeResult> MeasureSpeedAsync(string modelPath)
     {
         lock (gate)
         {
-            if (probes.TryGetValue(modelPath, out var known) && !known.IsFaulted && !known.IsCanceled) return known;
-            var probe = Task.Run(() =>
+            if (probes.TryGetValue(modelPath, out var known) && IsUsable(known)) return known.Task;
+            Probe? probe = null;
+            probe = new Probe(Task.Run(() =>
             {
                 Engine.Load(modelPath);
-                return Engine.MeasureWindowSeconds();
-            });
+                var result = Engine.MeasureWindowSeconds();
+                lock (gate)
+                {
+                    if (probe is not null) probe.MeasuredAt = time.GetUtcNow();
+                }
+                return result;
+            }));
             probes[modelPath] = probe;
-            return probe;
+            return probe.Task;
         }
+    }
+
+    /// <summary>Not failed, still running, or finished and still remembered.</summary>
+    private bool IsUsable(Probe probe)
+    {
+        if (probe.Task.IsFaulted || probe.Task.IsCanceled) return false;
+        if (!probe.Task.IsCompletedSuccessfully || probe.MeasuredAt is not { } measuredAt) return true;
+        var feasible = probe.Task.Result.LivePreviewFeasible;
+        if (SpeedProbeMemory.IsRemembered(feasible, measuredAt, time.GetUtcNow())) return true;
+        AppLog.Write(string.Create(CultureInfo.InvariantCulture,
+            $"whisper: speed probe result ({probe.Task.Result.WindowSeconds:F2} s) is older than {SpeedProbeMemory.TooSlowMemory.TotalMinutes:F0} minutes; measuring again"));
+        return false;
     }
 
     /// <summary>
@@ -152,12 +184,17 @@ internal sealed class TranscriptionEngine : IDisposable, IQueueEngine
         }
     }
 
-    /// <summary>The finished probe of <paramref name="modelPath"/>, or null when it has not run (or failed).</summary>
+    /// <summary>
+    /// The finished probe of <paramref name="modelPath"/>, or null when it has
+    /// not run, failed, or a "too slow" result is older than 10 minutes
+    /// (<see cref="SpeedProbeMemory"/>).
+    /// </summary>
     public SpeedProbeResult? KnownSpeed(string modelPath)
     {
         lock (gate)
         {
-            return probes.TryGetValue(modelPath, out var probe) && probe.IsCompletedSuccessfully ? probe.Result : null;
+            if (!probes.TryGetValue(modelPath, out var probe) || !probe.Task.IsCompletedSuccessfully) return null;
+            return IsUsable(probe) ? probe.Task.Result : null;
         }
     }
 

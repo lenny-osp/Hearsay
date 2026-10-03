@@ -1253,6 +1253,10 @@
     <value>Funcionan en cualquier app, incluso con la ventana cerrada.</value>
     <comment>app: Work in any app, even with the window closed.</comment>
   </data>
+  <data name="app_f30f7aa7e7208c98" xml:space="preserve">
+    <value>La vista previa en directo está desactivada. Actívala en Ajustes &gt; General.</value>
+    <comment>app: Live preview is off. Turn it on in Settings &gt; General.</comment>
+  </data>
   <data name="app_f359d00e6bddcc4f" xml:space="preserve">
     <value>Nombre: valor, uno por línea</value>
     <comment>app: Name: value, one per line</comment>
@@ -1729,6 +1733,10 @@
     <value>Hearsay no puede escribir en la carpeta {0}. Traslada la carpeta de Hearsay a una carpeta en la que puedas escribir, ábrelo desde allí y vuelve a buscar actualizaciones.</value>
     <comment>windows: Hearsay cannot write to the folder %@. Move the Hearsay folder to a folder you can write to, open it from there, then check for updates again.</comment>
   </data>
+  <data name="windows_044ba8a9ae43b296" xml:space="preserve">
+    <value>Siempre activada</value>
+    <comment>windows: Always on</comment>
+  </data>
   <data name="windows_090a0c74f4e57815" xml:space="preserve">
     <value>Usa Codex instalado en este PC y tu inicio de sesión de ChatGPT; las solicitudes cuentan para los límites de uso de tu plan. Ejecuta `codex login` una vez en Terminal para iniciar sesión. Esfuerzo: none, minimal, low, medium, high, xhigh o max. Si el modelo está vacío, se usa el predeterminado de Codex.</value>
     <comment>windows: Uses Codex installed on this PC and your ChatGPT login; requests count against your plan's usage limits. Run `codex login` once in Terminal to log in. Effort: none, minimal, low, medium, high, xhigh, or max. An empty model uses Codex's default.</comment>
@@ -1853,6 +1861,10 @@
     <value>La nueva versión está firmada por {0}, no por {1} como esta copia de Hearsay.</value>
     <comment>windows: The new version is signed by %@, not by %@ like this copy of Hearsay.</comment>
   </data>
+  <data name="windows_89e46be45212cd6e" xml:space="preserve">
+    <value>Automático desactiva la vista previa en directo cuando este equipo es demasiado lento para ella. Si está desactivada, la transcripción se hace solo después de detener la grabación, y Automático detecta el idioma entonces. Se aplica a partir de la próxima grabación.</value>
+    <comment>windows: Automatic turns the live preview off when this computer is too slow for it. When off, the transcript is made only after you stop, and Auto detects the language then. Applies from the next recording.</comment>
+  </data>
   <data name="windows_8f8367e088351c7b" xml:space="preserve">
     <value>No se han podido mostrar los archivos en el Explorador de archivos: {0}</value>
     <comment>windows: Could not show the files in File Explorer: %@</comment>
@@ -1933,13 +1945,13 @@
     <value>Usa la Antigravity CLI instalada en este PC y la cuenta de Google con la que ha iniciado sesión; las solicitudes cuentan para los límites de esa cuenta. Ejecuta `agy` una vez en Terminal para iniciar sesión; `agy models` muestra los id de modelo. Esfuerzo: low, medium, high o max, solo para un id de modelo sin nivel propio (un modelo que termina en -high, -medium o -low lo ignora). Las ejecuciones usan el proyecto hearsay-notes de agy, cuyas reglas de denegación no dejan al modelo ninguna herramienta salvo la búsqueda web, y la conversación de cada ejecución se elimina después del historial de agy.</value>
     <comment>windows: Uses the Antigravity CLI installed on this PC and the Google account it is logged in with; requests count against that account's limits. Run `agy` once in Terminal to log in; `agy models` lists the model ids. Effort: low, medium, high, or max, only for a model id without its own level (a model ending in -high, -medium, or -low ignores it). Runs use agy's hearsay-notes project, whose deny rules leave the model no tools except web search, and each run's conversation is deleted from agy's history afterwards.</comment>
   </data>
+  <data name="windows_ca7981b46ecf2c17" xml:space="preserve">
+    <value>Desactivada</value>
+    <comment>windows: Off</comment>
+  </data>
   <data name="windows_cc998ac38d55e048" xml:space="preserve">
     <value>Incluye Ctrl, Alt o Win.</value>
     <comment>windows: Include Ctrl, Alt, or Win.</comment>
-  </data>
-  <data name="windows_cc9e108f2c7b21c1" xml:space="preserve">
-    <value>Vista previa en directo desactivada: este equipo es demasiado lento para ella</value>
-    <comment>windows: Live preview off: this computer is too slow for it</comment>
   </data>
   <data name="windows_d06dc9e77902afe4" xml:space="preserve">
     <value>Se enviará la transcripción completa a {0}. Por lo demás, nada sale de este PC.</value>
@@ -1957,6 +1969,10 @@
     <value>Ya se usa para Detener e iniciar la siguiente.</value>
     <comment>windows: Already used for Stop &amp; Start Next.</comment>
   </data>
+  <data name="windows_d461a493a3753877" xml:space="preserve">
+    <value>Automático</value>
+    <comment>windows: Automatic</comment>
+  </data>
   <data name="windows_d813f1147af1497b" xml:space="preserve">
     <value>Mover a la Papelera de reciclaje…</value>
     <comment>windows: Move to Recycle Bin…</comment>
@@ -1964,6 +1980,10 @@
   <data name="windows_db1423267c535dfc" xml:space="preserve">
     <value>No se ha podido instalar la última actualización. Hearsay sigue en la versión anterior.</value>
     <comment>windows: The last update could not be installed. Hearsay is still the previous version.</comment>
+  </data>
+  <data name="windows_e0d3ca1bf62a3f37" xml:space="preserve">
+    <value>Vista previa en directo desactivada: este equipo es demasiado lento para ella. Para mostrarla igualmente, elige Siempre activada en Ajustes &gt; General.</value>
+    <comment>windows: Live preview off: this computer is too slow for it. To show it anyway, choose Always on in Settings &gt; General.</comment>
   </data>
   <data name="windows_e23325c173e9de96" xml:space="preserve">
     <value>Ya se usa para Iniciar / Detener grabación.</value>

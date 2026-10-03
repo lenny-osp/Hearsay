@@ -4618,11 +4618,43 @@
   },
   {
     "catalog": "windows",
-    "key": "Live preview off: this computer is too slow for it",
-    "english": "Live preview off: this computer is too slow for it",
-    "comment": "Record tab notice when the speed probe finds the computer too slow for the live preview. Windows only.",
+    "key": "Automatic",
+    "english": "Automatic",
+    "comment": "Settings > General > Transcription: row of the \"Live preview\" picker. The live preview runs unless the speed probe finds the computer too slow for it. Same word as the language picker's Auto in this language. Windows only.",
     "placeholders": [],
-    "translation": "Vista previa en directo desactivada: este equipo es demasiado lento para ella"
+    "translation": "Automático"
+  },
+  {
+    "catalog": "windows",
+    "key": "Always on",
+    "english": "Always on",
+    "comment": "Settings > General > Transcription: row of the \"Live preview\" picker. The live preview always runs, even when the speed probe finds the computer too slow (it may lag). Windows only.",
+    "placeholders": [],
+    "translation": "Siempre activada"
+  },
+  {
+    "catalog": "windows",
+    "key": "Off",
+    "english": "Off",
+    "comment": "Settings > General > Transcription: row of the \"Live preview\" picker. No live preview; the transcript is made only after Stop. Windows only.",
+    "placeholders": [],
+    "translation": "Desactivada"
+  },
+  {
+    "catalog": "windows",
+    "key": "Automatic turns the live preview off when this computer is too slow for it. When off, the transcript is made only after you stop, and Auto detects the language then. Applies from the next recording.",
+    "english": "Automatic turns the live preview off when this computer is too slow for it. When off, the transcript is made only after you stop, and Auto detects the language then. Applies from the next recording.",
+    "comment": "Settings > General > Transcription: caption under the \"Live preview\" picker (Automatic, Always on, Off). The second and third sentences are the Mac caption \"Transcribes as you record, so you can read along. When off, …\" in this language; \"Auto\" is the language picker's Auto. Windows only.",
+    "placeholders": [],
+    "translation": "Automático desactiva la vista previa en directo cuando este equipo es demasiado lento para ella. Si está desactivada, la transcripción se hace solo después de detener la grabación, y Automático detecta el idioma entonces. Se aplica a partir de la próxima grabación."
+  },
+  {
+    "catalog": "windows",
+    "key": "Live preview off: this computer is too slow for it. To show it anyway, choose Always on in Settings > General.",
+    "english": "Live preview off: this computer is too slow for it. To show it anyway, choose Always on in Settings > General.",
+    "comment": "Record tab notice when the speed probe finds the computer too slow for the live preview under Automatic, with the way out. Quote the translated names of the Settings tab, its General section and the picker row \"Always on\" exactly. Windows only.",
+    "placeholders": [],
+    "translation": "Vista previa en directo desactivada: este equipo es demasiado lento para ella. Para mostrarla igualmente, elige Siempre activada en Ajustes > General."
   },
   {
     "catalog": "windows",

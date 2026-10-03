@@ -14,8 +14,8 @@ namespace Hearsay.App.Features.Settings;
 /// Settings > General, in the Mac's order: Interface (interface language,
 /// applies at next launch), Startup (launch at login), Meetings (Windows
 /// only: record Microsoft Teams meetings automatically, and whether to ask
-/// for the language first; see <see cref="Recording.MeetingAutoRecord"/>), Transcription (Auto
-/// mode default language, when finished recordings are transcribed), Shortcuts
+/// for the language first; see <see cref="Recording.MeetingAutoRecord"/>), Transcription (the
+/// live preview picker, Auto mode default language, when finished recordings are transcribed), Shortcuts
 /// (three: Start / Stop, Pause / Resume, Stop &amp; Start Next). Mirrors <c>GeneralSettingsView</c>,
 /// <c>LaunchAtLoginSection</c> and <c>PreferredLanguagePicker</c> in
 /// mac/Hearsay/Features/Settings/SettingsView.swift,
@@ -45,6 +45,7 @@ internal sealed partial class GeneralSettingsView : UserControl
     private readonly HotkeyRecorderView pauseShortcut;
     private readonly HotkeyRecorderView stopStartNextShortcut;
     private readonly ComboBox finalPassTiming;
+    private readonly ComboBox livePreviewMode;
     private readonly Button resetShortcuts;
     private readonly TextBlock shortcutError;
     private bool refreshing;
@@ -127,8 +128,18 @@ internal sealed partial class GeneralSettingsView : UserControl
             if (refreshing || FinalPassTimingChoices.At(finalPassTiming.SelectedIndex) is not { } timing) return;
             settings.FinalPassTiming = timing;
         };
+        // The live preview (PLAN.md 4.12, 18.9), first in the card as the Mac's switch is.
+        livePreviewMode = new ComboBox { MinWidth = 180 };
+        foreach (var mode in LivePreviewChoices.All) livePreviewMode.Items.Add(LivePreviewChoices.Label(mode));
+        livePreviewMode.SelectionChanged += (_, _) =>
+        {
+            if (refreshing || LivePreviewChoices.At(livePreviewMode.SelectedIndex) is not { } mode) return;
+            settings.LivePreviewMode = mode;
+        };
         page.Children.Add(Header(Strings.SectionTranscription));
         page.Children.Add(Card(
+            Labeled(Strings.LivePreview, livePreviewMode),
+            Caption(Strings.LivePreviewCaption),
             Labeled(Strings.PreferredLanguage, preferredLanguage),
             Caption(Strings.PreferredLanguageCaption),
             Labeled(Strings.FinalPassTimingLabel, finalPassTiming),
@@ -219,6 +230,7 @@ internal sealed partial class GeneralSettingsView : UserControl
         pauseShortcut.Refresh();
         stopStartNextShortcut.Refresh();
         finalPassTiming.SelectedIndex = FinalPassTimingChoices.IndexOf(settings.FinalPassTiming);
+        livePreviewMode.SelectedIndex = LivePreviewChoices.IndexOf(settings.LivePreviewMode);
         resetShortcuts.IsEnabled = ShortcutsDiffer(settings);
         SetWarning(shortcutError, shell.Hotkeys.RegistrationError);
         refreshing = false;

@@ -237,6 +237,8 @@ works like the Mac app; this is what differs.
 - A graphics card with Vulkan (Intel, AMD, or NVIDIA) is recommended.
   Without one Hearsay transcribes on the processor: the final pass takes
   about 1.5 to 3.5 times the recording length, and live preview is off.
+  Settings > General > "Live preview" can show it anyway ("Always on") or
+  turn it off on any PC ("Off"); the default "Automatic" follows the speed.
 - Disk space for the speech model (574 MB for the recommended one).
 
 **Install**

@@ -392,6 +392,50 @@ public sealed class AppSettingsTests : IDisposable
     }
 
     [Fact]
+    public void LivePreviewModeDefaultsToAutomatic()
+    {
+        Assert.Equal(LivePreviewMode.Automatic, new AppSettings(scratch.Make()).LivePreviewMode);
+    }
+
+    [Theory]
+    [InlineData(LivePreviewMode.Automatic)]
+    [InlineData(LivePreviewMode.On)]
+    [InlineData(LivePreviewMode.Off)]
+    public void LivePreviewModeRoundTrips(LivePreviewMode mode)
+    {
+        var folder = scratch.Make();
+        var settings = new AppSettings(folder);
+        // Setting the default is a no-op, so go through the other value first.
+        settings.LivePreviewMode = mode == LivePreviewMode.Off ? LivePreviewMode.On : LivePreviewMode.Off;
+        settings.LivePreviewMode = mode;
+        Assert.Equal(mode.StorageValue(), Stored(folder, AppSettings.Key.LivePreviewMode));
+        Assert.Equal(mode, new AppSettings(folder).LivePreviewMode);
+    }
+
+    [Fact]
+    public void UnknownLivePreviewModeReadsAsAutomatic()
+    {
+        var folder = scratch.Make();
+        ScratchSettings.Raw(folder).SetString(AppSettings.Key.LivePreviewMode, "sometimes");
+        Assert.Equal(LivePreviewMode.Automatic, new AppSettings(folder).LivePreviewMode);
+        ScratchSettings.Raw(folder).Set(AppSettings.Key.LivePreviewMode, JsonValue.Create(3));
+        Assert.Equal(LivePreviewMode.Automatic, new AppSettings(folder).LivePreviewMode);
+    }
+
+    [Fact]
+    public void LivePreviewModeStoredValuesAreShared()
+    {
+        // The shared key and values (PLAN.md 4.12); the Mac reads the same.
+        Assert.Equal("livePreviewMode", AppSettings.Key.LivePreviewMode);
+        Assert.Equal(["automatic", "on", "off"], LivePreviewModes.All.Select(m => m.StorageValue()));
+        Assert.Equal(LivePreviewMode.On, LivePreviewModes.FromStorageValue("on"));
+        Assert.Null(LivePreviewModes.FromStorageValue("On"));
+        Assert.True(LivePreviewMode.Automatic.ShowsPreview());
+        Assert.True(LivePreviewMode.On.ShowsPreview());
+        Assert.False(LivePreviewMode.Off.ShowsPreview());
+    }
+
+    [Fact]
     public void FinalPassTimingDefaultsToWhenIdleOnWindows()
     {
         // The Mac's default is immediate; Windows differs (PLAN.md 18.10).
@@ -553,7 +597,7 @@ public sealed class AppSettingsTests : IDisposable
             [
                 "activeModelRepo", "autoRecordAsksLanguage", "autoRecordTeamsMeetings", "automaticUpdateChecks", "captureSystemAudio", "chineseScript",
                 "defaultLanguageCode", "finalPassTiming", "interfaceLanguage", "keepRecording", "languageChoice",
-                "lastUpdateCheck", "menuBarShowsStatus", "microphoneGrantedCodeHash",
+                "lastUpdateCheck", "livePreviewMode", "menuBarShowsStatus", "microphoneGrantedCodeHash",
                 "outputFolder", "pauseHotkey", "preferredLanguage", "screenAudioGrantedCodeHash",
                 "screenAudioResetCodeHash", "startStopHotkey", "stopStartNextHotkey", "windowMode",
             ],
