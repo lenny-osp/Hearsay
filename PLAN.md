@@ -1195,8 +1195,8 @@ below.
 - Strings: four new app keys with translations ("No microphone (system
   audio only)", the start error, the zero-sample error, the silence
   warning). "No input device" left the Mac; it moved to the catalog
-  `windows` (Windows still shows it until its 18.9 item, `Strings.cs`
-  `Win(...)`, resw regenerated).
+  `windows` (Windows showed it until its port of 2026-10-03, which dropped
+  the key; "As built (Windows)" below).
 - System audio during silence: not measured in this change (needs the
   Screen & System Audio Recording permission and real playback).
   18.4 records that ScreenCaptureKit streams continuously; if it ever
