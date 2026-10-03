@@ -114,7 +114,8 @@ public static class TranscriptionJobStates
 /// The pure queue rules of PLAN.md 4.9 ("Queue rules") and 4.11 (Manual),
 /// shared with the Mac through <c>shared/transcription-queue-tests.json</c>
 /// (the 4.11 rules in its <c>manual</c> section).
-/// Port of <c>TranscriptionQueuePolicy</c> in TranscriptionQueuePolicy.swift.
+/// Port of <c>TranscriptionQueuePolicy</c> in TranscriptionQueuePolicy.swift,
+/// including <c>showsSingleMeeting</c> and <c>canTrash</c> (PLAN.md 4.11, 2026-10-02).
 /// <para>
 /// Scheduling contract (<see cref="Next"/>): the engine may run a queued job
 /// when <c>foregroundWaiting</c> is 0 (a negative count counts as 0) and, for
@@ -264,6 +265,25 @@ public static class TranscriptionQueuePolicy
         var pending = jobs.Where(job => job.State.IsPending()).ToList();
         return pending.Count > 0 && pending.All(job => !job.Released);
     }
+
+    /// <summary>
+    /// Whether the Record tab shows the queue's only job as the single meeting
+    /// (PLAN.md 4.9 item 5): no session is active and the queue holds exactly one
+    /// job. Never under Manual (PLAN.md 4.11, 2026-10-02): there every recording is
+    /// a row of the queue list, so its name and time always show.
+    /// </summary>
+    public static bool ShowsSingleMeeting(FinalPassTiming timing, bool sessionActive, int jobCount) =>
+        timing != FinalPassTiming.Manual && !sessionActive && jobCount == 1;
+
+    /// <summary>
+    /// Whether "Move to Recycle Bin…" applies to a job (PLAN.md 4.11, 2026-10-02): it
+    /// is held (the timing is Manual, it is not released) and idle, i.e. waiting or
+    /// suspended, and <paramref name="busy"/> is false (no step task, not saving its
+    /// live preview). A running job, even one whose Hold has not taken effect yet,
+    /// cannot be trashed.
+    /// </summary>
+    public static bool CanTrash(FinalPassTiming timing, Job job, bool busy) =>
+        IsHeld(timing, job) && job.State is TranscriptionJobState.Waiting or TranscriptionJobState.Suspended && !busy;
 
     private static Job? First(FinalPassTiming timing, IReadOnlyList<Job> jobs, TranscriptionJobState state, bool skipHeld)
     {

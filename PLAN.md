@@ -989,7 +989,7 @@ the quit alert count only the jobs left.
   recording to the Trash?", "It is not transcribed, and its live preview is
   discarded.", "Could not move the recording to the Trash: %@". Help: the Mac
   sentence about "When I start them" adds "Move to Trash…" (the Windows twin
-  is unchanged until Windows has it). Replay: `HEARSAY_REPLAY_TRASH=1`
+  adds "Move to Recycle Bin…", 18.12 "As built (Windows, WI-3)"). Replay: `HEARSAY_REPLAY_TRASH=1`
   (manual only) trashes the first held job right after the last Stop,
   refusing unless its WAV is in the replay's spool under the temporary
   folder, checks the WAV left the spool, and removes its copy from the Trash
@@ -1589,8 +1589,19 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
     still held (nothing starts by itself). Right-click the tray icon: the
     line reads "Not transcribed yet · in queue: N", Transcribe All is
     enabled only while a job is held, and it releases them. With one
-    recording only, the single meeting shows "Not transcribed yet",
-    Transcribe and "Use live preview instead", then Hold once released.
+    recording only, the Record tab shows it as a row of the "Transcription
+    queue" card (its time or meeting name, "Not transcribed yet",
+    Transcribe, "Use live preview instead", "Move to Recycle Bin…"), not as a
+    single meeting; the state text at the top right reads "Ready".
+    Added 2026-10-03: click "Move to Recycle Bin…" on a held row with a real
+    pointer: the dialog "Move this recording to the Recycle Bin?" appears
+    with "Move to Recycle Bin" as the default (Enter confirms) and Cancel;
+    Cancel keeps the row; confirming removes the row, the WAV is in the
+    Recycle Bin (restore it by hand afterwards if you want to keep it), the
+    tray line and the quit alert count one less, and after a relaunch the
+    recording does not come back. The button is not offered on a released or
+    running row. Switching the timing to "Right away" with one recording
+    shows the single meeting again.
 
 30. Mac, "When I start them" (section 4.11, added 2026-10-02): the same walk
     as item 29 in the Mac app: Settings > General > Transcription > "When I
@@ -3152,7 +3163,8 @@ Work items:
   still reads "Paused while recording". Done and failed rows are unchanged.
   Controls stay in place and only change visibility.
 - Queue card header: "Transcribe All" (`ReleaseAll`) while `HeldCount > 0`.
-- Single meeting (`RecordView`, one job and no session): a held job keeps its
+- Single meeting (`RecordView`, one job and no session; *the held states are
+  gone since WI-3, below*): a held job keeps its
   live preview; the progress card's title is the row text ("Not transcribed
   yet" with no bar, or "On hold · N%" with the bar), with Transcribe and "Use
   live preview instead"; released, it is the card of before ("Transcribing",
@@ -3188,8 +3200,8 @@ Work items:
   passage (and one in the README's "Back to back" paragraph).
 - Snapshots `71` to `76`: the held queue (an on-hold job with progress and a
   held waiting job, Transcribe All), the same at 480 px, a released running
-  job with Hold among held jobs, the single held meeting (and at 480 px),
-  Settings > General with the third row. The single meeting on hold and
+  job with Hold among held jobs, the single held meeting (and at 480 px; `73`
+  and `76`, replaced in WI-3), Settings > General with the third row. The single meeting on hold and
   released, the tray's inputs and the quit alert line are checked in the same
   run. Looked at in all five languages.
 - Not verified: the live tray menu (a native popup; only its inputs and the
@@ -3197,29 +3209,77 @@ Work items:
   running a real pass (the queue is covered by `ManualQueueTests` and the
   replay of WI-1). No CUDA path was run.
 
-**To do (owner request 2026-10-02).** The two 4.11 rules "Queue list always
-under manual" and "Move to Trash on a held row", built on the Mac first:
-- `FeaturedJob` is null while the timing is Manual (port
-  `showsSingleMeeting` and its test); the single-meeting card's held states
-  and the held state text at the top right become unreachable; check the
-  tray and the notes hand-off still read right.
-- A held, idle row gets **Move to Recycle Bin…** (the existing History key)
-  after its other buttons, with a confirmation dialog: title "Move this
-  recording to the Recycle Bin?", message "It is not transcribed, and its
-  live preview is discarded." (the Mac's app key, usable as is), primary
-  **Move to Recycle Bin** (existing key) and Cancel.
-- `TranscriptionQueue.Trash(job)` with the Mac's guards and steps (port
-  `canTrash` and its test), the Recycle Bin through the shell's
-  recycle-bin delete (the one History uses), the row's error line, a
-  `Trashed` queue event and `HEARSAY_REPLAY_TRASH=1` in the replay.
-- A WAV that no longer exists: `Trash(job)` removes the job without an
-  error (the Mac's rule of 2026-10-02, above).
-- Strings: two Windows-only keys (catalog `windows`, translated in de, es,
-  zh-Hant, zh-Hans as History's Recycle Bin keys are): "Move this recording
-  to the Recycle Bin?" and "Could not move the recording to the Recycle Bin:
-  %@"; the Mac's "It is not transcribed, and its live preview is discarded."
-  is read with `App(...)`.
+**As built (Windows, WI-3, 2026-10-03).** The two 4.11 rules "Queue list
+always under manual" and "Move to Trash on a held row", ported from the Mac
+(`f9d946a`, and the missing-WAV part of `064b4df`).
+- Core: `TranscriptionQueuePolicy.ShowsSingleMeeting(timing, sessionActive,
+  jobCount)` and `CanTrash(timing, job, busy)`, with exhaustive tests that
+  mirror the Swift ones (`SingleMeetingNeverUnderManual`,
+  `CanTrashOnlyHeldIdleJobs`; not in the shared vectors, as on the Mac).
+- `TranscriptionQueue`: `FeaturedJob` uses `ShowsSingleMeeting`, so it is null
+  under Manual, and a timing change raises it at once. `CanTrash(job)` (busy =
+  `TranscriptionJob.IsBusy`: a step task, a live-preview save task, or saving
+  the live preview; the step's end notifies `IsBusy` so the row follows) and
+  `Trash(job)`: cancels the job's language detection, moves its own WAV to the
+  Recycle Bin (`OutputWriter.RecycleFile`, the shell call History uses, new
+  public wrapper returning the recycled item's handle) and nothing else (a
+  retry's WAV in the output folder: that WAV only; its saved live preview
+  stays), closes and drops the live sink, removes `<id>.live.srt`, removes the
+  job, saves `queue.json`, evaluates again. A WAV that no longer exists, or
+  that vanishes during the move, just lets the job leave. A WAV that exists
+  and cannot be moved leaves the job, its sink and its detection state as they
+  are (the language detection was already cancelled and is settled again by
+  the final pass) and sets `TranscriptionJob.TrashError`, shown on the row as
+  "Could not move the recording to the Recycle Bin: %@" with the system
+  reason; Transcribe and Transcribe All clear it. A no-op unless `CanTrash`.
+  `QueueEvent.Trashed(id, recording, trashedAs)`. The tray line, Transcribe
+  All and the quit alert read the queue after the job left. Windows
+  difference: the detection is cancelled before the move (the Mac moves
+  first), because a detection reading the WAV would hold it open and the move
+  would fail. `TranscriptionQueue.RecycleFile` is the seam the tests replace
+  with a move into a scratch folder, so no test touches the Recycle Bin.
+- UI: `QueueRows.Actions(...).Trash` (= `CanTrash`) puts "Move to Recycle
+  Bin…" after the row's other buttons; `QueueRowView` asks first (`Alert.
+  ConfirmAsync`: "Move this recording to the Recycle Bin?", "It is not
+  transcribed, and its live preview is discarded.", primary "Move to Recycle
+  Bin" as the default, Cancel) and has the error line. `RecordView`: the
+  single-meeting card's Transcribe and Hold buttons, its held title and bar
+  rules, and the held state text at the top right are gone (unreachable); the
+  top right reads "Ready" for a held job. The tray reads the queue as before
+  ("Not transcribed yet · in queue: N" with one held job); the notes hand-off
+  is unchanged (no notes request exists for a held job).
+- Strings: two Windows-only keys ("Move this recording to the Recycle Bin?",
+  "Could not move the recording to the Recycle Bin: %@"), translated in de,
+  es, zh-Hant and zh-Hans with History's Recycle Bin wording; the message and
+  the other labels are the existing keys. `import-strings.py --check` passes.
+- Replay: `HEARSAY_REPLAY_TRASH=1` (manual timing only, else exit 1) right
+  after the last Stop trashes the first held job, refusing unless the WAV is in
+  the replay's spool under the temporary folder, checks the WAV left the
+  spool, prints the `trashed` event with where it landed, and removes that
+  copy from the Recycle Bin again: `OutputWriter.PurgeFromRecycleBin` deletes
+  the one `$R` item (and its `$I` record) only when it sits in a
+  `$Recycle.Bin` user folder and the `$I` record names the WAV's original
+  path; otherwise it deletes nothing and the replay tells the user to remove
+  it by hand. The final listing numbers jobs as the events do. Measured
+  (`en-30s.wav` then `de-30s.wav`, Auto, manual, turbo q5_0 on Vulkan): the
+  first job trashed at 41.3 s (the shell call took about 1.1 s), WAV gone,
+  one job left held, the recycled copy removed (checked in the bin), exit 0;
+  manual without trash (both held, exit 0) and with release 2 s (both done,
+  first lines as before) behave as before.
 - Help: the Windows twin of the "When I start them" sentence adds "…or move
-  one to the Recycle Bin with Move to Recycle Bin…".
-- Snapshots: the single held job as a row (and at 480 px), a held row with
-  Move to Recycle Bin…, and the error line.
+  one to the Recycle Bin with Move to Recycle Bin…" in all five languages
+  (labels as translated in the catalog); README "Back to back" says the same.
+  AGENTS.md's `HEARSAY_REPLAY_TRASH` entry now covers both platforms.
+- Snapshots: `73` and `76` (the single held meeting) are gone; new `77`
+  (the single held job as a row), `78` (the same at 480 px), `79` (a held row
+  with Move to Recycle Bin… beside a released row with Hold and no trash) and
+  `80` (the error line on a held row). `71` and `72` now show the third
+  button. Rendered in en and de and looked at; the checks (buttons, "Ready",
+  tray line, error line, Transcribe clearing it) pass in both.
+- Verified: `dotnet build` (0 warnings), `Hearsay.Tests` 1093 passed (26
+  skipped, as before), `Hearsay.App.Tests` 334 passed, the replays above, the
+  snapshots. Not verified: the confirmation dialog and the buttons with a real
+  pointer (section 16 item 29), "Move to Recycle Bin…" on a file in the output
+  folder in the real app, a Recycle Bin on a network drive (the shell asks
+  before deleting for good; the queue treats a declined delete as a failure).
+  No CUDA path was run.

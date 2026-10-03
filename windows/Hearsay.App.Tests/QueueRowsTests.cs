@@ -404,22 +404,101 @@ public sealed class QueueRowsTests
     });
 
     [Fact]
-    public Task AHeldJobAloneIsStillTheSingleMeeting() => RunAsync(FinalPassTiming.Manual, rig =>
+    public Task AHeldJobAloneIsAQueueRowNotTheSingleMeeting() => RunAsync(FinalPassTiming.Manual, rig =>
     {
-        // PLAN.md 4.11: one held job and no session shows as the single meeting; ActiveJob skips a held suspended one.
+        // PLAN.md 4.11 (2026-10-02): under Manual every recording is a row, even the only one, so its name
+        // and time show; ActiveJob still skips a held suspended one.
         var queue = rig.Queue;
         var job = queue.InsertSample(Wav, TranscriptionJobState.Suspended, 0.4);
         Assert.True(job.IsHeld);
-        Assert.Same(job, queue.FeaturedJob);
-        Assert.False(QueueRows.ShowsList(queue));
+        Assert.Null(queue.FeaturedJob);
+        Assert.True(QueueRows.ShowsList(queue));
         Assert.Null(queue.ActiveJob);
         Assert.Equal(1, queue.PendingCount);
         Assert.True(QueueRows.IsHeld(job, FinalPassTiming.Manual));
         queue.SetSessionActive(true);
         Assert.Null(queue.FeaturedJob);
         Assert.True(QueueRows.ShowsList(queue));
+        queue.SetSessionActive(false);
+        // Released, running, done: still a row.
+        queue.Release(job);
+        Assert.True(QueueRows.ShowsList(queue));
+        queue.ClearSamples();
+        queue.InsertSample(Wav, TranscriptionJobState.Done, 1, Srt);
+        Assert.True(QueueRows.ShowsList(queue));
+        queue.ClearSamples();
+        Assert.False(QueueRows.ShowsList(queue), "an empty queue lists nothing");
+        // Another timing: the single meeting of 4.9 item 5 again, and the switch re-renders at once.
+        queue.InsertSample(Wav, TranscriptionJobState.Waiting);
+        rig.Settings.FinalPassTiming = FinalPassTiming.WhenIdle;
+        Assert.NotNull(queue.FeaturedJob);
+        Assert.False(QueueRows.ShowsList(queue));
         return Task.CompletedTask;
     });
+
+    [Fact]
+    public Task OnlyAHeldIdleRowOffersMoveToRecycleBin() => RunAsync(FinalPassTiming.Manual, rig =>
+    {
+        var queue = rig.Queue;
+        var waiting = queue.InsertSample(Wav, TranscriptionJobState.Waiting);
+        var suspended = queue.InsertSample(Wav, TranscriptionJobState.Suspended, 0.4);
+        var running = queue.InsertSample(Wav, TranscriptionJobState.Running, 0.4);
+        var done = queue.InsertSample(Wav, TranscriptionJobState.Done, 1, Srt);
+        var failed = queue.InsertSample(Wav, TranscriptionJobState.Failed);
+        const FinalPassTiming manual = FinalPassTiming.Manual;
+        Assert.True(QueueRows.Actions(waiting, manual).Trash);
+        Assert.True(QueueRows.Actions(suspended, manual).Trash);
+        // A running job, even one that is held because Hold has not taken effect yet, is not idle.
+        Assert.True(running.IsHeld);
+        Assert.False(QueueRows.Actions(running, manual).Trash);
+        Assert.False(QueueRows.Actions(done, manual).Trash);
+        Assert.False(QueueRows.Actions(failed, manual).Trash);
+        // It follows the queue's own rule for every job.
+        foreach (var job in queue.Jobs) Assert.Equal(queue.CanTrash(job), QueueRows.Actions(job, manual).Trash);
+        // Released: Hold, not the trash.
+        queue.Release(waiting);
+        Assert.False(QueueRows.Actions(waiting, manual).Trash);
+        Assert.True(QueueRows.Actions(waiting, manual).Hold);
+        queue.Hold(waiting);
+        Assert.True(QueueRows.Actions(waiting, manual).Trash);
+        // Not while it saves its live preview, and never under another timing.
+        suspended.IsUsingLivePreview = true;
+        Assert.False(QueueRows.Actions(suspended, manual).Trash);
+        suspended.IsUsingLivePreview = false;
+        Assert.True(QueueRows.Actions(suspended, manual).Trash);
+        foreach (var timing in new[] { FinalPassTiming.Immediate, FinalPassTiming.WhenIdle })
+        {
+            foreach (var job in queue.Jobs) Assert.False(QueueRows.Actions(job, timing).Trash);
+        }
+        Assert.False(QueueRows.Actions(waiting).Trash);
+        return Task.CompletedTask;
+    });
+
+    [Fact]
+    public Task AFailedTrashShowsItsReasonOnTheRowUntilTranscribeClearsIt() => RunAsync(FinalPassTiming.Manual, rig =>
+    {
+        var queue = rig.Queue;
+        var job = queue.InsertSample(Wav, TranscriptionJobState.Waiting, trashError: "Could not move the recording to the Recycle Bin: in use");
+        Assert.Equal("Could not move the recording to the Recycle Bin: in use", job.TrashError);
+        Assert.True(QueueRows.Actions(job, FinalPassTiming.Manual).Trash, "the row still offers it for another try");
+        queue.Release(job);
+        Assert.Null(job.TrashError);
+        return Task.CompletedTask;
+    });
+
+    [Theory]
+    [MemberData(nameof(StringsTests.Languages), MemberType = typeof(StringsTests))]
+    public void TrashTextsComeFromTheSharedTranslations(InterfaceLanguage language)
+    {
+        using var scope = new InterfaceLanguageScope(language);
+        Assert.Equal(Translations.Text(language, "windows", "Move to Recycle Bin…"), Strings.MoveToRecycleBin);
+        Assert.Equal(Translations.Text(language, "windows", "Move to Recycle Bin"), Strings.MoveToRecycleBinButton);
+        Assert.Equal(Translations.Text(language, "windows", "Move this recording to the Recycle Bin?"), Strings.MoveRecordingTitle);
+        Assert.Equal(Translations.Text(language, "app", "It is not transcribed, and its live preview is discarded."), Strings.MoveRecordingMessage);
+        Assert.Equal(
+            Translations.Format(language, "windows", "Could not move the recording to the Recycle Bin: %@", "in use"),
+            Strings.CouldNotTrashRecording("in use"));
+    }
 
     [Fact]
     public void ResetHasWorkWhenAnyOfTheThreeShortcutsIsChanged()

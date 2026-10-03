@@ -100,6 +100,43 @@ public sealed class RecycleBinTests
         Assert.False(RecycleBin.RecordNames(unknown, original));
     }
 
+    /// <summary>The debug replay's clean-up (<c>Purge</c>) deletes only a <c>$R</c> item whose record names the original; a look-alike folder stands in for the bin, so the real one is never touched.</summary>
+    [Fact]
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    public void PurgeRemovesOnlyAnItemWhoseRecordNamesTheOriginal()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        using var directory = new TemporaryDirectory("RecycleBinPurge");
+        var user = Path.Combine(directory.Url, "$Recycle.Bin", "S-1-5-21-1");
+        Directory.CreateDirectory(user);
+        const string original = @"C:\spool\2026-09-30_10-00-00.wav";
+        var item = Path.Combine(user, "$RABCDEF.wav");
+        var record = Path.Combine(user, "$IABCDEF.wav");
+        var other = Path.Combine(user, "$RZZZZZZ.wav");
+        File.WriteAllBytes(item, [1]);
+        File.WriteAllBytes(record, VersionTwoRecord(original));
+        File.WriteAllBytes(other, [2]);
+        File.WriteAllBytes(Path.Combine(user, "$IZZZZZZ.wav"), VersionTwoRecord(@"C:\elsewhere\other.wav"));
+
+        // Another original, another bin item, a path outside a bin: nothing is deleted.
+        Assert.Throws<IOException>(() => RecycleBin.Purge(item, original + ".bak"));
+        Assert.Throws<IOException>(() => RecycleBin.Purge(other, original));
+        Assert.Throws<IOException>(() => RecycleBin.Purge(record, original));
+        var outside = Path.Combine(directory.Url, "$RABCDEF.wav");
+        File.WriteAllBytes(outside, [3]);
+        Assert.Throws<IOException>(() => RecycleBin.Purge(outside, original));
+        Assert.True(File.Exists(item) && File.Exists(record) && File.Exists(other) && File.Exists(outside));
+
+        RecycleBin.Purge(item, original);
+        Assert.False(File.Exists(item));
+        Assert.False(File.Exists(record));
+        Assert.True(File.Exists(other), "other items stay");
+        Assert.True(File.Exists(Path.Combine(user, "$IZZZZZZ.wav")));
+    }
+
     [RecycleBinFact]
     public void RecycledFileIsGoneAndComesBackByteIdentical()
     {

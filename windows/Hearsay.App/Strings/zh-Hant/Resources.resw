@@ -269,6 +269,10 @@
     <value>檢查 {0}</value>
     <comment>app: Check %@</comment>
   </data>
+  <data name="app_33d3a81baea9517f" xml:space="preserve">
+    <value>這段錄音尚未轉錄，其即時預覽也會被捨棄。</value>
+    <comment>app: It is not transcribed, and its live preview is discarded.</comment>
+  </data>
   <data name="app_34bc714142e9d2af" xml:space="preserve">
     <value>（App 套件中缺少 {0}。）</value>
     <comment>app: (%@ is missing from the app bundle.)</comment>
@@ -1777,6 +1781,10 @@
     <value>在檔案總管中顯示</value>
     <comment>windows: Show in Explorer</comment>
   </data>
+  <data name="windows_463bbf2a11b0cfa4" xml:space="preserve">
+    <value>要將此錄音移至資源回收筒嗎？</value>
+    <comment>windows: Move this recording to the Recycle Bin?</comment>
+  </data>
   <data name="windows_47723a8d3ac48c95" xml:space="preserve">
     <value>無法解壓縮 ZIP 檔：{0}</value>
     <comment>windows: The zip file could not be extracted: %@</comment>
@@ -1804,6 +1812,10 @@
   <data name="windows_5fc301c2bfa602ca" xml:space="preserve">
     <value>無法儲存設定：{0} 此變更在 Hearsay 結束前有效。</value>
     <comment>windows: Could not save the settings: %@ The change holds until Hearsay quits.</comment>
+  </data>
+  <data name="windows_636b53e67575bbdc" xml:space="preserve">
+    <value>無法將錄音移至資源回收筒：{0}</value>
+    <comment>windows: Could not move the recording to the Recycle Bin: %@</comment>
   </data>
   <data name="windows_6ab7c6f11835ac7c" xml:space="preserve">
     <value>無法載入語音模型：{0}</value>

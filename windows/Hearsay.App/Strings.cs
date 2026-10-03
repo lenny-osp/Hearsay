@@ -620,6 +620,10 @@ internal static partial class Strings
     public static string TranscribeAll => App("Transcribe All");
     public static string Hold => App("Hold");
     public static string HoldTooltip => App("Stops transcribing for now. Transcribe continues where it stopped.");
+    // Move to Recycle Bin… on a held row (PLAN.md 4.11, 18.12): the Mac's "Move to Trash…" alert.
+    public static string MoveRecordingTitle => Win("Move this recording to the Recycle Bin?");
+    public static string MoveRecordingMessage => App("It is not transcribed, and its live preview is discarded.");
+    public static string CouldNotTrashRecording(string reason) => Win("Could not move the recording to the Recycle Bin: %@", reason);
 
     // Tray menu queue line (mac/Hearsay/Features/MenuBar/MenuBarView.swift, queueLine).
     public static string QueueLineCount(int pending) => App("Recordings in queue: %lld", pending);

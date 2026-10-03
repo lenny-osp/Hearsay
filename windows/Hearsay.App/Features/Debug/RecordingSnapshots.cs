@@ -256,10 +256,13 @@ internal static class RecordingSnapshots
     /// <summary>
     /// "When I start them" (PLAN.md 4.11, 18.12), all stubbed: two held jobs (one
     /// on hold with its progress) under Transcribe All, a released running job
-    /// with Hold among held ones, the single held meeting (then on hold, then
-    /// released), Settings > General with the third row selected, and the held
-    /// queue at a narrow window. The row texts, the buttons, the tray's line and
-    /// Transcribe All input, and the quit alert's line are checked.
+    /// with Hold among held ones, the single held job as a row (and at a narrow
+    /// window), a held row beside a released one, a held row with the error line
+    /// of a failed Move to Recycle Bin…, Settings > General with the third row
+    /// selected, and the held queue at a narrow window. The row texts, the
+    /// buttons, the tray's line and Transcribe All input, and the quit alert's
+    /// line are checked. Snapshots 71 to 76 are 18.12's, 77 to 80 are the
+    /// queue-list and Recycle Bin rules of 2026-10-02.
     /// </summary>
     private static async Task HeldQueueAsync(AppShell shell, Tools tools, List<TranscriptSegment> cues, RecordingSample idle)
     {
@@ -288,8 +291,8 @@ internal static class RecordingSnapshots
             $"the held rows read on hold and not transcribed yet ({string.Join(" | ", RowStates())})");
         foreach (var row in window.RecordView.QueueRowViews)
         {
-            tools.Check(row.ShownButtons.SequenceEqual([Strings.TranscribeButton, Strings.UseLivePreviewInstead]),
-                $"a held row offers Transcribe first, then the live preview ({string.Join(", ", row.ShownButtons)})");
+            tools.Check(row.ShownButtons.SequenceEqual([Strings.TranscribeButton, Strings.UseLivePreviewInstead, Strings.MoveToRecycleBin]),
+                $"a held row offers Transcribe first, the live preview, then Move to Recycle Bin… ({string.Join(", ", row.ShownButtons)})");
         }
         tools.Check(Shows(Strings.TranscribeAll), "Transcribe All shows while jobs are held");
         tools.Check(shell.Recording.QueueLine == Strings.QueueLineHeld(2) && shell.Recording.CanTranscribeAll,
@@ -319,28 +322,51 @@ internal static class RecordingSnapshots
         tools.Check(Strings.QuitQueueMessage(queue.AllPendingHeld) == Strings.HearsayContinuesNextTime, "the quit alert keeps the Mac's line while a job is released");
         await tools.Render("72-record-queue-held-mixed", window.RenderRoot).ConfigureAwait(true);
 
-        // The single meeting: held (live preview, Transcribe), on hold, then released (Hold).
+        // The single held job is a row, not the single meeting (PLAN.md 4.11, 2026-10-02): its name and time show.
         queue.ClearSamples();
         var single = queue.InsertSample(Pending("2026-09-30_09-00-00"), TranscriptionJobState.Waiting, live: cues);
         window.ResizeClient(MainWindow.DefaultWidth, 1000);
         await tools.Settle().ConfigureAwait(true);
-        tools.Check(queue.FeaturedJob == single && !QueueRows.ShowsList(queue), "one held job and no session is the single meeting");
-        tools.Check(Shows(Strings.QueueNotTranscribedYet) && Shows(Strings.TranscribeButton) && Shows(Strings.UseLivePreviewInstead)
-            && !Shows(Strings.Hold) && !Shows(Strings.Transcribing), "the single held meeting offers Transcribe and the live preview, no progress");
-        await tools.Render("73-record-held-meeting", window.RenderRoot).ConfigureAwait(true);
+        tools.Check(queue.FeaturedJob is null && QueueRows.ShowsList(queue), "one held job and no session is a queue row under Manual");
+        tools.Check(Shows(Strings.TranscriptionQueue) && Shows(single.Title) && Shows(Strings.QueueNotTranscribedYet) && Shows(Strings.TranscribeButton)
+            && Shows(Strings.UseLivePreviewInstead) && Shows(Strings.MoveToRecycleBin) && !Shows(Strings.Hold) && !Shows(Strings.Transcribing),
+            "the single held job is a row with its title, Transcribe, the live preview and Move to Recycle Bin…");
+        tools.Check(window.RecordView.StatusText == Strings.Ready, $"the state text at the top reads Ready, not a held text ({window.RecordView.StatusText})");
+        tools.Check(shell.Recording.QueueLine == Strings.QueueLineHeld(1), $"the tray reads not transcribed yet ({shell.Recording.QueueLine})");
+        await tools.Render("77-record-held-single-row", window.RenderRoot).ConfigureAwait(true);
         window.ResizeClient(480, 1000);
         await tools.Settle().ConfigureAwait(true);
-        await tools.Render("76-record-held-meeting-narrow", window.RenderRoot).ConfigureAwait(true);
+        await tools.Render("78-record-held-single-row-narrow", window.RenderRoot).ConfigureAwait(true);
         window.ResizeClient(MainWindow.DefaultWidth, 1000);
+
+        // A held row has Move to Recycle Bin…; a released one has Hold and not the trash; a running (or held, busy) one neither.
         queue.ClearSamples();
-        var stopped = queue.InsertSample(Pending("2026-09-30_09-00-00"), TranscriptionJobState.Suspended, 0.45, live: cues);
+        queue.InsertSample(Pending("2026-09-30_09-00-00"), TranscriptionJobState.Suspended, 0.45, live: cues);
+        var releasedWaiting = queue.InsertSample(Pending("2026-09-30_10-00-00"), TranscriptionJobState.Waiting, live: cues);
+        releasedWaiting.IsReleased = true;
         await tools.Settle().ConfigureAwait(true);
-        tools.Check(queue.FeaturedJob == stopped && Shows(Strings.QueueOnHold(45)) && Shows(Strings.TranscribeButton),
-            "the single meeting on hold keeps its progress and offers Transcribe");
-        queue.Release(stopped);
+        var heldButtons = window.RecordView.QueueRowViews[0].ShownButtons;
+        var releasedButtons = window.RecordView.QueueRowViews[1].ShownButtons;
+        tools.Check(heldButtons.SequenceEqual([Strings.TranscribeButton, Strings.UseLivePreviewInstead, Strings.MoveToRecycleBin]),
+            $"the held row offers Move to Recycle Bin… last ({string.Join(", ", heldButtons)})");
+        tools.Check(releasedButtons.SequenceEqual([Strings.Hold, Strings.UseLivePreviewInstead]),
+            $"the released row offers Hold and no Move to Recycle Bin… ({string.Join(", ", releasedButtons)})");
+        await tools.Render("79-record-queue-held-recycle", window.RenderRoot).ConfigureAwait(true);
+
+        // A failed Move to Recycle Bin…: the job stays and its row says why.
+        queue.ClearSamples();
+        var kept = queue.InsertSample(Pending("2026-09-30_09-00-00"), TranscriptionJobState.Waiting, live: cues,
+            trashError: Strings.CouldNotTrashRecording("The process cannot access the file because it is being used by another process."));
+        queue.InsertSample(Pending("2026-09-30_10-00-00"), TranscriptionJobState.Waiting);
         await tools.Settle().ConfigureAwait(true);
-        tools.Check(!stopped.IsHeld && Shows(Strings.Transcribing) && Shows(Strings.Hold) && !Shows(Strings.TranscribeButton),
-            "once released the single meeting shows its progress and Hold");
+        tools.Check(Shows(kept.TrashError ?? "?") && window.RecordView.QueueRowViews[0].ShownButtons.Contains(Strings.MoveToRecycleBin),
+            "the error line shows on the row, which still offers Move to Recycle Bin…");
+        tools.Check(!Shows(Strings.CouldNotTrashRecording("x")), "no error line on the other row");
+        await tools.Render("80-record-queue-trash-error", window.RenderRoot).ConfigureAwait(true);
+        queue.Release(kept);
+        await tools.Settle().ConfigureAwait(true);
+        tools.Check(kept.TrashError is null && !Shows(Strings.CouldNotTrashRecording("The process cannot access the file because it is being used by another process.")),
+            "Transcribe clears the error line");
 
         // Settings > General with the third row selected.
         queue.ClearSamples();

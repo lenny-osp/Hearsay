@@ -219,6 +219,26 @@ internal sealed class QueueRig : IDisposable
     /// <summary>The model the queue asks for; change it to simulate another active model.</summary>
     public string Model { get; set; }
 
+    /// <summary>
+    /// What "Move to Recycle Bin…" did, in place of the real Recycle Bin (tests never touch it): the
+    /// files the queue asked to recycle. Each was moved to the folder "bin" of the scratch folder.
+    /// </summary>
+    public List<string> Recycled { get; } = [];
+
+    /// <summary>When set, the fake Recycle Bin throws it (the file stays where it is).</summary>
+    public Exception? RecycleFailure { get; set; }
+
+    private string? Recycle(string path)
+    {
+        if (RecycleFailure is { } failure) throw failure;
+        Recycled.Add(path);
+        var bin = Combine("bin");
+        Directory.CreateDirectory(bin);
+        var landed = System.IO.Path.Combine(bin, System.IO.Path.GetFileName(path));
+        File.Move(path, landed);
+        return landed;
+    }
+
     /// <summary>When set, the queue's model lookup throws it (no model installed).</summary>
     public Exception? ModelFailure { get; set; }
 
@@ -239,6 +259,7 @@ internal sealed class QueueRig : IDisposable
             TimeSpan.FromMilliseconds(20))
         {
             NotesOnScreen = () => NotesOnScreen,
+            RecycleFile = Recycle,
         };
         queue.EventObserver = Observe;
         Queue = queue;
@@ -266,6 +287,7 @@ internal sealed class QueueRig : IDisposable
             QueueEvent.Language language => $"language {Number(language.Id)}",
             QueueEvent.Done done => $"done {Number(done.Id)}",
             QueueEvent.Failed failed => $"failed {Number(failed.Id)}",
+            QueueEvent.Trashed trashed => $"trashed {Number(trashed.Id)}",
             _ => "?",
         });
     }

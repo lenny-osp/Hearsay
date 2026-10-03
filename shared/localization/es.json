@@ -4452,6 +4452,24 @@
   },
   {
     "catalog": "windows",
+    "key": "Could not move the recording to the Recycle Bin: %@",
+    "english": "Could not move the recording to the Recycle Bin: %@",
+    "comment": "Record tab queue row error after Move to Recycle Bin… on a recording that waits, the Mac's \"Could not move the recording to the Trash: %@\". %@ is the system reason. Windows only.",
+    "placeholders": [
+      "%@"
+    ],
+    "translation": "No se ha podido mover la grabación a la Papelera de reciclaje: %@"
+  },
+  {
+    "catalog": "windows",
+    "key": "Move this recording to the Recycle Bin?",
+    "english": "Move this recording to the Recycle Bin?",
+    "comment": "Record tab alert title after Move to Recycle Bin… on a recording that waits (\"When I start them\"), the Mac's \"Move this recording to the Trash?\". Use the name Windows gives the Recycle Bin in this language. Windows only.",
+    "placeholders": [],
+    "translation": "¿Mover esta grabación a la Papelera de reciclaje?"
+  },
+  {
+    "catalog": "windows",
     "key": "No input device",
     "english": "No input device",
     "comment": "Windows: Record tab Microphone picker row when no input device exists. Windows only until 18.9 \"No microphone (system audio only)\" replaces it (the Mac replaced it on 2026-10-02, PLAN.md 4.13).",

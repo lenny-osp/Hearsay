@@ -351,4 +351,56 @@ public sealed class TranscriptionQueuePolicyTests
         Assert.False(TranscriptionQueuePolicy.BlocksUpdateInstall([new("a", TranscriptionJobState.Done)]));
         Assert.False(TranscriptionQueuePolicy.AllPendingHeld(FinalPassTiming.WhenIdle, [new("a", TranscriptionJobState.Waiting)]));
     }
+
+    /// <summary>PLAN.md 4.11 (2026-10-02): under Manual every job is a queue row, even the only one; the other timings keep the single meeting of 4.9 item 5.</summary>
+    [Fact]
+    public void SingleMeetingNeverUnderManual()
+    {
+        foreach (var timing in FinalPassTimings.All)
+        {
+            foreach (var session in new[] { false, true })
+            {
+                for (var count = 0; count <= 3; count++)
+                {
+                    var expected = timing != FinalPassTiming.Manual && !session && count == 1;
+                    Assert.True(
+                        TranscriptionQueuePolicy.ShowsSingleMeeting(timing, session, count) == expected,
+                        $"{timing} {session} {count}");
+                }
+            }
+        }
+        Assert.True(TranscriptionQueuePolicy.ShowsSingleMeeting(FinalPassTiming.Immediate, false, 1));
+        Assert.True(TranscriptionQueuePolicy.ShowsSingleMeeting(FinalPassTiming.WhenIdle, false, 1));
+        Assert.False(TranscriptionQueuePolicy.ShowsSingleMeeting(FinalPassTiming.Manual, false, 1));
+    }
+
+    /// <summary>PLAN.md 4.11 (2026-10-02): "Move to Recycle Bin…" only on a held, idle job.</summary>
+    [Fact]
+    public void CanTrashOnlyHeldIdleJobs()
+    {
+        foreach (var timing in FinalPassTimings.All)
+        {
+            foreach (var state in TranscriptionJobStates.All)
+            {
+                foreach (var released in new[] { false, true })
+                {
+                    foreach (var busy in new[] { false, true })
+                    {
+                        var job = new TranscriptionQueuePolicy.Job("j", state, released);
+                        var expected = timing == FinalPassTiming.Manual && !released && !busy
+                            && state is TranscriptionJobState.Waiting or TranscriptionJobState.Suspended;
+                        Assert.True(
+                            TranscriptionQueuePolicy.CanTrash(timing, job, busy) == expected,
+                            $"{timing} {state} {released} {busy}");
+                    }
+                }
+            }
+        }
+        // A running job whose Hold has not taken effect yet is held but not idle.
+        Assert.False(TranscriptionQueuePolicy.CanTrash(FinalPassTiming.Manual, new("r", TranscriptionJobState.Running, false), false));
+        Assert.True(TranscriptionQueuePolicy.CanTrash(FinalPassTiming.Manual, new("w", TranscriptionJobState.Waiting), false));
+        Assert.True(TranscriptionQueuePolicy.CanTrash(FinalPassTiming.Manual, new("s", TranscriptionJobState.Suspended), false));
+        Assert.False(TranscriptionQueuePolicy.CanTrash(FinalPassTiming.Manual, new("w", TranscriptionJobState.Waiting), true));
+        Assert.False(TranscriptionQueuePolicy.CanTrash(FinalPassTiming.Immediate, new("w", TranscriptionJobState.Waiting), false));
+    }
 }

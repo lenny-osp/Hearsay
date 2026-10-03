@@ -54,6 +54,36 @@ internal static class RecycleBin
         });
     }
 
+    /// <summary>
+    /// Removes for good the item <see cref="Recycle"/> put in the bin (the debug
+    /// replay's clean-up of a file its own run recycled). <paramref name="location"/>
+    /// must be a <c>$R</c> file directly inside a user's folder of a
+    /// <c>$Recycle.Bin</c>, and the <c>$I</c> record beside it must name
+    /// <paramref name="originalPath"/>; anything else throws
+    /// <see cref="IOException"/> and nothing is deleted. Other items are never touched.
+    /// </summary>
+    public static void Purge(string location, string originalPath)
+    {
+        var original = Path.GetFullPath(originalPath);
+        var file = Path.GetFullPath(location);
+        var name = Path.GetFileName(file);
+        var userFolder = Path.GetDirectoryName(file);
+        var binFolder = userFolder is null ? null : Path.GetDirectoryName(userFolder);
+        if (!name.StartsWith("$R", StringComparison.Ordinal) || binFolder is null
+            || !string.Equals(Path.GetFileName(binFolder), "$Recycle.Bin", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new IOException($"{file} is not an item of the Recycle Bin");
+        }
+        var record = Path.Combine(userFolder ?? "", "$I" + name[2..]);
+        var info = new FileInfo(record);
+        if (!info.Exists || info.Length > 64 * 1024 || !RecordNames(File.ReadAllBytes(record), original))
+        {
+            throw new IOException($"The Recycle Bin record of {file} does not name {original}");
+        }
+        File.Delete(file);
+        File.Delete(record);
+    }
+
     private static string? RecycleNow(string fullPath)
     {
         var item = ShellItem(fullPath);

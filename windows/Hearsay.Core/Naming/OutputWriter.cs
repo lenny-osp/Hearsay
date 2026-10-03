@@ -555,6 +555,34 @@ public static class OutputWriter
     }
 
     /// <summary>
+    /// Like <see cref="MoveToRecycleBin"/>, and returns the recycled item's handle
+    /// (null when the file was deleted instead). For the queue's "Move to Recycle
+    /// Bin…" (PLAN.md 4.11), whose debug replay removes its own copy again with
+    /// <see cref="PurgeFromRecycleBin"/>.
+    /// </summary>
+    public static string? RecycleFile(string path)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(path);
+        return DefaultTrash(path);
+    }
+
+    /// <summary>
+    /// Removes a file <see cref="RecycleFile"/> recycled from the bin for good, only when
+    /// the bin's record names <paramref name="originalPath"/>; throws <see cref="IOException"/>
+    /// otherwise. Debug replay only.
+    /// </summary>
+    public static void PurgeFromRecycleBin(string handle, string originalPath)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(handle);
+        ArgumentException.ThrowIfNullOrEmpty(originalPath);
+        if (!OperatingSystem.IsWindows())
+        {
+            throw new PlatformNotSupportedException("The Recycle Bin is available on Windows only.");
+        }
+        RecycleBin.Purge(handle, originalPath);
+    }
+
+    /// <summary>
     /// Sends the file to the Recycle Bin (<see cref="RecycleBin.Recycle"/>)
     /// and returns the recycled item's handle, which <see cref="DefaultRestore"/>
     /// takes to move it back, as the Mac moves notes back from the Trash. A

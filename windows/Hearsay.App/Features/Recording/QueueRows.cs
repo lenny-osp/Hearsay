@@ -13,7 +13,8 @@ internal readonly record struct QueueRowActions(
     bool Reveal,
     bool Dismiss,
     bool Transcribe = false,
-    bool Hold = false);
+    bool Hold = false,
+    bool Trash = false);
 
 /// <summary>
 /// The rules of the Record tab's "Transcription queue" list (PLAN.md 4.9
@@ -24,14 +25,16 @@ internal readonly record struct QueueRowActions(
 /// mac/Hearsay/Features/Recording/RecordView.swift. The row control is
 /// <see cref="QueueRowView"/>. With "When I start them" (PLAN.md 4.11, Windows
 /// 18.12) a held job reads "Not transcribed yet" or "On hold · N%" and offers
-/// Transcribe; a released pending job offers Hold; the other timings change nothing.
+/// Transcribe; a released pending job offers Hold; the other timings change nothing. A held,
+/// idle row also offers "Move to Recycle Bin…" (<see cref="CanTrash"/>, 4.11 of 2026-10-02).
 /// </summary>
 internal static class QueueRows
 {
     /// <summary>
     /// The list shows below the session whenever the single-meeting view does
-    /// not: a session is active or two or more jobs exist. With no session
-    /// and one job that job is shown as the single meeting
+    /// not: a session is active, two or more jobs exist, or the timing is Manual (PLAN.md
+    /// 4.11, 2026-10-02: every recording is a row there, even the only one). With no
+    /// session and one job under another timing that job is shown as the single meeting
     /// (<see cref="TranscriptionQueue.FeaturedJob"/>); an empty queue shows nothing.
     /// </summary>
     public static bool ShowsList(TranscriptionQueue queue)
@@ -86,7 +89,7 @@ internal static class QueueRows
     /// <summary>
     /// The buttons of the row by state. <paramref name="timing"/>: Transcribe on a held job
     /// (Manual only); Hold on a released pending job while the timing is Manual and the job is not
-    /// saving its live preview. The Mac's other actions are unchanged.
+    /// saving its live preview. Trash: <see cref="CanTrash"/>. The Mac's other actions are unchanged.
     /// </summary>
     public static QueueRowActions Actions(TranscriptionJob job, FinalPassTiming timing = FinalPassTiming.Immediate)
     {
@@ -102,7 +105,19 @@ internal static class QueueRows
             Reveal: !job.IsPending,
             Dismiss: job.CanDismiss,
             Transcribe: held,
-            Hold: CanHold(job, timing));
+            Hold: CanHold(job, timing),
+            Trash: CanTrash(job, timing));
+    }
+
+    /// <summary>
+    /// "Move to Recycle Bin…" applies: the job is held and idle (waiting or suspended, no step
+    /// running, not saving its live preview). The queue's own rule
+    /// (<see cref="TranscriptionQueuePolicy.CanTrash"/>), so the row never disagrees with it.
+    /// </summary>
+    public static bool CanTrash(TranscriptionJob job, FinalPassTiming timing)
+    {
+        ArgumentNullException.ThrowIfNull(job);
+        return TranscriptionQueuePolicy.CanTrash(timing, new(job.Id, job.State, job.IsReleased), job.IsBusy);
     }
 
     /// <summary>Hold applies: the timing is Manual and the job is pending, released, and not saving its live preview.</summary>

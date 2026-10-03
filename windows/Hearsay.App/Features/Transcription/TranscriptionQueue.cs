@@ -6,6 +6,7 @@ using Hearsay.App.Features.FileTranscription;
 using Hearsay.App.Features.Notes;
 using Hearsay.Core.Audio;
 using Hearsay.Core.History;
+using Hearsay.Core.Naming;
 using Hearsay.Core.Settings;
 using Hearsay.Core.Transcription;
 using Hearsay.Whisper;
@@ -66,6 +67,13 @@ internal abstract record QueueEvent
     /// <summary>Manual timing: the user released the job (Transcribe, Transcribe All, Try Again, or a switch to Manual for a job that had started).</summary>
     public sealed record Released(string Id) : QueueEvent;
 
+    /// <summary>
+    /// Manual timing: "Move to Recycle Bin…" on a held row moved the job's WAV to the Recycle Bin
+    /// (<paramref name="TrashedAs"/>: where it landed, null when the WAV was already gone or the
+    /// system gave no handle) and removed the job.
+    /// </summary>
+    public sealed record Trashed(string Id, string Recording, string? TrashedAs) : QueueEvent;
+
     public sealed record Language(string Id, LanguageDecision Decision) : QueueEvent;
 
     public sealed record Done(string Id, string Srt) : QueueEvent;
@@ -100,6 +108,7 @@ internal sealed class TranscriptionJob : INotifyPropertyChanged
     private double rerunProgress;
     private string? rerunError;
     private bool offersNotes;
+    private string? trashError;
     private bool isReleased;
     private bool isHeld;
 
@@ -247,6 +256,16 @@ internal sealed class TranscriptionJob : INotifyPropertyChanged
         get => offersNotes;
         internal set => Set(ref offersNotes, value, nameof(OffersNotes));
     }
+
+    /// <summary>"Move to Recycle Bin…" failed (PLAN.md 4.11): the job stayed, and its row says why.</summary>
+    public string? TrashError
+    {
+        get => trashError;
+        internal set => Set(ref trashError, value, nameof(TrashError));
+    }
+
+    /// <summary>A step, a live-preview save, or the saving of the live preview is in flight: "Move to Recycle Bin…" waits.</summary>
+    public bool IsBusy => StepTask is not null || FinishTask is not null || isUsingLivePreview;
 
     /// <summary>
     /// Manual timing (PLAN.md 4.11): the user released this job, so it may run
@@ -594,9 +613,22 @@ internal sealed class TranscriptionQueue : INotifyPropertyChanged, IDisposable
 
     /// <summary>
     /// With no session active and exactly one job, the Record tab shows it as
-    /// the single meeting it always showed (PLAN.md 4.9 item 5).
+    /// the single meeting it always showed (PLAN.md 4.9 item 5). Never under Manual
+    /// (PLAN.md 4.11, 2026-10-02): every recording is a row of the queue list, so its
+    /// name and time show. Reads the timing, so a view renders again when it changes.
     /// </summary>
-    public TranscriptionJob? FeaturedJob => !isSessionActive && jobs.Count == 1 ? jobs[0] : null;
+    public TranscriptionJob? FeaturedJob =>
+        TranscriptionQueuePolicy.ShowsSingleMeeting(settings.FinalPassTiming, isSessionActive, jobs.Count) ? jobs[0] : null;
+
+    /// <summary>
+    /// "Move to Recycle Bin…" applies (PLAN.md 4.11): the job is held and idle, i.e. waiting or
+    /// suspended, with no step running and not saving its live preview.
+    /// </summary>
+    public bool CanTrash(TranscriptionJob job)
+    {
+        ArgumentNullException.ThrowIfNull(job);
+        return TranscriptionQueuePolicy.CanTrash(settings.FinalPassTiming, new(job.Id, job.State, job.IsReleased), job.IsBusy);
+    }
 
     /// <summary>
     /// Output-folder files the queue is working on: History does not rename
@@ -723,7 +755,7 @@ internal sealed class TranscriptionQueue : INotifyPropertyChanged, IDisposable
             }
         }
         foreach (var job in jobs) SyncHeld(job);
-        RaiseQueueChanged(nameof(HeldCount), nameof(AllPendingHeld));
+        RaiseQueueChanged(nameof(HeldCount), nameof(AllPendingHeld), nameof(FeaturedJob));
     }
 
     /// <summary>Keeps <see cref="TranscriptionJob.IsHeld"/> equal to <see cref="IsHeld"/>.</summary>
@@ -914,7 +946,7 @@ internal sealed class TranscriptionQueue : INotifyPropertyChanged, IDisposable
     public TranscriptionJob InsertSample(
         string recording, TranscriptionJobState state, double progress = 0, string? srt = null,
         TranscriptLanguage? language = null, bool offersNotes = false, SessionLanguageTracker? tracker = null,
-        LanguageNotice? notice = null, IReadOnlyList<TranscriptSegment>? live = null)
+        LanguageNotice? notice = null, IReadOnlyList<TranscriptSegment>? live = null, string? trashError = null)
     {
         var lang = language ?? TranscriptLanguage.English;
         if (tracker is null)
@@ -931,6 +963,7 @@ internal sealed class TranscriptionQueue : INotifyPropertyChanged, IDisposable
             Srt = srt,
             Wav = state == TranscriptionJobState.Done ? recording : null,
             OffersNotes = offersNotes,
+            TrashError = trashError,
         };
         showsSamples = true;
         jobs.Add(job);
@@ -1040,6 +1073,8 @@ internal sealed class TranscriptionQueue : INotifyPropertyChanged, IDisposable
             job.StepTask = null;
             job.StepCancellation = null;
             cancellation.Dispose();
+            // The row's Move to Recycle Bin… follows IsBusy.
+            job.Notify(nameof(TranscriptionJob.IsBusy));
         }
         Evaluate();
     }
@@ -1406,6 +1441,7 @@ internal sealed class TranscriptionQueue : INotifyPropertyChanged, IDisposable
     {
         ArgumentNullException.ThrowIfNull(job);
         if (!job.IsPending) return;
+        job.TrashError = null;
         SetReleased(job, true);
         UpdateHold();
         Evaluate();
@@ -1414,7 +1450,11 @@ internal sealed class TranscriptionQueue : INotifyPropertyChanged, IDisposable
     /// <summary>Manual timing, "Transcribe All": releases every held job.</summary>
     public void ReleaseAll()
     {
-        foreach (var job in jobs.Where(job => job.IsPending).ToList()) SetReleased(job, true);
+        foreach (var job in jobs.Where(job => job.IsPending).ToList())
+        {
+            job.TrashError = null;
+            SetReleased(job, true);
+        }
         UpdateHold();
         Evaluate();
     }
@@ -1430,6 +1470,75 @@ internal sealed class TranscriptionQueue : INotifyPropertyChanged, IDisposable
         if (!job.IsPending) return;
         SetReleased(job, false);
         UpdateHold();
+        Evaluate();
+    }
+
+    /// <summary>
+    /// Sends one file to the Recycle Bin and returns where it landed, or null; throws
+    /// <see cref="IOException"/> when it cannot be moved. Tests replace it so they never
+    /// touch the real Recycle Bin.
+    /// </summary>
+    public Func<string, string?> RecycleFile { get; set; } = OutputWriter.RecycleFile;
+
+    /// <summary>
+    /// Manual timing, "Move to Recycle Bin…" on a held row, after the user confirmed
+    /// (PLAN.md 4.11): moves the job's own WAV (and nothing else; a retry's saved live
+    /// preview stays) to the Recycle Bin, then drops the job: its language detection is
+    /// cancelled, its live sink closed, its live segments file removed, and
+    /// <c>queue.json</c> saved. A WAV that is already gone has nothing to move: the job
+    /// just leaves the queue. When the WAV exists but cannot be moved, the job stays and
+    /// its row shows <see cref="TranscriptionJob.TrashError"/>. A no-op unless
+    /// <see cref="CanTrash"/>. Port of <c>trash(_:)</c> in TranscriptionQueue.swift.
+    /// </summary>
+    public void Trash(TranscriptionJob job)
+    {
+        ArgumentNullException.ThrowIfNull(job);
+        if (!CanTrash(job) || !jobs.Contains(job)) return;
+        var path = job.Recording.Path;
+        // A language detection reading the WAV must let go of it first; if the move fails the
+        // final pass settles the language again.
+        job.SettleCancellation?.Cancel();
+        string? landed = null;
+        try
+        {
+            if (File.Exists(path))
+            {
+                landed = RecycleFile(path);
+            }
+            else
+            {
+                AppLog.Write($"queue: trash {job.Id}: {Path.GetFileName(path)} is already gone; removing the job");
+            }
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            if (File.Exists(path))
+            {
+                job.TrashError = Strings.CouldNotTrashRecording(error.Message);
+                AppLog.Write($"queue: could not trash {job.Id}: {error.Message}");
+                return;
+            }
+            // Gone between the check and the move: the same as above.
+        }
+        job.TrashError = null;
+        if (job.LiveSink is { } sink)
+        {
+            sink.OnResult = null;
+            sink.Close();
+            job.LiveSink = null;
+        }
+        job.Samples = null;
+        job.Checkpoint = null;
+        job.LiveSegmentsDirty = false;
+        job.PropertyChanged -= OnJobPropertyChanged;
+        jobs.Remove(job);
+        store.RemoveLiveSegments(job.Id);
+        if (notesRequest?.JobId == job.Id) notesRequest = null;
+        EventObserver?.Invoke(new QueueEvent.Trashed(job.Id, path, landed));
+        AppLog.Write($"queue: trashed {job.Id} {Path.GetFileName(path)}");
+        RaiseQueueChanged(nameof(HeldCount), nameof(AllPendingHeld));
+        UpdateHold();
+        Persist();
         Evaluate();
     }
 

@@ -77,8 +77,6 @@ internal sealed partial class RecordView : UserControl
     private readonly ProgressBar progress = new() { Minimum = 0, Maximum = 1 };
     private readonly TextBlock progressTitle = new() { Text = Strings.Transcribing, Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"], TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock progressText = new() { VerticalAlignment = VerticalAlignment.Center };
-    private readonly Button transcribe = new() { Content = Strings.TranscribeButton };
-    private readonly Button hold = new() { Content = Strings.Hold };
     private readonly Button transcribeAll = new() { Content = Strings.TranscribeAll, VerticalAlignment = VerticalAlignment.Center };
     private readonly Button useLivePreview = new() { Content = Strings.UseLivePreviewInstead };
     private readonly TextBlock savingLivePreview = new() { Text = Strings.SavingLivePreview, VerticalAlignment = VerticalAlignment.Center };
@@ -175,18 +173,9 @@ internal sealed partial class RecordView : UserControl
             if (queue.FeaturedJob is { } job) queue.UseLivePreviewInstead(job);
         };
         ToolTipService.SetToolTip(useLivePreview, Strings.UseLivePreviewTooltip);
-        // "When I start them" (PLAN.md 4.11): Transcribe on the held job, Hold on a released one.
+        // Under "When I start them" (PLAN.md 4.11) there is no single meeting: every recording is a
+        // queue row, which carries Transcribe, Hold and Move to Recycle Bin….
         var accentStyle = Application.Current.Resources.TryGetValue("AccentButtonStyle", out var accent) && accent is Style found ? found : null;
-        if (accentStyle is not null) transcribe.Style = accentStyle;
-        ToolTipService.SetToolTip(hold, Strings.HoldTooltip);
-        transcribe.Click += (_, _) =>
-        {
-            if (queue.FeaturedJob is { } job) queue.Release(job);
-        };
-        hold.Click += (_, _) =>
-        {
-            if (queue.FeaturedJob is { } job) queue.Hold(job);
-        };
         var progressRow = new Grid { ColumnSpacing = 12 };
         progressRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         progressRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -194,8 +183,6 @@ internal sealed partial class RecordView : UserControl
         progressRow.Children.Add(progressText);
         // The buttons wrap onto a second line in a narrow window.
         var progressButtons = new QueueRowView.WrapRow { HorizontalSpacing = 8, VerticalSpacing = 6, HorizontalAlignment = HorizontalAlignment.Right };
-        progressButtons.Children.Add(transcribe);
-        progressButtons.Children.Add(hold);
         progressButtons.Children.Add(useLivePreview);
         progressButtons.Children.Add(savingLivePreview);
         Grid.SetColumn(progressButtons, 1);
@@ -311,19 +298,12 @@ internal sealed partial class RecordView : UserControl
 
         if (job?.DisplayProgress is { } fraction)
         {
-            // A held job (PLAN.md 4.11) reads "Not transcribed yet" with no bar, or "On hold · N%" with
-            // the progress it kept; Transcribe releases it. A released one shows Hold while the timing is Manual.
-            var timing = shell.Settings.FinalPassTiming;
-            var held = QueueRows.IsHeld(job, timing);
+            // Never held: under "When I start them" (PLAN.md 4.11) there is no single meeting.
             progressCard.Visibility = Visibility.Visible;
-            progressTitle.Text = held ? QueueRows.StateText(job, pausedForSession: false, held: true) : Strings.Transcribing;
+            progressTitle.Text = Strings.Transcribing;
             progress.Value = fraction;
-            progress.Visibility = held && job.State == TranscriptionJobState.Waiting ? Visibility.Collapsed : Visibility.Visible;
             progressText.Text = FileView.Percent(fraction);
-            progressText.Visibility = held ? Visibility.Collapsed : Visibility.Visible;
-            var shown = QueueRows.Actions(job, timing);
-            transcribe.Visibility = shown.Transcribe ? Visibility.Visible : Visibility.Collapsed;
-            hold.Visibility = shown.Hold ? Visibility.Visible : Visibility.Collapsed;
+            var shown = QueueRows.Actions(job, shell.Settings.FinalPassTiming);
             useLivePreview.Visibility = shown.UseLivePreview ? Visibility.Visible : Visibility.Collapsed;
             savingLivePreview.Visibility = shown.SavingLivePreview ? Visibility.Visible : Visibility.Collapsed;
         }
@@ -401,6 +381,9 @@ internal sealed partial class RecordView : UserControl
 
     private void RevealJob(TranscriptionJob job) => ResultActions.Reveal(shell, job.Files);
 
+    /// <summary>The state text at the top right now shown (for the UI snapshots).</summary>
+    internal string StatusText => status.Text;
+
     /// <summary>The rows now listed, for the UI snapshots and checks.</summary>
     internal IReadOnlyList<QueueRowView> QueueRowViews => [.. queue.Jobs.Select(job => queueRows.GetValueOrDefault(job.Id)).OfType<QueueRowView>()];
 
@@ -440,8 +423,8 @@ internal sealed partial class RecordView : UserControl
             ControllerPhase.Recording => ("● " + Strings.RecordingState, FileView.Critical()),
             ControllerPhase.Paused => ("❚❚ " + Strings.PausedState, FileView.Secondary()),
             ControllerPhase.Stopping => (Strings.Saving, FileView.Secondary()),
-            _ when job is not null && model.ErrorMessage is null && QueueRows.IsHeld(job, shell.Settings.FinalPassTiming) =>
-                (QueueRows.StateText(job, pausedForSession: false, held: true), FileView.Secondary()),
+            // Under "When I start them" there is no single meeting (PLAN.md 4.11): the rows explain
+            // themselves, and this reads "Ready".
             _ when job is not null && model.ErrorMessage is null && (job.IsPending || job.IsRerunning) => (Strings.Finalizing, FileView.Secondary()),
             _ when job is { State: TranscriptionJobState.Done } && model.ErrorMessage is null => (Strings.Saved, FileView.Secondary()),
             _ => (Strings.Ready, FileView.Secondary()),

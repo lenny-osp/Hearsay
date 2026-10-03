@@ -269,6 +269,10 @@
     <value>Comprobar {0}</value>
     <comment>app: Check %@</comment>
   </data>
+  <data name="app_33d3a81baea9517f" xml:space="preserve">
+    <value>Aún no se ha transcrito y su vista previa en directo se descartará.</value>
+    <comment>app: It is not transcribed, and its live preview is discarded.</comment>
+  </data>
   <data name="app_34bc714142e9d2af" xml:space="preserve">
     <value>(Falta {0} en el paquete de la app.)</value>
     <comment>app: (%@ is missing from the app bundle.)</comment>
@@ -1777,6 +1781,10 @@
     <value>Mostrar en el Explorador</value>
     <comment>windows: Show in Explorer</comment>
   </data>
+  <data name="windows_463bbf2a11b0cfa4" xml:space="preserve">
+    <value>¿Mover esta grabación a la Papelera de reciclaje?</value>
+    <comment>windows: Move this recording to the Recycle Bin?</comment>
+  </data>
   <data name="windows_47723a8d3ac48c95" xml:space="preserve">
     <value>No se ha podido extraer el archivo ZIP: {0}</value>
     <comment>windows: The zip file could not be extracted: %@</comment>
@@ -1804,6 +1812,10 @@
   <data name="windows_5fc301c2bfa602ca" xml:space="preserve">
     <value>No se han podido guardar los ajustes: {0} El cambio se mantiene hasta que se cierre Hearsay.</value>
     <comment>windows: Could not save the settings: %@ The change holds until Hearsay quits.</comment>
+  </data>
+  <data name="windows_636b53e67575bbdc" xml:space="preserve">
+    <value>No se ha podido mover la grabación a la Papelera de reciclaje: {0}</value>
+    <comment>windows: Could not move the recording to the Recycle Bin: %@</comment>
   </data>
   <data name="windows_6ab7c6f11835ac7c" xml:space="preserve">
     <value>No se ha podido cargar el modelo de voz: {0}</value>

@@ -278,7 +278,8 @@ Start / Stop and Pause / Resume). Unlike the Mac, finished recordings wait
 until no recording is running by default; Settings > General > Transcribe
 finished recordings can change that to "Right away (in the background)", or
 to "When I start them", which keeps recordings in the queue until you click
-Transcribe (or Transcribe All) on the Record tab.
+Transcribe (or Transcribe All) on the Record tab, or move one to the Recycle
+Bin with "Move to Recycle Bin…".
 
 **Teams meetings**: Settings > General > Meetings >
 "Record Microsoft Teams meetings automatically" starts a recording when

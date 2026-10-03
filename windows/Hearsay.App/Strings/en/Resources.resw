@@ -269,6 +269,10 @@
     <value>Check {0}</value>
     <comment>app: Check %@</comment>
   </data>
+  <data name="app_33d3a81baea9517f" xml:space="preserve">
+    <value>It is not transcribed, and its live preview is discarded.</value>
+    <comment>app: It is not transcribed, and its live preview is discarded.</comment>
+  </data>
   <data name="app_34bc714142e9d2af" xml:space="preserve">
     <value>({0} is missing from the app bundle.)</value>
     <comment>app: (%@ is missing from the app bundle.)</comment>
@@ -1777,6 +1781,10 @@
     <value>Show in Explorer</value>
     <comment>windows: Show in Explorer</comment>
   </data>
+  <data name="windows_463bbf2a11b0cfa4" xml:space="preserve">
+    <value>Move this recording to the Recycle Bin?</value>
+    <comment>windows: Move this recording to the Recycle Bin?</comment>
+  </data>
   <data name="windows_47723a8d3ac48c95" xml:space="preserve">
     <value>The zip file could not be extracted: {0}</value>
     <comment>windows: The zip file could not be extracted: %@</comment>
@@ -1804,6 +1812,10 @@
   <data name="windows_5fc301c2bfa602ca" xml:space="preserve">
     <value>Could not save the settings: {0} The change holds until Hearsay quits.</value>
     <comment>windows: Could not save the settings: %@ The change holds until Hearsay quits.</comment>
+  </data>
+  <data name="windows_636b53e67575bbdc" xml:space="preserve">
+    <value>Could not move the recording to the Recycle Bin: {0}</value>
+    <comment>windows: Could not move the recording to the Recycle Bin: %@</comment>
   </data>
   <data name="windows_6ab7c6f11835ac7c" xml:space="preserve">
     <value>Could not load the speech model: {0}</value>

@@ -3966,6 +3966,15 @@
   },
   {
     "catalog": "windows",
+    "key": "Could not move the recording to the Recycle Bin: %@",
+    "english": "Could not move the recording to the Recycle Bin: %@",
+    "comment": "Record tab queue row error after Move to Recycle Bin… on a recording that waits, the Mac's \"Could not move the recording to the Trash: %@\". %@ is the system reason. Windows only.",
+    "placeholders": [
+      "%@"
+    ]
+  },
+  {
+    "catalog": "windows",
     "key": "Could not open the file",
     "english": "Could not open the file",
     "comment": "Alert title when File Explorer or the default app cannot open a file. Windows only.",
@@ -4092,6 +4101,13 @@
     "key": "Move this meeting to the Recycle Bin?",
     "english": "Move this meeting to the Recycle Bin?",
     "comment": "History alert title, the Mac's \"Move this meeting to the Trash?\". Use the name Windows gives the Recycle Bin in this language. Windows only.",
+    "placeholders": []
+  },
+  {
+    "catalog": "windows",
+    "key": "Move this recording to the Recycle Bin?",
+    "english": "Move this recording to the Recycle Bin?",
+    "comment": "Record tab alert title after Move to Recycle Bin… on a recording that waits (\"When I start them\"), the Mac's \"Move this recording to the Trash?\". Use the name Windows gives the Recycle Bin in this language. Windows only.",
     "placeholders": []
   },
   {

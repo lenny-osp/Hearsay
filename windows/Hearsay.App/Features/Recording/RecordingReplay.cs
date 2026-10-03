@@ -6,6 +6,7 @@ using Hearsay.App.Features.FileTranscription;
 using Hearsay.App.Features.Main;
 using Hearsay.App.Features.Transcription;
 using Hearsay.Core.Audio;
+using Hearsay.Core.Naming;
 using Hearsay.Core.Settings;
 using Hearsay.Core.Transcription;
 
@@ -46,7 +47,13 @@ namespace Hearsay.App.Features.Recording;
 /// exiting with its normal status (a held job is not a failure);
 /// <c>HEARSAY_REPLAY_RELEASE=&lt;seconds&gt;</c> instead waits that long after
 /// the last session stops and calls <c>ReleaseAll</c> ("Transcribe All"), then
-/// runs the final passes as usual.
+/// runs the final passes as usual. <c>HEARSAY_REPLAY_TRASH=1</c> (manual only)
+/// right after the last Stop moves the first held job's WAV to the Recycle Bin
+/// ("Move to Recycle Bin…", PLAN.md 4.11, 18.12), checks that it left the
+/// replay's spool, prints a <c>trashed</c> event, and removes the recycled copy
+/// from the Recycle Bin again (a file this run wrote; only that item, found by
+/// its handle and the bin's own record of the original path); before it trashes
+/// anything it checks that the spool is inside the temporary folder.
 /// <c>HEARSAY_REPLAY_SYSTEM=silence</c> adds a second, silent source in place
 /// of system audio; <c>HEARSAY_REPLAY_UI=1</c> also shows the Record tab for
 /// the session. Settings, spool and output are in the throwaway settings
@@ -160,6 +167,12 @@ internal static class RecordingReplay
             }
             releaseAfter = seconds;
         }
+        var trashFirst = environment.TryGetValue("HEARSAY_REPLAY_TRASH", out var trashValue) && trashValue == "1";
+        if (trashFirst && timing != FinalPassTiming.Manual)
+        {
+            Say("HEARSAY_REPLAY_TRASH needs HEARSAY_REPLAY_TIMING=manual");
+            return 1;
+        }
         var silentSystem = environment.TryGetValue("HEARSAY_REPLAY_SYSTEM", out var system) && system == "silence";
 
         var root = Path.Combine(shell.SettingsFile.Folder, "replay");
@@ -254,6 +267,9 @@ internal static class RecordingReplay
                 case QueueEvent.Released released:
                     Say(Format($"{now,7:F2}  {Label(released.Id)} released"));
                     break;
+                case QueueEvent.Trashed trashed:
+                    Say(Format($"{now,7:F2}  {Label(trashed.Id)} trashed: {trashed.Recording} -> {trashed.TrashedAs ?? "(unknown)"}"));
+                    break;
                 case QueueEvent.Language languageEvent:
                     var line = Format($"{now,7:F2}  {Label(languageEvent.Id)} language: {languageEvent.Decision.DebugSummary()}");
                     Say(line);
@@ -317,6 +333,7 @@ internal static class RecordingReplay
                 break;
             }
         }
+        if (trashFirst && !TrashFirstHeldJob(queue, spool, numbers, Now)) failed = true;
         if (releaseAfter is { } delay)
         {
             await Task.Delay(TimeSpan.FromSeconds(delay)).ConfigureAwait(true);
@@ -342,10 +359,10 @@ internal static class RecordingReplay
         var latencies = jobs.Values.Where(j => j.Finished is not null).Select(j => (j.Finished ?? 0) - j.Queued).ToList();
         Say(Format($"totals: {jobs.Count} live jobs, max latency {(latencies.Count == 0 ? 0 : latencies.Max()):F2} s, queue empty {doneAt - stopAt:F2} s after the last Stop{(gaps.Count == 0 ? "" : ", session gaps " + string.Join(", ", gaps.Select(g => Format($"{g:F3} s"))))}"));
 
-        var number = 0;
         foreach (var job in queue.Jobs)
         {
-            number++;
+            // The job's number from the events (a trashed job leaves a gap).
+            var number = numbers.Job(job.Id);
             Print($"queue job {number} decision: " + (job.Tracker.Decision?.DebugSummary() ?? "none"));
             if (job.LanguageNotice is { } notice) Print($"queue job {number} notice: " + notice.Message);
             switch (job.State)
@@ -391,6 +408,72 @@ internal static class RecordingReplay
             }
         }
         return failed ? 1 : 0;
+    }
+
+    /// <summary>
+    /// HEARSAY_REPLAY_TRASH: "Move to Recycle Bin…" on the first held job. Refuses unless its WAV
+    /// is in the replay's spool inside the temporary folder; afterwards the WAV must be gone from
+    /// there, and its copy in the Recycle Bin (written by this run) is removed again, only that
+    /// item: <see cref="OutputWriter.PurgeFromRecycleBin"/> checks the bin's record of the item
+    /// names the WAV's original path. Returns false when anything is wrong.
+    /// </summary>
+    private static bool TrashFirstHeldJob(TranscriptionQueue queue, RecordingSpool spool, ReplayNumbers numbers, Func<double> now)
+    {
+        var job = queue.Jobs.FirstOrDefault(queue.IsHeld);
+        if (job is null)
+        {
+            Say("trash: no held job");
+            return false;
+        }
+        static string WithSeparator(string path) => Path.TrimEndingDirectorySeparator(Path.GetFullPath(path)) + Path.DirectorySeparatorChar;
+        var temporary = WithSeparator(Path.GetTempPath());
+        var spoolPath = WithSeparator(spool.Root);
+        var wav = Path.GetFullPath(job.Recording.Path);
+        if (!spoolPath.StartsWith(temporary, StringComparison.OrdinalIgnoreCase)
+            || !wav.StartsWith(spoolPath, StringComparison.OrdinalIgnoreCase))
+        {
+            Say($"trash: refusing, {wav} is not in a spool inside {temporary}");
+            return false;
+        }
+        Say(Format($"{now(),7:F2}  Move to Recycle Bin: queue job {numbers.Job(job.Id)} ({Path.GetFileName(wav)}), spool {spoolPath}"));
+        string? trashedAs = null;
+        var previous = queue.EventObserver;
+        queue.EventObserver = queueEvent =>
+        {
+            if (queueEvent is QueueEvent.Trashed trashed) trashedAs = trashed.TrashedAs;
+            previous?.Invoke(queueEvent);
+        };
+        queue.Trash(job);
+        queue.EventObserver = previous;
+        if (job.TrashError is { } error)
+        {
+            Say($"trash: failed: {error}");
+            return false;
+        }
+        if (queue.Jobs.Contains(job) || File.Exists(wav))
+        {
+            Say("trash: the job or its WAV is still there");
+            return false;
+        }
+        var manifest = new TranscriptionQueueStore(spool).ManifestPath;
+        Say($"trash: {Path.GetFileName(wav)} left the spool; {queue.Jobs.Count} job(s) left, queue.json {(File.Exists(manifest) ? "kept" : "removed")}");
+        // The copy in the Recycle Bin is a temporary file this run wrote.
+        if (trashedAs is null)
+        {
+            Say("trash: the Recycle Bin gave no handle for the recycled copy; remove it from the Recycle Bin by hand: " + wav);
+            return false;
+        }
+        try
+        {
+            Say($"removing the recycled copy {trashedAs}");
+            OutputWriter.PurgeFromRecycleBin(trashedAs, wav);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            Say($"trash: could not remove the recycled copy ({exception.Message}); remove {Path.GetFileName(wav)} from the Recycle Bin by hand");
+            return false;
+        }
+        return true;
     }
 
     private static async Task ReportStatusAsync(RecordingController controller, TranscriptionQueue queue, Func<double> now, CancellationToken token)

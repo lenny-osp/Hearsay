@@ -580,4 +580,255 @@ public sealed class ManualQueueTests
         Assert.Equal(TranscriptionJobState.Waiting, held.State);
         Assert.Equal(2, new TranscriptionQueueStore(rig.Spool).Load().Manifest.Jobs.Count);
     });
+
+    // Queue list always under Manual, Move to Recycle Bin… (PLAN.md 4.11, 2026-10-02)
+
+    [Fact]
+    public Task NoSingleMeetingUnderManualWhateverTheStateOfTheOnlyJob() => RunAsync(FinalPassTiming.Manual, async rig =>
+    {
+        var job = rig.Add();
+        Assert.Null(rig.Queue.FeaturedJob);
+        rig.Queue.Release(job);
+        Assert.Null(rig.Queue.FeaturedJob);
+        await WaitUntil(() => job.State == TranscriptionJobState.Done, "the job to finish");
+        Assert.Null(rig.Queue.FeaturedJob);
+        Assert.Single(rig.Queue.Jobs);
+    });
+
+    [Fact]
+    public Task SwitchingTheTimingChangesTheSingleMeetingAtOnce() => RunAsync(FinalPassTiming.Manual, rig =>
+    {
+        var job = rig.Add();
+        var raised = new List<string?>();
+        rig.Queue.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+        Assert.Null(rig.Queue.FeaturedJob);
+        rig.Settings.FinalPassTiming = FinalPassTiming.WhenIdle;
+        Assert.Contains(nameof(TranscriptionQueue.FeaturedJob), raised);
+        Assert.Same(job, rig.Queue.FeaturedJob);
+        raised.Clear();
+        rig.Settings.FinalPassTiming = FinalPassTiming.Manual;
+        Assert.Contains(nameof(TranscriptionQueue.FeaturedJob), raised);
+        Assert.Null(rig.Queue.FeaturedJob);
+        return Task.CompletedTask;
+    });
+
+    [Fact]
+    public Task TrashMovesTheWavDropsTheJobAndItsLiveFilesAndSavesTheQueue() => RunAsync(FinalPassTiming.Manual, async rig =>
+    {
+        var sink = new LiveSink(TranscriptLanguage.English);
+        var first = rig.Add(live: [LiveCue], sink: sink);
+        var second = rig.Add();
+        rig.Queue.FlushLiveSegments();
+        var store = new TranscriptionQueueStore(rig.Spool);
+        var livePath = store.LiveSegmentsPath(first.Id);
+        var wav = first.Recording.Path;
+        var secondWav = second.Recording.Path;
+        Assert.True(File.Exists(livePath));
+        Assert.True(rig.Queue.CanTrash(first));
+        var raised = new List<string?>();
+        rig.Queue.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        rig.Queue.Trash(first);
+
+        Assert.Equal([wav], rig.Recycled);
+        Assert.False(File.Exists(wav));
+        Assert.True(File.Exists(rig.Combine(Path.Combine("bin", Path.GetFileName(wav)))));
+        Assert.True(File.Exists(secondWav), "only the trashed job's own WAV moves");
+        Assert.False(File.Exists(livePath));
+        Assert.Same(second, Assert.Single(rig.Queue.Jobs));
+        Assert.Null(first.TrashError);
+        Assert.Equal(["queued 1", "held 1", "queued 2", "held 2", "trashed 1"], rig.Events);
+        Assert.Equal(1, rig.Queue.PendingCount);
+        Assert.Equal(1, rig.Queue.HeldCount);
+        Assert.True(rig.Queue.AllPendingHeld);
+        Assert.Contains(nameof(TranscriptionQueue.HeldCount), raised);
+        Assert.Contains(nameof(TranscriptionQueue.PendingCount), raised);
+        Assert.Equal([second.Id], store.Load().Manifest.Jobs.Select(job => job.Id));
+        Assert.Null(first.LiveSink);
+        await Stays(() => rig.Engine.Steps.Count == 0, "no pass for the job that is left");
+
+        rig.Queue.Trash(second);
+        Assert.Empty(rig.Queue.Jobs);
+        Assert.Equal(0, rig.Queue.PendingCount);
+        Assert.False(rig.Queue.AllPendingHeld);
+        Assert.False(File.Exists(store.ManifestPath), "no jobs left: queue.json is removed");
+        Assert.Equal("trashed 2", rig.Events[^1]);
+    });
+
+    [Fact]
+    public Task TrashEventNamesTheRecordingAndWhereItLanded() => RunAsync(FinalPassTiming.Manual, rig =>
+    {
+        var job = rig.Add();
+        var wav = job.Recording.Path;
+        QueueEvent.Trashed? seen = null;
+        var previous = rig.Queue.EventObserver;
+        rig.Queue.EventObserver = e =>
+        {
+            if (e is QueueEvent.Trashed trashed) seen = trashed;
+            previous?.Invoke(e);
+        };
+        rig.Queue.Trash(job);
+        Assert.NotNull(seen);
+        Assert.Equal(job.Id, seen.Id);
+        Assert.Equal(wav, seen.Recording);
+        Assert.Equal(rig.Combine(Path.Combine("bin", Path.GetFileName(wav))), seen.TrashedAs);
+        return Task.CompletedTask;
+    });
+
+    [Fact]
+    public Task TrashOfARetryMovesItsWavInTheOutputFolderAndLeavesItsSavedLivePreview() => RunAsync(FinalPassTiming.Manual, rig =>
+    {
+        var wav = Path.Combine(rig.OutputPath, "2026-09-30_10-00-00.wav");
+        var savedPreview = Path.Combine(rig.OutputPath, "2026-09-30_10-00-00.srt");
+        File.WriteAllBytes(wav, [0]);
+        File.WriteAllText(savedPreview, "1\n00:00:00,000 --> 00:00:01,000\nlive preview line\n\n");
+        var tracker = new SessionLanguageTracker(LanguageChoice.Fixed(TranscriptLanguage.English), TranscriptLanguage.English);
+        // A session is active, so the released retry does not start before it is put on hold.
+        rig.Queue.SetSessionActive(true);
+        rig.Queue.EnqueueRetry(
+            new TranscriptOutput.PendingRecording(wav, InSpool: false), tracker, null, keepRecording: true, [LiveCue], savedPreview);
+        var job = Assert.Single(rig.Queue.Jobs);
+        Assert.True(job.IsReleased, "Try Again is released, so the row has no Move to Recycle Bin…");
+        Assert.False(rig.Queue.CanTrash(job));
+        rig.Queue.Hold(job);
+        Assert.True(rig.Queue.CanTrash(job));
+
+        rig.Queue.Trash(job);
+
+        Assert.Equal([wav], rig.Recycled);
+        Assert.False(File.Exists(wav));
+        Assert.True(File.Exists(savedPreview), "the saved live preview stays");
+        Assert.Empty(rig.Queue.Jobs);
+        return Task.CompletedTask;
+    });
+
+    [Fact]
+    public Task TrashOfAWavThatIsGoneJustRemovesTheJobWithoutAnError() => RunAsync(FinalPassTiming.Manual, rig =>
+    {
+        var job = rig.Add();
+        File.Delete(job.Recording.Path);
+        rig.Queue.Trash(job);
+        Assert.Empty(rig.Recycled);
+        Assert.Null(job.TrashError);
+        Assert.Empty(rig.Queue.Jobs);
+        Assert.Equal("trashed 1", rig.Events[^1]);
+        return Task.CompletedTask;
+    });
+
+    [Fact]
+    public Task TrashOfAWavThatVanishesDuringTheMoveRemovesTheJobToo() => RunAsync(FinalPassTiming.Manual, rig =>
+    {
+        var job = rig.Add();
+        var wav = job.Recording.Path;
+        rig.Queue.RecycleFile = path =>
+        {
+            File.Delete(path);
+            throw new FileNotFoundException("gone", path);
+        };
+        rig.Queue.Trash(job);
+        Assert.Empty(rig.Queue.Jobs);
+        Assert.Null(job.TrashError);
+        Assert.False(File.Exists(wav));
+        return Task.CompletedTask;
+    });
+
+    [Fact]
+    public Task TrashThatFailsKeepsTheJobAndTheWavAndShowsTheReason() => RunAsync(FinalPassTiming.Manual, async rig =>
+    {
+        var sink = new LiveSink(TranscriptLanguage.English);
+        var job = rig.Add(live: [LiveCue], sink: sink);
+        var other = rig.Add();
+        var wav = job.Recording.Path;
+        rig.RecycleFailure = new IOException("The file is in use");
+        rig.Queue.Trash(job);
+
+        Assert.True(File.Exists(wav));
+        Assert.Equal(2, rig.Queue.Jobs.Count);
+        Assert.Equal("Could not move the recording to the Recycle Bin: The file is in use", job.TrashError);
+        Assert.DoesNotContain("trashed 1", rig.Events);
+        Assert.Same(sink, job.LiveSink);
+        Assert.True(job.IsHeld);
+        Assert.Equal(2, rig.Queue.PendingCount);
+
+        // Transcribe clears the error; so does Transcribe All.
+        rig.Queue.Release(job);
+        Assert.Null(job.TrashError);
+        rig.RecycleFailure = new UnauthorizedAccessException("Access is denied");
+        rig.Queue.Trash(other);
+        Assert.Equal("Could not move the recording to the Recycle Bin: Access is denied", other.TrashError);
+        rig.Queue.ReleaseAll();
+        Assert.Null(other.TrashError);
+        await WaitUntil(() => other.State == TranscriptionJobState.Done, "the released job to run");
+    });
+
+    [Fact]
+    public Task TrashChecksCanTrashFirst() => RunAsync(FinalPassTiming.Manual, async rig =>
+    {
+        rig.Engine.WindowGate = new SemaphoreSlim(0);
+        var released = rig.Add();
+        var held = rig.Add();
+        rig.Queue.Release(released);
+        await WaitUntil(() => released.State == TranscriptionJobState.Running && rig.Engine.Steps.Count == 1, "the step to start");
+        Assert.True(rig.Queue.CanTrash(held));
+        Assert.False(rig.Queue.CanTrash(released), "released and running");
+        rig.Queue.Trash(released);
+        Assert.Equal(2, rig.Queue.Jobs.Count);
+        Assert.Empty(rig.Recycled);
+
+        // A held job whose step has not returned yet is busy (Hold on a running job).
+        rig.Queue.Hold(released);
+        Assert.True(released.IsHeld);
+        Assert.True(released.IsBusy);
+        Assert.False(rig.Queue.CanTrash(released));
+        rig.Queue.Trash(released);
+        Assert.Empty(rig.Recycled);
+        rig.Engine.WindowGate.Release(10);
+        await WaitUntil(() => released.State == TranscriptionJobState.Suspended && !released.IsBusy, "the job to suspend");
+        Assert.True(rig.Queue.CanTrash(released), "held, suspended and idle");
+        rig.Queue.Trash(released);
+        Assert.Equal([released.Recording.Path], rig.Recycled);
+        Assert.Same(held, Assert.Single(rig.Queue.Jobs));
+    });
+
+    [Fact]
+    public Task TrashDoesNothingUnderTheOtherTimingsOrForFinishedJobsOrWhileSavingTheLivePreview() => RunAsync(FinalPassTiming.Manual, async rig =>
+    {
+        var done = rig.Add();
+        rig.Queue.Release(done);
+        await WaitUntil(() => done.State == TranscriptionJobState.Done, "the job to finish");
+        Assert.False(rig.Queue.CanTrash(done));
+        rig.Queue.Trash(done);
+        Assert.Empty(rig.Recycled);
+
+        var saving = rig.Add(live: [LiveCue]);
+        rig.Queue.UseLivePreviewInstead(saving);
+        Assert.False(rig.Queue.CanTrash(saving));
+        rig.Queue.Trash(saving);
+        Assert.Empty(rig.Recycled);
+        await WaitUntil(() => saving.State == TranscriptionJobState.Done, "the live preview to be saved");
+
+        var other = rig.Add();
+        Assert.True(rig.Queue.CanTrash(other));
+        rig.Settings.FinalPassTiming = FinalPassTiming.WhenIdle;
+        Assert.False(rig.Queue.CanTrash(other));
+        rig.Queue.Trash(other);
+        Assert.Empty(rig.Recycled);
+        Assert.Contains(other, rig.Queue.Jobs);
+    });
+
+    [Fact]
+    public Task TrashCancelsTheLanguageDetectionOfTheJob() => RunAsync(FinalPassTiming.Manual, async rig =>
+    {
+        rig.Engine.DetectGate = new SemaphoreSlim(0);
+        var job = rig.Add(LanguageChoice.Auto, live: [], sink: null);
+        await WaitUntil(() => rig.Engine.DetectCalls == 1, "the detection to start");
+        Assert.True(job.IsDetectingLanguage);
+        Assert.True(rig.Queue.CanTrash(job), "detection is foreground work, not a step");
+        rig.Queue.Trash(job);
+        Assert.Empty(rig.Queue.Jobs);
+        Assert.Equal([job.Recording.Path], rig.Recycled);
+        await WaitUntil(() => job.SettleTask is null, "the detection to end");
+        Assert.True(job.Tracker.IsUndecided);
+        Assert.DoesNotContain("language 1", rig.Events);
+    });
 }

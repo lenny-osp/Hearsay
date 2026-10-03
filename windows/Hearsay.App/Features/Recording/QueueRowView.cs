@@ -1,3 +1,4 @@
+using Hearsay.App.Features.History;
 using Hearsay.App.Features.Transcription;
 using Hearsay.Core.Transcription;
 using Microsoft.UI.Xaml;
@@ -31,11 +32,13 @@ internal sealed class QueueRowView : UserControl
     private readonly Button open = new() { Content = Strings.OpenTranscript, Padding = new Thickness(10, 3, 10, 4) };
     private readonly Button notes = new() { Content = Strings.GenerateNotes, Padding = new Thickness(10, 3, 10, 4) };
     private readonly Button tryAgain = new() { Content = Strings.TryAgain, Padding = new Thickness(10, 3, 10, 4) };
+    private readonly Button trash = new() { Content = Strings.MoveToRecycleBin, Padding = new Thickness(10, 3, 10, 4) };
     private readonly WrapRow actions;
     private readonly ProgressBar progress = new() { Minimum = 0, Maximum = 1 };
     private readonly TextBlock error;
     private readonly LanguageNoticeView notice;
     private readonly TextBlock rerunError;
+    private readonly TextBlock trashError;
 
     /// <param name="queue">The queue whose job this row shows.</param>
     /// <param name="job">The job.</param>
@@ -77,6 +80,14 @@ internal sealed class QueueRowView : UserControl
             Foreground = (Brush)Application.Current.Resources["SystemFillColorCautionBrush"],
             TextWrapping = TextWrapping.Wrap,
         };
+        trashError = new TextBlock
+        {
+            Style = (Style)Application.Current.Resources["CaptionStyle"],
+            Foreground = Critical(),
+            TextWrapping = TextWrapping.Wrap,
+            MaxLines = 4,
+            IsTextSelectionEnabled = true,
+        };
         notice = new LanguageNoticeView(language => queue.TranscribeAgain(job, language), () => queue.DismissLanguageNotice(job));
 
         if (Application.Current.Resources.TryGetValue("AccentButtonStyle", out var accent) && accent is Style accentStyle) transcribe.Style = accentStyle;
@@ -88,6 +99,7 @@ internal sealed class QueueRowView : UserControl
         open.Click += (_, _) => openTranscript(job);
         notes.Click += (_, _) => generateNotes(job);
         tryAgain.Click += (_, _) => queue.Retry(job);
+        trash.Click += async (_, _) => await ConfirmTrashAsync(queue, job).ConfigureAwait(true);
 
         var header = new Grid { ColumnSpacing = 8 };
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -110,6 +122,7 @@ internal sealed class QueueRowView : UserControl
         actions.Children.Add(open);
         actions.Children.Add(notes);
         actions.Children.Add(tryAgain);
+        actions.Children.Add(trash);
 
         var stack = new StackPanel { Spacing = 6 };
         stack.Children.Add(header);
@@ -118,6 +131,7 @@ internal sealed class QueueRowView : UserControl
         stack.Children.Add(error);
         stack.Children.Add(notice);
         stack.Children.Add(rerunError);
+        stack.Children.Add(trashError);
         Content = stack;
         HorizontalContentAlignment = HorizontalAlignment.Stretch;
     }
@@ -160,9 +174,10 @@ internal sealed class QueueRowView : UserControl
         SetVisible(notes, shown.GenerateNotes);
         notes.IsEnabled = canGenerateNotes;
         SetVisible(tryAgain, shown.TryAgain);
+        SetVisible(trash, shown.Trash);
         SetVisible(revealButton, shown.Reveal);
         SetVisible(dismissButton, shown.Dismiss);
-        SetVisible(actions, shown.Transcribe || shown.Hold || shown.UseLivePreview || shown.SavingLivePreview || shown.OpenTranscript || shown.GenerateNotes || shown.TryAgain);
+        SetVisible(actions, shown.Transcribe || shown.Hold || shown.UseLivePreview || shown.SavingLivePreview || shown.OpenTranscript || shown.GenerateNotes || shown.TryAgain || shown.Trash);
 
         if (QueueRows.ShowsProgress(job, pausedForSession) && job.DisplayProgress is { } fraction)
         {
@@ -190,6 +205,23 @@ internal sealed class QueueRowView : UserControl
 
         rerunError.Text = job.RerunError ?? "";
         SetVisible(rerunError, job.RerunError is not null);
+
+        trashError.Text = job.TrashError ?? "";
+        SetVisible(trashError, job.TrashError is not null);
+    }
+
+    /// <summary>
+    /// "Move to Recycle Bin…" asks first (PLAN.md 4.11): the recording is not transcribed and
+    /// its live preview is discarded. The confirming button is the default, so Return confirms.
+    /// </summary>
+    private async Task ConfirmTrashAsync(TranscriptionQueue queue, TranscriptionJob job)
+    {
+        if (XamlRoot is not { } root) return;
+        if (await Alert.ConfirmAsync(root, Strings.MoveRecordingTitle, Strings.MoveRecordingMessage, Strings.MoveToRecycleBinButton)
+            .ConfigureAwait(true))
+        {
+            queue.Trash(job);
+        }
     }
 
     private static void SetVisible(UIElement element, bool visible) =>
