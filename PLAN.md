@@ -875,12 +875,16 @@ shared design; **the Mac is built first**, Windows follows (18.11
 - Snapshots: 37 and 38 show sample devices (38 the headset with a long
   name, truncated), new 46 `46-sheet-meeting-prompt-no-microphone` (no
   device, no-microphone row).
-- Verified: `swift test` (557 tests), the app compiled with no warning in
-  the changed files, snapshots 36, 37, 38 and 46 in English and
-  Traditional Chinese. The build was a scratch Release build without the
-  `.metal` files (`EXCLUDED_SOURCE_FILE_NAMES=*.metal`, own derived data):
-  Xcode 27.2 lacks its Metal Toolchain component, so `run-debug.sh` failed
-  until `xcodebuild -downloadComponent MetalToolchain` is run.
+- Verified: `swift test` (557 tests), snapshots 36, 37, 38 and 46 in
+  English and Traditional Chinese, and `Scripts/run-debug.sh --release
+  --no-open` (build succeeded, signed with the self-signed certificate).
+  With the Release build: `export-strings.py` changed nothing, and a
+  file-mode run of `en-30s.wav` gave an SRT identical to
+  `en-30s.expected.srt`. Xcode 27.2 needs its Metal Toolchain component
+  (`xcodebuild -downloadComponent MetalToolchain`); until it was installed
+  `run-debug.sh` failed (it also deletes the embedded resource bundles
+  first), and the first checks used a scratch build with
+  `EXCLUDED_SOURCE_FILE_NAMES=*.metal`.
 - Not verified: the live sheet with real devices (plugging a headset in
   while it is open, a recording through the picked microphone): section 16
   item 31.
