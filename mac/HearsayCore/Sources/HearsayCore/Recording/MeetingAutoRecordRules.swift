@@ -26,6 +26,19 @@ public enum MeetingSessionState: Equatable, Sendable {
     public var isSessionActive: Bool { self == .starting || self == .recording }
 }
 
+/// The user's answer to "Record this meeting?" when they pressed Record: the
+/// picked language and microphone (PLAN.md 4.10 "Microphone in the
+/// question").
+public struct MeetingPromptAnswer: Equatable, Sendable {
+    public var language: LanguageChoice
+    public var microphone: MicrophoneChoice
+
+    public init(language: LanguageChoice, microphone: MicrophoneChoice) {
+        self.language = language
+        self.microphone = microphone
+    }
+}
+
 /// The decision core of the automatic recording of Microsoft Teams meetings
 /// (PLAN.md 4.10; port of the decisions in MeetingAutoRecord.cs). A pure
 /// state machine: the app coordinator feeds it `Input`s, performs the
@@ -41,13 +54,18 @@ public enum MeetingSessionState: Equatable, Sendable {
 ///   did nothing is noticed. `.starting`/`.recording` must stay session-active
 ///   across Stop & Start Next (never report `.idle` between the two sessions):
 ///   that is how the next session stays automatic.
-/// - Prompt: `.showPrompt(id:preselected:)` opens the question; answer with
-///   `.promptAnswered(id:choice:)` (nil choice = Don't record, also for a
-///   dismissed window). `.closePrompt` hides it; a late answer for a closed
-///   prompt is ignored.
-/// - `.start(language:)`: with a language, set the Record tab's language
-///   choice first (it persists), then start the session as the Start button
-///   does; with nil start with the current choice.
+/// - Prompt: `.showPrompt(id:preselected:)` opens the question, with the
+///   Record tab's microphone choice preselected by the shell (the rules do
+///   not track it); answer with `.promptAnswered(id:answer:)` (nil answer =
+///   Don't record, also for a dismissed window). `.closePrompt` hides it; a
+///   late answer for a closed prompt is ignored.
+/// - `.start(language:microphone:)`: with a microphone that differs from the
+///   Record tab's current choice, select it there first (as if picked there,
+///   not persisted; an equal pick is not applied, so an automatic "no
+///   microphone" stays automatic), then with a language set the Record tab's
+///   language choice (it persists), then start the session as the Start
+///   button does. Both are nil without a question: start with the current
+///   choices (PLAN.md 4.10 "Microphone in the question").
 /// - Language: send `.languageChoice(_)` when the Record tab's choice
 ///   changes, so the prompt is preselected with the current one.
 ///
@@ -84,8 +102,8 @@ public struct MeetingAutoRecordRules: Sendable {
         case languageChoice(LanguageChoice)
         /// The recording controller's state (see the type's notes).
         case controller(MeetingSessionState)
-        /// The user answered the open prompt; nil choice is Don't record.
-        case promptAnswered(id: Int, choice: LanguageChoice?)
+        /// The user answered the open prompt; nil answer is Don't record.
+        case promptAnswered(id: Int, answer: MeetingPromptAnswer?)
     }
 
     /// What the shell performs, in order.
@@ -94,9 +112,10 @@ public struct MeetingAutoRecordRules: Sendable {
         case startWatching
         /// Stop observing and discard the detector.
         case stopWatching
-        /// Start a session as the Start button does; a language is set as
-        /// the Record tab's choice first. The session is automatic.
-        case start(language: LanguageChoice?)
+        /// Start a session as the Start button does; a microphone and a
+        /// language are set as the Record tab's choices first (both nil
+        /// when there was no question). The session is automatic.
+        case start(language: LanguageChoice?, microphone: MicrophoneChoice?)
         /// Stop the session as the user's Stop does.
         case stop
         /// Bring the window forward and ask "Record this meeting?".
@@ -165,8 +184,8 @@ public struct MeetingAutoRecordRules: Sendable {
             language = choice
         case .controller(let state):
             controllerChanged(state, &actions)
-        case .promptAnswered(let id, let choice):
-            promptAnswered(id: id, choice: choice, &actions)
+        case .promptAnswered(let id, let answer):
+            promptAnswered(id: id, answer: answer, &actions)
         }
         return actions
     }
@@ -184,7 +203,7 @@ public struct MeetingAutoRecordRules: Sendable {
             actions.append(.showPrompt(id: id, preselected: language))
             return
         }
-        startAutomaticSession(language: nil, &actions)
+        startAutomaticSession(language: nil, microphone: nil, &actions)
     }
 
     private mutating func meetingEnded(_ actions: inout [Action]) {
@@ -196,20 +215,22 @@ public struct MeetingAutoRecordRules: Sendable {
         }
     }
 
-    private mutating func promptAnswered(id: Int, choice: LanguageChoice?, _ actions: inout [Action]) {
+    private mutating func promptAnswered(id: Int, answer: MeetingPromptAnswer?, _ actions: inout [Action]) {
         guard openPromptID == id else { return }  // Closed meanwhile: a late answer does nothing.
         openPromptID = nil
-        guard let choice else { return }  // Don't record: nothing until the next meeting.
+        guard let answer else { return }  // Don't record: nothing until the next meeting.
         guard isEnabled, isWatching, isMeetingActive else { return }
         guard canStart else { return }  // A recording started while the prompt was open: it stays manual.
-        language = choice
-        startAutomaticSession(language: choice, &actions)
+        language = answer.language
+        startAutomaticSession(language: answer.language, microphone: answer.microphone, &actions)
     }
 
-    private mutating func startAutomaticSession(language: LanguageChoice?, _ actions: inout [Action]) {
+    private mutating func startAutomaticSession(
+        language: LanguageChoice?, microphone: MicrophoneChoice?, _ actions: inout [Action]
+    ) {
         isAutomaticSession = true
         awaitingStart = true
-        actions.append(.start(language: language))
+        actions.append(.start(language: language, microphone: microphone))
     }
 
     private mutating func controllerChanged(_ state: MeetingSessionState, _ actions: inout [Action]) {

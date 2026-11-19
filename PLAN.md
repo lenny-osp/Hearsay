@@ -807,6 +807,84 @@ and `RecordingController`):
   `MeetingDetector.isTeams`. The live GUI was not driven (the owner runs
   the Release app).
 
+**Microphone in the question** (owner request 2026-11-19). The "Record
+this meeting?" question also lets the user pick the microphone, because
+the headset used for a call is often not the one the Record tab shows. A
+shared design; **the Mac is built first**, Windows follows (18.11
+"Microphone in the question").
+
+1. The question gets a Microphone picker above the Language picker (the
+   Record tab's order). It has the Record tab picker's rows: every input
+   device by name, then, after a divider, "No microphone (system audio
+   only)" (4.13). The existing keys "Microphone" and "No microphone
+   (system audio only)" are reused.
+2. It is preselected with the Record tab's choice at the moment the
+   question opens (so the no-microphone row when no input device exists).
+3. The list is live while the question is open: a headset plugged in after
+   joining appears. A picked device that disappears falls back to the
+   Record tab's choice at that moment (which followed the device list by
+   the 4.13 rules). A device appearing never changes the pick.
+4. Record applies both picks to the Record tab, microphone first, then
+   language, and starts the session. The microphone is applied as if
+   picked on the Record tab: not persisted across launches (4.13 rule 1),
+   and it stays for later recordings. A pick equal to the Record tab's
+   current choice is not applied, so a no-microphone row that Hearsay
+   chose by itself stays automatic (4.13 rule 3). The start settles the
+   choice against the device list once more, as every start does.
+5. Don't record, Escape, closing the window and the meeting ending change
+   neither choice.
+6. "Also capture system audio" is not part of the question; the Record
+   tab's switch applies (always on without a microphone, 4.13 rule 2).
+7. Without the question (`autoRecordAsksLanguage` off) nothing changes:
+   the recording uses the Record tab's microphone.
+8. The setting keeps its key and its label "Ask which language to use
+   before each automatic recording". Its caption's second sentence becomes
+   "On: when a meeting starts, Hearsay asks whether to record it, with
+   which microphone and in which language, and records when you confirm."
+   Until Windows has the picker, the old caption stays as a catalog
+   `windows` entry (as "No input device" did, 4.13). README says "with the
+   microphone and language pickers" in the Mac paragraph only; the help
+   item ("asks first") needs no change.
+9. Rules: `MeetingAutoRecordRules` carries the microphone with the answer
+   (`promptAnswered` gets it, `.start` passes it on, nil without a
+   question); the fallback of rule 3 is a pure function in HearsayCore.
+   Both are tested there; the app holds no rule of its own.
+
+**As built (Mac, 2026-11-19).**
+- Core: `MeetingPromptAnswer` (language + microphone);
+  `Input.promptAnswered(id:answer:)` (nil = Don't record, the old guards
+  unchanged) and `Action.start(language:microphone:)` (both nil without a
+  question). Rule 3 is `MicrophoneChoice.inMeetingQuestion(deviceUIDs:recordTabChoice:)`
+  in `MicrophoneSelection.swift`. Tests: `MeetingAutoRecordRulesTests` 28
+  (5 new: the microphone passed on, no microphone passed on, Don't record,
+  a late answer and an answer for a closed prompt start nothing),
+  `MicrophoneSelectionTests` 16 (5 new, the rule 3 cases).
+- App: the shell reads `controller.microphoneChoice` when it performs
+  `.showPrompt` (`MeetingPromptModel.Pending.preselectedMicrophone`, rule
+  2); `.start` applies the microphone only when it differs from the
+  controller's choice, then the language, then starts (rule 4).
+  `MeetingPromptSheet` takes the device list and the Record tab's choice as
+  values; `LiveMeetingPromptSheet` (shown by `MainView`) reads them from
+  `RecordingController`, and `.onChange(of: devices)` applies rule 3. The
+  two pickers sit in a `Grid` (labels in one trailing-aligned column, the
+  pickers' own labels hidden), width 380; a long device name truncates.
+- Strings: the caption is a new app key with translations; the old one is
+  a catalog `windows` entry (`Strings.cs` `Win(...)`, resw regenerated).
+  "Microphone", "No microphone (system audio only)" and "Language" are
+  reused; no other key appeared.
+- Snapshots: 37 and 38 show sample devices (38 the headset with a long
+  name, truncated), new 46 `46-sheet-meeting-prompt-no-microphone` (no
+  device, no-microphone row).
+- Verified: `swift test` (557 tests), the app compiled with no warning in
+  the changed files, snapshots 36, 37, 38 and 46 in English and
+  Traditional Chinese. The build was a scratch Release build without the
+  `.metal` files (`EXCLUDED_SOURCE_FILE_NAMES=*.metal`, own derived data):
+  Xcode 27.2 lacks its Metal Toolchain component, so `run-debug.sh` failed
+  until `xcodebuild -downloadComponent MetalToolchain` is run.
+- Not verified: the live sheet with real devices (plugging a headset in
+  while it is open, a recording through the picked microphone): section 16
+  item 31.
+
 Other meeting apps (Zoom, Meet in a browser) are out of scope: a browser's
 microphone stream does not say which site uses it.
 
@@ -1799,6 +1877,11 @@ Verified 2026-09-28: recording, live preview, final pass, File mode (items
     in the picked language (the Record tab's choice changes to it); Escape
     counts as Don't record; with the sheet open, hang up and check it
     closes. The second toggle is greyed out while the first is off.
+    Microphone in the question (added 2026-11-19): in the sheet pick
+    another microphone and press Record; the Record tab shows it and the
+    recording uses it (its meter moves). Plug in a headset while the sheet
+    is open: it appears in the sheet's list. Don't record leaves the Record
+    tab's microphone unchanged.
 
 32. Mac, live preview setting (section 4.12, added 2026-10-02): turn off
     Settings > General > Transcription > "Show the live preview while
@@ -3304,6 +3387,58 @@ moved them from `windows`; only the prompt's "Record" stays under
   parent that exited whose PID Teams now holds would count); only Teams is
   detected (a browser's microphone stream does not say which site uses
   it, so Zoom, Meet and the Teams web app are out of scope).
+
+**Microphone in the question (planned 2026-11-19, not built; port of 4.10
+"Microphone in the question", which the Mac builds first).** One work
+item for `windows-implementer`, run on the Windows machine. Read the Mac's
+4.10 block and its "As built" notes first; the rules are the same unless
+listed here.
+
+- **Dialog.** `MeetingRecordPrompt.AskAsync` gets a Microphone row above
+  the Language row: label `Strings.Microphone` (the Record tab's),
+  a `ComboBox` with `RecordingController.Devices` by name, preselected
+  with `SelectedDeviceUid`. It returns both picks (a small record,
+  language and device UID) instead of the language alone; null still
+  means Don't record, a dialog closed another way, or a cancel.
+- **Live list.** While the dialog is open it follows
+  `RecordingController.Devices` (the controller's `PropertyChanged`;
+  unsubscribe when the dialog closes): new devices appear, the pick stays,
+  and a picked device that disappears falls back to the controller's
+  `SelectedDeviceUid` at that moment. Port the Mac's pure fallback
+  function and its tests into `Hearsay.Core` (name the Swift file in the
+  summary comment).
+- **No-microphone row.** Windows has no "No microphone (system audio
+  only)" row until the 18.9 item "System audio only" is built. Built
+  before it: the dialog lists devices only, and with no input device it
+  shows the Record tab's "No input device" row, disabled, as the Record
+  tab does. Built after or with it: the dialog has the same last row as
+  the Record tab and rule 4's "a pick equal to the current choice is not
+  applied" matters (an automatic no-microphone stays automatic). Whoever
+  builds the second of the two items makes the dialog match the Record
+  tab.
+- **Coordinator.** `MeetingAutoRecord.AskThenStartAsync` applies the
+  microphone (`SelectedDeviceUid`, only when it differs), then
+  `LanguageChoice`, then starts, on the UI thread, with the checks it has
+  today (setting still on, meeting still active, `CanStart`). The injected
+  `prompt` delegate's result type changes; update the rig in
+  `Hearsay.App.Tests/MeetingAutoRecordTests.cs` and add tests: Record with
+  another device sets `SelectedDeviceUid` before `Start()`; Don't record
+  and a cancelled prompt leave it alone; the same device changes nothing.
+  The pick is not persisted, as the Record tab's is not.
+- **Strings.** `AutoRecordAsksLanguageCaption` switches from the
+  `windows` copy of the old caption back to the shared `app` key ("…asks
+  whether to record it, with which microphone and in which language, …")
+  and the `windows` entry is deleted from the five JSON files; run
+  `python windows/scripts/import-strings.py`. No new key: "Microphone" is
+  shared already.
+- **README.** The Windows "Teams meetings" paragraph says "with the
+  microphone and language pickers", as the Mac paragraph does. The help
+  item needs no change.
+- **Checks.** `dotnet build`, both test projects, a `HEARSAY_UI_SNAPSHOTS`
+  render of the dialog in English and Traditional Chinese (add it if the
+  dialog has no render yet), and the owner's check: section 16 item 28
+  gains "pick another microphone in the question and check the recording
+  uses it and the Record tab shows it afterwards".
 
 ### 18.12 Manual final passes (port of section 4.11, added 2026-10-01)
 

@@ -124,7 +124,8 @@ Settings is a tab, not a separate window; ⌘, opens it.
   show notifications). The recording uses the Record tab's microphone,
   system audio and language choices, and Auto detects the language; turn on
   "Ask which language to use before each automatic recording" to be asked,
-  with the language picker, before each one starts. Both are off by default.
+  with the microphone and language pickers, before each one starts. Both are
+  off by default.
 
 ## Languages
 

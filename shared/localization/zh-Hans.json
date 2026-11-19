@@ -1363,7 +1363,7 @@
     "catalog": "app",
     "key": "Microphone",
     "english": "Microphone",
-    "comment": "UI text in RecordView.swift.",
+    "comment": "UI text in MeetingPromptSheet.swift, RecordView.swift.",
     "placeholders": [],
     "translation": "麦克风"
   },
@@ -1711,11 +1711,11 @@
   },
   {
     "catalog": "app",
-    "key": "Off: the recording uses the language chosen on the Record tab, and Auto detects it. On: when a meeting starts, Hearsay asks whether to record it and in which language, and records when you confirm.",
-    "english": "Off: the recording uses the language chosen on the Record tab, and Auto detects it. On: when a meeting starts, Hearsay asks whether to record it and in which language, and records when you confirm.",
+    "key": "Off: the recording uses the language chosen on the Record tab, and Auto detects it. On: when a meeting starts, Hearsay asks whether to record it, with which microphone and in which language, and records when you confirm.",
+    "english": "Off: the recording uses the language chosen on the Record tab, and Auto detects it. On: when a meeting starts, Hearsay asks whether to record it, with which microphone and in which language, and records when you confirm.",
     "comment": "Settings > General > Meetings: caption under \"Ask which language to use before each automatic recording\". \"Record\" is the Record tab's name, \"Auto\" the language picker's Auto.",
     "placeholders": [],
-    "translation": "关闭：录音会使用录音标签页中选择的语言，选择“自动”时会自动检测。开启：会议开始时，Hearsay 会询问是否录制以及使用哪种语言，并在你确认后开始录音。"
+    "translation": "关闭：录音会使用录音标签页中选择的语言，选择“自动”时会自动检测。开启：会议开始时，Hearsay 会询问是否录制、使用哪个麦克风以及哪种语言，并在你确认后开始录音。"
   },
   {
     "catalog": "app",
@@ -5105,5 +5105,13 @@
     "comment": "Button (a verb) of the \"Microsoft Teams meeting started\" dialog: start recording in the chosen language. Not the Record tab's name. Windows only.",
     "placeholders": [],
     "translation": "录音"
+  },
+  {
+    "catalog": "windows",
+    "key": "Off: the recording uses the language chosen on the Record tab, and Auto detects it. On: when a meeting starts, Hearsay asks whether to record it and in which language, and records when you confirm.",
+    "english": "Off: the recording uses the language chosen on the Record tab, and Auto detects it. On: when a meeting starts, Hearsay asks whether to record it and in which language, and records when you confirm.",
+    "comment": "Windows: Settings > General > Meetings caption under \"Ask which language to use before each automatic recording\". \"Record\" is the Record tab's name, \"Auto\" the language picker's Auto. Windows only until 18.11 \"Microphone in the question\" is built (the Mac's question got a Microphone picker on 2026-11-19, PLAN.md 4.10).",
+    "placeholders": [],
+    "translation": "关闭：录音会使用录音标签页中选择的语言，选择“自动”时会自动检测。开启：会议开始时，Hearsay 会询问是否录制以及使用哪种语言，并在你确认后开始录音。"
   }
 ]

@@ -377,10 +377,6 @@
     <value>打开模型</value>
     <comment>app: Open Models</comment>
   </data>
-  <data name="app_494fae321ac72722" xml:space="preserve">
-    <value>关闭：录音会使用录音标签页中选择的语言，选择“自动”时会自动检测。开启：会议开始时，Hearsay 会询问是否录制以及使用哪种语言，并在你确认后开始录音。</value>
-    <comment>app: Off: the recording uses the language chosen on the Record tab, and Auto detects it. On: when a meeting starts, Hearsay asks whether to record it and in which language, and records when you confirm.</comment>
-  </data>
   <data name="app_4b897b8f423ef8b3" xml:space="preserve">
     <value>暂时停止转录。点按“转录”会从停下的地方继续。</value>
     <comment>app: Stops transcribing for now. Transcribe continues where it stopped.</comment>
@@ -1816,6 +1812,10 @@
   <data name="windows_47c6addbf1cc699a" xml:space="preserve">
     <value>正在转录…</value>
     <comment>windows: Transcribing…</comment>
+  </data>
+  <data name="windows_494fae321ac72722" xml:space="preserve">
+    <value>关闭：录音会使用录音标签页中选择的语言，选择“自动”时会自动检测。开启：会议开始时，Hearsay 会询问是否录制以及使用哪种语言，并在你确认后开始录音。</value>
+    <comment>windows: Off: the recording uses the language chosen on the Record tab, and Auto detects it. On: when a meeting starts, Hearsay asks whether to record it and in which language, and records when you confirm.</comment>
   </data>
   <data name="windows_4ece928cc9306cf9" xml:space="preserve">
     <value>使用这台电脑上安装的 Copilot CLI 及其自身的登录。在终端中运行一次 `copilot` 以登录。“auto”表示由 Copilot 选择模型。</value>

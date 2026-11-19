@@ -377,10 +377,6 @@
     <value>Abrir Modelos</value>
     <comment>app: Open Models</comment>
   </data>
-  <data name="app_494fae321ac72722" xml:space="preserve">
-    <value>Desactivado: la grabación usa el idioma elegido en la pestaña Grabar, y Automático lo detecta. Activado: cuando empieza una reunión, Hearsay pregunta si quieres grabarla y en qué idioma, y graba cuando lo confirmas.</value>
-    <comment>app: Off: the recording uses the language chosen on the Record tab, and Auto detects it. On: when a meeting starts, Hearsay asks whether to record it and in which language, and records when you confirm.</comment>
-  </data>
   <data name="app_4b897b8f423ef8b3" xml:space="preserve">
     <value>Aplaza la transcripción por ahora. «Transcribir» continúa donde se quedó.</value>
     <comment>app: Stops transcribing for now. Transcribe continues where it stopped.</comment>
@@ -1816,6 +1812,10 @@
   <data name="windows_47c6addbf1cc699a" xml:space="preserve">
     <value>Transcribiendo…</value>
     <comment>windows: Transcribing…</comment>
+  </data>
+  <data name="windows_494fae321ac72722" xml:space="preserve">
+    <value>Desactivado: la grabación usa el idioma elegido en la pestaña Grabar, y Automático lo detecta. Activado: cuando empieza una reunión, Hearsay pregunta si quieres grabarla y en qué idioma, y graba cuando lo confirmas.</value>
+    <comment>windows: Off: the recording uses the language chosen on the Record tab, and Auto detects it. On: when a meeting starts, Hearsay asks whether to record it and in which language, and records when you confirm.</comment>
   </data>
   <data name="windows_4ece928cc9306cf9" xml:space="preserve">
     <value>Usa la Copilot CLI instalada en este PC y su propio inicio de sesión. Ejecuta `copilot` una vez en Terminal para iniciar sesión. "auto" deja que Copilot elija el modelo.</value>

@@ -17,6 +17,8 @@ private final class Shell {
     var session: MeetingSessionState = .idle
     var failNextStart = false
     var startCalls: [LanguageChoice?] = []
+    /// The microphone of each start, in the same order as `startCalls`.
+    var startMicrophones: [MicrophoneChoice?] = []
     var stopCalls = 0
     var notifications: [MeetingNotification] = []
     var notice = false
@@ -49,8 +51,9 @@ private final class Shell {
             case .stopWatching:
                 watching = false
                 detector = MeetingDetector()
-            case .start(let language):
+            case .start(let language, let microphone):
                 startCalls.append(language)
+                startMicrophones.append(microphone)
                 if let language { send(.languageChoice(language)) }
                 session = failNextStart ? .failed : .starting
                 send(.controller(session))
@@ -110,6 +113,11 @@ private final class Shell {
     func reachRecording() { controller(.recording) }
 }
 
+/// An answer with the built-in microphone, for tests about the language.
+private func answer(_ language: LanguageChoice, microphone: MicrophoneChoice = .device(uid: "built-in")) -> MeetingPromptAnswer {
+    MeetingPromptAnswer(language: language, microphone: microphone)
+}
+
 struct MeetingAutoRecordRulesTests {
     @Test func withTheSettingOffAMeetingNeverStartsARecording() {
         let shell = Shell(enabled: false)
@@ -157,6 +165,7 @@ struct MeetingAutoRecordRulesTests {
         #expect(shell.startCalls.isEmpty, "the start delay has not passed yet")
         shell.poll(teams: true, after: MeetingDetector.startDelay)
         #expect(shell.startCalls.count == 1)
+        #expect(shell.startMicrophones == [nil], "no question: the Record tab's microphone")
         #expect(shell.startCalls.first == .some(nil), "no language: the Record tab's choice")
         #expect(shell.rules.isAutomaticSession)
         #expect(shell.notice)
@@ -280,7 +289,7 @@ struct MeetingAutoRecordRulesTests {
     @Test func aStartThatLeavesTheControllerIdleDropsTheFlagQuietly() {
         var rules = MeetingAutoRecordRules(enabled: true, asksLanguage: false)
         _ = rules.handle(.begin)
-        #expect(rules.handle(.meetingStarted) == [.start(language: nil)])
+        #expect(rules.handle(.meetingStarted) == [.start(language: nil, microphone: nil)])
         #expect(rules.handle(.controller(.idle)).isEmpty)
         #expect(!rules.isAutomaticSession)
     }
@@ -332,9 +341,10 @@ struct MeetingAutoRecordRulesTests {
 
         let id = try #require(shell.openPrompt)
         let german = LanguageChoice.fixed(.german)
-        shell.send(.promptAnswered(id: id, choice: german))
+        shell.send(.promptAnswered(id: id, answer: answer(german)))
         #expect(!shell.rules.isPrompting)
         #expect(shell.startCalls == [german])
+        #expect(shell.startMicrophones == [.device(uid: "built-in")])
         #expect(shell.session == .starting)
         #expect(shell.notice)
         #expect(shell.notifications.isEmpty)
@@ -356,7 +366,7 @@ struct MeetingAutoRecordRulesTests {
     @Test func withAskOnDontRecordWaitsForTheNextMeeting() throws {
         let shell = Shell(asks: true)
         shell.meetingStarts()
-        shell.send(.promptAnswered(id: try #require(shell.openPrompt), choice: nil))
+        shell.send(.promptAnswered(id: try #require(shell.openPrompt), answer: nil))
         #expect(shell.session == .idle)
         #expect(!shell.rules.isPrompting)
 
@@ -366,7 +376,7 @@ struct MeetingAutoRecordRulesTests {
         #expect(shell.promptsClosed.isEmpty)
         shell.meetingStarts()
         #expect(shell.promptsShown.count == 2)
-        shell.send(.promptAnswered(id: try #require(shell.openPrompt), choice: nil))
+        shell.send(.promptAnswered(id: try #require(shell.openPrompt), answer: nil))
         #expect(shell.startCalls.isEmpty)
         #expect(shell.notifications.isEmpty)
     }
@@ -379,7 +389,7 @@ struct MeetingAutoRecordRulesTests {
         #expect(shell.promptsClosed == [id])
         #expect(!shell.rules.isPrompting)
         // A late answer after the close starts nothing either.
-        shell.send(.promptAnswered(id: id, choice: .fixed(.spanish)))
+        shell.send(.promptAnswered(id: id, answer: answer(.fixed(.spanish))))
         #expect(shell.session == .idle)
         #expect(shell.startCalls.isEmpty)
         #expect(shell.notifications.isEmpty)
@@ -413,7 +423,7 @@ struct MeetingAutoRecordRulesTests {
         shell.meetingStarts()
         let newID = try #require(shell.openPrompt)
         #expect(newID != oldID)
-        shell.send(.promptAnswered(id: oldID, choice: .fixed(.german)))
+        shell.send(.promptAnswered(id: oldID, answer: answer(.fixed(.german))))
         #expect(shell.startCalls.isEmpty)
         #expect(shell.rules.openPromptID == newID)
     }
@@ -423,7 +433,7 @@ struct MeetingAutoRecordRulesTests {
         shell.meetingStarts()
         let id = try #require(shell.openPrompt)
         shell.controller(.recording)
-        shell.send(.promptAnswered(id: id, choice: .fixed(.german)))
+        shell.send(.promptAnswered(id: id, answer: answer(.fixed(.german))))
         #expect(shell.startCalls.isEmpty)
         #expect(!shell.rules.isAutomaticSession)
         shell.meetingEnds()
@@ -437,7 +447,7 @@ struct MeetingAutoRecordRulesTests {
         shell.send(.settingEnabled(false))
         #expect(shell.promptsClosed == [id])
         #expect(!shell.watching)
-        shell.send(.promptAnswered(id: id, choice: .auto))
+        shell.send(.promptAnswered(id: id, answer: answer(.auto)))
         #expect(shell.startCalls.isEmpty)
     }
 
@@ -447,5 +457,55 @@ struct MeetingAutoRecordRulesTests {
         shell.meetingStarts()
         #expect(shell.promptsShown.count == 1)
         #expect(shell.startCalls.isEmpty)
+    }
+
+    // MARK: - Microphone in the question (PLAN.md 4.10)
+
+    @Test func recordPassesThePickedMicrophoneOn() throws {
+        let shell = Shell(asks: true)
+        shell.meetingStarts()
+        let id = try #require(shell.openPrompt)
+        shell.send(.promptAnswered(id: id, answer: answer(.fixed(.german), microphone: .device(uid: "headset"))))
+        #expect(shell.startCalls == [.fixed(.german)])
+        #expect(shell.startMicrophones == [.device(uid: "headset")])
+        #expect(shell.session == .starting)
+    }
+
+    @Test func recordPassesNoMicrophoneOn() {
+        var rules = MeetingAutoRecordRules(enabled: true, asksLanguage: true)
+        _ = rules.handle(.begin)
+        #expect(rules.handle(.meetingStarted) == [.showPrompt(id: 1, preselected: .auto)])
+        let actions = rules.handle(.promptAnswered(id: 1, answer: answer(.auto, microphone: .noMicrophone)))
+        #expect(actions == [.start(language: .auto, microphone: .noMicrophone)])
+    }
+
+    @Test func dontRecordStartsNothingWithAMicrophone() {
+        var rules = MeetingAutoRecordRules(enabled: true, asksLanguage: true)
+        _ = rules.handle(.begin)
+        _ = rules.handle(.meetingStarted)
+        #expect(rules.handle(.promptAnswered(id: 1, answer: nil)).isEmpty)
+        #expect(!rules.isAutomaticSession)
+    }
+
+    @Test func aLateAnswerWithAMicrophoneStartsNothing() throws {
+        let shell = Shell(asks: true)
+        shell.meetingStarts()
+        let oldID = try #require(shell.openPrompt)
+        shell.meetingEnds()
+        shell.meetingStarts()
+        shell.send(.promptAnswered(id: oldID, answer: answer(.auto, microphone: .device(uid: "headset"))))
+        #expect(shell.startCalls.isEmpty)
+        #expect(shell.startMicrophones.isEmpty)
+    }
+
+    @Test func anAnswerForAClosedPromptWithAMicrophoneStartsNothing() throws {
+        let shell = Shell(asks: true)
+        shell.meetingStarts()
+        let id = try #require(shell.openPrompt)
+        shell.meetingEnds()
+        #expect(shell.promptsClosed == [id])
+        shell.send(.promptAnswered(id: id, answer: answer(.auto, microphone: .noMicrophone)))
+        #expect(shell.startMicrophones.isEmpty)
+        #expect(shell.session == .idle)
     }
 }

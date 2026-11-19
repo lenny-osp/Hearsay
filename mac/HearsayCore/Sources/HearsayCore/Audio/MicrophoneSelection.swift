@@ -9,6 +9,24 @@ public enum MicrophoneChoice: Hashable, Sendable {
     case noMicrophone
 }
 
+extension MicrophoneChoice {
+    /// What the "Record this meeting?" question's Microphone picker shows
+    /// after the device list changed while it is open (PLAN.md 4.10
+    /// "Microphone in the question", rule 3), with `self` the current pick:
+    /// "no microphone" and a device still in `deviceUIDs` stay (a device
+    /// appearing never changes the pick); a picked device that disappeared
+    /// falls back to `recordTabChoice`, the Record tab's choice at that
+    /// moment (which followed the device list by the 4.13 rules).
+    public func inMeetingQuestion(deviceUIDs: [String], recordTabChoice: MicrophoneChoice) -> MicrophoneChoice {
+        switch self {
+        case .noMicrophone:
+            return self
+        case .device(let uid):
+            return deviceUIDs.contains(uid) ? self : recordTabChoice
+        }
+    }
+}
+
 /// The Microphone picker's state and how it follows the device list
 /// (PLAN.md 4.13). It is never persisted: each launch starts here, with the
 /// default microphone once the first device list arrives, so a forgotten

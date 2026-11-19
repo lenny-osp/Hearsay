@@ -11,7 +11,7 @@ import UserNotifications
 /// the recording controller's phase, the two settings and the Record tab's
 /// language choice, and performs what the rules answer: start and stop the
 /// controller, set the Record tab notice, post notifications, and open the
-/// language question.
+/// question with its microphone and language pickers.
 ///
 /// Watching (macOS 14.2 and later; before that nothing is watched) reads the
 /// CoreAudio process list every `pollInterval`, as Windows does: CoreAudio
@@ -80,8 +80,8 @@ final class MeetingAutoRecord {
         guard !begun else { return }
         begun = true
         controller.phaseObserver = { [weak self] _ in self?.sendControllerState() }
-        prompt.onAnswer = { [weak self] id, choice in
-            self?.send(.promptAnswered(id: id, choice: choice))
+        prompt.onAnswer = { [weak self] id, answer in
+            self?.send(.promptAnswered(id: id, answer: answer))
         }
         sendControllerState()
         send(.begin)
@@ -162,8 +162,15 @@ final class MeetingAutoRecord {
             startWatching()
         case .stopWatching:
             stopWatching()
-        case .start(let language):
-            // The choice persists, as if picked on the Record tab.
+        case .start(let language, let microphone):
+            // The microphone first, as if picked on the Record tab (not
+            // persisted); an equal pick is not applied, so an automatic "no
+            // microphone" stays automatic (PLAN.md 4.10 "Microphone in the
+            // question", rule 4).
+            if let microphone, microphone != controller.microphoneChoice {
+                controller.microphoneChoice = microphone
+            }
+            // The language persists, as if picked on the Record tab.
             if let language { controller.languageChoice = language }
             controller.start()
             // A start that did nothing (quitting) changes no phase: tell the rules.
@@ -172,7 +179,8 @@ final class MeetingAutoRecord {
             let controller = controller
             Task { await controller.stop() }
         case .showPrompt(let id, let preselected):
-            prompt.show(id: id, preselected: preselected)
+            // The Record tab's microphone at the moment the question opens.
+            prompt.show(id: id, preselected: preselected, microphone: controller.microphoneChoice)
             showRecordTab()
         case .closePrompt(let id):
             prompt.close(id: id)

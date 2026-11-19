@@ -67,13 +67,9 @@ struct MainView: View {
         // "Record this meeting?" for an automatic recording (PLAN.md 4.10).
         // Its own layer: one sheet modifier per view.
         .sheet(item: meetingPromptItem) { pending in
-            MeetingPromptSheet(
-                preselected: pending.preselected,
-                onRecord: { meetingPrompt.answer(id: pending.id, choice: $0) },
-                onDontRecord: { meetingPrompt.answer(id: pending.id, choice: nil) }
-            )
-            // Closing the window takes the sheet along without a button.
-            .onDisappear { meetingPrompt.dismissed(id: pending.id) }
+            LiveMeetingPromptSheet(pending: pending, model: meetingPrompt)
+                // Closing the window takes the sheet along without a button.
+                .onDisappear { meetingPrompt.dismissed(id: pending.id) }
         }
         .onAppear {
             if fileModel == nil {

@@ -721,7 +721,7 @@ internal static partial class Strings
             + "The recording uses the microphone, system audio and language chosen on the Record tab.");
     public static string AutoRecordAsksLanguage => App("Ask which language to use before each automatic recording");
     public static string AutoRecordAsksLanguageCaption =>
-        App("Off: the recording uses the language chosen on the Record tab, and Auto detects it. "
+        Win("Off: the recording uses the language chosen on the Record tab, and Auto detects it. "
             + "On: when a meeting starts, Hearsay asks whether to record it and in which language, and records when you confirm.");
     /// <summary>The Record tab's notice line while an automatic session runs.</summary>
     public static string AutomaticRecordingNotice => App("Recording started automatically for a Microsoft Teams meeting.");

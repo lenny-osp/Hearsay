@@ -192,7 +192,7 @@ private struct MeetingsSection: View {
                 .foregroundStyle(.secondary)
             Toggle("Ask which language to use before each automatic recording", isOn: $settings.autoRecordAsksLanguage)
                 .disabled(!settings.autoRecordTeamsMeetings)
-            Text("Off: the recording uses the language chosen on the Record tab, and Auto detects it. On: when a meeting starts, Hearsay asks whether to record it and in which language, and records when you confirm.",
+            Text("Off: the recording uses the language chosen on the Record tab, and Auto detects it. On: when a meeting starts, Hearsay asks whether to record it, with which microphone and in which language, and records when you confirm.",
                  comment: "Settings > General > Meetings: caption under \"Ask which language to use before each automatic recording\". \"Record\" is the Record tab's name, \"Auto\" the language picker's Auto.")
                 .font(.caption)
                 .foregroundStyle(.secondary)

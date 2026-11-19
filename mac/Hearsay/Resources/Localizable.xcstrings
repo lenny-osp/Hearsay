@@ -5760,31 +5760,31 @@
         }
       }
     },
-    "Off: the recording uses the language chosen on the Record tab, and Auto detects it. On: when a meeting starts, Hearsay asks whether to record it and in which language, and records when you confirm." : {
+    "Off: the recording uses the language chosen on the Record tab, and Auto detects it. On: when a meeting starts, Hearsay asks whether to record it, with which microphone and in which language, and records when you confirm." : {
       "comment" : "Settings > General > Meetings: caption under \"Ask which language to use before each automatic recording\". \"Record\" is the Record tab's name, \"Auto\" the language picker's Auto.",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aus: Die Aufnahme verwendet die im Tab „Aufnahme“ gewählte Sprache, und „Automatisch“ erkennt sie. Ein: Wenn eine Besprechung beginnt, fragt Hearsay, ob und in welcher Sprache sie aufgenommen werden soll, und nimmt nach der Bestätigung auf."
+            "value" : "Aus: Die Aufnahme verwendet die im Tab „Aufnahme“ gewählte Sprache, und „Automatisch“ erkennt sie. Ein: Wenn eine Besprechung beginnt, fragt Hearsay, ob sie aufgenommen werden soll, mit welchem Mikrofon und in welcher Sprache, und nimmt nach der Bestätigung auf."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Desactivado: la grabación usa el idioma elegido en la pestaña Grabar, y Automático lo detecta. Activado: cuando empieza una reunión, Hearsay pregunta si quieres grabarla y en qué idioma, y graba cuando lo confirmas."
+            "value" : "Desactivado: la grabación usa el idioma elegido en la pestaña Grabar, y Automático lo detecta. Activado: cuando empieza una reunión, Hearsay pregunta si quieres grabarla, con qué micrófono y en qué idioma, y graba cuando lo confirmas."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "关闭：录音会使用录音标签页中选择的语言，选择“自动”时会自动检测。开启：会议开始时，Hearsay 会询问是否录制以及使用哪种语言，并在你确认后开始录音。"
+            "value" : "关闭：录音会使用录音标签页中选择的语言，选择“自动”时会自动检测。开启：会议开始时，Hearsay 会询问是否录制、使用哪个麦克风以及哪种语言，并在你确认后开始录音。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "關閉：錄音會使用「錄音」標籤頁中選擇的語言，選擇「自動」時會自動偵測。開啟：會議開始時，Hearsay 會詢問是否錄製以及使用哪種語言，並在你確認後開始錄音。"
+            "value" : "關閉：錄音會使用「錄音」標籤頁中選擇的語言，選擇「自動」時會自動偵測。開啟：會議開始時，Hearsay 會詢問是否錄製、使用哪個麥克風以及哪種語言，並在你確認後開始錄音。"
           }
         }
       }

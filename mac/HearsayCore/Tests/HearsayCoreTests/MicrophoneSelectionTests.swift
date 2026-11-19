@@ -109,4 +109,39 @@ import Testing
         selection.select(.device(uid: "built-in"))
         #expect(!selection.capturesSystemAudio(stored: false))
     }
+
+    // MARK: - The meeting question's picker (PLAN.md 4.10 "Microphone in the question", rule 3)
+
+    @Test func questionKeepsADeviceThatIsStillPresent() {
+        let pick = MicrophoneChoice.device(uid: "headset")
+        #expect(pick.inMeetingQuestion(deviceUIDs: ["built-in", "headset"], recordTabChoice: .device(uid: "built-in"))
+            == .device(uid: "headset"))
+    }
+
+    @Test func questionIgnoresADeviceAppearing() {
+        let pick = MicrophoneChoice.device(uid: "built-in")
+        #expect(pick.inMeetingQuestion(deviceUIDs: ["built-in", "headset"], recordTabChoice: .device(uid: "headset"))
+            == .device(uid: "built-in"))
+    }
+
+    @Test func questionFallsBackToTheRecordTabWhenThePickedDeviceGoes() {
+        let pick = MicrophoneChoice.device(uid: "headset")
+        #expect(pick.inMeetingQuestion(deviceUIDs: ["built-in"], recordTabChoice: .device(uid: "built-in"))
+            == .device(uid: "built-in"))
+    }
+
+    @Test func questionKeepsNoMicrophoneWhenDevicesChange() {
+        let pick = MicrophoneChoice.noMicrophone
+        #expect(pick.inMeetingQuestion(deviceUIDs: ["built-in", "headset"], recordTabChoice: .device(uid: "built-in"))
+            == .noMicrophone)
+        #expect(pick.inMeetingQuestion(deviceUIDs: [], recordTabChoice: .noMicrophone) == .noMicrophone)
+    }
+
+    @Test func questionWithNoDeviceLeftFallsBackToNoMicrophone() {
+        // The Record tab followed the empty list to "no microphone" (4.13 rule 3).
+        var recordTab = MicrophoneSelection()
+        recordTab.update(deviceUIDs: [], defaultUID: nil)
+        let pick = MicrophoneChoice.device(uid: "built-in")
+        #expect(pick.inMeetingQuestion(deviceUIDs: [], recordTabChoice: recordTab.choice) == .noMicrophone)
+    }
 }

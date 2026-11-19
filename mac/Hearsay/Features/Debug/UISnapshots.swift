@@ -255,10 +255,23 @@ enum UISnapshots {
         settings.autoRecordTeamsMeetings = true
         await render("36-settings-general-meetings", width: 720, height: 1000, SettingsView(initialPane: .general))
         settings.autoRecordTeamsMeetings = false
-        await render("37-sheet-meeting-prompt", width: 380,
-                     MeetingPromptSheet(preselected: .auto, onRecord: { _ in }, onDontRecord: {}))
-        await render("38-sheet-meeting-prompt-chinese", width: 380,
-                     MeetingPromptSheet(preselected: .fixed(.chineseTaiwan), onRecord: { _ in }, onDontRecord: {}))
+        // The question's Microphone picker (PLAN.md 4.10 "Microphone in the
+        // question") with fixed sample devices; 38 picks the headset, whose
+        // long name must truncate, and 46 has no input device at all.
+        let builtIn = AudioInputDevice(id: 1, uid: "sample-built-in", name: "MacBook Pro Microphone")
+        let headset = AudioInputDevice(
+            id: 2, uid: "sample-headset", name: "Jabra Evolve2 85 Wireless Headset (Bluetooth Hands-Free)")
+        let sampleDevices = [builtIn, headset]
+        await render("37-sheet-meeting-prompt", width: 380, MeetingPromptSheet(
+            preselected: .auto, preselectedMicrophone: .device(uid: builtIn.uid), devices: sampleDevices,
+            recordTabMicrophone: .device(uid: builtIn.uid), onRecord: { _ in }, onDontRecord: {}))
+        await render("38-sheet-meeting-prompt-chinese", width: 380, MeetingPromptSheet(
+            preselected: .fixed(.chineseTaiwan), preselectedMicrophone: .device(uid: headset.uid),
+            devices: sampleDevices, recordTabMicrophone: .device(uid: builtIn.uid),
+            onRecord: { _ in }, onDontRecord: {}))
+        await render("46-sheet-meeting-prompt-no-microphone", width: 380, MeetingPromptSheet(
+            preselected: .auto, preselectedMicrophone: .noMicrophone, devices: [],
+            recordTabMicrophone: .noMicrophone, onRecord: { _ in }, onDontRecord: {}))
         controller.automaticStartNotice = String(
             localized: "Recording started automatically for a Microsoft Teams meeting.",
             comment: "Record tab: notice line while a recording that Hearsay started for a Microsoft Teams meeting runs. Keep \"Microsoft Teams\" as is.")

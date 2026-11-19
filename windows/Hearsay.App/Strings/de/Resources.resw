@@ -377,10 +377,6 @@
     <value>Modelle öffnen</value>
     <comment>app: Open Models</comment>
   </data>
-  <data name="app_494fae321ac72722" xml:space="preserve">
-    <value>Aus: Die Aufnahme verwendet die im Tab „Aufnahme“ gewählte Sprache, und „Automatisch“ erkennt sie. Ein: Wenn eine Besprechung beginnt, fragt Hearsay, ob und in welcher Sprache sie aufgenommen werden soll, und nimmt nach der Bestätigung auf.</value>
-    <comment>app: Off: the recording uses the language chosen on the Record tab, and Auto detects it. On: when a meeting starts, Hearsay asks whether to record it and in which language, and records when you confirm.</comment>
-  </data>
   <data name="app_4b897b8f423ef8b3" xml:space="preserve">
     <value>Stellt die Transkription vorerst zurück. „Transkribieren“ setzt sie dort fort, wo sie stehen geblieben ist.</value>
     <comment>app: Stops transcribing for now. Transcribe continues where it stopped.</comment>
@@ -1816,6 +1812,10 @@
   <data name="windows_47c6addbf1cc699a" xml:space="preserve">
     <value>Wird transkribiert …</value>
     <comment>windows: Transcribing…</comment>
+  </data>
+  <data name="windows_494fae321ac72722" xml:space="preserve">
+    <value>Aus: Die Aufnahme verwendet die im Tab „Aufnahme“ gewählte Sprache, und „Automatisch“ erkennt sie. Ein: Wenn eine Besprechung beginnt, fragt Hearsay, ob und in welcher Sprache sie aufgenommen werden soll, und nimmt nach der Bestätigung auf.</value>
+    <comment>windows: Off: the recording uses the language chosen on the Record tab, and Auto detects it. On: when a meeting starts, Hearsay asks whether to record it and in which language, and records when you confirm.</comment>
   </data>
   <data name="windows_4ece928cc9306cf9" xml:space="preserve">
     <value>Verwendet die auf diesem PC installierte Copilot CLI und deren eigene Anmeldung. Zum Anmelden einmal `copilot` im Terminal ausführen. Mit „auto“ wählt Copilot das Modell.</value>
