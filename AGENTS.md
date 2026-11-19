@@ -96,6 +96,9 @@ dotnet test windows\Hearsay.Tests -c Release          # core tests, fast
 dotnet test windows\Hearsay.App.Tests -c Release      # app logic and string lookup, fast
 ```
 
+- `global.json` at the repo root pins the .NET 10 SDK (newest 10.0.x),
+  so run `dotnet` from inside the repo; a newer SDK adds analyzer errors
+  (PLAN.md 18.3).
 - The solution is `Hearsay.slnx` (the XML format .NET 10 creates).
   `Directory.Build.props` holds the settings every project shares; do not
   repeat them in a csproj. New source files need no csproj edit.

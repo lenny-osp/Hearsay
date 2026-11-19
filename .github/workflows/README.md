@@ -75,7 +75,9 @@ keychain.
 
 ### windows-ci.yml: every pull request and every push to `main`
 
-One job on `windows-latest` with the .NET 10 SDK (`actions/setup-dotnet`):
+One job on `windows-latest` with the .NET 10 SDK (`actions/setup-dotnet`;
+`global.json` at the repo root keeps `dotnet` on 10.0.x when the image
+also has a newer SDK, PLAN.md 18.3):
 
 - builds `windows\Hearsay.slnx` in Release (warnings are errors through
   `windows/Directory.Build.props`), which includes the WinUI app;

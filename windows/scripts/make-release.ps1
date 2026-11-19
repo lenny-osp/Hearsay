@@ -175,8 +175,14 @@ if ($signing) {
 # ---- 1. Build ----
 Step "dotnet build windows\Hearsay.slnx -c Release -p:Version=$Version --artifacts-path $buildDir"
 if (Test-Path -LiteralPath $buildDir) { Remove-Item -LiteralPath $buildDir -Recurse -Force }
-& dotnet build $solution -c Release "-p:Version=$Version" --artifacts-path $buildDir -nologo -v:minimal
-if ($LASTEXITCODE -ne 0) { Fail "dotnet build failed (exit $LASTEXITCODE)." }
+# From the repo root, so the root global.json picks the .NET 10 SDK even
+# when a newer SDK is installed and the script is run from elsewhere.
+Push-Location -LiteralPath $repoRoot
+try {
+    & dotnet build $solution -c Release "-p:Version=$Version" --artifacts-path $buildDir -nologo -v:minimal
+    $buildExit = $LASTEXITCODE
+} finally { Pop-Location }
+if ($buildExit -ne 0) { Fail "dotnet build failed (exit $buildExit)." }
 
 # <build>\bin\Hearsay.App\release_win-x64\Hearsay.exe (the App tests project
 # has a folder and a copy of its own).
