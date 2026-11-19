@@ -3400,33 +3400,31 @@ listed here.
 
 - **Dialog.** `MeetingRecordPrompt.AskAsync` gets a Microphone row above
   the Language row: label `Strings.Microphone` (the Record tab's),
-  a `ComboBox` with `RecordingController.Devices` by name, preselected
-  with `SelectedDeviceUid`. It returns both picks (a small record,
-  language and device UID) instead of the language alone; null still
+  a `ComboBox` with the Record tab's rows (`RecordingController.Devices`
+  by name, then the no-microphone row), preselected with
+  `RecordingController.MicrophoneChoice`. It returns both picks (a small
+  record, language and `MicrophoneChoice`) instead of the language alone; null still
   means Don't record, a dialog closed another way, or a cancel.
 - **Live list.** While the dialog is open it follows
   `RecordingController.Devices` (the controller's `PropertyChanged`;
   unsubscribe when the dialog closes): new devices appear, the pick stays,
   and a picked device that disappears falls back to the controller's
-  `SelectedDeviceUid` at that moment. Port the Mac's pure fallback
+  `MicrophoneChoice` at that moment. Port the Mac's pure fallback
   function and its tests into `Hearsay.Core` (name the Swift file in the
   summary comment).
-- **No-microphone row.** Windows has no "No microphone (system audio
-  only)" row until the 18.9 item "System audio only" is built. Built
-  before it: the dialog lists devices only, and with no input device it
-  shows the Record tab's "No input device" row, disabled, as the Record
-  tab does. Built after or with it: the dialog has the same last row as
-  the Record tab and rule 4's "a pick equal to the current choice is not
-  applied" matters (an automatic no-microphone stays automatic). Whoever
-  builds the second of the two items makes the dialog match the Record
-  tab.
+- **No-microphone row.** Windows built "System audio only" (18.9) after
+  this was planned, so the dialog has the same rows as the Record tab:
+  every device by name, then "No microphone (system audio only)"
+  (`MicrophoneChoice.NoMicrophone`, `Strings.NoMicrophoneSystemAudioOnly`).
+  Rule 4's "a pick equal to the current choice is not applied" matters: an
+  automatic no-microphone (no input device) must stay automatic.
 - **Coordinator.** `MeetingAutoRecord.AskThenStartAsync` applies the
-  microphone (`SelectedDeviceUid`, only when it differs), then
+  microphone (`MicrophoneChoice`, only when it differs), then
   `LanguageChoice`, then starts, on the UI thread, with the checks it has
   today (setting still on, meeting still active, `CanStart`). The injected
   `prompt` delegate's result type changes; update the rig in
   `Hearsay.App.Tests/MeetingAutoRecordTests.cs` and add tests: Record with
-  another device sets `SelectedDeviceUid` before `Start()`; Don't record
+  another device sets `MicrophoneChoice` before `Start()`; Don't record
   and a cancelled prompt leave it alone; the same device changes nothing.
   The pick is not persisted, as the Record tab's is not.
 - **Strings.** `AutoRecordAsksLanguageCaption` switches from the
